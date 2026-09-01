@@ -762,6 +762,7 @@ footer{
       <button class="btn btn-ghost" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own." >See an example</button>
       <span class="creditcount" id="credits" hidden data-tip="Credits left this month. Placing notes is always free; conversations and reading a notes file are what count."></span>
       <a class="btn btn-ghost" href="/settings.html" id="acct" data-tip="Your plan, what you've used this month, and your data.">Account</a>
+      <a class="btn btn-ghost" href="/admin.html" id="adminlink" hidden data-tip="Yours only. Who signed up, what they did, and what it cost.">Admin</a>
       <button class="btn btn-ghost" id="clear" data-tip="Removes every card from this project only. Other projects are untouched, and Undo brings it all back.">Empty this board</button>
     </div>
   </div>
@@ -4064,6 +4065,15 @@ document.getElementById("foot").innerHTML =
   // shelf first and choose; dropping them into whichever board they closed
   // last decides that for them.
   setView("slate", true);
+
+  // Who am I? Shows the credit count straight away rather than only after the
+  // first AI call, and reveals the admin link for the one account that has it.
+  try {
+    const me = await BF.api("/api/account");
+    if (me.is_admin) document.getElementById("adminlink").hidden = false;
+    if (typeof BF.onCredits === "function")
+      BF.onCredits({left: me.credits_left, allowance: me.credits_allowance});
+  } catch (e) { /* not fatal — the board works without it */ }
 
   // first run: no projects, nothing written
   const bare = hadProjects === 0
