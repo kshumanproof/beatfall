@@ -78,6 +78,7 @@
 <script>
 (async function () {
   const session = await BF.init();
+  if (BF.unconfigured) return;
   if (session) { location.href = '/'; return; }
 
   const form = document.getElementById('form');

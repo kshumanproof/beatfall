@@ -10,10 +10,40 @@
   window.BF = BF;
 
   // ------------------------------------------------------------ supabase --
-  let sb = null, config = null;
+  let sb = null, config = null, unconfigured = false;
+
+  // A deployment with no environment variables set is a normal stage of setup,
+  // not a crash. Say so on the page instead of dying silently in the console.
+  function sayUnconfigured(what) {
+    unconfigured = true;
+    BF.unconfigured = true;
+    document.body.innerHTML =
+      '<div style="max-width:560px;margin:14vh auto;padding:0 24px;font-family:' +
+      "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#15181D\">" +
+      '<div style="font-weight:800;font-size:21px;letter-spacing:-.035em;margin-bottom:18px">' +
+      'Beat<span style="color:#2C5C8F">fall</span></div>' +
+      '<div style="border:1px solid #CFD5DD;border-left:3px solid #9A7716;background:#fff;' +
+      'padding:20px 22px;border-radius:2px;line-height:1.6;font-size:14.5px">' +
+      '<b>This deployment isn\'t connected to its database yet.</b><br><br>' +
+      'The site is built and serving correctly — it just has no account system ' +
+      'behind it, so there is nothing to sign in to.<br><br>' +
+      '<span style="color:#7C8593;font-family:ui-monospace,monospace;font-size:12.5px">' +
+      'missing: ' + what + '</span></div></div>';
+    document.documentElement.style.background = '#E9ECEF';
+  }
 
   BF.init = async function () {
-    config = await fetch('/api/config').then(r => r.json());
+    try {
+      config = await fetch('/api/config').then(r => r.json());
+    } catch (e) {
+      config = null;
+    }
+    if (!config || !config.supabaseUrl || !config.supabaseAnonKey) {
+      sayUnconfigured(!config ? '/api/config did not respond'
+        : [!config.supabaseUrl && 'SUPABASE_URL',
+           !config.supabaseAnonKey && 'SUPABASE_ANON_KEY'].filter(Boolean).join(', '));
+      return null;
+    }
     sb = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
@@ -31,6 +61,7 @@
   // Every protected page starts with this. No session, no page.
   BF.requireSession = async function () {
     const session = await BF.init();
+    if (unconfigured) return null;            // never bounce into a login that can't work
     if (!session) { location.href = '/login.html'; return null; }
     return session;
   };
