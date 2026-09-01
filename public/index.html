@@ -1539,7 +1539,7 @@ async function load(){
     touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
   }));
   if (!projects.length) projects.push(blankProject("Untitled", "stc"));
-  state = {projects, activeId: projects[0].id || projects[0].localId, view: "board"};
+  state = {projects, activeId: projects[0].id || projects[0].localId, view: "slate"};
   uid = 1 + projects.reduce((m,pr) =>
     Math.max(m, (pr.cards||[]).reduce((n,c) => Math.max(n, c.id||0), 0)), 0);
   return rows.length;
@@ -2228,7 +2228,7 @@ function commitIntake(){
   scrim.hidden = true;
   document.getElementById("sheetnew").hidden = true;
   hideAll();
-  render();
+  setView("board");
 }
 
 
@@ -3107,7 +3107,7 @@ document.getElementById("loadsample").addEventListener("click", () => {
   });
   settle(proj);
   hideAll();
-  render();
+  setView("board");
 });
 document.getElementById("clear").addEventListener("click", () => {
   snapshot();
@@ -3532,7 +3532,7 @@ document.getElementById("revgo").addEventListener("click", () => {
 
   scrim.hidden = true;
   hideAll();
-  render();
+  setView("board");
   showSettled(firstMoves, added + " notes sorted"
     + (newProjects ? " — and " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "")
     + (firstMoves.length ? ", and some cards moved to fit" : ""));
@@ -3808,7 +3808,7 @@ const boardview = document.getElementById("boardview");
 const notesview = document.getElementById("notesview");
 const outlineview = document.getElementById("outlineview");
 
-function setView(v){
+function setView(v, quiet){
   state.view = v;
   const onBoard = v === "board";
   slate.hidden       = v !== "slate";
@@ -3818,12 +3818,14 @@ function setView(v){
   document.querySelector(".capture").hidden = !onBoard;
   document.querySelector(".strip").hidden   = !onBoard;
   document.querySelector(".projbar").hidden = v === "slate";
+  // "Empty this board" acts on one board; it has no meaning on the slate.
+  document.getElementById("clear").hidden = v === "slate";
   document.getElementById("viewtoggle").textContent = onBoard ? "All projects" : "Back to the board";
   if (v === "slate"){ hideAll(); renderSlate(); }
   else if (v === "notes"){ hideAll(); render(); renderNotes(); }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
-  else render();
-  save();
+  else { render(); try{ input.focus(); }catch(e){} }
+  if (!quiet) save();
 }
 document.getElementById("notesbtn").addEventListener("click", () =>
   setView(state.view === "notes" ? "board" : "notes"));
@@ -4055,11 +4057,13 @@ document.getElementById("foot").innerHTML =
       '<div style="padding:14px 22px;background:var(--gold-soft);border-bottom:1px solid var(--gold);'
       + 'font-size:13.5px">Couldn\'t reach your saved projects. Check your connection and reload — '
       + 'nothing has been lost.</div>');
-    state = {projects:[blankProject("Untitled","stc")], activeId: 1, view:"board"};
+    state = {projects:[blankProject("Untitled","stc")], activeId: 1, view:"slate"};
   }
 
-  render();
-  input.focus();
+  // Always open on the slate. A writer arriving cold wants to see the whole
+  // shelf first and choose; dropping them into whichever board they closed
+  // last decides that for them.
+  setView("slate", true);
 
   // first run: no projects, nothing written
   const bare = hadProjects === 0
