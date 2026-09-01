@@ -1,0 +1,11 @@
+{
+  "name": "beatfall",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Beatfall — notes fall into structure.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "stripe": "^16.8.0"
+  }
+}

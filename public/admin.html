@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Beatfall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .wrap{max-width:1320px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--surface);border:1px solid var(--rule-soft);border-radius:2px;padding:14px 16px}
+  .stat .n{font-size:25px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .stat .l{font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.11em;color:var(--ink-3);margin-top:3px}
+  .stat.good .n{color:var(--sage)} .stat.warn .n{color:var(--gold)}
+  .caps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .cap{background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:14px 16px}
+  .cap h3{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--ink-3);margin:0 0 10px}
+  .cap div{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+  .cap b{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  .kindbits{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <a href="/" class="wordmark">Beat<span>fall</span></a>
+  <span class="slug">Admin</span>
+  <div class="right">
+    <select id="days" class="btn">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <a class="btn btn-ghost" href="/settings.html">Settings</a>
+    <a class="btn btn-ghost" href="/">Board</a>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div id="loading" class="muted"><span class="spinner"></span>Loading…</div>
+  <div id="denied" class="note bad" hidden>This page is for the account owner.</div>
+
+  <div id="body" hidden>
+    <div class="stats" id="stats"></div>
+
+    <div class="panel">
+      <h2>Where the caps should sit</h2>
+      <p class="muted" style="margin-top:-6px;max-width:74ch">
+        Set the tier limits from the numbers below, not from guesses. A cap around the 90th
+        percentile leaves almost everyone unaware there is a limit, which is the point.
+      </p>
+      <div class="caps" id="caps"></div>
+    </div>
+
+    <div class="panel">
+      <h2>What people are doing</h2>
+      <div class="kindbits" id="events"></div>
+    </div>
+
+    <div class="panel">
+      <h2>People</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Who</th><th>Plan</th><th>Joined</th><th>Last seen</th>
+            <th class="num">Projects</th><th class="num">Cards</th>
+            <th class="num">Calls</th><th class="num">Credits</th><th class="num">Cost</th>
+            <th>Breakdown</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/app.js"></script>
+<script>
+(function(){ let t='system'; try{ t=localStorage.getItem('beatfall.theme')||'system'; }catch(e){}
+  if (t!=='system') document.documentElement.setAttribute('data-theme', t); })();
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function load(days) {
+  document.getElementById('loading').hidden = false;
+  let d;
+  try { d = await BF.api('/api/admin?days=' + days); }
+  catch (e) {
+    document.getElementById('loading').hidden = true;
+    document.getElementById('denied').hidden = false;
+    return;
+  }
+  document.getElementById('loading').hidden = true;
+  document.getElementById('body').hidden = false;
+
+  const t = d.totals;
+  document.getElementById('stats').innerHTML = [
+    ['', t.people, 'people'],
+    ['', t.active_in_window, 'used it in ' + d.window_days + 'd'],
+    ['good', t.returned, 'came back after day one'],
+    ['good', t.paying, 'paying'],
+    ['warn', BF.money(t.cost_usd), 'API cost, ' + d.window_days + 'd'],
+    ['', t.calls, 'AI calls']
+  ].map(([c,n,l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+
+  const c = d.credits_per_active_user, m = d.cost_per_active_user_usd;
+  document.getElementById('caps').innerHTML = `
+    <div class="cap"><h3>Credits per active user</h3>
+      <div><span>Median</span><b>${c.median}</b></div>
+      <div><span>75th percentile</span><b>${c.p75}</b></div>
+      <div><span>90th percentile</span><b>${c.p90}</b></div>
+      <div><span>Heaviest</span><b>${c.max}</b></div></div>
+    <div class="cap"><h3>API cost per active user</h3>
+      <div><span>Median</span><b>${BF.money(m.median)}</b></div>
+      <div><span>90th percentile</span><b>${BF.money(m.p90)}</b></div>
+      <div><span>Heaviest</span><b>${BF.money(m.max)}</b></div></div>
+    <div class="cap"><h3>Current plans</h3>
+      ${['writer','working','volume'].map(k =>
+        `<div><span>${d.plans[k].name} · $${d.plans[k].price}</span><b>${d.plans[k].credits}</b></div>`).join('')}
+    </div>`;
+
+  const ev = Object.entries(d.events || {}).sort((a,b) => b[1]-a[1]);
+  document.getElementById('events').innerHTML = ev.length
+    ? ev.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
+    : 'No events recorded yet.';
+
+  document.getElementById('rows').innerHTML = d.users.map(u => {
+    const pill = u.plan === 'none' ? 'off' : u.plan === 'trial' ? 'trial' : 'on';
+    const kinds = Object.entries(u.kinds || {}).map(([k,v]) => `${k}&nbsp;${v}`).join(' · ');
+    return `<tr>
+      <td>${esc(u.name || u.email || '—')}${u.name ? `<div class="muted">${esc(u.email)}</div>` : ''}</td>
+      <td><span class="pill ${pill}">${esc(u.plan)}</span>${u.status ? `<div class="muted">${esc(u.status)}</div>` : ''}</td>
+      <td class="muted">${BF.when(u.created_at)}</td>
+      <td class="muted">${BF.when(u.last_seen_at)}</td>
+      <td class="num">${u.projects}</td>
+      <td class="num">${u.cards}</td>
+      <td class="num">${u.calls}</td>
+      <td class="num">${u.credits}<span class="muted"> / ${u.allowance}</span></td>
+      <td class="num">${BF.money(u.cost_usd)}</td>
+      <td class="kindbits">${kinds || '—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" class="muted">Nobody yet.</td></tr>';
+}
+
+(async function () {
+  if (!await BF.requireSession()) return;
+  await load(30);
+  document.getElementById('days').addEventListener('change', e => load(e.target.value));
+})();
+</script>
+</body>
+</html>

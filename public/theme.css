@@ -1,0 +1,123 @@
+/* ===========================================================================
+   beatfall — shared palette and furniture.
+   The accent is script revision blue; the signal colour is goldenrod, taken
+   from the revision-page colours a production actually uses.
+   =========================================================================== */
+:root{
+  --ground:#E9ECEF; --surface:#F7F8FA; --card:#FFFFFF;
+  --ink:#15181D; --ink-2:#4A515C; --ink-3:#7C8593;
+  --rule:#CFD5DD; --rule-soft:#DEE3E9;
+  --blue:#2C5C8F; --blue-soft:#E2EAF3; --on-blue:#FFFFFF;
+  --gold:#9A7716; --gold-soft:#F6EED8;
+  --sage:#4A7358; --sage-soft:#E4EDE7;
+  --red:#8C2F2F; --red-soft:#F6E3E3;
+  --shadow:0 1px 2px rgba(21,24,29,.07),0 6px 16px -8px rgba(21,24,29,.18);
+  --mono:"Courier Prime",ui-monospace,"Courier New",monospace;
+  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#101318; --surface:#171B22; --card:#1F242D;
+    --ink:#E8EBEF; --ink-2:#A5AEBB; --ink-3:#6F7987;
+    --rule:#2C333E; --rule-soft:#242A33;
+    --blue:#7FAEDC; --blue-soft:#1B2A3B; --on-blue:#101318;
+    --gold:#D2AC52; --gold-soft:#2A2416;
+    --sage:#7FAE8D; --sage-soft:#1A2620;
+    --red:#D98A8A; --red-soft:#2A1A1A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101318; --surface:#171B22; --card:#1F242D;
+  --ink:#E8EBEF; --ink-2:#A5AEBB; --ink-3:#6F7987;
+  --rule:#2C333E; --rule-soft:#242A33;
+  --blue:#7FAEDC; --blue-soft:#1B2A3B; --on-blue:#101318;
+  --gold:#D2AC52; --gold-soft:#2A2416;
+  --sage:#7FAE8D; --sage-soft:#1A2620;
+  --red:#D98A8A; --red-soft:#2A1A1A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue)}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+
+.wordmark{font-weight:800;font-size:21px;letter-spacing:-.035em;margin:0;text-decoration:none;color:var(--ink)}
+.wordmark span{color:var(--blue)}
+.slug{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-3)}
+
+.topbar{background:var(--surface);border-bottom:1px solid var(--rule)}
+.topbar-in{max-width:1100px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.topbar-in .right{margin-left:auto;display:flex;gap:14px;align-items:center}
+
+.btn{
+  border:1px solid var(--rule);background:var(--card);border-radius:2px;
+  padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:border-color .12s ease,background .12s ease;white-space:nowrap;
+}
+.btn:hover{border-color:var(--ink-3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.btn-primary:hover{filter:brightness(1.08);border-color:var(--blue)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-3);padding:6px 10px}
+.btn-ghost:hover{color:var(--ink);border-color:var(--rule)}
+.btn-danger{border-color:var(--red);color:var(--red);background:transparent}
+.btn-danger:hover{background:var(--red);color:var(--card)}
+
+.wrap{max-width:1100px;margin:0 auto;padding:30px 22px 90px}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow)}
+.panel h2{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.13em;color:var(--ink-2);margin:0 0 14px}
+.row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.row + .row{margin-top:12px}
+.spacer{margin-left:auto}
+.muted{color:var(--ink-3);font-size:13px}
+.big{font-size:26px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+input[type=text],input[type=email]{
+  background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:2px;
+  padding:11px 13px;font-family:var(--mono);font-size:14px;width:100%;
+}
+input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
+label.field{display:block;margin-bottom:14px}
+label.field span{display:block;font-family:var(--mono);font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.11em;color:var(--ink-2);margin-bottom:6px}
+
+.meter{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;flex:1;min-width:140px}
+.meter i{display:block;height:100%;background:var(--sage)}
+.meter i.warn{background:var(--gold)}
+.meter i.full{background:var(--red)}
+
+.note{border-radius:2px;padding:13px 15px;font-size:13.5px;line-height:1.55;margin-bottom:16px}
+.note.info{background:var(--blue-soft);border:1px solid var(--blue);color:var(--ink)}
+.note.warn{background:var(--gold-soft);border:1px solid var(--gold);color:var(--ink)}
+.note.bad {background:var(--red-soft); border:1px solid var(--red);  color:var(--ink)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--ink-3);text-align:left;padding:8px 10px;
+  border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.tablewrap{overflow-x:auto}
+.pill{font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;padding:2px 6px;border-radius:2px;background:var(--rule-soft);color:var(--ink-2)}
+.pill.on{background:var(--sage-soft);color:var(--sage)}
+.pill.trial{background:var(--blue-soft);color:var(--blue)}
+.pill.off{background:var(--gold-soft);color:var(--gold)}
+
+.spinner{display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-1px;
+  border:2px solid var(--rule);border-top-color:var(--blue);border-radius:50%;
+  animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){ .spinner{animation:none;opacity:.6} }

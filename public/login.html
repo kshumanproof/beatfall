@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Beatfall</title>
+<meta name="description" content="Beatfall turns a pile of scattered notes into a beat board that shows you where your story has holes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+  @media (max-width:840px){ .shell{grid-template-columns:1fr} .pitch{display:none} }
+  .side{display:flex;align-items:center;justify-content:center;padding:40px 30px}
+  .pitch{background:var(--surface);border-right:1px solid var(--rule)}
+  .pitch-in{max-width:420px}
+  .pitch h1{font-size:34px;font-weight:800;letter-spacing:-.035em;margin:0 0 16px;text-wrap:balance}
+  .pitch p{color:var(--ink-2);font-size:15.5px;line-height:1.65;margin:0 0 14px;max-width:52ch}
+  .pitch .demo{margin-top:26px;border-left:2px solid var(--rule);padding-left:16px}
+  .pitch .demo div{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);line-height:1.7}
+  .pitch .demo b{color:var(--gold);font-weight:700}
+  .form{width:100%;max-width:380px}
+  .form h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+  .form .sub{color:var(--ink-3);font-size:13.5px;margin:0 0 22px}
+  .fine{font-size:12px;color:var(--ink-3);margin-top:18px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="side pitch">
+    <div class="pitch-in">
+      <a href="/login.html" class="wordmark">Beat<span>fall</span></a>
+      <h1 style="margin-top:22px">Your notes already know the story. They're just in the wrong order.</h1>
+      <p>Paste in three months of scattered notes — the ones in the file you never open — and
+         Beatfall works out which are story beats, puts them where they belong in the structure
+         you're writing to, and shows you the holes between them.</p>
+      <p>It asks before it guesses. It never writes your script.</p>
+      <div class="demo">
+        <div>OPENING IMAGE &nbsp;&nbsp;washing blood off at a gas station bucket</div>
+        <div><b>THEME STATED &nbsp;&nbsp;— open —</b></div>
+        <div>CATALYST &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a body caught in the spillway</div>
+        <div><b>MIDPOINT &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;— open —</b></div>
+        <div>FINAL IMAGE &nbsp;&nbsp;&nbsp;the empty grove at dusk</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="form">
+      <h2 id="title">Sign in</h2>
+      <p class="sub" id="sub">We'll email you a link. No password to remember.</p>
+
+      <div id="err" class="note bad" hidden></div>
+      <div id="sent" class="note info" hidden>
+        <b>Check your email.</b> We've sent a sign-in link to <span id="sentTo"></span>.
+        It works once and lasts an hour. You can close this tab.
+      </div>
+
+      <form id="form">
+        <label class="field">
+          <span>Email</span>
+          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
+      </form>
+
+      <p class="fine">New here? The same box works — we'll make your account when you click the link.
+         Your first 14 days are free and we don't ask for a card to start.</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/app.js"></script>
+<script>
+(async function () {
+  const session = await BF.init();
+  if (session) { location.href = '/'; return; }
+
+  const form = document.getElementById('form');
+  const go   = document.getElementById('go');
+  const err  = document.getElementById('err');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    if (!email) return;
+    err.hidden = true;
+    go.disabled = true;
+    go.innerHTML = '<span class="spinner"></span>Sending…';
+    try {
+      const { error } = await BF.sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: location.origin + '/' }
+      });
+      if (error) throw error;
+      document.getElementById('sentTo').textContent = email;
+      document.getElementById('sent').hidden = false;
+      form.hidden = true;
+      document.getElementById('title').textContent = 'Link sent';
+      document.getElementById('sub').hidden = true;
+    } catch (e2) {
+      err.textContent = (e2 && e2.message) || "Couldn't send that. Check the address and try again.";
+      err.hidden = false;
+    } finally {
+      go.disabled = false;
+      go.textContent = 'Email me a link';
+    }
+  });
+})();
+</script>
+</body>
+</html>

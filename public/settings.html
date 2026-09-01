@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Beatfall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .plan{border:1px solid var(--rule);border-radius:2px;padding:16px;background:var(--surface)}
+  .plan.current{border-color:var(--blue);border-left-width:3px;background:var(--card)}
+  .plan h3{margin:0 0 3px;font-size:16px;font-weight:700}
+  .plan .price{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:10px}
+  .plan .what{font-size:13px;color:var(--ink-2);line-height:1.5;margin-bottom:13px;min-height:38px}
+  .plan .btn{width:100%}
+  .kinds{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+  .kind{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .kind b{color:var(--ink);font-size:15px;display:block;font-weight:700}
+  .danger{border-color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <a href="/" class="wordmark">Beat<span>fall</span></a>
+  <span class="slug">Settings</span>
+  <div class="right">
+    <button class="btn btn-ghost" id="theme">Theme</button>
+    <a class="btn btn-ghost" href="/">Back to the board</a>
+    <button class="btn btn-ghost" id="out">Sign out</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div id="flash" hidden></div>
+  <div id="loading" class="muted"><span class="spinner"></span>Loading your account…</div>
+
+  <div id="body" hidden>
+
+    <div class="panel">
+      <h2>Account</h2>
+      <label class="field" style="max-width:400px">
+        <span>Name</span>
+        <input id="name" type="text" placeholder="What should we call you?">
+      </label>
+      <div class="row">
+        <span class="muted" id="email"></span>
+        <button class="btn" id="saveName">Save name</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>This month</h2>
+      <div class="row">
+        <span class="big" id="used">0</span>
+        <span class="muted">of <b id="allow">0</b> credits used</span>
+        <div class="meter" style="max-width:280px"><i id="bar" style="width:0%"></i></div>
+        <span class="muted" id="resets"></span>
+      </div>
+      <div class="kinds" id="kinds"></div>
+      <p class="muted" style="margin-top:14px;max-width:66ch">
+        Placing a note is free and always will be — it's the whole point of the app.
+        A conversation costs one credit and reading in a notes file costs two.
+        If you run out, everything except the AI keeps working and your credits reset on the 1st.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Plan</h2>
+      <div id="planNote"></div>
+      <div class="plans" id="plans"></div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn" id="portal">Manage billing</button>
+        <button class="btn" id="topup">Top up 100 credits — $6</button>
+        <span class="muted">Cancelling, changing card and switching tier all happen on Stripe's own pages.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Your data</h2>
+      <div class="row">
+        <button class="btn" id="export">Download everything</button>
+        <span class="muted">Every project, card and note as a single JSON file. No conditions.</span>
+      </div>
+    </div>
+
+    <div class="panel danger">
+      <h2 style="color:var(--red)">Delete account</h2>
+      <p class="muted" style="max-width:66ch;margin-top:0">
+        This removes your account, every project, and all of your notes, immediately and permanently.
+        Download your data first if you want it. Type your email address to confirm.</p>
+      <div class="row">
+        <input id="confirm" type="text" placeholder="your email address" style="max-width:300px">
+        <button class="btn btn-danger" id="del">Delete my account</button>
+      </div>
+    </div>
+
+    <p class="muted" id="adminlink" hidden style="margin-top:24px">
+      <a href="/admin.html">Admin dashboard →</a>
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/app.js"></script>
+<script>
+const THEMES = ['system','light','dark'];
+function applyTheme(t){
+  if (t === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme').textContent =
+    'Theme: ' + (t === 'system' ? 'auto' : t);
+  try { localStorage.setItem('beatfall.theme', t); } catch(e){}
+}
+document.getElementById('theme').addEventListener('click', () => {
+  let t = 'system'; try { t = localStorage.getItem('beatfall.theme') || 'system'; } catch(e){}
+  applyTheme(THEMES[(THEMES.indexOf(t)+1) % THEMES.length]);
+});
+(function(){ let t='system'; try{ t = localStorage.getItem('beatfall.theme')||'system'; }catch(e){} applyTheme(t); })();
+
+function flash(kind, msg){
+  const el = document.getElementById('flash');
+  el.className = 'note ' + kind; el.innerHTML = msg; el.hidden = false;
+}
+
+const PLAN_BLURB = {
+  writer:  'One script at a time, with room to think.',
+  working: 'Several projects on the go at once.',
+  volume:  'Writing at pace — episodic, vertical, a full slate.'
+};
+
+(async function () {
+  if (!await BF.requireSession()) return;
+
+  const q = new URLSearchParams(location.search);
+  if (q.get('checkout') === 'done') flash('info', "<b>You're set.</b> It can take a few seconds for the plan to show below — reload if it looks stale.");
+  if (q.get('checkout') === 'cancelled') flash('warn', 'Checkout cancelled. Nothing was charged.');
+  if (q.get('topup') === 'done') flash('info', '<b>Credits added.</b> They carry over month to month.');
+
+  document.getElementById('out').addEventListener('click', () => BF.signOut());
+
+  let me;
+  try { me = await BF.api('/api/account'); }
+  catch (e) { flash('bad', BF.explain(e)); document.getElementById('loading').hidden = true; return; }
+
+  document.getElementById('loading').hidden = true;
+  document.getElementById('body').hidden = false;
+
+  document.getElementById('email').textContent = me.email;
+  document.getElementById('name').value = me.display_name || '';
+  if (me.is_admin) document.getElementById('adminlink').hidden = false;
+
+  // ---- usage
+  const pct = me.credits_allowance ? Math.min(100, Math.round(me.credits_used / me.credits_allowance * 100)) : 0;
+  document.getElementById('used').textContent = me.credits_used;
+  document.getElementById('allow').textContent = me.credits_allowance;
+  const bar = document.getElementById('bar');
+  bar.style.width = pct + '%';
+  bar.className = pct >= 100 ? 'full' : pct >= 80 ? 'warn' : '';
+  const next = new Date(me.period_start); next.setUTCMonth(next.getUTCMonth() + 1);
+  document.getElementById('resets').textContent = 'resets ' + next.toLocaleDateString(undefined,{month:'long',day:'numeric'});
+
+  const LABEL = { conversation:'conversations', import:'notes files read', ideas:'idea sets',
+                  logline:'logline sessions', place:'notes placed', route:'notes routed' };
+  document.getElementById('kinds').innerHTML = Object.keys(me.by_kind || {}).length
+    ? Object.entries(me.by_kind).map(([k,v]) =>
+        `<div class="kind"><b>${v.count}</b>${LABEL[k] || k}</div>`).join('')
+    : '<div class="kind muted">Nothing used yet this month.</div>';
+
+  // ---- plan
+  const note = document.getElementById('planNote');
+  if (me.plan === 'trial' && me.trialing) {
+    const days = Math.max(0, Math.ceil((new Date(me.trial_ends_at) - Date.now())/86400000));
+    note.className = 'note info';
+    note.innerHTML = `<b>You're on the free trial — ${days} day${days===1?'':'s'} left.</b> `
+      + `No card on file. Pick a plan whenever you're ready; your boards carry over either way.`;
+  } else if (me.plan === 'none') {
+    note.className = 'note warn';
+    note.innerHTML = `<b>No active plan.</b> Your projects, boards and notes are all still here and `
+      + `the board works normally — it's the writing help that's switched off.`;
+  } else {
+    note.className = 'note info';
+    note.innerHTML = `<b>${me.plan_name} — $${me.price} a month.</b> `
+      + (me.subscription_status === 'past_due'
+          ? 'Your last payment failed. Update your card under Manage billing to keep the AI on.'
+          : 'Thank you — genuinely.');
+  }
+
+  document.getElementById('plans').innerHTML = ['writer','working','volume'].map(k => {
+    const p = me.plans[k];
+    const current = me.plan === k;
+    return `<div class="plan ${current ? 'current' : ''}">
+      <h3>${p.name}</h3>
+      <div class="price">$${p.price} / month · ${p.credits} credits</div>
+      <div class="what">${PLAN_BLURB[k]}</div>
+      ${current ? '<button class="btn" disabled>Your plan</button>'
+                : `<button class="btn ${k==='writer'?'btn-primary':''}" data-plan="${k}">Choose ${p.name}</button>`}
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-plan]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    try {
+      const { url } = await BF.api('/api/billing', {
+        method:'POST', body: JSON.stringify({ action:'checkout', plan: b.dataset.plan }) });
+      location.href = url;
+    } catch (e) { flash('bad', BF.explain(e)); b.disabled = false; b.textContent = 'Try again'; }
+  }));
+
+  const openStripe = (action) => async (ev) => {
+    const b = ev.currentTarget;
+    const was = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    try {
+      const { url } = await BF.api('/api/billing', { method:'POST', body: JSON.stringify({ action }) });
+      location.href = url;
+    } catch (e) { flash('bad', BF.explain(e)); b.disabled = false; b.textContent = was; }
+  };
+  document.getElementById('portal').addEventListener('click', openStripe('portal'));
+  document.getElementById('topup').addEventListener('click', openStripe('topup'));
+
+  // ---- name
+  document.getElementById('saveName').addEventListener('click', async (e) => {
+    const b = e.currentTarget; b.disabled = true;
+    try {
+      await BF.api('/api/account', { method:'POST',
+        body: JSON.stringify({ action:'rename', display_name: document.getElementById('name').value }) });
+      flash('info', 'Saved.');
+    } catch (e2) { flash('bad', BF.explain(e2)); }
+    b.disabled = false;
+  });
+
+  // ---- export
+  document.getElementById('export').addEventListener('click', async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.innerHTML = '<span class="spinner"></span>Preparing…';
+    try {
+      const data = await BF.api('/api/account', { method:'POST', body: JSON.stringify({ action:'export' }) });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'beatfall-export-' + new Date().toISOString().slice(0,10) + '.json';
+      a.click(); URL.revokeObjectURL(a.href);
+    } catch (e2) { flash('bad', BF.explain(e2)); }
+    b.disabled = false; b.textContent = 'Download everything';
+  });
+
+  // ---- delete
+  document.getElementById('del').addEventListener('click', async () => {
+    const typed = document.getElementById('confirm').value.trim();
+    if (typed !== me.email) { flash('warn', 'Type your email address exactly to confirm.'); return; }
+    if (!confirm('This deletes your account and every project permanently. There is no undo.')) return;
+    try {
+      await BF.api('/api/account', { method:'POST',
+        body: JSON.stringify({ action:'delete_account', confirm: typed }) });
+      await BF.sb.auth.signOut();
+      location.href = '/login.html';
+    } catch (e) { flash('bad', BF.explain(e)); }
+  });
+})();
+</script>
+</body>
+</html>
