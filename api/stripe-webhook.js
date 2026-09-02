@@ -75,10 +75,15 @@ export default async function handler(req, res) {
         if (!profile) break;
         const plan = planFromSubscription(sub);
         const live = ['active', 'trialing', 'past_due'].includes(sub.status);
+        // Recent Stripe API versions moved the period fields onto the line item.
+        const item = sub?.items?.data?.[0];
+        const periodEnd = sub.current_period_end || item?.current_period_end || null;
         await db.from('profiles').update({
           stripe_subscription_id: sub.id,
           subscription_status: sub.status,
           plan: live && plan ? plan : (sub.status === 'trialing' ? (plan || 'trial') : 'none'),
+          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          cancel_at_period_end: !!sub.cancel_at_period_end,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString()
                                        : profile.trial_ends_at
         }).eq('id', profile.id);
@@ -93,7 +98,8 @@ export default async function handler(req, res) {
         const profile = await byCustomer(sub.customer);
         if (!profile) break;
         await db.from('profiles')
-          .update({ subscription_status: 'canceled', plan: 'none' }).eq('id', profile.id);
+          .update({ subscription_status: 'canceled', plan: 'none',
+                    current_period_end: null, cancel_at_period_end: false }).eq('id', profile.id);
         await db.from('events').insert({ user_id: profile.id, name: 'subscription_canceled' });
         break;
       }

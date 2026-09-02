@@ -18,6 +18,8 @@ create table if not exists public.profiles (
   credits_used        int  not null default 0,                 -- reset when period_start rolls over
   credits_extra       int  not null default 0,                 -- topped-up credits, carried over
   is_admin            boolean not null default false,
+  current_period_end     timestamptz,                          -- when Stripe next bills, or when access ends
+  cancel_at_period_end   boolean not null default false,
   created_at          timestamptz not null default now(),
   last_seen_at        timestamptz not null default now()
 );
@@ -55,6 +57,8 @@ create table if not exists public.usage (
   cost_micros   bigint not null default 0,   -- millionths of a dollar, so no float drift
   created_at    timestamptz not null default now()
 );
+alter table public.profiles add column if not exists current_period_end timestamptz;
+alter table public.profiles add column if not exists cancel_at_period_end boolean not null default false;
 alter table public.usage add column if not exists session_id text;
 create index if not exists usage_user_time_idx on public.usage (user_id, created_at desc);
 create index if not exists usage_session_idx    on public.usage (user_id, session_id);

@@ -183,18 +183,36 @@ const PERIODS = [
   } else if (me.plan === 'trial' && me.trialing) {
     const days = Math.max(0, Math.ceil((new Date(me.trial_ends_at) - Date.now())/86400000));
     note.className = 'note info';
-    note.innerHTML = `<b>You're on the free trial — ${days} day${days===1?'':'s'} left.</b> `
+    const ends = new Date(me.trial_ends_at).toLocaleDateString(undefined,
+      { month:'long', day:'numeric' });
+    note.innerHTML = `<b>You're on the free trial \u2014 ${days} day${days===1?'':'s'} left, `
+      + `through ${ends}.</b> `
       + `No card on file. Pick a plan whenever you're ready; your boards carry over either way.`;
   } else if (me.plan === 'none') {
     note.className = 'note warn';
     note.innerHTML = `<b>No active plan.</b> Your projects, boards and notes are all still here and `
       + `the board works normally — it's the writing help that's switched off.`;
   } else {
-    note.className = 'note info';
-    note.innerHTML = `<b>You're subscribed. Thank you — genuinely.</b> `
-      + (me.subscription_status === 'past_due'
-          ? 'Your last payment failed. Update your card under Manage billing to keep the AI on.'
-          : `${me.credits_allowance} credits a month, and everything on the board stays free.`);
+    const when = me.current_period_end
+      ? new Date(me.current_period_end).toLocaleDateString(undefined,
+          { month:'long', day:'numeric', year:'numeric' })
+      : null;
+    if (me.cancel_at_period_end) {
+      note.className = 'note warn';
+      note.innerHTML = '<b>Cancelled.</b> You keep everything you\'ve paid for '
+        + (when ? `until <b>${when}</b>` : 'until the end of this billing period')
+        + ', then the writing help switches off. Your projects, boards and notes '
+        + 'stay exactly where they are. Changed your mind? Resubscribe under Manage billing.';
+    } else if (me.subscription_status === 'past_due') {
+      note.className = 'note bad';
+      note.innerHTML = '<b>Your last payment failed.</b> Update your card under '
+        + 'Manage billing to keep the writing help on. Nothing else is affected.';
+    } else {
+      note.className = 'note info';
+      note.innerHTML = '<b>You\'re subscribed. Thank you \u2014 genuinely.</b> '
+        + `${me.credits_allowance} credits a month, and everything on the board stays free.`
+        + (when ? ` Renews <b>${when}</b>.` : '');
+    }
   }
 
   const paid = (me.plans && me.plans.beatfall) || { credits: 150 };

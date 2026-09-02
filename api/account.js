@@ -36,6 +36,8 @@ export default async function handler(req, res) {
       plan_name: ent.plan.name,
       price: ent.plan.price,
       subscription_status: profile.subscription_status,
+      current_period_end: profile.current_period_end,
+      cancel_at_period_end: !!profile.cancel_at_period_end,
       trialing: ent.trialing,
       trial_ends_at: ent.trialEndsAt,
       credits_used: ent.used,
