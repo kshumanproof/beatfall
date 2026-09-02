@@ -4082,7 +4082,7 @@ document.getElementById("foot").innerHTML =
   try {
     const me = await BF.api("/api/account");
     if (me.is_admin) document.getElementById("adminlink").hidden = false;
-    if (typeof BF.onCredits === "function")
+    if (!me.unlimited && typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance});
   } catch (e) { /* not fatal — the board works without it */ }
 

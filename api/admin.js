@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       id: p.id,
       email: p.email,
       name: p.display_name,
+      owner: !!p.is_admin,
       plan: ent.key,
       status: p.subscription_status,
       trial_ends_at: p.trial_ends_at,
@@ -66,7 +67,9 @@ export default async function handler(req, res) {
   });
 
   // ---- the numbers that decide the tiers ---------------------------------
-  const active = rows.filter(r => r.calls > 0);
+  // Owner accounts are unmetered, so including them would drag the percentiles
+  // that decide the customer allowance.
+  const active = rows.filter(r => r.calls > 0 && !r.owner);
   const spends = active.map(r => r.cost_usd).sort((a, b) => a - b);
   const creds  = active.map(r => r.credits).sort((a, b) => a - b);
   const pct = (arr, p) => arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p))] : 0;

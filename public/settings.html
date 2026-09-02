@@ -156,9 +156,10 @@ const PERIODS = [
   if (me.is_admin) document.getElementById('adminlink').hidden = false;
 
   // ---- usage
-  const pct = me.credits_allowance ? Math.min(100, Math.round(me.credits_used / me.credits_allowance * 100)) : 0;
+  const pct = me.unlimited ? 0
+    : (me.credits_allowance ? Math.min(100, Math.round(me.credits_used / me.credits_allowance * 100)) : 0);
   document.getElementById('used').textContent = me.credits_used;
-  document.getElementById('allow').textContent = me.credits_allowance;
+  document.getElementById('allow').textContent = me.unlimited ? '\u221e' : me.credits_allowance;
   const bar = document.getElementById('bar');
   bar.style.width = pct + '%';
   bar.className = pct >= 100 ? 'full' : pct >= 80 ? 'warn' : '';
@@ -174,7 +175,12 @@ const PERIODS = [
 
   // ---- plan
   const note = document.getElementById('planNote');
-  if (me.plan === 'trial' && me.trialing) {
+  if (me.unlimited) {
+    note.className = 'note info';
+    note.innerHTML = '<b>Owner account.</b> No plan, no limits, no billing — '
+      + 'your usage is excluded from the numbers on the admin dashboard so it '
+      + "can't skew where the customer allowance should sit.";
+  } else if (me.plan === 'trial' && me.trialing) {
     const days = Math.max(0, Math.ceil((new Date(me.trial_ends_at) - Date.now())/86400000));
     note.className = 'note info';
     note.innerHTML = `<b>You're on the free trial — ${days} day${days===1?'':'s'} left.</b> `
@@ -192,7 +198,7 @@ const PERIODS = [
   }
 
   const paid = (me.plans && me.plans.beatfall) || { credits: 150 };
-  const subscribed = me.plan === 'beatfall';
+  const subscribed = me.plan === 'beatfall' || me.unlimited;
 
   document.getElementById('plans').innerHTML = PERIODS.map((p, i) => `
     <div class="plan ${subscribed ? '' : (i === 1 ? 'current' : '')}">

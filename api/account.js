@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       email: user.email,
       display_name: profile.display_name,
       is_admin: !!profile.is_admin,
+      unlimited: !!ent.unlimited,
       plan: ent.key,
       plan_name: ent.plan.name,
       price: ent.plan.price,
