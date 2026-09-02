@@ -7,7 +7,7 @@
 <meta name="description" content="Beatfall turns a pile of scattered notes into a beat board that shows you where your story has holes.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
 <link rel="stylesheet" href="/theme.css">
 <style>
   .shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
@@ -15,15 +15,17 @@
   .side{display:flex;align-items:center;justify-content:center;padding:40px 30px}
   .pitch{background:var(--surface);border-right:1px solid var(--rule)}
   .pitch-in{max-width:420px}
-  .pitch h1{font-size:34px;font-weight:800;letter-spacing:-.035em;margin:0 0 16px;text-wrap:balance}
-  .pitch p{color:var(--ink-2);font-size:15.5px;line-height:1.65;margin:0 0 14px;max-width:52ch}
-  .pitch .demo{margin-top:26px;border-left:2px solid var(--rule);padding-left:16px}
-  .pitch .demo div{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);line-height:1.7}
-  .pitch .demo b{color:var(--gold);font-weight:700}
+  .pitch h1{font-family:var(--serif);font-size:36px;font-weight:600;line-height:1.24;
+    letter-spacing:-.014em;margin:0 0 18px;text-wrap:balance}
+  .pitch p{font-family:var(--serif);color:var(--ink-2);font-size:16px;line-height:1.65;
+    margin:0 0 14px;max-width:52ch}
+  .pitch .demo{margin-top:28px;border-left:1px solid var(--rule);padding-left:18px}
+  .pitch .demo div{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);line-height:1.8}
+  .pitch .demo b{color:var(--gold);font-weight:400}
   .form{width:100%;max-width:380px}
-  .form h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
-  .form .sub{color:var(--ink-3);font-size:13.5px;margin:0 0 22px}
-  .fine{font-size:12px;color:var(--ink-3);margin-top:18px;line-height:1.6}
+  .form h2{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+  .form .sub{font-family:var(--serif);font-style:italic;color:var(--ink-3);font-size:14.5px;margin:0 0 24px}
+  .fine{font-size:12.5px;color:var(--ink-4);margin-top:20px;line-height:1.6}
 </style>
 </head>
 <body>

@@ -6,678 +6,580 @@
 <title>Beatfall</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
-/* ---------- tokens: light (bare :root = complete palette) ---------- */
+/* ---------- tokens: light (bare :root = complete palette) ----------
+   Paper cards in a quiet room. Two colours, two jobs:
+   BLUE is what you can touch. GOLD is what's missing. Nothing else is bright. */
 :root{
-  --ground:#E9ECEF;
-  --surface:#F7F8FA;
-  --card:#FFFFFF;
-  --ink:#15181D;
-  --ink-2:#4A515C;
-  --ink-3:#7C8593;
-  --rule:#CFD5DD;
-  --rule-soft:#DEE3E9;
-  --blue:#2C5C8F;         /* revision blue - the accent */
-  --blue-soft:#E2EAF3;
+  --ground:#F1EEE7;        /* the room */
+  --surface:#F6F3ED;       /* header, rails, recessed panels */
+  --card:#FDFBF6;          /* paper */
+  --ink:#2B2620;
+  --ink-2:#6E655C;
+  --ink-3:#9C9287;
+  --ink-4:#A79C8E;
+  --rule:#E0D9CB;
+  --rule-soft:#EDE7DA;
+  --blue:#2C5C8F;          /* what you can touch */
+  --blue-soft:#EAEFF5;
   --blue-ink:#1E4269;
   --on-blue:#FFFFFF;
-  --gold:#9A7716;         /* goldenrod - the gap signal */
-  --gold-soft:#F6EED8;
+  --gold:#8A6A1E;          /* what's missing */
+  --gold-soft:#F4EEDF;
+  --gold-hair:#D9C08A;
   --sage:#4A7358;
+  --sage-soft:#E7EEE9;
   --red:#8C2F2F;
-  --shadow:0 1px 2px rgba(21,24,29,.07),0 6px 16px -8px rgba(21,24,29,.18);
-  --shadow-lift:0 2px 4px rgba(21,24,29,.10),0 18px 32px -14px rgba(21,24,29,.34);
+  --red-soft:#F6E7E7;
+  --shadow:0 1px 1px rgba(58,48,36,.05),0 10px 20px -14px rgba(58,48,36,.45);
+  --shadow-lift:0 2px 4px rgba(58,48,36,.08),0 22px 44px -18px rgba(58,48,36,.55);
   --mono:"Courier Prime",ui-monospace,"Courier New",monospace;
-  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --ground:#101318;
-    --surface:#171B22;
-    --card:#1F242D;
-    --ink:#E8EBEF;
-    --ink-2:#A5AEBB;
-    --ink-3:#6F7987;
-    --rule:#2C333E;
-    --rule-soft:#242A33;
-    --blue:#7FAEDC;
-    --blue-soft:#1B2A3B;
-    --blue-ink:#A9C9EC;
-    --on-blue:#101318;
-    --gold:#D2AC52;
-    --gold-soft:#2A2416;
-    --sage:#7FAE8D;
+    --ground:#1A1714;
+    --surface:#211D19;
+    --card:#292420;
+    --ink:#EFE9DE;
+    --ink-2:#B7AC9D;
+    --ink-3:#8C8175;
+    --ink-4:#776D62;
+    --rule:#3A342C;
+    --rule-soft:#2E2923;
+    --blue:#8FB6DE;
+    --blue-soft:#20303E;
+    --blue-ink:#B9D3F0;
+    --on-blue:#14181C;
+    --gold:#D9BC77;
+    --gold-soft:#2B2517;
+    --gold-hair:#7E6C3E;
+    --sage:#8CB79A;
+    --sage-soft:#1E2A22;
     --red:#D98A8A;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
-    --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 32px -14px rgba(0,0,0,.8);
+    --red-soft:#2C1C1C;
+    --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 20px -14px rgba(0,0,0,.8);
+    --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 22px 44px -18px rgba(0,0,0,.9);
   }
 }
 :root[data-theme="dark"]{
-  --ground:#101318;
-  --surface:#171B22;
-  --card:#1F242D;
-  --ink:#E8EBEF;
-  --ink-2:#A5AEBB;
-  --ink-3:#6F7987;
-  --rule:#2C333E;
-  --rule-soft:#242A33;
-  --blue:#7FAEDC;
-  --blue-soft:#1B2A3B;
-  --blue-ink:#A9C9EC;
-  --on-blue:#101318;
-  --gold:#D2AC52;
-  --gold-soft:#2A2416;
-  --sage:#7FAE8D;
+  --ground:#1A1714;
+  --surface:#211D19;
+  --card:#292420;
+  --ink:#EFE9DE;
+  --ink-2:#B7AC9D;
+  --ink-3:#8C8175;
+  --ink-4:#776D62;
+  --rule:#3A342C;
+  --rule-soft:#2E2923;
+  --blue:#8FB6DE;
+  --blue-soft:#20303E;
+  --blue-ink:#B9D3F0;
+  --on-blue:#14181C;
+  --gold:#D9BC77;
+  --gold-soft:#2B2517;
+  --gold-hair:#7E6C3E;
+  --sage:#8CB79A;
+  --sage-soft:#1E2A22;
   --red:#D98A8A;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
-  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 32px -14px rgba(0,0,0,.8);
+  --red-soft:#2C1C1C;
+  --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 20px -14px rgba(0,0,0,.8);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 22px 44px -18px rgba(0,0,0,.9);
 }
 
 *{box-sizing:border-box}
 [hidden]{display:none !important}   /* .scrim sets display:flex — never let it beat this */
 body{
   margin:0;background:var(--ground);color:var(--ink);
-  font-family:var(--sans);font-size:15px;line-height:1.5;
+  font-family:var(--sans);font-size:14px;line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
 button{font-family:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
 
-/* ---------- slug line: the uppercase mono label, borrowed from scene headings ---------- */
+/* ---------- the label voice: small, spaced, upper ---------- */
 .slug{
-  font-family:var(--mono);font-size:11px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-3);
+  font-family:var(--sans);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);
 }
 
-/* ---------- masthead ---------- */
+/* =====================================================================
+   ONE HEADER. Everything that used to be five stacked bars.
+   ===================================================================== */
 header{
   background:var(--surface);border-bottom:1px solid var(--rule);
   position:sticky;top:0;z-index:40;
 }
-.masthead{
-  max-width:1440px;margin:0 auto;padding:14px 22px 0;
-  display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;
+.topline{
+  max-width:1560px;margin:0 auto;height:60px;padding:0 28px;
+  display:flex;align-items:center;gap:18px;
 }
 .wordmark{
-  font-family:var(--sans);font-weight:800;font-size:21px;
-  letter-spacing:-.035em;margin:0;
+  font-family:var(--serif);font-weight:600;font-size:22px;
+  letter-spacing:-.012em;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
 }
 .wordmark span{color:var(--blue)}
-.tagline{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.02em}
-.masthead-right{margin-left:auto;display:flex;align-items:center;gap:14px}
-.creditcount{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em;
-  color:var(--ink-3);padding:3px 7px;border:1px solid var(--rule);border-radius:2px}
-.creditcount.low{color:var(--gold);border-color:var(--gold)}
-.creditcount.out{color:var(--red,#8C2F2F);border-color:var(--red,#8C2F2F)}
-#savestate{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
+.hsep{width:1px;height:20px;background:var(--rule);flex:0 0 auto}
+.grow{flex:1 1 auto;min-width:8px}
+.tagline{display:none}
 
-/* ---------- capture bar ---------- */
-.capture{max-width:1440px;margin:0 auto;padding:12px 22px 16px}
-.capture-lede{font-size:13px;color:var(--ink-3);margin-bottom:9px}
-.capture-row{display:flex;gap:10px;align-items:stretch}
-.capture input{
-  flex:1;min-width:0;background:var(--card);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;
-  padding:13px 15px;font-family:var(--mono);font-size:15px;
+.projbar{display:flex;align-items:center;gap:14px;position:relative;min-width:0}
+.projbtn{
+  display:flex;align-items:center;gap:9px;border:none;background:none;cursor:pointer;
+  padding:6px 8px;margin-left:-8px;border-radius:2px;max-width:340px;
 }
-.capture input::placeholder{color:var(--ink-3)}
-.capture input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
-.btn{
-  border:1px solid var(--rule);background:var(--card);border-radius:2px;
-  padding:0 16px;font-size:13px;font-weight:600;cursor:pointer;
-  transition:background .12s ease,border-color .12s ease;white-space:nowrap;
+.projbtn:hover{background:var(--rule-soft)}
+.projbtn .nm{
+  font-size:15px;font-weight:600;letter-spacing:-.005em;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.btn:hover{border-color:var(--ink-3)}
-.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--on-blue);padding:0 22px}
-.btn-primary:hover{filter:brightness(1.08);border-color:var(--blue)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-3);padding:4px 8px;font-size:12px}
-.btn-ghost:hover{color:var(--ink);border-color:var(--rule)}
+.projbtn svg{flex:0 0 auto}
+.fmtline{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+@media (max-width:1180px){ .fmtline{display:none} }
+#savestate{font-size:11px;color:var(--ink-4);letter-spacing:.02em;white-space:nowrap}
 
-/* ---------- the proposal tray ---------- */
-.proposal{
-  max-width:1440px;margin:0 auto;padding:0 22px 16px;
-}
-.proposal-inner{
-  background:var(--card);border:1px solid var(--blue);border-left:3px solid var(--blue);
-  border-radius:2px;padding:14px 16px;box-shadow:var(--shadow);
-}
-.proposal-note{
-  font-family:var(--mono);font-size:14px;color:var(--ink);
-  padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--rule-soft);
-}
-.proposal-note::before{content:"\201C"}
-.proposal-note::after{content:"\201D"}
-.candidates{display:flex;gap:10px;flex-wrap:wrap}
-.nosignal{
-  flex:1 1 100%;background:var(--gold-soft);border:1px solid var(--gold);border-radius:2px;
-  padding:12px 14px;font-size:13.5px;line-height:1.55;color:var(--ink-2);
-}
-.nosignal b{color:var(--ink)}
-.nosignal-acts{flex:1 1 100%;display:flex;gap:9px;align-items:center;margin-top:2px}
-.orplace{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
-.nosignal-acts select{
-  font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink-2);
-  background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:8px 10px;cursor:pointer;
-}
-.candidate{
-  flex:1 1 260px;text-align:left;background:var(--surface);
-  border:1px solid var(--rule);border-radius:2px;padding:11px 13px;cursor:pointer;
-  transition:border-color .12s ease,background .12s ease;
-}
-.candidate:hover{border-color:var(--blue);background:var(--blue-soft)}
-.candidate .rank{
-  display:flex;align-items:center;gap:8px;margin-bottom:5px;
-}
-.candidate .name{font-weight:700;font-size:14px}
-.candidate .why{font-size:12.5px;color:var(--ink-2);line-height:1.45}
-.pct{
-  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;
-  color:var(--blue);background:var(--blue-soft);padding:2px 6px;border-radius:2px;
-}
-.proposal-actions{display:flex;gap:8px;margin-top:11px;align-items:center}
-.proposal-hint{font-size:12px;color:var(--ink-3);margin-left:auto}
-.sharpen{font-family:var(--mono);font-size:10.5px;color:var(--sage);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.tally{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+.tally b{font-weight:400;font-size:12.5px;color:var(--ink-2)}
+.tally i{font-style:normal;font-size:12.5px;font-weight:600;color:var(--gold)}
+.tally .dot{color:var(--rule)}
 
-/* ---------- structure control strip ---------- */
-.strip{
-  max-width:1440px;margin:0 auto;padding:0 22px 14px;
-  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+.navlink{
+  border:none;background:none;cursor:pointer;padding:7px 2px;
+  font-size:12.5px;color:var(--ink-2);white-space:nowrap;text-decoration:none;
 }
+.navlink:hover{color:var(--ink)}
+.navlink.on{color:var(--blue);font-weight:500}
+.avatar{
+  width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;flex:0 0 auto;
+  background:var(--blue);color:var(--on-blue);
+  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  display:flex;align-items:center;justify-content:center;
+}
+.avatar:hover{box-shadow:0 0 0 3px var(--blue-soft)}
+.avatar.open{box-shadow:0 0 0 3px var(--blue-soft)}
+
+/* ---------- popovers ---------- */
+.pop{
+  position:absolute;top:calc(100% + 9px);z-index:70;width:266px;
+  background:var(--card);border:1px solid var(--rule);
+  box-shadow:var(--shadow-lift);padding:7px 0;
+}
+.pop.right{right:0}
+.pop.left{left:-8px}
+.pop.wide{width:300px}
+.pophead{
+  font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-4);padding:7px 15px 6px;
+}
+.popsep{height:1px;background:var(--rule-soft);margin:6px 0}
+.popitem{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  border:none;background:none;cursor:pointer;padding:8px 15px;
+  font-family:var(--sans);font-size:13px;color:var(--ink);text-decoration:none;
+}
+.popitem:hover{background:var(--rule-soft)}
+.popitem.on{background:var(--blue-soft);color:var(--blue-ink)}
+.popitem .aside{margin-left:auto;font-size:12px;color:var(--ink-4)}
+.popitem .tag{
+  margin-left:auto;font-size:9.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-4);
+}
+.popitem.danger{color:var(--red)}
+.popwho{padding:9px 15px 4px}
+.popwho .n{font-size:13px;font-weight:600;color:var(--ink)}
+.popwho .e{font-size:11.5px;color:var(--ink-4);word-break:break-all}
+.popplan{padding:2px 15px 10px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.popplan span{font-size:11.5px;color:var(--ink-2)}
+.popplan .cr{color:var(--blue)}
+.popbody{padding:4px 15px 10px}
+
+/* project switcher inside the popover */
+.tabs{display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto}
+.tab{
+  border:none;background:none;text-align:left;cursor:pointer;
+  padding:7px 15px;font-family:var(--sans);font-size:13px;color:var(--ink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tab:hover{background:var(--rule-soft);color:var(--ink)}
+.tab.on{background:var(--blue-soft);color:var(--blue-ink);font-weight:500}
+.tab .x{display:none}
+.pencil{margin-left:8px;opacity:.55;font-size:11px}
+.brief{
+  display:block;padding:2px 15px 8px;font-size:11.5px;color:var(--ink-4);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.brief:empty{display:none}
+
+/* the structure + progress strip, now inside the project popover */
+.strip{padding:4px 15px 12px;display:flex;flex-direction:column;gap:10px}
 select{
-  font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);
-  background:var(--card);border:1px solid var(--rule);border-radius:2px;
-  padding:8px 11px;cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);border-radius:0;
+  padding:8px 10px;cursor:pointer;max-width:100%;
 }
+select:focus{border-color:var(--blue);outline:none}
+.strip select{width:100%}
 .meter{display:flex;align-items:center;gap:10px}
-.meter-track{
-  width:140px;height:5px;background:var(--rule);border-radius:3px;overflow:hidden;
-}
-.meter-fill{height:100%;background:var(--sage);transition:width .5s cubic-bezier(.2,.7,.3,1)}
-.meter-label{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.gapcount{
-  font-family:var(--mono);font-size:11.5px;color:var(--gold);
-  background:var(--gold-soft);padding:3px 8px;border-radius:2px;font-weight:700;
-}
+.meter-track{flex:1;height:3px;background:var(--rule);overflow:hidden}
+.meter-fill{height:100%;background:var(--blue);transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.meter-label{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.gapcount{font-size:11.5px;color:var(--gold);font-weight:600}
 
-/* ---------- board ---------- */
-main{max-width:1440px;margin:0 auto;padding:4px 22px 60px}
-.board{display:flex;gap:16px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
-.actcol{flex:0 0 300px;display:flex;flex-direction:column;gap:9px}
-.acthead{
-  display:flex;align-items:baseline;gap:8px;
-  padding:0 0 7px;border-bottom:2px solid var(--ink);margin-bottom:2px;
+/* ---------- buttons ---------- */
+.btn{
+  border:1px solid var(--rule);background:var(--card);border-radius:0;
+  padding:8px 15px;font-family:var(--sans);font-size:12.5px;font-weight:500;cursor:pointer;
+  transition:background .12s ease,border-color .12s ease;white-space:nowrap;color:var(--ink);
 }
-.acthead .n{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
-.acthead .c{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.btn:hover{border-color:var(--ink-4)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--on-blue);font-weight:500}
+.btn-primary:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--blue);padding:8px 6px}
+.btn-ghost:hover{color:var(--blue-ink);border-color:transparent;text-decoration:underline;text-underline-offset:3px}
+.btn-danger{border-color:#E0C9C9;color:var(--red);background:var(--card)}
+.btn-danger:hover{background:var(--red);color:var(--card);border-color:var(--red)}
+.linky{
+  border:none;background:none;padding:6px 0 0;cursor:pointer;
+  color:var(--blue);font-family:var(--sans);font-size:12.5px;font-weight:500;
+  text-decoration:underline;text-underline-offset:3px;
+}
+.linky:hover{color:var(--blue-ink)}
 
-.slot{
-  background:var(--surface);border:1px solid var(--rule-soft);border-radius:2px;
-  padding:9px 10px 10px;transition:border-color .15s ease,background .15s ease;
+/* =====================================================================
+   THE DOCK — capture, out of the way at the bottom of the room
+   ===================================================================== */
+.capture{
+  position:fixed;left:0;right:0;bottom:0;z-index:35;height:68px;
+  border-top:1px solid var(--rule);background:var(--surface);
+  display:flex;align-items:center;gap:14px;padding:0 28px;
 }
-.slot.empty{
-  background:transparent;border:1px dashed var(--rule);
+.capture-lede{display:none}
+.capture-row{display:flex;align-items:center;gap:14px;flex:1;max-width:1560px;margin:0 auto;width:100%}
+.capture .quill{flex:0 0 auto;opacity:.75}
+.capture input{
+  flex:1;min-width:0;background:transparent;color:var(--ink);
+  border:none;padding:10px 0;font-family:var(--mono);font-size:14px;
 }
-.slot.gap{border-color:var(--gold);background:var(--gold-soft)}
-.slot.contested{border-color:var(--gold);border-style:solid}
-.undecided{
-  margin-left:auto;font-family:var(--mono);font-size:9px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;color:var(--gold);
-  background:var(--gold-soft);padding:2px 6px;border-radius:2px;
+.capture input::placeholder{color:var(--ink-4)}
+.capture input:focus{outline:none}
+.capture .btn-primary{padding:10px 20px}
+
+/* =====================================================================
+   THE WALL — acts are horizontal bands, so nothing runs off the screen
+   ===================================================================== */
+main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
+.board{display:flex;flex-direction:column;gap:34px}
+.band{display:flex;flex-direction:column;gap:15px}
+.acthead{display:flex;align-items:center;gap:14px}
+.acthead .n{
+  font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-2);white-space:nowrap;
 }
-.slothead{align-items:center}
-.slot.dragover{border-color:var(--blue);border-style:solid;background:var(--blue-soft)}
-.slot.justplaced{animation:land .55s cubic-bezier(.2,.8,.3,1)}
-@keyframes land{
-  0%{border-color:var(--blue);background:var(--blue-soft)}
-  100%{border-color:var(--rule-soft);background:var(--surface)}
-}
-.slothead{display:flex;align-items:baseline;gap:7px;margin-bottom:6px}
+.acthead .r{flex:1;height:1px;background:var(--rule);overflow:hidden}
+.acthead .r i{display:block;height:100%;background:var(--blue);opacity:.7;
+  transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.acthead .c{font-size:11px;color:var(--ink-4);letter-spacing:.06em;white-space:nowrap}
+.beats{display:flex;flex-wrap:wrap;gap:24px 20px;align-items:flex-start}
+
+.slot{width:262px;display:flex;flex-direction:column;gap:8px;transition:opacity .15s ease}
 .slotname{
-  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--ink-2);
+  font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);
 }
-.slot.gap .slotname{color:var(--gold)}
-.slotfn{font-size:12px;color:var(--ink-3);line-height:1.4;font-style:italic}
+.slot.gap .slotname,.slot.empty .slotname{color:var(--gold)}
+.slothead{display:flex;align-items:baseline;gap:8px}
+.slot.contested .slotname{color:var(--gold)}
+.slot.contested .cards{box-shadow:inset 0 0 0 0 transparent}
+.undecided{
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--gold);
+}
+/* an empty beat is the ABSENCE of a card — never a box drawn around nothing */
+.gapbody{padding:7px 1px 0}
+.slotfn{
+  font-family:var(--serif);font-size:13.5px;font-style:italic;line-height:1.5;color:var(--ink-3);
+}
 .slot:not(.empty) .slotfn{display:none}
+.gapline{
+  height:1px;margin-top:14px;
+  background:repeating-linear-gradient(90deg,var(--gold-hair) 0 5px,transparent 5px 10px);
+}
+.gapacts{display:flex;align-items:center;gap:9px;margin-top:12px}
 .askbtn{
-  margin-top:9px;border:1px solid var(--gold);background:transparent;color:var(--gold);
-  border-radius:2px;padding:5px 10px;cursor:pointer;
-  font-family:var(--mono);font-size:10.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;
+  border:none;background:none;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:11.5px;color:var(--blue);letter-spacing:.01em;
 }
-.askbtn:hover{background:var(--gold);color:var(--card)}
-.ideasbtn{margin-left:6px;border-color:var(--ink-3);color:var(--ink-3)}
-.ideasbtn:hover{background:var(--ink-3);color:var(--card)}
-.idea{
-  background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--ink-3);
-  border-radius:2px;padding:12px 14px;margin-bottom:9px;
+.askbtn:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
+.gapacts .sep{color:var(--rule);font-size:11px}
+.ideasbtn{}
+.slot.dragover .gapline{background:var(--blue)}
+.slot.dragover{outline:1px dashed var(--blue);outline-offset:6px}
+.slot.justplaced .icard{animation:land .6s cubic-bezier(.2,.8,.3,1)}
+@keyframes land{
+  0%{box-shadow:0 0 0 3px var(--blue-soft),var(--shadow)}
+  100%{box-shadow:0 0 0 0 transparent,var(--shadow)}
 }
-.idea .txt{font-size:14.5px;line-height:1.55;color:var(--ink);margin-bottom:7px}
-.idea .from{
-  font-family:var(--mono);font-size:11px;color:var(--gold);line-height:1.5;margin-bottom:4px;
-}
-.idea .does{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-bottom:9px}
-.idea .btn{font-size:11.5px;padding:5px 11px}
-.suggested{
-  display:inline-block;margin-top:7px;font-family:var(--mono);font-size:9px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);
-  border:1px solid var(--rule);padding:2px 6px;border-radius:2px;
-}
-:root[data-theme="dark"] .askbtn:hover{color:var(--ground)}
-.cards{display:flex;flex-direction:column;gap:7px}
-.slot:not(.empty) .cards{margin-top:2px}
+.cards{display:flex;flex-direction:column;gap:12px}
 
+/* ---------- the card: paper ---------- */
 .icard{
-  background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--blue);
-  border-radius:2px;padding:10px 11px;box-shadow:var(--shadow);cursor:grab;
-  font-family:var(--mono);font-size:13px;line-height:1.45;color:var(--ink);
-  position:relative;transition:box-shadow .15s ease,transform .15s ease;
+  background:var(--card);border:1px solid var(--rule);border-radius:0;
+  padding:15px 17px 17px;box-shadow:var(--shadow);cursor:grab;position:relative;
+  font-family:var(--mono);font-size:13px;line-height:1.62;color:var(--ink);
+  transition:box-shadow .15s ease,transform .15s ease;
 }
 .icard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .icard.dragging{opacity:.4;cursor:grabbing}
-.icard .del{
-  position:absolute;top:4px;right:4px;border:none;background:none;
-  color:var(--ink-3);font-size:15px;line-height:1;padding:3px 5px;cursor:pointer;
-  opacity:0;transition:opacity .12s ease;border-radius:2px;
+.icard .del,.icard .move,.icard .pin{
+  position:absolute;top:5px;border:none;background:none;
+  color:var(--ink-4);line-height:1;padding:3px 5px;cursor:pointer;
+  opacity:0;transition:opacity .12s ease;
 }
-.icard:hover .del{opacity:1}
-.icard .del:hover{color:var(--ink);background:var(--rule-soft)}
-.icard[contenteditable="true"]{cursor:text;border-left-color:var(--gold)}
+.icard .del{right:5px;font-size:15px}
+.icard .pin{right:27px;font-size:12px}
+.icard .move{right:49px;font-size:14px}
+.icard:hover .del,.icard:hover .move,.icard:hover .pin{opacity:1}
+.icard .del:hover,.icard .move:hover,.icard .pin:hover{color:var(--ink);background:var(--rule-soft)}
+.icard[contenteditable="true"],.icard .body[contenteditable="true"]{cursor:text}
+.icard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.icard.pinned .pin{opacity:1;color:var(--gold)}
 .icard .maybe{
-  margin-top:7px;font-family:var(--mono);font-size:10px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;color:var(--gold);
+  margin-top:9px;font-family:var(--sans);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
+}
+.suggested{
+  display:inline-block;margin-top:8px;font-family:var(--sans);font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
 }
 
-/* unplaced tray */
-.tray{flex:0 0 250px}
-.tray .acthead{border-bottom-color:var(--gold)}
-.tray .acthead .n{color:var(--gold)}
-.tray-body{
-  border:1px dashed var(--rule);border-radius:2px;padding:10px;min-height:80px;
-  display:flex;flex-direction:column;gap:7px;
-}
-.tray-body.dragover{border-color:var(--blue);border-style:solid;background:var(--blue-soft)}
-.tray-empty{font-size:12px;color:var(--ink-3);font-style:italic}
+/* set aside: flat paper, no shadow — it isn't on the wall yet */
+.tray{width:100%}
+.tray .acthead .n{color:var(--ink-4)}
+.tray-body{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;min-height:40px}
+.tray-body .icard{width:262px;background:var(--surface);box-shadow:none;color:var(--ink-2)}
+.tray-body .icard:hover{box-shadow:var(--shadow);transform:none}
+.tray-body.dragover{outline:1px dashed var(--blue);outline-offset:8px}
+.tray-empty{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-4)}
+.shelf{width:100%}
+.shelf-body{display:flex;flex-wrap:wrap;gap:20px}
 
-/* ---------- project bar ---------- */
-.projbar{
-  background:var(--ground);border-bottom:1px solid var(--rule);
+/* =====================================================================
+   TRAYS — proposal, settle log, conversation
+   ===================================================================== */
+.trays{max-width:1560px;margin:0 auto;padding:0 28px}
+.trays:empty{display:none}
+.proposal{padding:22px 0 0}
+.proposal-inner{
+  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+  padding:16px 18px;
 }
-.projbar-inner{
-  max-width:1440px;margin:0 auto;padding:8px 22px;
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+.proposal-note{
+  font-family:var(--mono);font-size:14px;line-height:1.6;color:var(--ink);
+  padding-bottom:13px;margin-bottom:13px;border-bottom:1px solid var(--rule-soft);
 }
-.projbar .slug{margin-right:2px}
-.tabs{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
-.tab{
-  border:1px solid var(--rule);background:transparent;border-radius:2px;
-  padding:5px 11px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-2);
-  font-family:var(--mono);letter-spacing:.01em;
+.proposal-note::before{content:"\201C"}
+.proposal-note::after{content:"\201D"}
+.candidates{display:flex;gap:12px;flex-wrap:wrap}
+.nosignal{
+  flex:1 1 100%;background:var(--gold-soft);border:1px solid var(--gold-hair);
+  padding:13px 15px;font-size:13.5px;line-height:1.55;color:var(--ink-2);
 }
-.tab:hover{border-color:var(--ink-3);color:var(--ink)}
-.tab.on{background:var(--card);border-color:var(--ink);color:var(--ink)}
-.tab .x{margin-left:7px;color:var(--ink-3);font-weight:400}
-.tab .x:hover{color:var(--ink)}
+.nosignal b{color:var(--ink)}
+.nosignal-acts{flex:1 1 100%;display:flex;gap:9px;align-items:center;margin-top:2px}
+.orplace{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4);font-weight:600}
+.candidate{
+  flex:1 1 262px;text-align:left;background:var(--surface);
+  border:1px solid var(--rule);padding:13px 15px;cursor:pointer;
+  transition:border-color .12s ease,background .12s ease;
+}
+.candidate:hover{border-color:var(--blue);background:var(--blue-soft)}
+.candidate .rank{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.candidate .name{font-weight:600;font-size:14px}
+.candidate .why{font-family:var(--serif);font-size:13.5px;color:var(--ink-2);line-height:1.5}
+.pct{
+  font-size:10px;font-weight:600;letter-spacing:.07em;
+  color:var(--blue);background:var(--blue-soft);padding:3px 6px;
+}
+.proposal-actions{display:flex;gap:10px;margin-top:13px;align-items:center;flex-wrap:wrap}
+.proposal-hint{font-size:12px;color:var(--ink-4);margin-left:auto}
+.sharpen{font-size:10px;color:var(--sage);letter-spacing:.09em;text-transform:uppercase;font-weight:600}
 
-/* ---------- the settle log ---------- */
-.settled{
-  max-width:1440px;margin:0 auto;padding:0 22px 14px;
-}
+.settled{padding:22px 0 0}
 .settled-inner{
-  background:var(--gold-soft);border:1px solid var(--gold);border-left:3px solid var(--gold);
-  border-radius:2px;padding:11px 14px;display:flex;gap:14px;align-items:flex-start;
+  background:var(--gold-soft);border:1px solid var(--gold-hair);
+  padding:13px 15px;display:flex;gap:14px;align-items:flex-start;
 }
 .settled-list{flex:1;min-width:0}
 .settled-title{
-  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--gold);margin-bottom:6px;
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--gold);margin-bottom:6px;
 }
-.settled-line{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.settled-line{font-size:12.5px;color:var(--ink-2);line-height:1.6}
 .settled-line b{color:var(--ink);font-weight:600}
+.xclose{
+  border:none;background:none;color:var(--ink-4);font-size:18px;line-height:1;
+  padding:2px 7px;cursor:pointer;align-self:flex-start;
+}
+.xclose:hover{color:var(--ink)}
 
-/* ---------- ask panel ---------- */
-.ask{max-width:1440px;margin:0 auto;padding:0 22px 14px}
+.ask{padding:22px 0 0}
 .ask-inner{
-  background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--sage);
-  border-radius:2px;padding:14px 16px;box-shadow:var(--shadow);
+  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);padding:18px 20px;
 }
 .ask-beat{
-  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--sage);margin-bottom:7px;
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--blue);margin-bottom:10px;
 }
-.thread{
-  display:flex;flex-direction:column;gap:11px;max-height:44vh;overflow-y:auto;padding-right:4px;
-}
-.turn{display:flex;gap:11px;align-items:flex-start}
+.thread{display:flex;flex-direction:column;gap:14px;max-height:44vh;overflow-y:auto;padding-right:4px}
+.turn{display:flex;gap:13px;align-items:flex-start}
 .who{
-  flex:0 0 62px;font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;padding-top:4px;
+  flex:0 0 58px;font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;padding-top:5px;
 }
-.turn.them .who{color:var(--sage)}
+.turn.them .who{color:var(--ink-4)}
 .turn.me .who{color:var(--blue)}
-.said{flex:1;min-width:0;font-size:14.5px;line-height:1.62;color:var(--ink);max-width:74ch}
+.said{
+  flex:1;min-width:0;font-family:var(--serif);font-size:15.5px;line-height:1.62;
+  color:var(--ink);max-width:74ch;
+}
 .turn.me .said{
-  font-family:var(--mono);font-size:13.5px;background:var(--blue-soft);
-  border-left:2px solid var(--blue);padding:7px 11px;border-radius:0 2px 2px 0;
+  font-family:var(--mono);font-size:13.5px;line-height:1.6;background:var(--surface);
+  border-left:2px solid var(--blue);padding:9px 13px;
 }
 .said em{color:var(--ink-2)}
-.compose{display:flex;gap:9px;margin-top:14px;align-items:stretch}
+.compose{display:flex;gap:10px;margin-top:16px;align-items:stretch}
 .compose textarea{
   flex:1;min-width:0;resize:vertical;background:var(--surface);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:10px 13px;
-  font-family:var(--mono);font-size:13.5px;line-height:1.55;
+  border:1px solid var(--rule);padding:11px 13px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.6;
 }
-.compose textarea:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
-.compose .btn{padding:0 20px}
-.ask-actions{display:flex;gap:8px;margin-top:12px;align-items:center}
-.limitnote{font-size:12.5px;color:var(--gold);margin-left:auto;font-family:var(--mono)}
-.askcount{
-  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;
-  color:var(--ink-3);text-transform:uppercase;
-}
+.compose textarea:focus{border-color:var(--blue);outline:none}
+.ask-actions{display:flex;gap:10px;margin-top:13px;align-items:center;flex-wrap:wrap}
+.limitnote{font-size:12.5px;color:var(--gold);margin-left:auto}
+.askcount{font-size:10px;font-weight:600;letter-spacing:.11em;color:var(--ink-4);text-transform:uppercase}
 .draft-label{
-  font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--sage);margin:16px 0 8px;
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.11em;
+  color:var(--blue);margin:18px 0 9px;
 }
 #drafttext{
   width:100%;resize:vertical;background:var(--surface);color:var(--ink);
-  border:1px solid var(--sage);border-radius:2px;padding:11px 13px;
-  font-family:var(--mono);font-size:13.5px;line-height:1.6;
+  border:1px solid var(--rule);padding:12px 14px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.65;
 }
-#drafttext:focus{outline:none;box-shadow:0 0 0 3px var(--sage-soft, var(--rule-soft))}
-
-.move{
-  position:absolute;top:4px;right:48px;border:none;background:none;
-  color:var(--ink-3);font-size:14px;line-height:1;padding:3px 6px;cursor:pointer;
-  opacity:0;transition:opacity .12s ease;border-radius:2px;
-}
-.icard:hover .move{opacity:1}
-.move:hover{color:var(--ink);background:var(--rule-soft)}
+#drafttext:focus{outline:none;border-color:var(--blue)}
 .movepick{
-  margin-top:9px;width:100%;font-family:var(--sans);font-size:12px;font-weight:600;
+  margin-top:10px;width:100%;font-family:var(--sans);font-size:12px;font-weight:500;
   background:var(--surface);color:var(--ink);border:1px solid var(--blue);
-  border-radius:2px;padding:6px 8px;cursor:pointer;
+  padding:7px 8px;cursor:pointer;
 }
-.pin{
-  position:absolute;top:4px;right:26px;border:none;background:none;
-  color:var(--ink-3);font-size:12px;line-height:1;padding:4px 5px;cursor:pointer;
-  opacity:0;transition:opacity .12s ease;border-radius:2px;
-}
-.icard:hover .pin{opacity:1}
-.pin:hover{color:var(--ink);background:var(--rule-soft)}
-.icard.pinned{border-left-color:var(--gold)}
-.icard.pinned .pin{opacity:1;color:var(--gold)}
-
-.toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
 .toggle input{accent-color:var(--blue);width:15px;height:15px;cursor:pointer}
-
-.firstrun-choices{display:grid;gap:10px}
-.fr{
-  text-align:left;background:var(--surface);border:1px solid var(--rule);
-  border-left:3px solid var(--rule);border-radius:2px;padding:15px 17px;cursor:pointer;
-  transition:border-color .12s ease,background .12s ease;
+.idea{
+  background:var(--surface);border:1px solid var(--rule);
+  padding:14px 16px;margin-bottom:11px;
 }
-.fr:hover{border-color:var(--blue);border-left-color:var(--blue);background:var(--blue-soft)}
-.fr b{display:block;font-size:16px;font-weight:700;margin-bottom:5px}
-.fr span{display:block;font-size:13.5px;color:var(--ink-2);line-height:1.5}
-.fr i{display:block;font-family:var(--mono);font-size:10.5px;font-style:normal;font-weight:700;
-  text-transform:uppercase;letter-spacing:.09em;color:var(--gold);margin-top:8px}
-.fr i:empty{display:none}
-
-/* ---------- paste sheet ---------- */
-.scrim{
-  position:fixed;inset:0;z-index:60;background:rgba(10,12,16,.55);
-  display:flex;align-items:center;justify-content:center;padding:24px;
-}
-.sheet{
-  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
-  box-shadow:var(--shadow-lift);width:min(620px,100%);padding:22px 24px 20px;
-}
-.sheet-title{font-size:17px;font-weight:700;letter-spacing:-.015em;margin-bottom:7px}
-.sheet-note{font-size:13px;color:var(--ink-2);line-height:1.55;margin:0 0 14px;max-width:60ch}
-.sheet textarea{
-  width:100%;resize:vertical;background:var(--card);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:12px 14px;
-  font-family:var(--mono);font-size:13.5px;line-height:1.6;
-}
-.sheet textarea:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
-.sheet-actions{display:flex;gap:8px;align-items:center;margin-top:14px}
-.sheet-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-right:auto;font-variant-numeric:tabular-nums}
-#dumptext{height:220px}
-.sheet textarea.dropping{border-color:var(--blue);border-style:dashed;background:var(--blue-soft)}
-
-/* ---------- project intake ---------- */
-.field{margin-bottom:15px}
-.field.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.field label{
-  display:block;font-family:var(--mono);font-size:10.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.11em;color:var(--ink-2);margin-bottom:6px;
-}
-.field input[type=text], .field textarea, .field select{
-  width:100%;background:var(--card);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:10px 12px;
-  font-family:var(--mono);font-size:13.5px;line-height:1.55;
-}
-.field select{font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer}
-.field textarea{resize:vertical}
-.field input:focus, .field textarea:focus, .field select:focus{
-  border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft);
-}
-.field .hint{font-size:12px;color:var(--ink-3);margin-top:5px}
-.brief{
-  font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
-  margin-left:4px;max-width:44ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-
-.xclose{
-  border:none;background:none;color:var(--gold);font-size:19px;line-height:1;
-  padding:2px 7px;cursor:pointer;border-radius:2px;align-self:flex-start;
-}
-.xclose:hover{background:var(--gold);color:var(--card)}
-.pencil{margin-left:8px;opacity:.5;font-size:11px}
-.tab.on .pencil{opacity:.85}
-.linky{
-  border:none;background:none;padding:6px 0 0;cursor:pointer;
-  color:var(--blue);font-family:var(--sans);font-size:12.5px;font-weight:600;
-  text-decoration:underline;text-underline-offset:3px;
-}
-.linky:hover{color:var(--ink)}
+.idea .txt{font-family:var(--mono);font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:9px}
+.idea .from{font-size:11.5px;color:var(--gold);line-height:1.5;margin-bottom:5px}
+.idea .does{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);line-height:1.5;margin-bottom:11px}
+.idea .btn{font-size:11.5px;padding:6px 12px}
 .logpane-inner{
-  margin-top:12px;background:var(--ground);border:1px solid var(--rule);
-  border-left:3px solid var(--sage);border-radius:2px;padding:14px 16px;
+  margin-top:12px;background:var(--surface);border:1px solid var(--rule);padding:15px 17px;
 }
 #logthread{max-height:30vh}
 
-.figlede{font-size:14px;color:var(--ink-2);max-width:70ch;margin:0 0 22px}
-.notegroup{margin-bottom:26px}
-.notegroup h3{
-  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--ink-3);margin:0 0 10px;
-  padding-bottom:7px;border-bottom:1px solid var(--rule);
+/* =====================================================================
+   SHEETS — paste, intake, review, welcome
+   ===================================================================== */
+.scrim{
+  position:fixed;inset:0;z-index:80;background:rgba(30,24,18,.5);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  backdrop-filter:blur(2px);
 }
-.notegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
-.notebar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
-.fchip{
-  border:1px solid var(--rule);background:transparent;border-radius:2px;
-  padding:6px 11px;cursor:pointer;color:var(--ink-2);
-  font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+.sheet{
+  background:var(--surface);border:1px solid var(--rule);
+  box-shadow:var(--shadow-lift);width:min(640px,100%);padding:26px 28px 22px;
+  max-height:calc(100vh - 48px);overflow-y:auto;
 }
-.fchip .n{color:var(--ink-3);margin-left:5px}
-.fchip:hover{border-color:var(--ink-3);color:var(--ink)}
-.fchip.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
-.fchip.on .n{color:var(--ground);opacity:.7}
-.notefind{
-  margin-left:auto;min-width:210px;background:var(--card);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:7px 11px;
-  font-family:var(--mono);font-size:12.5px;
+.sheet-title{font-family:var(--serif);font-size:25px;font-weight:600;letter-spacing:-.01em;margin-bottom:5px}
+.sheet-note{
+  font-family:var(--serif);font-size:14.5px;font-style:italic;color:var(--ink-3);
+  line-height:1.55;margin:0 0 18px;max-width:62ch;
 }
-.notefind:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
-.ncard{
-  background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--ink-3);
-  border-radius:2px;padding:12px 13px;display:flex;flex-direction:column;gap:9px;
-  align-items:flex-start;
+.sheet textarea{
+  width:100%;resize:vertical;background:var(--card);color:var(--ink);
+  border:1px solid var(--rule);padding:13px 15px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.65;
 }
-.ncard.character{border-left-color:var(--gold)}
-.ncard.theme{border-left-color:var(--ink-3)}
-.ncard.line{border-left-color:var(--ink-3)}
-.ncard.question{border-left-color:var(--blue)}
-.ncard.image{border-left-color:var(--ink-3)}
-.ncard.clue{border-left-color:var(--blue)}
-.ncard.structural{border-left-color:var(--gold)}
-.ncard.rule{border-left-color:var(--gold)}
-.ncard .chip{align-self:flex-start}
-.ncard .t{font-family:var(--mono);font-size:13px;line-height:1.5;color:var(--ink)}
-.ncard .r{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.ncard select{
-  font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--ink-2);
-  background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:4px 7px;cursor:pointer;
-}
-.ncard .btn{font-size:11px;padding:4px 9px}
+.sheet textarea:focus{border-color:var(--blue);outline:none}
+.sheet-actions{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.sheet-count{font-size:12px;color:var(--ink-4);margin-right:auto;font-variant-numeric:tabular-nums}
+#dumptext{height:230px}
+.sheet textarea.dropping{border-color:var(--blue);border-style:dashed;background:var(--blue-soft)}
 
-/* ---------- outline ---------- */
-.outline-wrap{
-  max-width:1300px;margin:0 auto;padding:26px 22px 90px;
-  display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;
+.field{margin-bottom:16px}
+.field.two{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.field label{
+  display:block;font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.13em;color:var(--ink-4);margin-bottom:7px;
 }
-@media (max-width:900px){ .outline-wrap{grid-template-columns:1fr} }
-.obeat{
-  border-left:2px solid var(--rule);padding:0 0 26px 18px;position:relative;
+.field input[type=text], .field textarea, .field select{
+  width:100%;background:var(--card);color:var(--ink);
+  border:1px solid var(--rule);padding:10px 12px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.55;
 }
-.obeat:last-child{padding-bottom:8px}
-.obeat::before{
-  content:"";position:absolute;left:-6px;top:5px;width:10px;height:10px;border-radius:50%;
-  background:var(--rule);border:2px solid var(--ground);
-}
-.obeat.has::before{background:var(--blue)}
-.obeat.gap::before{background:var(--gold)}
-.obeat h3{
-  font-family:var(--mono);font-size:11.5px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--ink-2);margin:0 0 3px;display:flex;gap:9px;align-items:baseline;
-}
-.obeat.gap h3{color:var(--gold)}
-.obeat h3 .act{margin-left:auto;font-size:9.5px;color:var(--ink-3);letter-spacing:.1em}
-.obeat .job{font-size:12px;color:var(--ink-3);font-style:italic;margin-bottom:10px}
-.ocards{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
-.ocard{
-  background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--blue);
-  border-radius:2px;padding:9px 11px;font-family:var(--mono);font-size:13px;line-height:1.45;
-}
-.ocard.pinned{border-left-color:var(--gold)}
-.oprose{
-  width:100%;min-height:52px;resize:vertical;background:transparent;color:var(--ink);
-  border:1px dashed var(--rule);border-radius:2px;padding:10px 12px;
-  font-family:var(--sans);font-size:14.5px;line-height:1.65;
-}
-.oprose:focus{border-style:solid;border-color:var(--blue);outline:none;background:var(--surface)}
-.oprose::placeholder{color:var(--ink-3);font-style:italic}
-.obeat.dragover{background:var(--blue-soft);border-left-color:var(--blue)}
+.field select{font-family:var(--sans);font-weight:500;font-size:13px;cursor:pointer}
+.field textarea{resize:vertical}
+.field input:focus, .field textarea:focus, .field select:focus{border-color:var(--blue);outline:none}
+.field .hint{font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-4);margin-top:6px}
 
-.outline-rail{position:sticky;top:150px;max-height:calc(100vh - 180px);overflow-y:auto}
-.railhead{
-  font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--ink-3);margin:0 0 8px;padding-bottom:6px;
-  border-bottom:1px solid var(--rule);
+.firstrun-choices{display:grid;gap:11px}
+.fr{
+  text-align:left;background:var(--card);border:1px solid var(--rule);
+  padding:16px 18px;cursor:pointer;transition:border-color .12s ease,background .12s ease;
 }
-.railhead + .railbox{margin-bottom:22px}
-.railbox{display:flex;flex-direction:column;gap:6px}
-.railcard{
-  background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--ink-3);
-  border-radius:2px;padding:8px 10px;cursor:grab;
-  font-family:var(--mono);font-size:11.5px;line-height:1.45;color:var(--ink-2);
+.fr:hover{border-color:var(--blue);background:var(--blue-soft)}
+.fr b{display:block;font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:5px;color:var(--ink)}
+.fr span{display:block;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.fr i{
+  display:block;font-family:var(--sans);font-size:10px;font-style:normal;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--blue);margin-top:9px;
 }
-.railcard:hover{border-color:var(--ink-3);color:var(--ink)}
-.railcard.dragging{opacity:.4}
-.railempty{font-size:12px;color:var(--ink-3);font-style:italic}
-.railfilter{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
-.railfilter button{
-  border:1px solid var(--rule);background:transparent;border-radius:2px;padding:3px 7px;
-  cursor:pointer;color:var(--ink-3);font-family:var(--mono);font-size:9.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.06em;
-}
-.railfilter button.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
-
-/* ---------- the slate ---------- */
-.slate-wrap{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
-
-.slate-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
-.stat{
-  flex:1 1 150px;background:var(--surface);border:1px solid var(--rule-soft);
-  border-radius:2px;padding:12px 14px;
-}
-.stat .n{font-size:23px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.stat .l{
-  font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.11em;color:var(--ink-3);margin-top:3px;
-}
-.stat.warn .n{color:var(--gold)}
-.stat.good .n{color:var(--sage)}
-
-.slate-head{display:flex;align-items:baseline;gap:14px;margin-bottom:13px;flex-wrap:wrap}
-.slate-h{
-  font-family:var(--mono);font-size:12px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.13em;color:var(--ink-2);margin:0;
-}
-.slate-acts{margin-left:auto;display:flex;gap:8px}
-.slate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.pcard{
-  background:var(--card);border:1px solid var(--rule);border-radius:2px;
-  padding:15px 16px 13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;
-  transition:border-color .12s ease,transform .12s ease;
-}
-.pcard:hover{border-color:var(--ink-3);transform:translateY(-1px)}
-.pcard.current{border-left:3px solid var(--blue)}
-.pcard h3{font-size:17px;font-weight:700;letter-spacing:-.02em;margin:0;cursor:pointer}
-.pcard h3:hover{color:var(--blue)}
-.pcard .fmt{
-  font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--ink-3);
-}
-.pcard .log{font-size:13px;color:var(--ink-2);line-height:1.5}
-.pcard .log.none{font-style:italic;color:var(--ink-3)}
-.pcard .bar{height:4px;background:var(--rule);border-radius:3px;overflow:hidden}
-.pcard .bar i{display:block;height:100%;background:var(--sage)}
-.pcard .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
-.pcard .next{color:var(--gold);font-weight:700}
-.pcard .acts{display:flex;gap:6px;margin-top:3px;flex-wrap:wrap}
-.pcard .acts .btn{font-size:11.5px;padding:5px 10px}
-.pcard .acts .del{color:var(--red);margin-left:auto}
-.pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
+.fr i:empty{display:none}
 
 /* ---------- import review ---------- */
-.revbody{max-height:46vh;overflow-y:auto;border:1px solid var(--rule-soft);border-radius:2px}
-.revstory{border-bottom:1px solid var(--rule-soft)}
+.revbody{max-height:46vh;overflow-y:auto;border:1px solid var(--rule);background:var(--card)}
+.revstory{border-bottom:1px solid var(--rule)}
 .revstory:last-child{border-bottom:none}
 .revstory-head{
-  display:flex;align-items:center;gap:9px;padding:10px 12px;
-  background:var(--ground);border-bottom:1px solid var(--rule-soft);flex-wrap:wrap;
+  display:flex;align-items:center;gap:10px;padding:11px 13px;
+  background:var(--surface);border-bottom:1px solid var(--rule);flex-wrap:wrap;
 }
 .revstory-head input{
-  font-family:var(--sans);font-size:13.5px;font-weight:700;color:var(--ink);
-  background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:5px 9px;min-width:180px;
+  font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);padding:6px 10px;min-width:200px;
 }
-.revstory-head .tally{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
-.brieffound{padding:12px 14px;background:var(--blue-soft);border-bottom:1px solid var(--rule-soft)}
-.bfh{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.11em;color:var(--blue);margin-bottom:8px}
-.briefrow{display:flex;gap:12px;font-size:12.5px;line-height:1.5;margin-bottom:4px}
-.bl{flex:0 0 96px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--ink-3);padding-top:2px}
+.revstory-head .tally{font-size:11.5px;color:var(--ink-4);margin-left:auto}
+.brieffound{padding:13px 15px;background:var(--blue-soft);border-bottom:1px solid var(--rule)}
+.bfh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;color:var(--blue);margin-bottom:9px}
+.briefrow{display:flex;gap:13px;font-size:12.5px;line-height:1.55;margin-bottom:5px}
+.bl{flex:0 0 96px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-4);padding-top:2px;font-weight:600}
 .bv{flex:1;color:var(--ink)}
-.bv i{color:var(--ink-3)}
+.bv i{color:var(--ink-4)}
 .revrow{
-  display:flex;gap:10px;align-items:flex-start;padding:8px 12px;
-  border-bottom:1px solid var(--rule-soft);font-size:13px;line-height:1.45;
+  display:flex;gap:11px;align-items:flex-start;padding:9px 13px;
+  border-bottom:1px solid var(--rule-soft);font-size:13px;line-height:1.5;
 }
 .revrow:last-child{border-bottom:none}
 .revrow.off{opacity:.38}
 .revrow input[type=checkbox]{margin-top:3px;accent-color:var(--blue);cursor:pointer;flex:0 0 auto}
 .revrow .txt{flex:1;min-width:0;font-family:var(--mono);color:var(--ink)}
-.revrow .dest{font-size:11px;color:var(--ink-3);font-family:var(--mono);margin-top:3px}
+.revrow .dest{font-size:11px;color:var(--ink-4);margin-top:4px}
 .chip{
-  flex:0 0 auto;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.07em;
-  text-transform:uppercase;padding:3px 6px;border-radius:2px;margin-top:1px;
+  flex:0 0 auto;font-size:9px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 6px;margin-top:2px;
 }
 .chip.beat{background:var(--blue-soft);color:var(--blue)}
 .chip.character{background:var(--gold-soft);color:var(--gold)}
@@ -690,16 +592,227 @@ main{max-width:1440px;margin:0 auto;padding:4px 22px 60px}
 .chip.structural{background:var(--gold-soft);color:var(--gold)}
 .chip.rule{background:var(--gold-soft);color:var(--gold)}
 
-/* ---------- shelves: notes that aren't beats ---------- */
-.shelf{flex:0 0 240px}
-.shelf .acthead{border-bottom-color:var(--rule)}
-.shelf .acthead .n{color:var(--ink-2)}
-.shelf-body{display:flex;flex-direction:column;gap:7px}
+/* =====================================================================
+   OUTLINE
+   ===================================================================== */
+.outline-wrap{
+  max-width:1360px;margin:0 auto;padding:34px 28px 130px;
+  display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;align-items:start;
+}
+@media (max-width:900px){ .outline-wrap{grid-template-columns:1fr} }
+.obeat{border-left:1px solid var(--rule);padding:0 0 28px 20px;position:relative}
+.obeat:last-child{padding-bottom:8px}
+.obeat::before{
+  content:"";position:absolute;left:-4px;top:6px;width:7px;height:7px;border-radius:50%;
+  background:var(--rule);border:2px solid var(--ground);
+}
+.obeat.has::before{background:var(--blue)}
+.obeat.gap::before{background:var(--gold)}
+.obeat h3{
+  font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.13em;color:var(--ink-3);margin:0 0 4px;display:flex;gap:10px;align-items:baseline;
+}
+.obeat.gap h3{color:var(--gold)}
+.obeat h3 .act{margin-left:auto;font-size:9.5px;color:var(--ink-4);letter-spacing:.1em}
+.obeat .job{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);margin-bottom:12px}
+.ocards{display:flex;flex-direction:column;gap:8px;margin-bottom:11px}
+.ocard{
+  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+  padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.6;
+}
+.ocard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.ocard,.oprose{max-width:74ch}
+.oprose{
+  width:100%;min-height:54px;resize:vertical;background:transparent;color:var(--ink);
+  border:1px dashed var(--rule);padding:11px 13px;
+  font-family:var(--serif);font-size:16px;line-height:1.65;
+}
+.oprose:focus{border-style:solid;border-color:var(--blue);outline:none;background:var(--card)}
+.oprose::placeholder{color:var(--ink-4);font-style:italic}
+.obeat.dragover{background:var(--blue-soft)}
+
+.outline-rail{position:sticky;top:88px;max-height:calc(100vh - 190px);overflow-y:auto}
+.railhead{
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--ink-4);margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid var(--rule);
+}
+.railhead + .railbox{margin-bottom:24px}
+.railbox{display:flex;flex-direction:column;gap:7px}
+.railcard{
+  background:var(--card);border:1px solid var(--rule);padding:9px 11px;cursor:grab;
+  font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-2);
+}
+.railcard:hover{border-color:var(--blue);color:var(--ink)}
+.railcard.dragging{opacity:.4}
+.railempty{font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-4)}
+.railfilter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.railfilter button{
+  border:1px solid var(--rule);background:transparent;padding:4px 8px;
+  cursor:pointer;color:var(--ink-4);font-family:var(--sans);font-size:9.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;
+}
+.railfilter button.on{background:var(--blue);color:var(--on-blue);border-color:var(--blue)}
+
+/* =====================================================================
+   NOTES
+   ===================================================================== */
+.figlede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-3);max-width:70ch;margin:0 0 26px}
+.notegroup{margin-bottom:30px}
+.notegroup h3{
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--ink-4);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--rule);
+}
+.notegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.notebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
+.fchip{
+  border:1px solid var(--rule);background:transparent;padding:7px 12px;cursor:pointer;
+  color:var(--ink-2);font-family:var(--sans);font-size:10.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;
+}
+.fchip .n{color:var(--ink-4);margin-left:6px}
+.fchip:hover{border-color:var(--ink-4);color:var(--ink)}
+.fchip.on{background:var(--blue);color:var(--on-blue);border-color:var(--blue)}
+.fchip.on .n{color:var(--on-blue);opacity:.7}
+.notefind{
+  margin-left:auto;min-width:220px;background:var(--card);color:var(--ink);
+  border:1px solid var(--rule);padding:8px 12px;font-family:var(--mono);font-size:12.5px;
+}
+.notefind:focus{border-color:var(--blue);outline:none}
+.ncard{
+  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+  padding:14px 15px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+}
+.ncard .chip{align-self:flex-start}
+.ncard .t{font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--ink)}
+.ncard .r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ncard select{font-size:11.5px;padding:5px 8px}
+.ncard .btn{font-size:11px;padding:5px 10px}
+
+/* =====================================================================
+   DASHBOARD — the scoreboard, as a sentence rather than a row of boxes
+   ===================================================================== */
+.slate-wrap{max-width:1360px;margin:0 auto;padding:46px 28px 90px}
+.slate-lede{
+  font-family:var(--serif);font-size:34px;line-height:1.28;letter-spacing:-.012em;
+  color:var(--ink);max-width:26ch;margin:0 0 12px;
+}
+.slate-lede em{font-style:normal;color:var(--gold)}
+.slate-sub{font-size:13px;color:var(--ink-3);margin:0 0 38px}
+.slate-stats{display:none}
+.stat{display:none}
+
+.slate-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
+.slate-h{
+  font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-4);margin:0;
+}
+.slate-rule{flex:1;height:1px;background:var(--rule);min-width:30px}
+.slate-acts{display:flex;gap:12px;align-items:center}
+.slate-grid{display:flex;flex-wrap:wrap;gap:24px}
+.pcard{
+  width:396px;max-width:100%;background:var(--card);border:1px solid var(--rule);
+  padding:22px 24px 20px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:13px;transition:box-shadow .14s ease,transform .14s ease;
+}
+.pcard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
+.pcard .ph{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.pcard h3{
+  font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;
+  margin:0;cursor:pointer;color:var(--ink);
+}
+.pcard h3:hover{color:var(--blue)}
+.pcard .when{font-size:11.5px;color:var(--ink-4);white-space:nowrap}
+.pcard .fmt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4)}
+.pcard .log{font-family:var(--serif);font-size:14.5px;line-height:1.55;color:var(--ink-2);font-style:italic}
+.pcard .log.none{color:var(--ink-4)}
+.pcard .bar{height:3px;background:var(--rule)}
+.pcard .bar i{display:block;height:100%;background:var(--blue)}
+.pcard .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.pcard .row .dot{color:var(--rule)}
+.pcard .next{color:var(--gold);font-weight:600}
+.pcard .hr{height:1px;background:var(--rule-soft)}
+.pcard .up{font-size:12.5px;color:var(--ink-2)}
+.pcard .up b{color:var(--blue);font-weight:500}
+.pcard .acts{display:flex;gap:14px;margin-top:2px;flex-wrap:wrap;align-items:center}
+.pcard .acts .btn{border:none;background:none;padding:0;color:var(--blue);font-size:12.5px}
+.pcard .acts .btn:hover{text-decoration:underline;text-underline-offset:3px}
+.pcard .acts .del{color:var(--red);margin-left:auto}
+
+/* =====================================================================
+   SETTINGS — a modal over the board, never a page you navigate away to
+   ===================================================================== */
+.modal{
+  width:min(1000px,100%);height:min(680px,calc(100vh - 48px));
+  background:var(--surface);border:1px solid var(--rule);box-shadow:var(--shadow-lift);
+  display:flex;overflow:hidden;
+}
+.modal-side{
+  width:216px;flex:0 0 216px;border-right:1px solid var(--rule);
+  padding:22px 10px;display:flex;flex-direction:column;gap:22px;background:var(--ground);
+}
+.modal-nav{display:flex;flex-direction:column;gap:2px}
+.mnav{
+  display:flex;align-items:center;gap:10px;border:none;background:none;cursor:pointer;
+  text-align:left;font-family:var(--sans);font-size:13px;color:var(--ink-2);
+  padding:9px 13px;text-decoration:none;
+}
+.mnav:hover{background:var(--rule-soft);color:var(--ink)}
+.mnav.on{background:var(--blue-soft);color:var(--blue-ink);font-weight:500}
+.modal-pane{flex:1;min-width:0;padding:26px 34px 30px;overflow-y:auto;position:relative}
+.modal-x{position:absolute;top:20px;right:24px;border:none;background:none;cursor:pointer;
+  color:var(--ink-4);font-size:19px;line-height:1;padding:4px 7px}
+.modal-x:hover{color:var(--ink)}
+.pane-h{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);margin:0 0 4px}
+.pane-sub{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);margin:0 0 22px;line-height:1.5}
+.setrow{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:40px;
+  padding:17px 0;border-bottom:1px solid var(--rule-soft);
+}
+.setrow:first-of-type{border-top:1px solid var(--rule-soft)}
+.setrow:last-child{border-bottom:none}
+.setrow .lab{font-size:13.5px;color:var(--ink);margin-bottom:3px}
+.setrow .help{font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-3);line-height:1.45}
+.setrow .ctl{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.setrow input[type=text],.setrow input[type=email],.setrow select{
+  border:1px solid var(--rule);background:var(--card);padding:9px 12px;
+  font-family:var(--sans);font-size:13px;color:var(--ink);width:268px;max-width:100%;
+}
+.setrow input:focus,.setrow select:focus{border-color:var(--blue);outline:none}
+.setrow input:disabled{color:var(--ink-4);background:var(--ground)}
+.seg{display:flex;border:1px solid var(--rule);background:var(--card)}
+.seg button{
+  border:none;background:none;cursor:pointer;padding:8px 13px;
+  font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+}
+.seg button + button{border-left:1px solid var(--rule)}
+.seg button.on{background:var(--blue);color:var(--on-blue)}
+.usebig{font-family:var(--serif);font-size:40px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.usebar{height:3px;background:var(--rule);margin:14px 0 8px}
+.usebar i{display:block;height:100%;background:var(--blue)}
+.usebar i.warn{background:var(--gold)}
+.usebar i.full{background:var(--red)}
+.kinds{display:flex;gap:26px;flex-wrap:wrap;margin-top:20px}
+.kind{font-size:11.5px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+.kind b{display:block;font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);
+  text-transform:none;letter-spacing:0;margin-bottom:2px}
+.plans{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.plan{flex:1 1 200px;border:1px solid var(--rule);background:var(--card);padding:18px}
+.plan.current{border-color:var(--blue)}
+.plan h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0 0 3px}
+.plan .price{font-size:12px;color:var(--ink-3);margin-bottom:11px}
+.plan .what{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);
+  line-height:1.5;margin-bottom:15px;min-height:40px}
+.plan .btn{width:100%}
+.note{padding:13px 15px;font-size:13.5px;line-height:1.6;margin-bottom:18px}
+.note.info{background:var(--blue-soft);border:1px solid var(--blue);color:var(--ink)}
+.note.warn{background:var(--gold-soft);border:1px solid var(--gold-hair);color:var(--ink)}
+.note.bad{background:var(--red-soft);border:1px solid var(--red);color:var(--ink)}
+.muted{color:var(--ink-3);font-size:13px}
+.paneflash{margin-bottom:16px}
 
 footer{
-  max-width:1440px;margin:0 auto;padding:0 22px 40px;
-  font-size:11.5px;color:var(--ink-3);font-family:var(--mono);
-  border-top:1px solid var(--rule-soft);padding-top:14px;line-height:1.6;
+  max-width:1560px;margin:0 auto;padding:16px 28px 96px;
+  font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-4);line-height:1.6;
 }
 .spinner{
   display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-1px;
@@ -712,25 +825,34 @@ footer{
 }
 #tip{
   position:fixed;z-index:200;max-width:290px;pointer-events:none;
-  background:var(--ink);color:var(--ground);border-radius:3px;
+  background:var(--ink);color:var(--ground);
   padding:9px 12px;font-family:var(--sans);font-size:12.5px;line-height:1.5;
-  box-shadow:0 6px 22px -8px rgba(0,0,0,.5);opacity:0;transform:translateY(-3px);
+  box-shadow:var(--shadow-lift);opacity:0;transform:translateY(-3px);
   transition:opacity .13s ease,transform .13s ease;
 }
-:root[data-theme="dark"] #tip, :root:not([data-theme="light"]) #tip{
-  background:var(--card);color:var(--ink);border:1px solid var(--rule);
-}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) #tip{background:var(--ink);color:var(--ground);border:none}
-}
 #tip.on{opacity:1;transform:translateY(0)}
+
+.creditcount{font-size:11.5px;color:var(--ink-2)}
+.creditcount.low{color:var(--gold)}
+.creditcount.out{color:var(--red)}
 
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
-@media (max-width:640px){
-  .masthead,.capture,.strip,.proposal,main,footer{padding-left:14px;padding-right:14px}
-  .actcol{flex-basis:82vw}
+@media (max-width:760px){
+  .topline{padding:0 16px;gap:12px}
+  main,.trays{padding-left:16px;padding-right:16px}
+  .capture{padding:0 16px}
+  .slate-wrap,.outline-wrap{padding-left:16px;padding-right:16px}
+  .slate-lede{font-size:26px}
+  .slot,.tray-body .icard,.pcard{width:100%}
+  .beats{gap:20px}
+  .modal{flex-direction:column;height:calc(100vh - 32px)}
+  .modal-side{width:100%;flex:0 0 auto;border-right:none;border-bottom:1px solid var(--rule);
+    flex-direction:row;overflow-x:auto;padding:10px;gap:10px}
+  .modal-nav{flex-direction:row}
+  .setrow{flex-direction:column;gap:12px}
+  .setrow .ctl{align-items:flex-start}
 }
 </style>
 
@@ -738,31 +860,113 @@ footer{
 <body>
 
 <header>
-  <div class="masthead">
-    <h1 class="wordmark">Beat<span>fall</span></h1>
-    <span class="tagline">notes fall into structure</span>
+  <div class="topline">
+    <a class="wordmark" href="/" title="Beatfall">Beat<span>fall</span></a>
+
+    <div class="hsep"></div>
+
+    <div class="projbar">
+      <button class="projbtn" id="projbtn" aria-haspopup="true" aria-expanded="false"
+        data-tip="Everything this script can do — switch between scripts, change its structure, paste in more notes, print it.">
+        <span class="nm" id="projname">Untitled</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--blue)" stroke-width="1.6" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
+      </button>
+      <span class="fmtline" id="fmtline"></span>
+
+      <div class="pop wide left" id="projmenu" hidden>
+        <div class="pophead">Your scripts</div>
+        <div class="tabs" id="tabs"></div>
+        <button class="popitem" id="newproj" data-tip="Start another script. Each one keeps its own board, structure and notes.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
+          New project</button>
+
+        <div class="popsep"></div>
+        <div class="pophead">Structure</div>
+        <div class="strip">
+          <select id="structure" aria-label="Story structure" data-tip="The skeleton your cards hang on. Switch it and every card is re-sorted into the new shape — nothing is lost, and you can switch back."></select>
+          <div class="meter"><div class="meter-track"><div class="meter-fill" id="fill"></div></div></div>
+          <span class="meter-label" id="meterlabel"></span>
+          <span class="gapcount" id="gapcount"></span>
+        </div>
+
+        <div class="popsep"></div>
+        <button class="popitem" id="renproj" data-tip="Title, format, logline, who it's about and genre. The more you fill in, the sharper its questions get.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg>
+          Project details</button>
+        <button class="popitem" id="dump" data-tip="Paste or drop a text file of scattered notes. It splits them up, works out which are story beats, and builds the board.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4 2.6h8v10.8H4z"/><path d="M6 5.6h4M6 8h4M6 10.4h2.6"/></svg>
+          Paste in your notes</button>
+        <button class="popitem" id="pdf" data-tip="Prints the board as index cards grouped by act, including the empty beats, so you can spread it on a table.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
+          Save as PDF</button>
+        <button class="popitem" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2v3.4l2.2 1.3"/></svg>
+          See an example</button>
+        <button class="popitem danger" id="clear" data-tip="Removes every card from this project only. Other projects are untouched, and Undo brings it all back.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M3.4 4.6h9.2M6.4 4.6V3h3.2v1.6M4.6 4.6l.7 8.4h5.4l.7-8.4"/></svg>
+          Empty this board</button>
+      </div>
+    </div>
+
     <span id="savestate"></span>
-    <div class="masthead-right">
-      <button class="btn btn-ghost" id="theme" data-tip="Auto goes dark at sunset and light at sunrise where you are. Or force light or dark.">Mode</button>
-      <button class="btn btn-ghost" id="viewtoggle" data-tip="Every project at once — how far along each one is, and where you left off.">Dashboard</button>
-      <button class="btn btn-ghost" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own." >See an example</button>
-      <span class="creditcount" id="credits" hidden data-tip="Credits left this month. Placing notes is always free; conversations and reading a notes file are what count."></span>
-      <a class="btn btn-ghost" href="/settings.html" id="acct" data-tip="Your plan, what you've used this month, and your data.">Account</a>
-      <a class="btn btn-ghost" href="/admin.html" id="adminlink" hidden data-tip="Yours only. Who signed up, what they did, and what it cost.">Admin</a>
-      <button class="btn btn-ghost" id="clear" data-tip="Removes every card from this project only. Other projects are untouched, and Undo brings it all back.">Empty this board</button>
+    <div class="grow"></div>
+
+    <span class="tally" id="tally" hidden
+      data-tip="How many beats have a card, and how many are still bare.">
+      <b id="tplaced"></b><span class="dot">&middot;</span><i id="topen"></i>
+    </span>
+
+    <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
+    <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat — character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
+    <button class="navlink" id="viewtoggle" data-tip="Every project at once — how far along each one is, and where you left off.">Dashboard</button>
+
+    <div style="position:relative">
+      <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false"
+        data-tip="Your account, plan, credits and settings.">K</button>
+
+      <div class="pop right" id="acctmenu" hidden>
+        <div class="popwho">
+          <div class="n" id="whoname">Your account</div>
+          <div class="e" id="whoemail"></div>
+        </div>
+        <div class="popplan" style="flex-direction:column;align-items:flex-start;gap:2px">
+          <span id="whoplan"></span>
+          <span class="creditcount" id="credits" hidden
+            data-tip="Credits left this month. Placing notes is always free; conversations and reading a notes file are what count."></span>
+        </div>
+
+        <div class="popsep"></div>
+
+        <button class="popitem" id="settingsbtn">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"/></svg>
+          Settings</button>
+
+        <button class="popitem" id="theme" data-tip="Auto goes dark at sunset and light at sunrise where you are. Or force light or dark.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2"/></svg>
+          Mode <span class="aside" id="modelabel">Auto</span></button>
+
+        <a class="popitem" id="feedback" href="mailto:kris@beatfall.app?subject=Beatfall%20feedback">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.6 3.6h10.8v8H2.6z"/><path d="M2.6 3.6L8 8.4l5.4-4.8"/></svg>
+          Give feedback</a>
+
+        <button class="popitem" id="helpbtn">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.8"/><path d="M6.4 6.2c.2-1 1-1.5 1.8-1.4.9 0 1.6.6 1.6 1.4 0 1.3-1.6 1.3-1.7 2.5M8.1 11.1v.05"/></svg>
+          What Beatfall does</button>
+
+        <div class="popsep"></div>
+
+        <a class="popitem" href="/admin.html" id="adminlink" hidden
+          data-tip="Yours only. Who signed up, what they did, and what it cost.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.6 12.6V7.4M6.2 12.6V4.2M9.8 12.6V9M13.4 12.6V5.8"/></svg>
+          Admin <span class="tag">owner</span></a>
+
+        <button class="popitem" id="signout">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M6.2 13.4H3.4V2.6h2.8M9.6 11l2.9-3-2.9-3M12.5 8H6.6"/></svg>
+          Sign out</button>
+      </div>
     </div>
   </div>
-
-  <div class="projbar"><div class="projbar-inner">
-    <span class="slug">Project</span>
-    <div class="tabs" id="tabs"></div>
-    <button class="btn btn-ghost" id="newproj" data-tip="Start another script. Each one keeps its own board, structure and notes.">+ New project</button>
-    <button class="btn btn-ghost" id="renproj" data-tip="Title, format, logline, who it's about and genre. The more you fill in, the sharper its questions get.">Details</button>
-    <button class="btn btn-ghost" id="outlinebtn" style="margin-left:auto" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
-    <button class="btn btn-ghost" id="notesbtn" data-tip="Everything you wrote that isn't a story beat — character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
-    <button class="btn btn-ghost" id="dump" data-tip="Paste or drop a text file of scattered notes. It splits them up, works out which are story beats, and builds the board.">Paste in your notes</button>
-    <button class="btn btn-ghost" id="pdf" data-tip="Prints the board as index cards grouped by act, including the empty beats, so you can spread it on a table.">Save as PDF</button>
-  </div></div>
+</header>
 
 <div class="scrim" id="scrim" hidden>
 
@@ -890,14 +1094,7 @@ footer{
 
 </div>
 
-  <div class="capture">
-    <div class="capture-lede">Had a thought on a walk? Type it here and Beatfall works out where it belongs in the story.</div>
-    <div class="capture-row">
-      <input id="note" type="text" autocomplete="off" spellcheck="true"
-        placeholder="He finds out his brother knew the whole time&hellip;">
-      <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
-    </div>
-  </div>
+<div class="trays">
 
   <div class="proposal" id="proposal" hidden>
     <div class="proposal-inner">
@@ -953,16 +1150,7 @@ footer{
     </div>
   </div>
 
-  <div class="strip">
-    <select id="structure" aria-label="Story structure" data-tip="The skeleton your cards hang on. Switch it and every card is re-sorted into the new shape — nothing is lost, and you can switch back."></select>
-    <div class="meter">
-      <div class="meter-track"><div class="meter-fill" id="fill"></div></div>
-      <span class="meter-label" id="meterlabel"></span>
-    </div>
-    <span class="gapcount" id="gapcount"></span>
-    <button class="btn btn-ghost" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what's missing</button>
-  </div>
-</header>
+</div>
 
 <main id="boardview"><div class="board" id="board"></div></main>
 
@@ -999,18 +1187,74 @@ footer{
 
 <section id="slate" hidden>
   <div class="slate-wrap">
+    <h2 class="slate-lede" id="slatelede"></h2>
+    <p class="slate-sub" id="slatesub"></p>
     <div class="slate-stats" id="slatestats"></div>
 
     <div class="slate-head">
-      <h2 class="slate-h">Projects</h2>
+      <h2 class="slate-h">Your scripts</h2>
+      <div class="slate-rule"></div>
       <div class="slate-acts">
-        <button class="btn" id="slatenew" data-tip="Start another script. Each one keeps its own board, structure and notes.">+ New project</button>
-        <button class="btn" id="slatedump" data-tip="Paste or drop a text file of scattered notes. It can even tell when the file covers more than one story and split it into separate projects.">Paste in your notes</button>
+        <button class="btn btn-primary" id="slatenew" data-tip="Start another script. Each one keeps its own board, structure and notes.">New project</button>
+        <button class="btn btn-ghost" id="slatedump" data-tip="Paste or drop a text file of scattered notes. It can even tell when the file covers more than one story and split it into separate projects.">Paste in your notes</button>
       </div>
     </div>
     <div class="slate-grid" id="slategrid"></div>
   </div>
 </section>
+
+<!-- Capture, docked out of the way at the bottom of the room -->
+<div class="capture">
+  <div class="capture-row">
+    <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
+    <input id="note" type="text" autocomplete="off" spellcheck="true"
+      placeholder="He finds out his brother knew the whole time&hellip;"
+      aria-label="Type a note">
+    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
+    <button class="btn btn-ghost" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
+  </div>
+</div>
+
+<!-- Settings: a modal over the board, never a page you navigate away to -->
+<div class="scrim" id="setscrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal-side">
+      <div class="modal-nav">
+        <div class="pophead" style="padding-left:13px">Settings</div>
+        <button class="mnav on" data-pane="profile">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6"/><path d="M3 13.4c.6-2.3 2.5-3.4 5-3.4s4.4 1.1 5 3.4"/></svg>
+          Profile</button>
+        <button class="mnav" data-pane="usage">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M2.6 12.6V7.4M6.2 12.6V4.2M9.8 12.6V9M13.4 12.6V5.8"/></svg>
+          Usage</button>
+        <button class="mnav" data-pane="plan">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><rect x="2.2" y="4" width="11.6" height="8"/><path d="M2.2 6.8h11.6"/></svg>
+          Plan &amp; billing</button>
+        <button class="mnav" data-pane="data">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M8 2.4v7.6M5.2 7.4L8 10.2l2.8-2.8M3 12.4h10"/></svg>
+          Your data</button>
+      </div>
+
+      <div class="modal-nav" id="ownernav" hidden>
+        <div class="pophead" style="padding-left:13px">Owner</div>
+        <a class="mnav" href="/admin.html">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M8 2.2l5 2.3v3.9c0 2.8-2 4.7-5 5.4-3-.7-5-2.6-5-5.4V4.5l5-2.3z"/></svg>
+          Admin dashboard</a>
+      </div>
+
+      <div style="flex:1"></div>
+      <div style="padding:0 13px">
+        <span class="wordmark" style="font-size:17px">Beat<span>fall</span></span>
+      </div>
+    </div>
+
+    <div class="modal-pane" id="setpane">
+      <button class="modal-x" id="setclose" aria-label="Close settings">&times;</button>
+      <div id="setloading" class="muted"><span class="spinner"></span>Loading your account&hellip;</div>
+      <div id="setbody" hidden></div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1414,6 +1658,14 @@ function briefBlock(){
   return genreLens() + (bits.length ? bits.join("\n") + "\n\n" : "");
 }
 
+/* "Save the Cat! (15 beats)" — the format prefix dropped, a beat count added
+   only when the label doesn't already carry one. */
+function structureLine(key){
+  const S = STRUCTURES[key];
+  const short = S.label.replace(/^[^\u2014]*\u2014\s*/, "");
+  return /beats?|stages?/i.test(short) ? short : short + " \u00b7 " + S.slots.length + " beats";
+}
+
 function slotName(key, slotId){
   if (slotId === "__none") return "Set aside";
   const s = STRUCTURES[key].slots.find(x => x.id === slotId);
@@ -1576,6 +1828,7 @@ function renderTabs(){
       + ((p.id || p.localId) === state.activeId ? ' <span class="pencil" aria-hidden="true">&#9998;</span>' : "");
     b.addEventListener("click", e => {
       const key = p.id || p.localId;
+      closePops();
       if (key === state.activeId){         // clicking the project you're in opens its details
         openIntake("edit");
         return;
@@ -1585,7 +1838,9 @@ function renderTabs(){
     });
     tabs.appendChild(b);
   });
-  const b = P().brief || {};
+
+  const proj = P();
+  const b = proj.brief || {};
   const line = [b.who, b.log].filter(Boolean).join(" — ");
   let el = document.getElementById("brieftext");
   if (!el){
@@ -1595,6 +1850,11 @@ function renderTabs(){
   }
   el.textContent = line;
   el.title = [b.log, b.who, b.genre, b.like].filter(Boolean).join("\n");
+
+  // The header carries the project's name and what it's written to.
+  const S = STRUCTURES[proj.structure];
+  document.getElementById("projname").textContent = proj.name;
+  document.getElementById("fmtline").textContent = structureLine(proj.structure);
 }
 
 function render(justPlaced){
@@ -1604,17 +1864,25 @@ function render(justPlaced){
   sel.value = proj.structure;
   board.innerHTML = "";
 
+  // Acts are horizontal bands, not columns. Beats wrap, so a five-act structure
+  // never runs off the right-hand edge of the screen.
   S.acts.forEach((actName, ai) => {
-    const col = document.createElement("div");
-    col.className = "actcol";
+    const band = document.createElement("div");
+    band.className = "band";
     const slots = S.slots.filter(s => s.act === ai);
     const filledInAct = slots.filter(s => proj.cards.some(c => c.slot === s.id)).length;
 
     const head = document.createElement("div");
     head.className = "acthead";
-    head.innerHTML = '<span class="n">' + esc(actName.toUpperCase()) + "</span>"
-      + '<span class="c">' + filledInAct + "/" + slots.length + "</span>";
-    col.appendChild(head);
+    head.innerHTML = '<span class="n">' + esc(actName) + "</span>"
+      + '<span class="r"><i style="width:'
+        + Math.round(filledInAct / slots.length * 100) + '%"></i></span>'
+      + '<span class="c">' + filledInAct + " of " + slots.length + "</span>";
+    band.appendChild(head);
+
+    const row = document.createElement("div");
+    row.className = "beats";
+    band.appendChild(row);
 
     slots.forEach(s => {
       const cards = proj.cards.filter(c => c.slot === s.id);
@@ -1631,18 +1899,28 @@ function render(justPlaced){
             + 'want, or leave it and decide later.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
         + "</div>"
-        + '<div class="slotfn">' + esc(s.fn) + "</div>"
         + '<div class="cards"></div>';
       const holder = el.querySelector(".cards");
       cards.forEach(c => holder.appendChild(cardEl(c)));
-      // an empty beat can ask you a question built from the cards around it
+
+      // An empty beat is the absence of a card: the job it does, one dashed
+      // hairline where the paper should be, and two quiet ways in.
       if (!cards.length){
+        const gap = document.createElement("div");
+        gap.className = "gapbody";
+        gap.innerHTML = '<div class="slotfn">' + esc(s.fn) + "</div>"
+          + '<div class="gapline"></div>'
+          + '<div class="gapacts"></div>';
+        const acts = gap.querySelector(".gapacts");
         const ask = document.createElement("button");
         ask.className = "askbtn";
         ask.textContent = "What goes here?";
         ask.setAttribute("data-tip", "Reads the cards on either side of this gap and talks you through what belongs here — up to five questions, then it writes the card from your answers.");
         ask.addEventListener("click", e => { e.stopPropagation(); askAbout(s); });
-        el.appendChild(ask);
+        acts.appendChild(ask);
+        const sep = document.createElement("span");
+        sep.className = "sep"; sep.textContent = "·";
+        acts.appendChild(sep);
         const ideas = document.createElement("button");
         ideas.className = "askbtn ideasbtn";
         ideas.textContent = "Ideas";
@@ -1650,20 +1928,20 @@ function render(justPlaced){
           + "set aside, then offers a few shapes this beat could take — mostly built out of notes "
           + "you already wrote. No questions.");
         ideas.addEventListener("click", e => { e.stopPropagation(); ideasFor(s); });
-        el.appendChild(ideas);
-
+        acts.appendChild(ideas);
+        el.appendChild(gap);
       }
       wireDrop(el, s.id);
-      col.appendChild(el);
+      row.appendChild(el);
     });
-    board.appendChild(col);
+    board.appendChild(band);
   });
 
   const unplaced = proj.cards.filter(c => c.slot === "__none");
   const tray = document.createElement("div");
-  tray.className = "actcol tray";
-  tray.innerHTML = '<div class="acthead"><span class="n">SET ASIDE</span>'
-    + '<span class="c">' + unplaced.length + "</span></div>"
+  tray.className = "band tray";
+  tray.innerHTML = '<div class="acthead"><span class="n">Set aside</span>'
+    + '<span class="r"></span><span class="c">' + unplaced.length + "</span></div>"
     + '<div class="tray-body"></div>';
   const tb = tray.querySelector(".tray-body");
   if (!unplaced.length){
@@ -1678,6 +1956,14 @@ function render(justPlaced){
   const filled = S.slots.filter(s => proj.cards.some(c => c.slot === s.id)).length;
   document.getElementById("fill").style.width = (filled / total * 100) + "%";
   document.getElementById("meterlabel").textContent = filled + " of " + total + " beats have a card";
+
+  // the header keeps one honest line: what's placed, what's still bare
+  const open = total - filled;
+  document.getElementById("tplaced").textContent = filled + " placed";
+  document.getElementById("topen").textContent = open + " open";
+  document.getElementById("topen").style.color = open ? "" : "var(--sage)";
+  document.getElementById("tally").hidden = false;
+
   const holes = S.slots.filter(s => !proj.cards.some(c => c.slot === s.id) && isGap(s)).length;
   const gc = document.getElementById("gapcount");
   const undecided = S.slots.filter(x => proj.cards.filter(c => c.slot === x.id && c.declared).length > 1).length;
@@ -1703,7 +1989,7 @@ function cardEl(c){
   el.draggable = true;
   el.dataset.id = c.id;
   const hint = c.maybe && c.slot === "__none"
-    ? '<div class="maybe">possibly ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
+    ? '<div class="maybe">possibly &mdash; ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
   el.innerHTML =
       '<button class="move" title="Move or relabel">&#8942;</button>'
     + '<button class="pin" title="' + (c.pinned ? "Settled here" : "Mark as settled") + '">'
@@ -2150,9 +2436,9 @@ function openIntake(mode){
     mode === "edit" ? "Save" : "Start the board";
   document.getElementById("newpaste").hidden = mode === "edit";
   F.name.value   = mode === "edit" ? (proj.name === "Untitled" ? "" : proj.name) : "";
-  // A new project starts on the feature structure, not on whatever the project
-  // you happened to have open was using.
-  F.format.value = mode === "edit" ? proj.structure : "stc";
+  // A new project starts on whatever you told Settings new projects should start
+  // on — not on whatever the project you happened to have open was using.
+  F.format.value = mode === "edit" ? proj.structure : defaultStructure();
   F.log.value    = b.log || "";
   F.who.value    = b.who || "";
   F.genre.value  = b.genre || "";
@@ -3891,11 +4177,19 @@ function setView(v, quiet){
   outlineview.hidden = v !== "outline";
   boardview.hidden   = !onBoard;
   document.querySelector(".capture").hidden = !onBoard;
-  document.querySelector(".strip").hidden   = !onBoard;
   document.querySelector(".projbar").hidden = v === "slate";
+  document.getElementById("tally").hidden   = v === "slate";
+  // Outline and Notes belong to a script, not to the shelf of them
+  document.getElementById("outlinebtn").hidden = v === "slate";
+  document.getElementById("notesbtn").hidden   = v === "slate";
   // "Empty this board" acts on one board; it has no meaning on the slate.
   document.getElementById("clear").hidden = v === "slate";
   document.getElementById("viewtoggle").textContent = onBoard ? "Dashboard" : "Back to the board";
+  closePops();
+  // the header says where you are
+  document.getElementById("outlinebtn").classList.toggle("on", v === "outline");
+  document.getElementById("notesbtn").classList.toggle("on", v === "notes");
+  document.getElementById("viewtoggle").classList.toggle("on", v === "slate");
   if (v === "slate"){ hideAll(); renderSlate(); }
   else if (v === "notes"){ hideAll(); render(); renderNotes(); }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
@@ -3911,21 +4205,42 @@ function renderSlate(){
   const grid = document.getElementById("slategrid");
   grid.innerHTML = "";
 
-  let cards = 0, holes = 0, stalled = 0, best = null;
+  let cards = 0, holes = 0, empty = 0, stalled = 0, best = null;
   state.projects.forEach(p => {
     const c = coverage(p);
     cards += p.cards.length;
     holes += c.holes;
+    empty += (c.total - c.filled);
     if (p.touched && Date.now() - p.touched > 21 * 86400000) stalled++;
     if (!best || c.pct > best.pct) best = {name: p.name, pct: c.pct};
   });
 
-  document.getElementById("slatestats").innerHTML =
-      stat(state.projects.length, state.projects.length === 1 ? "project" : "projects")
-    + stat(cards, "cards written")
-    + stat(holes, holes === 1 ? "hole across the slate" : "holes across the slate", holes ? "warn" : "good")
-    + (best ? stat(best.pct + "%", "furthest along: " + best.name, "good") : "")
-    + (stalled ? stat(stalled, stalled === 1 ? "sitting untouched" : "sitting untouched", "warn") : "");
+  // The scoreboard is a sentence, not a row of boxes. It should read like
+  // somebody telling you where you stand.
+  const N = state.projects.length;
+  const ones = ["No","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten",
+                "Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen",
+                "Eighteen","Nineteen"];
+  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const spell = n => n < 20 ? ones[n]
+    : n < 100 ? tens[Math.floor(n / 10)] + (n % 10 ? "-" + ones[n % 10].toLowerCase() : "")
+    : String(n);
+  const lede = document.getElementById("slatelede");
+  const one = N === 1;
+  lede.innerHTML = esc(spell(N)) + " script" + (one ? "" : "s") + " open."
+    + (empty
+        ? " <em>" + esc(spell(empty)) + " beat" + (empty === 1 ? "" : "s")
+          + "</em> still empty" + (one ? " in it." : " between them.")
+        : " Every beat has a card.");
+
+  const sub = [];
+  if (best && N > 1) sub.push("Furthest along — " + best.name + ", " + best.pct + "% of the way in.");
+  else if (best && N === 1) sub.push(best.pct + "% of the way in.");
+  sub.push(stalled
+    ? (stalled === 1 ? "One has" : stalled + " have") + " been sitting untouched for three weeks."
+    : "Nothing has gone cold.");
+  document.getElementById("slatesub").textContent = sub.join(" ");
+  document.getElementById("slatestats").innerHTML = "";
 
   state.projects.forEach(p => {
     const c = coverage(p);
@@ -3934,16 +4249,19 @@ function renderSlate(){
     const el = document.createElement("div");
     el.className = "pcard" + ((p.id || p.localId) === state.activeId ? " current" : "");
     el.innerHTML =
-        "<h3>" + esc(p.name) + "</h3>"
-      + '<div class="fmt">' + esc(STRUCTURES[p.structure].label) + "</div>"
+        '<div class="ph"><h3>' + esc(p.name) + "</h3>"
+        + '<span class="when">' + esc(ago(p.touched)) + "</span></div>"
       + '<div class="log' + (b.log ? "" : " none") + '">'
-        + esc(b.log || "No logline yet — the app works better once it has one.") + "</div>"
+        + esc(b.log || "No logline yet. It reads better once it has one.") + "</div>"
       + '<div class="bar"><i style="width:' + c.pct + '%"></i></div>'
       + '<div class="row"><span>' + c.filled + " of " + c.total + " beats</span>"
-        + (c.holes ? '<span class="next">' + c.holes + (c.holes === 1 ? " hole" : " holes") + "</span>" : "")
-        + "<span>&middot;</span><span>" + esc(ago(p.touched)) + "</span></div>"
-      + (nx ? '<div class="row"><span>Next up: <b style="color:var(--ink-2)">'
-              + esc(nx.name) + "</b></span></div>" : "")
+        + '<span class="dot">&middot;</span>'
+        + (c.total - c.filled
+            ? '<span class="next">' + (c.total - c.filled) + " open</span>"
+            : '<span>every beat has a card</span>')
+        + '<span class="dot">&middot;</span><span>' + esc(structureLine(p.structure)) + "</span></div>"
+      + '<div class="hr"></div>'
+      + (nx ? '<div class="up">Next up &mdash; <b>' + esc(nx.name) + "</b></div>" : "")
       + '<div class="acts"></div>';
 
     el.querySelector("h3").addEventListener("click", () => open(p.id || p.localId));
@@ -3997,12 +4315,344 @@ document.getElementById("slatedump").addEventListener("click", openImport);
 
 
 /* =========================================================================
+   POPOVERS — the project menu and the account menu. Everything that used to
+   be a row of buttons across the top now lives behind one of these two.
+   ========================================================================= */
+const projMenu = document.getElementById("projmenu");
+const acctMenu = document.getElementById("acctmenu");
+const projBtn  = document.getElementById("projbtn");
+const avatar   = document.getElementById("avatar");
+
+function closePops(){
+  projMenu.hidden = true; acctMenu.hidden = true;
+  projBtn.setAttribute("aria-expanded", "false");
+  avatar.setAttribute("aria-expanded", "false");
+  avatar.classList.remove("open");
+}
+function togglePop(which){
+  const open = which.hidden;
+  closePops();
+  if (!open) return;
+  which.hidden = false;
+  if (which === projMenu) projBtn.setAttribute("aria-expanded", "true");
+  else { avatar.setAttribute("aria-expanded", "true"); avatar.classList.add("open"); }
+}
+projBtn.addEventListener("click", e => { e.stopPropagation(); togglePop(projMenu); });
+avatar .addEventListener("click", e => { e.stopPropagation(); togglePop(acctMenu); });
+document.addEventListener("click", e => {
+  if (e.target.closest(".pop") || e.target.closest("#projbtn") || e.target.closest("#avatar")) return;
+  closePops();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePops(); });
+// Every item in a popover does its thing and then gets out of the way.
+document.querySelectorAll(".pop .popitem").forEach(b => {
+  if (b.id === "theme") return;              // mode cycles in place, menu stays open
+  b.addEventListener("click", () => setTimeout(closePops, 0));
+});
+
+/* =========================================================================
    MODE — auto follows the daylight where the writer is, and turns over while
    they are still sitting there. The logic lives in app.js so every page agrees.
    ========================================================================= */
+const MODE_WORD = {auto: "Auto", light: "Light", dark: "Dark"};
 const modeBtn = document.getElementById("theme");
-modeBtn.addEventListener("click", () => BF.cycleMode(modeBtn));
-BF.applyMode(BF.readMode(), modeBtn);
+const modeLabel = document.getElementById("modelabel");
+
+function paintMode(){
+  const m = BF.readMode();
+  modeLabel.textContent = MODE_WORD[m] || "Auto";
+  document.querySelectorAll("#setbody .seg [data-mode]").forEach(b =>
+    b.classList.toggle("on", b.dataset.mode === m));
+}
+modeBtn.addEventListener("click", e => { e.stopPropagation(); BF.cycleMode(); paintMode(); });
+BF.applyMode(BF.readMode());
+paintMode();
+
+/* =========================================================================
+   SETTINGS — a modal over the board. Profile, usage, plan and your data, all
+   without leaving the script you were looking at.
+   ========================================================================= */
+const setScrim = document.getElementById("setscrim");
+const setBody  = document.getElementById("setbody");
+let ME = null;                 // the account, fetched once per opening
+
+function defaultStructure(){
+  try {
+    const k = localStorage.getItem("beatfall.newstructure");
+    if (k && STRUCTURES[k]) return k;
+  } catch (e) {}
+  return "stc";
+}
+
+function setFlash(kind, msg){
+  const el = document.getElementById("paneflash");
+  if (!el) return;
+  el.className = "note " + kind + " paneflash";
+  el.innerHTML = msg; el.hidden = false;
+}
+
+function revealPane(){
+  document.getElementById("setloading").hidden = true;
+  setBody.hidden = false;
+  document.getElementById("ownernav").hidden = !(ME && ME.is_admin);
+}
+
+function openSettings(pane){
+  setScrim.hidden = false;
+  closePops();
+  currentPane = pane || "profile";
+  // the account was already fetched at boot — no reason to make anyone wait twice
+  if (ME){ revealPane(); showPane(currentPane); return; }
+  document.getElementById("setloading").hidden = false;
+  setBody.hidden = true;
+  BF.api("/api/account").then(me => {
+    ME = me;
+    revealPane();
+    showPane(currentPane);
+  }).catch(e => {
+    document.getElementById("setloading").innerHTML =
+      '<span class="note bad">' + esc(BF.explain(e)) + "</span>";
+  });
+}
+function closeSettings(){ setScrim.hidden = true; }
+
+document.getElementById("settingsbtn").addEventListener("click", () => openSettings("profile"));
+document.getElementById("setclose").addEventListener("click", closeSettings);
+setScrim.addEventListener("click", e => { if (e.target === setScrim) closeSettings(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSettings(); });
+
+let currentPane = "profile";
+document.querySelectorAll(".mnav[data-pane]").forEach(b =>
+  b.addEventListener("click", () => showPane(b.dataset.pane)));
+
+function showPane(name){
+  currentPane = name;
+  document.querySelectorAll(".mnav[data-pane]").forEach(b =>
+    b.classList.toggle("on", b.dataset.pane === name));
+  if (!ME) return;
+  setBody.innerHTML = "";
+  ({profile: paneProfile, usage: paneUsage, plan: panePlan, data: paneData}[name] || paneProfile)();
+  paintMode();
+}
+
+function row(label, help, ctl){
+  return '<div class="setrow"><div><div class="lab">' + label + "</div>"
+    + '<div class="help">' + help + "</div></div>"
+    + '<div class="ctl">' + ctl + "</div></div>";
+}
+
+function paneProfile(){
+  const opts = Object.entries(STRUCTURES).map(([k, s]) =>
+    '<option value="' + k + '"' + (k === defaultStructure() ? " selected" : "") + ">"
+    + esc(s.label) + "</option>").join("");
+  setBody.innerHTML =
+      '<h2 class="pane-h">Profile</h2>'
+    + '<p class="pane-sub">How you show up, and how the app behaves for you.</p>'
+    + '<div id="paneflash" hidden></div>'
+    + row("Name", "What Beatfall calls you.",
+        '<input type="text" id="s-name" value="' + esc(ME.display_name || "") + '" placeholder="Your name">'
+        + '<button class="btn" id="s-savename">Save</button>')
+    + row("Email", "Where your sign-in link goes. No password to remember.",
+        '<input type="text" value="' + esc(ME.email) + '" disabled>')
+    + row("Mode", "Auto follows sunset where you are.",
+        '<div class="seg">'
+        + '<button data-mode="auto">Auto</button>'
+        + '<button data-mode="light">Light</button>'
+        + '<button data-mode="dark">Dark</button></div>')
+    + row("New projects start on",
+        "The structure a fresh script opens with. Changeable per project at any time.",
+        '<select id="s-struct">' + opts + "</select>")
+    + '<div class="setrow"><div><div class="lab" style="color:var(--red)">Delete account</div>'
+      + '<div class="help">Removes every project and note, permanently. Download your data first.</div></div>'
+      + '<div class="ctl"><input type="text" id="s-confirm" placeholder="type your email to confirm">'
+      + '<button class="btn btn-danger" id="s-del">Delete my account</button></div></div>';
+
+  document.getElementById("s-savename").addEventListener("click", async e => {
+    const b = e.currentTarget; b.disabled = true;
+    try {
+      const name = document.getElementById("s-name").value;
+      await BF.api("/api/account", {method: "POST",
+        body: JSON.stringify({action: "rename", display_name: name})});
+      ME.display_name = name;
+      paintWho();
+      setFlash("info", "Saved.");
+    } catch (e2) { setFlash("bad", esc(BF.explain(e2))); }
+    b.disabled = false;
+  });
+
+  document.querySelectorAll("#setbody .seg [data-mode]").forEach(b =>
+    b.addEventListener("click", () => { BF.applyMode(b.dataset.mode); paintMode(); }));
+
+  document.getElementById("s-struct").addEventListener("change", e => {
+    try { localStorage.setItem("beatfall.newstructure", e.target.value); } catch (err) {}
+    setFlash("info", "New projects will start on that.");
+  });
+
+  document.getElementById("s-del").addEventListener("click", async () => {
+    const typed = document.getElementById("s-confirm").value.trim();
+    if (typed !== ME.email){ setFlash("warn", "Type your email address exactly to confirm."); return; }
+    if (!confirm("This deletes your account and every project permanently. There is no undo.")) return;
+    try {
+      await BF.api("/api/account", {method: "POST",
+        body: JSON.stringify({action: "delete_account", confirm: typed})});
+      await BF.sb.auth.signOut();
+      location.href = "/login.html";
+    } catch (e) { setFlash("bad", esc(BF.explain(e))); }
+  });
+}
+
+function paneUsage(){
+  const LABEL = {conversation: "conversations", import: "notes files read", ideas: "idea sets",
+                 logline: "logline sessions", place: "notes placed", route: "notes routed"};
+  const pct = ME.unlimited ? 0
+    : (ME.credits_allowance ? Math.min(100, Math.round(ME.credits_used / ME.credits_allowance * 100)) : 0);
+  const next = new Date(ME.period_start); next.setUTCMonth(next.getUTCMonth() + 1);
+  const kinds = Object.keys(ME.by_kind || {}).length
+    ? Object.entries(ME.by_kind).map(([k, v]) =>
+        '<div class="kind"><b>' + v.count + "</b>" + esc(LABEL[k] || k) + "</div>").join("")
+    : '<div class="kind" style="color:var(--ink-4)">Nothing used yet this month</div>';
+
+  setBody.innerHTML =
+      '<h2 class="pane-h">This month</h2>'
+    + '<p class="pane-sub">Placing a note is free and always will be — that\'s the whole point.</p>'
+    + '<div class="usebig">' + ME.credits_used + '<span style="font-size:16px;color:var(--ink-3)"> of '
+      + (ME.unlimited ? "unlimited" : ME.credits_allowance) + " credits</span></div>"
+    + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
+      + '" style="width:' + pct + '%"></i></div>'
+    + '<div class="muted">Resets ' + next.toLocaleDateString(undefined, {month: "long", day: "numeric"})
+      + ".</div>"
+    + '<div class="kinds">' + kinds + "</div>"
+    + '<p class="muted" style="margin-top:26px;max-width:62ch;line-height:1.65">'
+      + "A whole conversation costs one credit however many questions it takes, and reading in a "
+      + "notes file costs two. If you run out, everything except the writing help keeps working."
+      + "</p>";
+}
+
+function panePlan(){
+  const PERIODS = [
+    {key: "month", label: "Monthly", price: "$12", per: "a month",
+     note: "Cancel any time, from your own billing page."},
+    {key: "year",  label: "Annual",  price: "$99", per: "a year",
+     note: "Two and a half months free, paid once."}
+  ];
+  let note = "";
+  if (ME.unlimited){
+    note = '<div class="note info"><b>Owner account.</b> No plan, no limits, no billing — your '
+      + "usage is excluded from the numbers on the admin dashboard so it can't skew where the "
+      + "customer allowance should sit.</div>";
+  } else if (ME.plan === "trial" && ME.trialing){
+    const days = Math.max(0, Math.ceil((new Date(ME.trial_ends_at) - Date.now()) / 86400000));
+    const ends = new Date(ME.trial_ends_at).toLocaleDateString(undefined, {month: "long", day: "numeric"});
+    note = '<div class="note info"><b>You\'re on the free trial — ' + days + " day"
+      + (days === 1 ? "" : "s") + " left, through " + ends + ".</b> No card on file. Pick a plan "
+      + "whenever you're ready; your boards carry over either way.</div>";
+  } else if (ME.plan === "none"){
+    note = '<div class="note warn"><b>No active plan.</b> Your projects, boards and notes are all '
+      + "still here and the board works normally — it's the writing help that's switched off.</div>";
+  } else {
+    const when = ME.current_period_end
+      ? new Date(ME.current_period_end).toLocaleDateString(undefined,
+          {month: "long", day: "numeric", year: "numeric"}) : null;
+    if (ME.cancel_at_period_end){
+      note = '<div class="note warn"><b>Cancelled.</b> You keep everything you\'ve paid for '
+        + (when ? "until <b>" + when + "</b>" : "until the end of this billing period")
+        + ", then the writing help switches off. Your projects, boards and notes stay exactly "
+        + "where they are. Changed your mind? Resubscribe under Manage billing.</div>";
+    } else if (ME.subscription_status === "past_due"){
+      note = '<div class="note bad"><b>Your last payment failed.</b> Update your card under '
+        + "Manage billing to keep the writing help on. Nothing else is affected.</div>";
+    } else {
+      note = '<div class="note info"><b>You\'re subscribed. Thank you — genuinely.</b> '
+        + ME.credits_allowance + " credits a month, and everything on the board stays free."
+        + (when ? " Renews <b>" + when + "</b>." : "") + "</div>";
+    }
+  }
+
+  const paid = (ME.plans && ME.plans.beatfall) || {credits: 150};
+  const subscribed = ME.plan === "beatfall" || ME.unlimited;
+
+  setBody.innerHTML =
+      '<h2 class="pane-h">Plan &amp; billing</h2>'
+    + '<p class="pane-sub">One plan, two ways to pay for it.</p>'
+    + '<div id="paneflash" hidden></div>'
+    + note
+    + '<div class="plans">' + PERIODS.map((p, i) =>
+        '<div class="plan' + (subscribed ? "" : (i === 1 ? " current" : "")) + '">'
+        + "<h3>" + p.label + "</h3>"
+        + '<div class="price">' + p.price + " " + p.per + " · " + paid.credits + " credits a month</div>"
+        + '<div class="what">' + p.note + "</div>"
+        + (subscribed
+            ? '<button class="btn" disabled>Manage below</button>'
+            : '<button class="btn' + (i === 1 ? " btn-primary" : "") + '" data-period="' + p.key
+              + '">Choose ' + p.label.toLowerCase() + "</button>")
+        + "</div>").join("") + "</div>"
+    + '<div class="setrow" style="border-top:none;margin-top:22px">'
+      + '<div><div class="lab">Manage billing</div><div class="help">Cancelling, changing card and '
+      + "switching between monthly and annual all happen on Stripe's own pages.</div></div>"
+      + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button>'
+      + '<button class="btn" id="s-topup">Top up 100 credits — $6</button></div></div>';
+
+  const openStripe = action => async ev => {
+    const b = ev.currentTarget, was = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    try {
+      const {url} = await BF.api("/api/billing", {method: "POST", body: JSON.stringify({action})});
+      location.href = url;
+    } catch (e) { setFlash("bad", esc(BF.explain(e))); b.disabled = false; b.textContent = was; }
+  };
+  document.getElementById("s-portal").addEventListener("click", openStripe("portal"));
+  document.getElementById("s-topup") .addEventListener("click", openStripe("topup"));
+  setBody.querySelectorAll("[data-period]").forEach(b => b.addEventListener("click", async () => {
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    try {
+      const {url} = await BF.api("/api/billing", {method: "POST",
+        body: JSON.stringify({action: "checkout", period: b.dataset.period})});
+      location.href = url;
+    } catch (e) { setFlash("bad", esc(BF.explain(e))); b.disabled = false; b.textContent = "Try again"; }
+  }));
+}
+
+function paneData(){
+  setBody.innerHTML =
+      '<h2 class="pane-h">Your data</h2>'
+    + '<p class="pane-sub">It is yours. No conditions, no export fee, no waiting.</p>'
+    + '<div id="paneflash" hidden></div>'
+    + row("Download everything",
+        "Every project, card and note as a single JSON file.",
+        '<button class="btn" id="s-export">Download</button>');
+
+  document.getElementById("s-export").addEventListener("click", async e => {
+    const b = e.currentTarget;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Preparing…';
+    try {
+      const data = await BF.api("/api/account", {method: "POST", body: JSON.stringify({action: "export"})});
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "beatfall-export-" + new Date().toISOString().slice(0, 10) + ".json";
+      a.click(); URL.revokeObjectURL(a.href);
+    } catch (e2) { setFlash("bad", esc(BF.explain(e2))); }
+    b.disabled = false; b.textContent = "Download";
+  });
+}
+
+/* who you are, in the header and the account menu */
+function paintWho(me){
+  if (me) ME = me;
+  if (!ME) return;
+  const name = ME.display_name || (ME.email || "").split("@")[0] || "You";
+  document.getElementById("whoname").textContent = name;
+  document.getElementById("whoemail").textContent = ME.email || "";
+  document.getElementById("avatar").textContent = (name.trim()[0] || "?").toUpperCase();
+  const plan = ME.unlimited ? "Owner — no limits"
+    : ME.plan === "beatfall" ? "Beatfall · $12 a month"
+    : (ME.plan === "trial" && ME.trialing) ? "Free trial"
+    : "No plan";
+  document.getElementById("whoplan").textContent = plan;
+}
+
+document.getElementById("signout").addEventListener("click", () => BF.signOut());
+document.getElementById("helpbtn").addEventListener("click", () => showFirstRun());
 
 /* =========================================================================
    HOVER EXPLAINERS — every control says what it does before you press it.
@@ -4083,7 +4733,11 @@ document.getElementById("foot").innerHTML =
   // first AI call, and reveals the admin link for the one account that has it.
   try {
     const me = await BF.api("/api/account");
-    if (me.is_admin) document.getElementById("adminlink").hidden = false;
+    if (me.is_admin){
+      document.getElementById("adminlink").hidden = false;
+      document.getElementById("ownernav").hidden = false;
+    }
+    paintWho(me);
     if (!me.unlimited && typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance});
   } catch (e) { /* not fatal — the board works without it */ }
@@ -4114,9 +4768,9 @@ BF.onCredits = function (c) {
   if (!c || !c.allowance) return;
   const el = document.getElementById("credits");
   if (!el) return;
-  el.textContent = c.left + " / " + c.allowance;
-  el.className = c.left <= 0 ? "creditcount out"
-               : c.left <= c.allowance * .2 ? "creditcount low" : "creditcount";
+  el.textContent = c.left + " of " + c.allowance + " credits left";
+  el.className = c.left <= 0 ? "creditcount cr out"
+               : c.left <= c.allowance * .2 ? "creditcount cr low" : "creditcount cr";
   el.hidden = false;
 };
 </script>
