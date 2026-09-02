@@ -3293,12 +3293,18 @@ async function claudePlan(raw){
 
   // fold the writer's own second thoughts back onto the line above
   const items = [];
+  const shortQ = t => t.length <= 70 && /\?\s*$/.test(t);
   splitNotes(raw).forEach(text => {
     const prev = items[items.length - 1];
     if (prev){
       const to = refersToPrevious(text, proj.structure);
       if (to){ prev.beat = to; prev.declared = true; return; }
       if (refersSoftly(text)){ prev.text += "  " + text; return; }
+      // Writers argue with themselves in the margin: "Which one?" / "His father's."
+      // Split apart, both halves are meaningless. Keep the exchange together.
+      if (shortQ(text) || (shortQ(prev.text) && text.length <= 70)){
+        prev.text += " " + text; return;
+      }
     }
     items.push({text, beat: null, declared: false});
   });
@@ -3345,6 +3351,9 @@ async function claudePlan(raw){
     + "- A note that only floats a possibility - maybe, what if, could be, or ending in a question "
     + "mark - is not yet a beat.\n"
     + "- Lists of candidates, such as alternate titles or possible place names, are structural notes.\n"
+    + "- Consecutive notes often circle the SAME moment from different angles. When two or "
+    + "three notes next to each other describe one turn in the story, give the beat to the "
+    + "clearest one and leave the others unplaced. Do not spread one moment across three beats.\n"
     + "- If you are not certain which beat a note is, set b to null. An empty beat is useful to the "
     + "writer, because it shows them a hole. A wrongly filled one is worse than useless.\n"
     + "- Give no beat more than " + MAX_PER_BEAT + " notes in a batch. If more seem to fit, keep only "
@@ -3418,7 +3427,13 @@ async function claudePlan(raw){
     });
   });
 
-  const brief = Object.assign({}, cleanBrief(top && top.brief) || {}, header);
+  // What the writer literally typed wins for title, genre and format - those get
+  // stated once. A LOGLINE is the field they rewrite five times, so the header
+  // line is usually their first attempt and not the one they kept. For that one
+  // field the model's read of the whole argument wins.
+  const read = cleanBrief(top && top.brief) || {};
+  const brief = Object.assign({}, read, header);
+  if (read.log && read.log.length > 25) brief.log = read.log;
   return groups.map((g, i) => ({
     name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
