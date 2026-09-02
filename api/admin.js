@@ -21,7 +21,11 @@ export default async function handler(req, res) {
       db.from('profiles').select('*').order('created_at', { ascending: false }).limit(500),
       db.from('usage').select('user_id, kind, credits, tokens_in, tokens_out, cost_micros, created_at')
         .gte('created_at', since),
-      db.from('projects').select('user_id, cards, updated_at'),
+      // Deliberately NOT 'cards'. The operator has no business reading a
+      // stranger's story, and the Terms say so — this is the line that makes
+      // that true rather than a promise. card_count is maintained by a trigger
+      // in the database, so counting never requires the text.
+      db.from('projects').select('user_id, card_count, updated_at'),
       db.from('events').select('user_id, name, created_at').gte('created_at', since).limit(5000)
     ]);
 
@@ -40,7 +44,7 @@ export default async function handler(req, res) {
   (projects || []).forEach(p => {
     const r = ensure(p.user_id);
     r.projects += 1;
-    r.cards += Array.isArray(p.cards) ? p.cards.length : 0;
+    r.cards += Number(p.card_count || 0);
   });
 
   const rows = (people || []).map(p => {

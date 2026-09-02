@@ -355,6 +355,48 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
 }
 
+/* ---------- notes filed under a beat: material, never the beat itself ---- */
+.attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
+  border-left:1px solid var(--rule);padding-left:11px}
+.anote{
+  display:flex;align-items:flex-start;gap:8px;padding:5px 0;
+  font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);
+}
+.anote .chip{font-size:8.5px;padding:2px 5px;margin-top:1px;flex:0 0 auto}
+.anote .at{flex:1;min-width:0;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:3;-webkit-box-orient:vertical}
+.anote .unpin{
+  flex:0 0 auto;border:none;background:none;cursor:pointer;padding:1px 5px;
+  color:var(--ink-4);font-size:13px;line-height:1.2;opacity:0;transition:opacity .12s ease;
+}
+.anote:hover .unpin{opacity:1}
+.anote .unpin:hover{color:var(--blue)}
+.obeat .attached{margin:0 0 12px;padding-left:13px}
+.obeat .anote{font-size:12px}
+.ncard .on{font-size:11.5px;color:var(--ink-4)}
+.ncard .on b{color:var(--gold);font-weight:600}
+
+/* ---------- notes filed under a beat: material, never the beat itself ---- */
+.attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
+  border-left:1px solid var(--rule);padding-left:11px}
+.anote{
+  display:flex;align-items:flex-start;gap:8px;padding:5px 0;
+  font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);
+}
+.anote .chip{font-size:8.5px;padding:2px 5px;margin-top:1px;flex:0 0 auto}
+.anote .at{flex:1;min-width:0;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:3;-webkit-box-orient:vertical}
+.anote .unpin{
+  flex:0 0 auto;border:none;background:none;cursor:pointer;padding:1px 5px;
+  color:var(--ink-4);font-size:13px;line-height:1.2;opacity:0;transition:opacity .12s ease;
+}
+.anote:hover .unpin{opacity:1}
+.anote .unpin:hover{color:var(--blue)}
+.obeat .attached{margin:0 0 12px;padding-left:13px}
+.obeat .anote{font-size:12px}
+.ncard .on{font-size:11.5px;color:var(--ink-4)}
+.ncard .on b{color:var(--gold);font-weight:600}
+
 /* set aside: flat paper, no shadow — it isn't on the wall yet */
 .tray{width:100%}
 .tray .acthead .n{color:var(--ink-4)}
@@ -902,7 +944,7 @@ footer{
         <button class="popitem" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2v3.4l2.2 1.3"/></svg>
           See an example</button>
-        <button class="popitem danger" id="clear" data-tip="Removes every card from this project only. Other projects are untouched, and Undo brings it all back.">
+        <button class="popitem danger" id="clear" data-tip="Takes every card off this board. Your notes are kept, other projects are untouched, and Undo brings it all back.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M3.4 4.6h9.2M6.4 4.6V3h3.2v1.6M4.6 4.6l.7 8.4h5.4l.7-8.4"/></svg>
           Empty this board</button>
       </div>
@@ -976,6 +1018,9 @@ footer{
       to be tidy, one-per-line, or even about one story. Beatfall reads it, separates the ideas,
       works out which are beats and which are character, voice or dialogue notes, and builds the
       board. Your wording is kept exactly as you wrote it.</p>
+    <p class="sheet-note" style="margin-top:-8px">It goes to your account and nowhere else. It is
+      never used to train a model, and no other person can read it &mdash;
+      <a href="/privacy.html" target="_blank" rel="noopener">how that works</a>.</p>
     <textarea id="dumptext" spellcheck="false" placeholder="drag .txt or .md files here, or paste&#10;&#10;he never tells her about the money — maybe that's the whole thing?&#10;the dog knows before anyone else does&#10;GRANDMOTHER: &quot;We don't say that name at this table.&quot;&#10;ends at the same kitchen table, different chair"></textarea>
     <div class="sheet-actions">
       <span class="sheet-count" id="dumpcount">nothing yet</span>
@@ -1666,6 +1711,49 @@ function structureLine(key){
   return /beats?|stages?/i.test(short) ? short : short + " \u00b7 " + S.slots.length + " beats";
 }
 
+/* =========================================================================
+   ATTACHED NOTES — a note can sit under a beat as the material you gathered
+   for it, without becoming that beat. It keeps its kind and it keeps its home
+   in Notes; attachedTo only records which beat it sits under. Taking it off a
+   beat sends it straight back. Nothing here can delete a note.
+   ========================================================================= */
+function notesOn(slotId, proj){
+  proj = proj || P();
+  return proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slotId);
+}
+function isAttached(c, proj){
+  proj = proj || P();
+  if (c.slot !== "__shelf" || !c.attachedTo) return false;
+  // a structure switch can strand an attachment on a beat that no longer exists
+  return STRUCTURES[proj.structure].slots.some(s => s.id === c.attachedTo);
+}
+function attachedList(slot, onChange){
+  const notes = notesOn(slot.id).filter(c => isAttached(c));
+  if (!notes.length) return null;
+  const box = document.createElement("div");
+  box.className = "attached";
+  notes.forEach(c => {
+    const k = shelfKind(c);
+    const row = document.createElement("div");
+    row.className = "anote";
+    row.innerHTML = '<span class="chip ' + k + '">' + esc(KINDS[k]) + "</span>"
+      + '<span class="at"></span>'
+      + '<button class="unpin" aria-label="Send back to your notes">&#8617;</button>';
+    row.querySelector(".at").textContent = c.text;
+    const u = row.querySelector(".unpin");
+    u.setAttribute("data-tip", "Takes this note off the beat and puts it back under Notes. "
+      + "It is never deleted this way.");
+    u.addEventListener("click", e => {
+      e.stopPropagation();
+      snapshot();
+      delete c.attachedTo;
+      onChange();
+    });
+    box.appendChild(row);
+  });
+  return box;
+}
+
 function slotName(key, slotId){
   if (slotId === "__none") return "Set aside";
   const s = STRUCTURES[key].slots.find(x => x.id === slotId);
@@ -1703,7 +1791,8 @@ function settle(){ return []; }
 const KEY = "beatfall.v2";
 let state = null;
 let pending = null;
-let undoSnapshot = null;
+let undoStack = [];              // deepest regret this app supports
+const UNDO_DEPTH = 30;
 let uid = 1;
 let pid = 1;
 
@@ -1775,7 +1864,10 @@ async function load(){
 }
 
 function snapshot(){
-  undoSnapshot = JSON.parse(JSON.stringify(state));
+  // A stack, not a single slot. "Gone forever" should take thirty mistakes,
+  // not one — and a writer's notes are the last thing that should vanish.
+  undoStack.push(JSON.parse(JSON.stringify(state)));
+  if (undoStack.length > UNDO_DEPTH) undoStack.shift();
   const p = P(); if (p) p.touched = Date.now();
 }
 function ago(ts){
@@ -1931,6 +2023,11 @@ function render(justPlaced){
         acts.appendChild(ideas);
         el.appendChild(gap);
       }
+
+      // whatever you gathered for this beat, under it — never replacing it
+      const att = attachedList(s, () => render());
+      if (att) el.appendChild(att);
+
       wireDrop(el, s.id);
       row.appendChild(el);
     });
@@ -2028,8 +2125,10 @@ function cardEl(c){
       + "</optgroup>";
     sel2.addEventListener("change", () => {
       snapshot();
-      if (sel2.value.startsWith("b:")){ c.slot = sel2.value.slice(2); c.kind = "beat"; c.pinned = true; }
-      else { c.slot = "__shelf"; c.kind = sel2.value.slice(2); }
+      if (sel2.value.startsWith("b:")){
+        c.slot = sel2.value.slice(2); c.kind = "beat"; c.pinned = true;
+        delete c.attachedTo;
+      } else { c.slot = "__shelf"; c.kind = sel2.value.slice(2); }
       render();
     });
     sel2.addEventListener("blur", () => sel2.remove());
@@ -2106,12 +2205,27 @@ function hideSettled(){ settledBox.hidden = true; }
 function hideAll(){ hideSettled(); proposal.hidden = true; pending = null; document.getElementById("ask").hidden = true; }
 
 document.getElementById("settledx").addEventListener("click", hideSettled);
-document.getElementById("undo").addEventListener("click", () => {
-  if (!undoSnapshot) return;
-  state = undoSnapshot;
-  undoSnapshot = null;
+document.getElementById("undo").addEventListener("click", undo);
+
+function undo(){
+  if (!undoStack.length) return;
+  state = undoStack.pop();
   hideAll();
-  render();
+  save();
+  if (state.view === "outline"){ render(); renderOutline(); }
+  else if (state.view === "notes"){ render(); renderNotes(); }
+  else if (state.view === "slate"){ renderSlate(); }
+  else render();
+}
+
+// Ctrl/Cmd-Z anywhere that isn't a text field
+document.addEventListener("keydown", e => {
+  if (!(e.key === "z" || e.key === "Z") || !(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (!undoStack.length) return;
+  e.preventDefault();
+  undo();
 });
 
 /* =========================================================================
@@ -3376,8 +3490,18 @@ document.getElementById("loadsample").addEventListener("click", () => {
   setView("board");
 });
 document.getElementById("clear").addEventListener("click", () => {
+  const proj = P();
+  // Emptying the BOARD means the board. Your notes were never on it, so they
+  // are not its to throw away.
+  const onBoard = proj.cards.filter(c => c.slot !== "__shelf");
+  const notes   = proj.cards.filter(c => c.slot === "__shelf");
+  if (!onBoard.length) return;
+  if (!confirm("Empty the board for “" + proj.name + "”?\n\n"
+      + onBoard.length + (onBoard.length === 1 ? " card comes off" : " cards come off") + " it"
+      + (notes.length ? ", and your " + notes.length + " notes are kept" : "")
+      + ".\nUndo puts it all back.")) return;
   snapshot();
-  P().cards = [];
+  proj.cards = notes;
   hideAll();
   render();
 });
@@ -3951,6 +4075,11 @@ function renderOutline(){
         holder.appendChild(cd);
       });
 
+      // the notes you filed against this beat, under the card rather than
+      // instead of it
+      const att = attachedList(slot, () => { renderOutline(); render(); });
+      if (att) el.insertBefore(att, holder.nextSibling);
+
       const ta = document.createElement("textarea");
       ta.className = "oprose";
       ta.value = proj.outline[slot.id] || "";
@@ -3975,9 +4104,22 @@ function renderOutline(){
         const card = proj.cards.find(c => c.id === id);
         if (!card) return;
         snapshot();
-        card.slot = slot.id;
-        card.kind = "beat";
-        card.pinned = true;              // you put it there on purpose
+        if (card.slot === "__shelf"){
+          // A note is reference material. Dragging it here files it against
+          // this beat — it does NOT become the beat, and it stays a note, so
+          // clearing the beat can never take it with it.
+          card.attachedTo = slot.id;
+          showSettled([{text: card.text, from: "Notes",
+                        to: slot.name + " — filed under it as a note, not as the beat itself"}],
+                      "Kept as a note");
+        } else {
+          // A set-aside card is a beat looking for a home. Putting it here is
+          // you deciding this is that beat.
+          card.slot = slot.id;
+          card.kind = "beat";
+          card.pinned = true;
+          delete card.attachedTo;
+        }
         renderOutline(); renderRail(); render();
       });
 
@@ -4000,7 +4142,8 @@ function renderOutlineCount(){
 function renderRail(){
   const proj = P();
   const aside = proj.cards.filter(c => c.slot === "__none");
-  const shelf = proj.cards.filter(c => c.slot === "__shelf");
+  // a note filed under a beat is showing there instead — it hasn't left the app
+  const shelf = proj.cards.filter(c => c.slot === "__shelf" && !isAttached(c, proj));
 
   const railCard = c => {
     const d = document.createElement("div");
@@ -4109,9 +4252,24 @@ function renderNotes(){
       const el = document.createElement("div");
       el.className = "ncard " + kind;
       el.innerHTML = '<span class="chip ' + kind + '">' + esc(KINDS[kind]) + "</span>"
-        + '<div class="t"></div><div class="r"></div>';
+        + '<div class="t"></div><div class="on" hidden></div><div class="r"></div>';
       el.querySelector(".t").textContent = c.text;
       const row = el.querySelector(".r");
+
+      // if it's filed under a beat, say so here too — a note is never in only
+      // one place, and never anywhere you can't find it
+      if (isAttached(c, proj)){
+        const on = el.querySelector(".on");
+        on.hidden = false;
+        on.innerHTML = "Filed under <b>" + esc(slotName(proj.structure, c.attachedTo)) + "</b>";
+        const off = document.createElement("button");
+        off.className = "btn"; off.textContent = "Take it off that beat";
+        off.setAttribute("data-tip", "Removes it from the beat. The note itself stays right here.");
+        off.addEventListener("click", () => {
+          snapshot(); delete c.attachedTo; renderNotes(); render();
+        });
+        row.appendChild(off);
+      }
 
       const kindSel = document.createElement("select");
       kindSel.setAttribute("data-tip", "Beatfall guessed this. If it guessed wrong, put it right — "
@@ -4132,6 +4290,7 @@ function renderNotes(){
         if (!toBeat.value) return;
         snapshot();
         c.slot = toBeat.value; c.kind = "beat"; c.pinned = true;
+        delete c.attachedTo;
         settle(proj); renderNotes(); render();
       });
       row.appendChild(toBeat);
@@ -4619,7 +4778,14 @@ function paneData(){
     + '<div id="paneflash" hidden></div>'
     + row("Download everything",
         "Every project, card and note as a single JSON file.",
-        '<button class="btn" id="s-export">Download</button>');
+        '<button class="btn" id="s-export">Download</button>')
+    + row("Who can see your writing",
+        "Only you. Your rows are locked to your account by the database itself, and our own "
+        + "admin tools can count your cards but cannot read them. Nothing you write trains a model.",
+        '<a class="btn" href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>')
+    + row("The agreement",
+        "What you own, what we may do, and what happens if two people write the same story.",
+        '<a class="btn" href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>');
 
   document.getElementById("s-export").addEventListener("click", async e => {
     const b = e.currentTarget;
@@ -4701,7 +4867,9 @@ function kindFor(what){ return what; }
 
 document.getElementById("foot").innerHTML =
   "Every note is placed instantly by a built-in matcher, then read more closely by Claude. "
-  + "Your projects are saved to your account and follow you between machines.";
+  + "Your projects are saved to your account and follow you between machines — privately: "
+  + "nothing you write trains a model, and no one else can read it. "
+  + '<a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a>';
 
 (async function start(){
   if (!await BF.requireSession()) return;

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<!--
+  ==========================================================================
+  DRAFT — NOT REVIEWED BY A LAWYER.
+  Written to be accurate about how Beatfall actually works today. Every
+  factual claim in here is checked against the code: the admin dashboard
+  cannot select card text (api/admin.js), row-level security scopes every
+  read to one account (supabase/schema.sql), and Anthropic's retention and
+  training terms are as stated at privacy.claude.com.
+
+  Before this goes live, a Georgia attorney should look at:
+    - section 5 (independent development) — this is the clause that matters
+    - section 12 (arbitration, class waiver, 30-day opt-out)
+    - section 11 (liability cap) against Georgia's unconscionability rules
+    - the entity name below, once the GA SOS amendment is filed
+  ==========================================================================
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms of Service — Beatfall</title>
+<meta name="description" content="The agreement between you and Beatfall. Your material stays yours.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:54px 28px 120px}
+  .doc h1{font-family:var(--serif);font-size:38px;font-weight:600;letter-spacing:-.014em;
+    line-height:1.2;margin:0 0 8px}
+  .doc .eff{font-size:12.5px;color:var(--ink-4);margin:0 0 34px}
+  .doc h2{scroll-margin-top:80px;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--ink-4);margin:44px 0 4px}
+  .doc h3{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em;
+    margin:0 0 14px;color:var(--ink)}
+  .doc p,.doc li{font-family:var(--serif);font-size:16.5px;line-height:1.68;color:var(--ink-2);
+    margin:0 0 15px}
+  .doc li{margin-bottom:9px}
+  .doc ul{padding-left:22px;margin:0 0 15px}
+  .doc strong{color:var(--ink);font-weight:600}
+  .doc a{text-decoration:underline;text-underline-offset:3px}
+  .plain{background:var(--card);border:1px solid var(--rule);border-left:2px solid var(--blue);
+    padding:20px 24px;margin:0 0 40px;box-shadow:var(--shadow)}
+  .plain .h{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--blue);margin-bottom:10px}
+  .plain p{margin-bottom:10px;font-size:16px}
+  .plain p:last-child{margin-bottom:0}
+  .loud{background:var(--gold-soft);border:1px solid var(--gold-hair);padding:18px 22px;margin:0 0 15px}
+  .loud p{margin-bottom:0}
+  .doc hr{border:none;border-top:1px solid var(--rule);margin:44px 0}
+  .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
+  .foot a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <a href="/" class="wordmark">Beat<span>fall</span></a>
+  <span class="slug">Terms of Service</span>
+  <div class="right">
+    <a class="btn btn-ghost" href="/privacy.html">Privacy</a>
+    <a class="btn btn-ghost" href="/">Back to the board</a>
+  </div>
+</div></div>
+
+<div class="doc">
+
+  <h1>Terms of Service</h1>
+  <p class="eff">Effective 1 September 2026. Beatfall, LLC — a Georgia limited liability company.</p>
+
+  <div class="plain">
+    <div class="h">The short version</div>
+    <p><strong>Your writing is yours.</strong> Every note, card, logline and outline you put into
+      Beatfall belongs to you. We claim no ownership of it, ever, and we don't take a cut of
+      anything you go on to make.</p>
+    <p><strong>We don't read it.</strong> Not as a promise — as a fact about how the software is
+      built. Our own admin tools cannot retrieve the text of your cards; they can only count them.</p>
+    <p><strong>We don't train anything on it.</strong> Not our models, not anyone else's.</p>
+    <p><strong>But you should know one thing before you start.</strong> The person who runs Beatfall
+      is a working writer and producer with his own projects. Stories converge — two people write a
+      dead body in a spillway every week of the year. Section 5 says plainly that we may develop
+      work that resembles yours, and that using Beatfall isn't pitching us. If that isn't a trade
+      you want to make, don't put your material in.</p>
+    <p>The short version isn't the agreement. The rest of this page is.</p>
+  </div>
+
+  <h2 id="s1">1</h2>
+  <h3>The agreement</h3>
+  <p>These Terms are a contract between you and <strong>Beatfall, LLC</strong> ("Beatfall", "we",
+    "us"), a Georgia limited liability company. They govern your use of the Beatfall website,
+    application and related services (the "Service"). By creating an account or using the Service
+    you accept them. If you don't accept them, don't use the Service.</p>
+  <p>You must be at least 18 years old to use Beatfall. If you're using it on behalf of a company
+    or production entity, you're confirming you have authority to bind that entity, and "you" means
+    both you and it.</p>
+
+  <h2 id="s2">2</h2>
+  <h3>What you put in stays yours</h3>
+  <p>Everything you write, paste, upload or generate in Beatfall — your notes, cards, loglines,
+    briefs, outlines, project titles and everything else — is <strong>Your Material</strong>. As
+    between you and Beatfall, <strong>you own Your Material outright</strong>, including every
+    copyright and every other right in it. Nothing in these Terms transfers any ownership of Your
+    Material to us, and we acquire no interest in any script, film, series, book or other work you
+    make from it.</p>
+  <p>You are responsible for Your Material: for having the right to use it, and for what you do
+    with what you write.</p>
+
+  <h2 id="s3">3</h2>
+  <h3>The only permission we need, and its limits</h3>
+  <p>To run the Service, we need a narrow permission. You grant Beatfall a non-exclusive,
+    worldwide, royalty-free licence to host, store, back up, copy, transmit, reformat and display
+    Your Material, and to send the specific parts of it you ask us to work on to our AI provider,
+    <strong>solely in order to operate the Service and provide the features you have asked for.</strong></p>
+  <p>That licence exists only for that purpose, and it ends when you delete the material or your
+    account, apart from copies sitting in routine encrypted backups until they are overwritten on
+    our providers' rolling backup cycle.</p>
+  <p>To be explicit about what this licence is <strong>not</strong>. It does not let us:</p>
+  <ul>
+    <li>publish, display or distribute Your Material to anyone else;</li>
+    <li>sell, licence or transfer it, or use it in marketing;</li>
+    <li>use it to train, fine-tune or evaluate any machine-learning model, ours or anyone's;</li>
+    <li>use it to develop any creative work; or</li>
+    <li>keep using it after you delete it.</li>
+  </ul>
+  <p>Our AI provider is Anthropic. Anthropic does not train its models on what we send it and
+    deletes it within 30 days. The <a href="/privacy.html">Privacy Policy</a> sets out exactly
+    what leaves the app, and when.</p>
+
+  <h2 id="s4">4</h2>
+  <h3>Who can see Your Material</h3>
+  <p>Your projects live in a database where every row is scoped to one account. A signed-in user
+    can read their own rows and no one else's; this is enforced by the database, not by our
+    application code.</p>
+  <p><strong>Our own administrative tools cannot retrieve the text of your cards, notes or
+    outlines.</strong> They report how many projects and cards an account has, how much it costs
+    us to serve, and when it was last used — nothing more. That is a deliberate constraint on what
+    we built, so that we are not in a position to read your work even if we wanted to.</p>
+  <p>There are three narrow circumstances in which a human at Beatfall could access the content of
+    a specific account, and we will not pretend otherwise:</p>
+  <ul>
+    <li><strong>You ask us to.</strong> If you report a problem and ask us to look at a specific
+      project, we will look at that project, only for as long as it takes to fix the problem.</li>
+    <li><strong>The law requires it.</strong> A valid subpoena, warrant or court order. Where we
+      are legally permitted to tell you first, we will.</li>
+    <li><strong>A specific, serious incident.</strong> Investigating a security breach or a
+      credible report of illegal use, limited to what that investigation actually needs.</li>
+  </ul>
+  <p>We do not review accounts routinely, at random, for quality, for curiosity, or to look for
+    ideas.</p>
+
+  <h2 id="s5">5</h2>
+  <h3>Independent development, and the fact that this is not a pitch</h3>
+
+  <div class="loud">
+    <p>This section limits your rights. Read it before you put a project you care about into
+      Beatfall.</p>
+  </div>
+
+  <p><strong>Beatfall is a tool, not a buyer.</strong> Using the Service is not a submission,
+    pitch, or offer of Your Material to Beatfall or to anyone. We do not solicit, accept, review
+    or consider unsolicited creative submissions. Uploading material to the Service creates no
+    confidential relationship, no fiduciary duty, no partnership or joint venture, no
+    employment or agency relationship, and no implied-in-fact contract of any kind, and it puts
+    us under no obligation to compensate you for anything.</p>
+  <p><strong>We have our own projects.</strong> Beatfall's owner, members, employees and
+    contractors are working writers, producers and filmmakers. They have their own material in
+    development now, they will develop more, and they also acquire, option and produce material
+    from other people. Beatfall and the people behind it will continue to do all of that.</p>
+  <p><strong>Similarity happens, and it isn't evidence of anything.</strong> Ideas, premises,
+    themes, plots, historical facts, genre conventions, stock characters and standard scenes are
+    not protected by copyright. Structure — including every beat sheet and template offered in the
+    Service — is a common tool of the trade used by everyone. Independent creation is a complete
+    defence to a copyright claim.</p>
+  <p>Accordingly, you acknowledge and agree that:</p>
+  <ul>
+    <li>Beatfall and its personnel may independently create, commission, acquire, develop or
+      produce works that are <strong>similar or identical</strong> to Your Material in idea,
+      premise, theme, plot, character, setting, structure, title or any other element;</li>
+    <li>such works may have been, or may be, created without any knowledge of, reference to, or
+      access to Your Material;</li>
+    <li>you will not be entitled to any compensation, credit or other consideration because of
+      such similarity; and</li>
+    <li><strong>you waive, and agree not to bring, any claim against Beatfall or its personnel
+      based solely on the similarity between Your Material and any work created, acquired or
+      produced by them</strong> — including claims for breach of implied contract, breach of
+      confidence, idea misappropriation, unjust enrichment, unfair competition or the like.</li>
+  </ul>
+  <p>Nothing in this section waives a claim for actual copyright infringement where a Beatfall work
+    was in fact copied from Your Material, and nothing here reduces your ownership under section 2.
+    This section limits claims founded on <em>resemblance</em>, which is not the same thing as
+    copying.</p>
+  <p>If you send us creative material outside the Service — by email, in a support ticket, in a
+    message — it is not confidential, we are under no obligation regarding it, and we may
+    disregard or delete it. Please don't send us your scripts.</p>
+
+  <h2 id="s6">6</h2>
+  <h3>What the AI does, and what it can't be relied on for</h3>
+  <p>Beatfall uses a large language model to suggest where a note might belong, to ask you
+    questions, and to draft wording from your answers. That means:</p>
+  <ul>
+    <li>Suggestions are machine-generated and can be <strong>wrong, banal, or confidently
+      mistaken</strong>. Beatfall is designed to ask rather than guess, but it still guesses.</li>
+    <li>Text Beatfall drafts for you is not guaranteed to be original, and comparable text may be
+      produced for other users from similar prompts. You should treat any drafted wording as a
+      starting point you rewrite, not as finished work of certain provenance.</li>
+    <li>Nothing the Service produces is legal, financial, or professional advice, and it is not a
+      chain-of-title or clearance record.</li>
+    <li>Clearing your own material — rights, releases, chain of title, defamation, privacy, the
+      use of real people and real events — is your responsibility and yours alone.</li>
+  </ul>
+
+  <h2 id="s7">7</h2>
+  <h3>Your account</h3>
+  <p>You sign in with a link sent to your email address. There is no password, so the security of
+    your email account is the security of your Beatfall account. Keep it to yourself; don't share
+    an account; tell us promptly if you think someone else has got in.</p>
+  <p>You agree not to: use the Service to break the law or infringe anyone's rights; upload
+    material you have no right to upload; upload sexual material involving minors or content that
+    sexualises a real child in any way; attempt to breach, probe or overload the Service or the
+    accounts of others; scrape it, resell it, or use it to build a competing product; or use it to
+    generate material intended to harass, defame or defraud a real person.</p>
+
+  <h2 id="s8">8</h2>
+  <h3>Trial, plan and payment</h3>
+  <p>New accounts get a <strong>14-day free trial with no card required</strong>. After that,
+    Beatfall is <strong>$12 per month or $99 per year</strong>, and includes a monthly allowance of
+    credits. Placing notes on the board is free and always will be; credits are spent on the
+    AI-backed features — conversations, idea sets and reading in a notes file. Additional credits
+    can be bought as a one-off top-up.</p>
+  <p>Payments are handled by Stripe. We never see or store your card number. Subscriptions renew
+    automatically until cancelled. You can cancel at any time from your billing page; cancellation
+    takes effect at the end of the period you have already paid for, and your projects, boards and
+    notes stay exactly where they are either way. Unless the law requires otherwise, payments are
+    not refundable for partial periods — the free trial exists so you can find out before you pay.
+    We may change pricing on 30 days' notice, effective at your next renewal.</p>
+  <p>If a payment fails, AI features pause. Your material does not go anywhere.</p>
+
+  <h2 id="s9">9</h2>
+  <h3>Getting your material out, and deleting it</h3>
+  <p>You can export everything — every project, card, note and outline — as a single file, at any
+    time, from Settings, without asking us and without conditions.</p>
+  <p>You can delete an individual project, or your whole account, from Settings. Deleting your
+    account removes your profile, projects, usage records and events from the live database
+    immediately. Residual copies in routine encrypted backups are overwritten on our providers'
+    ordinary backup cycle. <strong>Export first — deletion is permanent and we cannot undo it.</strong></p>
+
+  <h2 id="s10">10</h2>
+  <h3>Availability, changes and termination</h3>
+  <p>Beatfall is a small, young product. We may change, add or remove features, and we may have
+    downtime. We'll give reasonable notice of material changes to the Service or these Terms; if a
+    change is one you don't accept, your remedy is to stop using the Service and, if you want,
+    delete your account.</p>
+  <p>You can stop at any time. We may suspend or close an account that breaches section 7, that is
+    being used unlawfully, or where we're required to. Except where the breach makes it impossible
+    or unlawful, we will give you a reasonable opportunity to export your material first.</p>
+
+  <h2 id="s11">11</h2>
+  <h3>Warranties and liability</h3>
+  <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE". TO THE FULLEST EXTENT PERMITTED BY LAW,
+    BEATFALL DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A
+    PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. We do not warrant that the Service will be
+    uninterrupted, error-free, or that its suggestions will be correct or useful.</p>
+  <p>TO THE FULLEST EXTENT PERMITTED BY LAW, BEATFALL WILL NOT BE LIABLE FOR ANY INDIRECT,
+    INCIDENTAL, SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES, OR FOR ANY LOST PROFITS, LOST
+    OPPORTUNITIES, OR LOST OR CORRUPTED MATERIAL. <strong>OUR TOTAL LIABILITY FOR ALL CLAIMS
+    RELATING TO THE SERVICE IS LIMITED TO THE GREATER OF (A) THE AMOUNT YOU PAID US IN THE TWELVE
+    MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS.</strong></p>
+  <p>Keep your own copies of your work. Export regularly. No software is a safe deposit box.</p>
+  <p>Some jurisdictions don't allow some of these exclusions, in which case they apply to you only
+    as far as the law allows.</p>
+  <p>You agree to indemnify Beatfall against claims arising from Your Material or from your breach
+    of these Terms.</p>
+
+  <h2 id="s12">12</h2>
+  <h3>Governing law and how disputes get resolved</h3>
+  <p>These Terms are governed by the laws of the State of Georgia, without regard to its
+    conflict-of-laws rules.</p>
+  <p><strong>Binding individual arbitration.</strong> Except as set out below, you and Beatfall
+    agree that any dispute arising out of or relating to these Terms or the Service will be
+    resolved by <strong>binding individual arbitration</strong> administered by the American
+    Arbitration Association under its Consumer Arbitration Rules, seated in Georgia, before a
+    single arbitrator. Judgment on the award may be entered in any court of competent
+    jurisdiction. <strong>You and Beatfall are giving up the right to sue in court and the right
+    to a jury trial.</strong></p>
+  <p><strong>Class action waiver.</strong> Claims must be brought individually. Neither of us may
+    bring a class, collective, consolidated or representative action, and the arbitrator may not
+    consolidate claims or preside over any form of representative proceeding.</p>
+  <p><strong>What is carved out.</strong> Either of us may bring a claim in small-claims court if
+    it qualifies, and either of us may seek injunctive relief in court to stop actual or threatened
+    infringement or misuse of intellectual property.</p>
+  <p><strong>Your right to opt out.</strong> You can reject this arbitration agreement by emailing
+    <a href="mailto:legal@beatfall.app">legal@beatfall.app</a> with your account email and the
+    words "arbitration opt-out" <strong>within 30 days</strong> of first accepting these Terms.
+    Opting out costs you nothing and changes nothing else; disputes then go to the state or federal
+    courts sitting in Georgia, which both of us submit to.</p>
+  <p><strong>Time limit.</strong> Any claim must be brought within one year after it arises, or it
+    is permanently barred, to the extent the law permits.</p>
+
+  <h2 id="s13">13</h2>
+  <h3>Odds and ends</h3>
+  <p>Feedback you send us about the product — bug reports, feature ideas, what's annoying — we may
+    use freely and without obligation. For the avoidance of doubt, that means feedback about
+    Beatfall; it does not apply to Your Material, which is governed by sections 2 to 5.</p>
+  <p>If a provision is unenforceable, the rest survives. Our not enforcing something isn't a
+    waiver of it. You may not assign these Terms; we may, to a successor of the business. These
+    Terms and the Privacy Policy are the whole agreement between us about the Service. Sections 2,
+    3, 5, 6, 11, 12 and this one survive termination.</p>
+
+  <hr>
+
+  <p class="foot">
+    Beatfall, LLC · Georgia, USA<br>
+    Questions about these Terms: <a href="mailto:legal@beatfall.app">legal@beatfall.app</a><br>
+    See also the <a href="/privacy.html">Privacy Policy</a>.
+  </p>
+
+</div>
+</body>
+</html>

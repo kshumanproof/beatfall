@@ -123,6 +123,30 @@ drop trigger if exists projects_touch on public.projects;
 create trigger projects_touch before update on public.projects
   for each row execute function public.touch_updated_at();
 
+-- ------------------------------------------- how many cards, without reading
+-- The admin dashboard needs to know how much work a person has done. It has no
+-- business knowing what that work SAYS. This column is maintained by the
+-- database so the operator can count cards without ever selecting their text —
+-- which is what makes the "we don't read your material" clause in the Terms a
+-- fact about the system rather than a promise about behaviour.
+alter table public.projects add column if not exists card_count int not null default 0;
+
+create or replace function public.set_card_count()
+returns trigger language plpgsql as $$
+begin
+  new.card_count = coalesce(jsonb_array_length(new.cards), 0);
+  return new;
+end; $$;
+
+drop trigger if exists projects_card_count on public.projects;
+create trigger projects_card_count before insert or update on public.projects
+  for each row execute function public.set_card_count();
+
+-- backfill for rows that existed before this column did
+update public.projects
+   set card_count = coalesce(jsonb_array_length(cards), 0)
+ where card_count = 0 and jsonb_array_length(cards) > 0;
+
 -- ------------------------------------------------------- admin: who you are
 -- Run this once, with your own email, after you have signed in for the first
 -- time. Without it, /admin will refuse you as well as everybody else.

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<!--
+  ==========================================================================
+  DRAFT — NOT REVIEWED BY A LAWYER.
+  Every factual claim here was checked against the code before it was
+  written. If the app changes, this page has to change with it:
+
+    "admin can only count cards"     -> api/admin.js selects card_count,
+                                        never cards
+    "one account can only read its
+     own rows"                       -> supabase/schema.sql RLS policies
+    "usage records carry no story
+     text"                           -> public.usage columns
+    "events carry no story text"     -> only first_run_choice, topup,
+                                        subscription_* are ever recorded
+    "no training, deleted in 30 days" -> privacy.claude.com commercial terms
+
+  Before publishing, confirm: the Supabase project region (this page says
+  the United States), the legal entity name, and the contact addresses.
+  ==========================================================================
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Beatfall</title>
+<meta name="description" content="What Beatfall stores, who can see it, and how to get it all back.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:54px 28px 120px}
+  .doc h1{font-family:var(--serif);font-size:38px;font-weight:600;letter-spacing:-.014em;
+    line-height:1.2;margin:0 0 8px}
+  .doc .eff{font-size:12.5px;color:var(--ink-4);margin:0 0 34px}
+  .doc h2{scroll-margin-top:80px;font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--ink-4);margin:44px 0 4px}
+  .doc h3{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em;
+    margin:0 0 14px;color:var(--ink)}
+  .doc p,.doc li{font-family:var(--serif);font-size:16.5px;line-height:1.68;color:var(--ink-2);
+    margin:0 0 15px}
+  .doc li{margin-bottom:9px}
+  .doc ul{padding-left:22px;margin:0 0 15px}
+  .doc strong{color:var(--ink);font-weight:600}
+  .doc a{text-decoration:underline;text-underline-offset:3px}
+  .plain{background:var(--card);border:1px solid var(--rule);border-left:2px solid var(--blue);
+    padding:20px 24px;margin:0 0 40px;box-shadow:var(--shadow)}
+  .plain .h{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--blue);margin-bottom:10px}
+  .plain p{margin-bottom:10px;font-size:16px}
+  .plain p:last-child{margin-bottom:0}
+  .who{width:100%;border-collapse:collapse;margin:0 0 15px}
+  .who th{font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.11em;color:var(--ink-4);text-align:left;padding:9px 12px 9px 0;
+    border-bottom:1px solid var(--rule)}
+  .who td{padding:12px 12px 12px 0;border-bottom:1px solid var(--rule-soft);
+    font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--ink-2);vertical-align:top}
+  .who td:first-child{font-family:var(--sans);font-size:13.5px;color:var(--ink);
+    font-weight:500;white-space:nowrap}
+  .tablewrap{overflow-x:auto;margin-bottom:15px}
+  .doc hr{border:none;border-top:1px solid var(--rule);margin:44px 0}
+  .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
+  .foot a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <a href="/" class="wordmark">Beat<span>fall</span></a>
+  <span class="slug">Privacy Policy</span>
+  <div class="right">
+    <a class="btn btn-ghost" href="/terms.html">Terms</a>
+    <a class="btn btn-ghost" href="/">Back to the board</a>
+  </div>
+</div></div>
+
+<div class="doc">
+
+  <h1>Privacy Policy</h1>
+  <p class="eff">Effective 1 September 2026. Beatfall, LLC — a Georgia limited liability company.</p>
+
+  <div class="plain">
+    <div class="h">The short version</div>
+    <p><strong>Yes, your projects are saved.</strong> That's the product — your boards follow you
+      between machines. Anyone who tells you a tool like this stores nothing is describing a
+      different tool.</p>
+    <p><strong>They're saved privately.</strong> Every row in our database is locked to one
+      account, by the database itself. No other user can reach your work. Our own admin tools
+      can count your cards but cannot read them.</p>
+    <p><strong>Nothing you write trains a model.</strong> Not ours, not Anthropic's, not anyone's.</p>
+    <p><strong>No ads, no trackers, no data sales.</strong> Beatfall makes money one way: people
+      pay $12 a month for it.</p>
+    <p><strong>You can take it all with you, any time.</strong> One button in Settings, no
+      conditions.</p>
+  </div>
+
+  <h2 id="s1">1</h2>
+  <h3>What we hold</h3>
+  <ul>
+    <li><strong>Your email address.</strong> It's how you sign in — we email you a link. There is
+      no password, so we hold no password.</li>
+    <li><strong>A display name</strong>, if you give us one.</li>
+    <li><strong>Your material.</strong> Project titles, structures, loglines and briefs, every card
+      and note, and everything you write in the outline. Stored as structured data on one row per
+      project.</li>
+    <li><strong>Usage counts.</strong> One record per AI call: which kind of call it was, how many
+      credits and tokens it used, what it cost us, and when. <strong>These records contain none of
+      your writing</strong> — no card text, no prompts, no responses.</li>
+    <li><strong>A few product events</strong>, so we can tell whether the thing works: which option
+      you picked on the welcome screen, and your billing state changes. Nothing else, and no story
+      text.</li>
+    <li><strong>Billing identifiers</strong> from Stripe — a customer ID, a subscription ID and its
+      status. <strong>We never see or store your card number.</strong></li>
+    <li><strong>Ordinary server logs</strong> kept by our hosting provider, which include IP
+      addresses, as any web server does.</li>
+  </ul>
+  <p>We don't ask for your real name, address, phone number or date of birth, and we'd rather you
+    didn't give them to us.</p>
+
+  <h2 id="s2">2</h2>
+  <h3>Who can actually see your writing</h3>
+  <p><strong>You can.</strong> Every projects, usage and profile row is protected by row-level
+    security in Postgres: a signed-in account can read its own rows and is refused every other
+    row. That's enforced beneath our application code, not by it, so a bug in the app can't quietly
+    hand your work to another user.</p>
+  <p><strong>Other users cannot.</strong> There is no sharing feature, no public board, no team
+    workspace, no discovery, no feed. Your projects exist for exactly one account.</p>
+  <p><strong>We can't, in the ordinary course.</strong> The administrative dashboard we use to run
+    the business is built so it cannot request the text of your cards. It reports counts, costs and
+    dates. This is a property of the code, not a policy we're asking you to trust.</p>
+  <p>The three narrow exceptions — you ask us for help, the law compels us, or we're investigating
+    a specific security incident or abuse report — are set out in
+    <a href="/terms.html">section 4 of the Terms</a>. We don't review accounts routinely, at
+    random, or out of curiosity.</p>
+
+  <h2 id="s3">3</h2>
+  <h3>What leaves the app, and when</h3>
+  <p>Placing a note on the board with the built-in matcher happens entirely in your browser and
+    sends nothing anywhere.</p>
+  <p>When you use a feature that needs the AI — reading in a notes file, a conversation about a
+    beat, an idea set, help with a logline, or a closer look at where a note belongs — we send
+    <strong>Anthropic</strong> the text that feature needs: the note or file you're working on, the
+    beats around it, and your project's logline and brief where they'd change the answer. We do not
+    send your email address or any account identifier with it.</p>
+  <p>Anthropic, under its commercial terms:
+    <strong>does not use this to train its models</strong>, and
+    <strong>deletes inputs and outputs within 30 days</strong>. Content its automated systems flag
+    as a usage-policy violation is kept longer — up to two years — which is why the acceptable-use
+    rules in the Terms exist.</p>
+
+  <h2 id="s4">4</h2>
+  <h3>Everyone we rely on</h3>
+  <div class="tablewrap">
+  <table class="who">
+    <tr><th>Who</th><th>What they do</th><th>What they can see</th></tr>
+    <tr>
+      <td>Supabase</td>
+      <td>Database and sign-in links</td>
+      <td>Everything stored: your email and all of your material, at rest, encrypted</td>
+    </tr>
+    <tr>
+      <td>Vercel</td>
+      <td>Hosting and the API</td>
+      <td>Requests in transit, plus ordinary server logs including IP addresses</td>
+    </tr>
+    <tr>
+      <td>Anthropic</td>
+      <td>The AI features</td>
+      <td>Only the text sent for a specific request. No training; deleted in 30 days</td>
+    </tr>
+    <tr>
+      <td>Stripe</td>
+      <td>Payments</td>
+      <td>Your email and payment details. Beatfall never receives your card number</td>
+    </tr>
+    <tr>
+      <td>Resend</td>
+      <td>Sign-in emails</td>
+      <td>Your email address and the contents of that email</td>
+    </tr>
+    <tr>
+      <td>cdnjs, jsDelivr</td>
+      <td>Two open-source libraries the page loads</td>
+      <td>Your IP address, as a side effect of serving a file. No content, no account</td>
+    </tr>
+  </table>
+  </div>
+  <p>These providers process data on our instructions and are not permitted to use your material
+    for their own purposes. Their operations, and therefore your data, are in the United States. If
+    you're writing from outside the US, using Beatfall means your material is processed there.</p>
+  <p><strong>We do not sell or share your personal information</strong>, in the ordinary sense or
+    in the specific sense those words carry under California law. We run no advertising, no
+    advertising cookies, and no third-party analytics.</p>
+
+  <h2 id="s5">5</h2>
+  <h3>Cookies and what's kept in your browser</h3>
+  <p>Beatfall sets no advertising or tracking cookies. Your browser's local storage holds your
+    sign-in session so you don't have to click a fresh email link on every visit, your light/dark
+    preference, and your default structure. Clearing your browser data signs you out; it doesn't
+    touch your projects.</p>
+
+  <h2 id="s6">6</h2>
+  <h3>How long we keep things</h3>
+  <ul>
+    <li><strong>Your material</strong> — until you delete it, or delete your account.</li>
+    <li><strong>Usage and billing records</strong> — kept while your account exists and for as long
+      afterwards as tax and accounting rules require. They contain no story text.</li>
+    <li><strong>Server logs</strong> — on our host's ordinary retention schedule.</li>
+    <li><strong>Backups</strong> — routine encrypted backups are overwritten on our providers'
+      rolling cycle, so a deleted project can persist in a backup briefly after you delete it.</li>
+  </ul>
+
+  <h2 id="s7">7</h2>
+  <h3>What you can do about all of this</h3>
+  <p>Two of these are buttons rather than requests, which we think is the right way round:</p>
+  <ul>
+    <li><strong>Take it with you.</strong> Settings → Your data → Download everything. Every
+      project, card, note and outline in one file. No conditions and no waiting on us.</li>
+    <li><strong>Delete it.</strong> Delete a single project from the dashboard, or your whole
+      account from Settings → Profile. Account deletion removes your profile, projects, usage and
+      events from the live database immediately and cannot be undone. Export first.</li>
+    <li><strong>Correct it, or ask what we hold.</strong> Email
+      <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a>. The export button will
+      generally answer the question faster than we can.</li>
+  </ul>
+  <p>Depending on where you live — the EEA and UK, California, and a growing number of US states —
+    you may have statutory rights of access, correction, deletion, portability and objection, and a
+    right not to be discriminated against for exercising them. We honour these requests from
+    everyone, wherever you are, rather than checking your postcode first. For EEA and UK users, our
+    lawful bases are performance of our contract with you (running the Service), our legitimate
+    interests (keeping it secure and working out what it costs), and legal obligation (tax
+    records). You may complain to your local supervisory authority.</p>
+
+  <h2 id="s8">8</h2>
+  <h3>Security</h3>
+  <p>Traffic is encrypted in transit and data is encrypted at rest. Access is by emailed sign-in
+    link, so there is no password of yours for us to lose. Access to production systems is limited
+    to the one person who runs Beatfall and protected by multi-factor authentication.</p>
+  <p>No service is perfectly secure. If a breach affects your material, we'll tell you what
+    happened, what was affected and what to do about it, without waiting to be forced to.</p>
+
+  <h2 id="s9">9</h2>
+  <h3>Children</h3>
+  <p>Beatfall is for adults; you must be 18 or older. We don't knowingly collect anything from
+    anyone under 18. If you believe a minor has an account, email
+    <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a> and we'll remove it.</p>
+
+  <h2 id="s10">10</h2>
+  <h3>Changes</h3>
+  <p>If we change this policy in a way that materially affects how your material is handled, we'll
+    email you before it takes effect, not after. The effective date at the top always tells you
+    which version you're reading.</p>
+
+  <hr>
+
+  <p class="foot">
+    Beatfall, LLC · Georgia, USA<br>
+    Privacy questions: <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a><br>
+    See also the <a href="/terms.html">Terms of Service</a>.
+  </p>
+
+</div>
+</body>
+</html>
