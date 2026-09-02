@@ -320,3 +320,29 @@ Adding `min-width:192px` to the two slate buttons — Kris asked for a matched
 pair — pushed the phone into horizontal scroll, because two of them plus the
 gap is wider than 390px. Under 760px they drop the fixed width and share the
 row with `flex:1 1 0`, which keeps them equal by a different means.
+
+## Project cards (2 Sep 2026)
+
+Rebuilt from a table row into a title card.
+
+- **A grade leads it.** Big serif percentage with COMPLETE beneath, the beat
+  counts beside it as the working-out. Zero is a real answer and is shown as
+  one — greyed, but stated, because a card that says nothing about an untouched
+  project is worse than a card that says 0%.
+- **Everything clickable is a button.** Kris's rule, and the old card broke it
+  badly: Open, Details and What's missing were blue text that read as a
+  caption, and the title was a link with no affordance at all. The title is now
+  a plain heading — the way in is the filled blue **Open** button.
+- **Next up became a control.** It was the most useful thing on the card and it
+  was styled as a footnote. It is now a gold-bordered button spanning the card;
+  pressing it opens the conversation about that beat, which is what the old
+  "What's missing" text link did. That link is gone — one affordance, not two.
+- A finished board shows a sage "Every beat has a card." panel in its place.
+
+## The tagline (2 Sep 2026)
+
+"Where your story falls into place." — Kris's line, in the header after the
+rule, on the DASHBOARD only. On a board that slot holds the script's name;
+one or the other, never both, never empty. Hidden below 1024px, and the rule
+hides with it there (`header[data-view="slate"] .hsep` in the media query, set
+from `setView` via `dataset.view`) so it never leaves a dangling stroke.

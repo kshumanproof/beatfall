@@ -140,7 +140,15 @@ header{
 .wordmark span{color:var(--blue)}
 .hsep{width:1px;height:26px;background:var(--rule);flex:0 0 auto}
 .grow{flex:1 1 auto;min-width:8px}
-.tagline{display:none}
+.tagline{
+  font-family:var(--serif);font-style:italic;font-size:16px;letter-spacing:-.004em;
+  color:var(--ink-3);white-space:nowrap;
+}
+@media (max-width:1023px){
+  .tagline{display:none}
+  /* nothing left for it to divide */
+  header[data-view="slate"] .hsep{display:none}
+}
 
 .projbar{display:flex;align-items:center;gap:14px;position:relative;min-width:0}
 .projbtn{
@@ -902,35 +910,83 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .slate-rule{flex:1;height:1px;background:var(--rule);min-width:30px}
 .slate-acts{display:flex;gap:12px;align-items:center}
 .slate-grid{display:flex;flex-wrap:wrap;gap:24px}
+/* ------------------------------------------------------- a project card --
+   A title card, not a table row. The grade leads because it is the one figure
+   that answers "how am I doing" without arithmetic; the counts sit beside it
+   as the working it out. Nothing on this card is clickable unless it looks
+   like a button — the old version hid the two most useful actions inside
+   blue text that read as a caption. */
 .pcard{
   width:396px;max-width:100%;background:var(--card);border:1px solid var(--rule);
   border-radius:var(--r-panel);
   padding:22px 24px 20px;box-shadow:var(--shadow);
-  display:flex;flex-direction:column;gap:13px;transition:box-shadow .14s ease,transform .14s ease;
+  display:flex;flex-direction:column;gap:14px;transition:box-shadow .14s ease,transform .14s ease;
 }
 .pcard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .pcard .ph{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .pcard h3{
   font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;
-  margin:0;cursor:pointer;color:var(--ink);
+  margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere;
 }
-.pcard h3:hover{color:var(--blue)}
 .pcard .when{font-size:11.5px;color:var(--ink-4);white-space:nowrap}
-.pcard .fmt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4)}
 .pcard .log{font-family:var(--serif);font-size:14.5px;line-height:1.55;color:var(--ink-2);font-style:italic}
 .pcard .log.none{color:var(--ink-4)}
-.pcard .bar{height:3px;background:var(--rule)}
-.pcard .bar i{display:block;height:100%;background:var(--blue)}
-.pcard .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
-.pcard .row .dot{color:var(--rule)}
-.pcard .next{color:var(--gold);font-weight:600}
-.pcard .hr{height:1px;background:var(--rule-soft)}
-.pcard .up{font-size:12.5px;color:var(--ink-2)}
-.pcard .up b{color:var(--blue);font-weight:500}
-.pcard .acts{display:flex;gap:14px;margin-top:2px;flex-wrap:wrap;align-items:center}
-.pcard .acts .btn{border:none;background:none;padding:0;color:var(--blue);font-size:12.5px}
-.pcard .acts .btn:hover{text-decoration:underline;text-underline-offset:3px}
-.pcard .acts .del{color:var(--red);margin-left:auto}
+
+/* the grade */
+.pcard .grade{display:flex;align-items:flex-end;gap:16px}
+.pcard .gnum{
+  font-family:var(--serif);font-size:46px;font-weight:600;line-height:.9;
+  letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums;
+}
+.pcard .gnum.none{color:var(--ink-4)}
+.pcard .gnum .pc{font-size:24px;letter-spacing:0}
+.pcard .gwrap{display:flex;flex-direction:column;gap:3px}
+.pcard .glab{
+  font-family:var(--sans);font-size:9px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.15em;color:var(--ink-4);margin-top:6px;
+}
+.pcard .gstat{flex:1;display:flex;flex-direction:column;gap:4px;padding-bottom:3px}
+.pcard .gline{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.pcard .gline b{color:var(--gold);font-weight:600}
+.pcard .gfmt{font-size:11.5px;color:var(--ink-4);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pcard .bar{height:4px;background:var(--rule-soft);border-radius:3px;overflow:hidden}
+.pcard .bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
+
+/* next up — the one action worth its own row */
+.pcard .up{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+  background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-ctl);
+  padding:10px 14px;font-family:var(--sans);color:var(--ink);
+  transition:background var(--settle),border-color var(--settle);
+}
+.pcard .up:hover{background:#EFE6D0;border-color:var(--gold)}
+.pcard .up .k{
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;
+  color:var(--gold);white-space:nowrap;
+}
+.pcard .up .n{
+  font-family:var(--serif);font-size:16px;font-weight:600;letter-spacing:-.008em;
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pcard .up .arw{color:var(--gold);flex:0 0 auto}
+.pcard .done{
+  font-size:12.5px;color:var(--sage);background:var(--sage-soft);
+  border:1px solid var(--sage);border-radius:var(--r-ctl);padding:10px 14px;
+}
+
+.pcard .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.pcard .acts .btn{
+  border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
+  border-radius:var(--r-ctl);padding:0 14px;height:34px;font-size:12.5px;font-weight:500;
+  display:inline-flex;align-items:center;
+  transition:border-color var(--settle),background var(--settle),color var(--settle);
+}
+.pcard .acts .btn:hover{border-color:var(--ink-4);color:var(--ink)}
+.pcard .acts .btn.go{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.pcard .acts .btn.go:hover{background:var(--blue-ink);border-color:var(--blue-ink);color:var(--on-blue)}
+.pcard .acts .del{margin-left:auto;color:var(--red);border-color:#E0C9C9}
+.pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
 /* =====================================================================
    SETTINGS — a modal over the board, never a page you navigate away to
@@ -1111,6 +1167,10 @@ footer{
     </a>
 
     <div class="hsep"></div>
+
+    <!-- The dashboard header has this slot free; on a board the script's name
+         takes it. One or the other, never both, never empty. -->
+    <span class="tagline" id="tagline">Where your story falls into place.</span>
 
     <div class="projbar">
       <button class="projbtn" id="projbtn" aria-haspopup="true" aria-expanded="false"
@@ -4623,9 +4683,14 @@ function setView(v, quiet){
   boardview.hidden   = !onBoard;
   document.querySelector(".capture").hidden = !onBoard;
   document.querySelector(".projbar").hidden = v === "slate";
-  // The rule divides the wordmark from the script's name. With no script on
-  // screen it divides nothing, and reads as a dangling stroke after the mark.
-  document.querySelector(".hsep").hidden = v === "slate";
+  // The slot after the rule holds the script's name on a board and the tagline
+  // on the dashboard. The rule itself only earns its place when one of them is
+  // there — on its own it reads as a dangling stroke after the mark.
+  document.getElementById("tagline").hidden = v !== "slate";
+  // The rule is hidden by CSS on the dashboard below 1024px, where the tagline
+  // it would be dividing is itself hidden. Doing that here instead would need a
+  // resize listener to stay honest.
+  document.querySelector("header").dataset.view = v;
   document.getElementById("tally").hidden   = v === "slate";
   // Outline and Notes belong to a script, not to the shelf of them
   document.getElementById("outlinebtn").hidden = v === "slate";
@@ -4788,27 +4853,54 @@ function renderSlate(){
     const b = p.brief || {};
     const el = document.createElement("div");
     el.className = "pcard" + ((p.id || p.localId) === state.activeId ? " current" : "");
+    const open_ = c.total - c.filled;
     el.innerHTML =
         '<div class="ph"><h3>' + esc(p.name) + "</h3>"
         + '<span class="when">' + esc(ago(p.touched)) + "</span></div>"
       + '<div class="log' + (b.log ? "" : " none") + '">'
         + esc(b.log || "No logline yet. It reads better once it has one.") + "</div>"
+
+      /* The grade. A writer should be able to read it from across the room and
+         not have to divide anything to know where they stand. Zero is a real
+         answer and gets shown as one — greyed, but stated. */
+      + '<div class="grade">'
+        + '<div class="gwrap">'
+          + '<div class="gnum' + (c.pct ? "" : " none") + '">' + c.pct
+            + '<span class="pc">%</span></div>'
+          + '<div class="glab">Complete</div>'
+        + "</div>"
+        + '<div class="gstat">'
+          + '<div class="gline">' + c.filled + " of " + c.total + " beats"
+            + (open_ ? ' &middot; <b>' + open_ + " open</b>" : "") + "</div>"
+          + '<div class="gfmt">' + esc(structureLine(p.structure)) + "</div>"
+        + "</div>"
+      + "</div>"
       + '<div class="bar"><i style="width:' + c.pct + '%"></i></div>'
-      + '<div class="row"><span>' + c.filled + " of " + c.total + " beats</span>"
-        + '<span class="dot">&middot;</span>'
-        + (c.total - c.filled
-            ? '<span class="next">' + (c.total - c.filled) + " open</span>"
-            : '<span>every beat has a card</span>')
-        + '<span class="dot">&middot;</span><span>' + esc(structureLine(p.structure)) + "</span></div>"
-      + '<div class="hr"></div>'
-      + (nx ? '<div class="up">Next up &mdash; <b>' + esc(nx.name) + "</b></div>" : "")
+
+      /* Next up was a caption. It is the single most useful thing on the card,
+         so it is a control now — press it and you are in the conversation
+         about that beat. */
+      + (nx
+          ? '<button class="up"><span class="k">Next up</span>'
+            + '<span class="n">' + esc(nx.name) + "</span>"
+            + '<svg class="arw" width="14" height="14" viewBox="0 0 16 16" fill="none" '
+            + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+            + 'stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"/></svg>'
+            + "</button>"
+          : '<div class="done">Every beat has a card.</div>')
       + '<div class="acts"></div>';
 
-    el.querySelector("h3").addEventListener("click", () => open(p.id || p.localId));
+    if (nx) el.querySelector(".up").addEventListener("click", () => {
+      open(p.id || p.localId); askAbout(nx);
+    });
+    if (nx) el.querySelector(".up").setAttribute("data-tip",
+      "Opens a conversation about the most useful empty beat in this story.");
+
     const acts = el.querySelector(".acts");
-    acts.appendChild(btn("Open", () => open(p.id || p.localId)));
+    const go = btn("Open", () => open(p.id || p.localId));
+    go.className = "btn go";
+    acts.appendChild(go);
     acts.appendChild(btn("Details", () => { open(p.id || p.localId); openIntake("edit"); }));
-    if (nx) acts.appendChild(btn("What's missing", () => { open(p.id || p.localId); askAbout(nx); }));
     if (state.projects.length > 1){
       const d = btn("Delete", () => remove(p));
       d.className = "btn del";
@@ -4836,8 +4928,7 @@ function renderSlate(){
     b.className = "btn"; b.textContent = label;
     b.setAttribute("data-tip", {
       "Open":"Switch to this project's board.",
-      "Details":"Title, format, logline, protagonist and genre for this project.",
-      "What's missing":"Opens a conversation about the most useful empty beat in this story."
+      "Details":"Title, format, logline, protagonist and genre for this project."
     }[label] || "");
     b.addEventListener("click", fn);
     return b;
