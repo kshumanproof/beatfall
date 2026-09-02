@@ -601,10 +601,9 @@ main{max-width:1440px;margin:0 auto;padding:4px 22px 60px}
 /* ---------- the slate ---------- */
 .slate-wrap{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
 .slate-capture{
-  background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--blue);
-  border-radius:2px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:22px;
+  border-top:1px solid var(--rule);border-radius:0;padding:20px 0 0;margin-top:34px;
 }
-.slate-lede{font-size:13.5px;color:var(--ink-2);margin-bottom:11px}
+.slate-lede{font-size:13px;color:var(--ink-3);margin-bottom:11px}
 .slate-capture input{
   flex:1;min-width:0;background:var(--surface);color:var(--ink);
   border:1px solid var(--rule);border-radius:2px;padding:12px 14px;
@@ -1018,16 +1017,6 @@ footer{
 
 <section id="slate" hidden>
   <div class="slate-wrap">
-    <div class="slate-capture">
-      <div class="slate-lede">Had an idea and you're not sure which script it's for? Type it here and it will tell you.</div>
-      <div class="capture-row">
-        <input id="routenote" type="text" autocomplete="off"
-          placeholder="The dog knows before anyone else does&hellip;">
-        <button class="btn btn-primary" id="routego" data-tip="Reads your note against every project's logline and characters, then names the script and the beat it belongs in.">Find its home</button>
-      </div>
-      <div id="routeout" hidden></div>
-    </div>
-
     <div class="slate-stats" id="slatestats"></div>
 
     <div class="slate-head">
@@ -1038,6 +1027,18 @@ footer{
       </div>
     </div>
     <div class="slate-grid" id="slategrid"></div>
+
+    <!-- Only earns its place once there are enough scripts for the question
+         "which one is this for?" to be a real question. -->
+    <div class="slate-capture" id="slatecapture" hidden>
+      <div class="slate-lede">Had an idea and you're not sure which script it's for? Type it here and it will tell you.</div>
+      <div class="capture-row">
+        <input id="routenote" type="text" autocomplete="off"
+          placeholder="The dog knows before anyone else does&hellip;">
+        <button class="btn" id="routego" data-tip="Reads your note against every project's logline and characters, then names the script and the beat it belongs in.">Find its home</button>
+      </div>
+      <div id="routeout" hidden></div>
+    </div>
   </div>
 </section>
 
@@ -3842,6 +3843,7 @@ document.getElementById("viewtoggle").addEventListener("click", () =>
 function renderSlate(){
   const grid = document.getElementById("slategrid");
   grid.innerHTML = "";
+  document.getElementById("slatecapture").hidden = state.projects.length < 3;
 
   let cards = 0, holes = 0, stalled = 0, best = null;
   state.projects.forEach(p => {
