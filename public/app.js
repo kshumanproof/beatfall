@@ -151,6 +151,84 @@
     return e.message || "Something went wrong.";
   };
 
+  // -------------------------------------------------------------------- mode --
+  // "Auto" follows the daylight where the reader actually is, not a setting on
+  // their machine. Latitude is inferred from the device's IANA region and the
+  // clock does the rest, so the app never asks for a location and never makes a
+  // network call to work this out.
+  const MODE_KEY = 'beatfall.mode';
+  const OLD_KEY  = 'beatfall.theme';
+  BF.MODES = ['auto', 'light', 'dark'];
+
+  function latitudeGuess() {
+    let zone = '';
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    const known = {
+      'Pacific/Honolulu': 21, 'America/Anchorage': 61, 'America/Bogota': 4.6,
+      'America/Mexico_City': 19, 'America/Sao_Paulo': -23, 'Asia/Singapore': 1.3,
+      'Asia/Dubai': 25, 'Asia/Kolkata': 20, 'Asia/Tokyo': 36, 'Africa/Cairo': 30,
+      'Africa/Johannesburg': -26, 'Europe/Reykjavik': 64
+    };
+    if (known[zone] != null) return known[zone];
+    const region = zone.split('/')[0];
+    const byRegion = { America: 38, Europe: 50, Australia: -33, Asia: 30, Africa: 5,
+                       Pacific: -18, Atlantic: 38, Indian: -20, Antarctica: -70 };
+    return byRegion[region] != null ? byRegion[region] : 40;
+  }
+
+  // Low-precision solar position — accurate to a few minutes, which is far
+  // finer than anyone notices a screen changing colour.
+  function isNight(now) {
+    now = now || new Date();
+    const rad = Math.PI / 180;
+    const day = Math.floor((now - Date.UTC(now.getFullYear(), 0, 0)) / 86400000);
+    const decl = 23.44 * rad * Math.sin(2 * Math.PI * (day - 81) / 365);
+    const x = -Math.tan(latitudeGuess() * rad) * Math.tan(decl);
+    if (x <= -1) return true;    // polar night
+    if (x >= 1)  return false;   // midnight sun
+    const half = Math.acos(x) / rad / 15;                       // half-day, hours
+    const eot = 9.87 * Math.sin(4 * Math.PI * (day - 81) / 365)
+              - 7.53 * Math.cos(2 * Math.PI * (day - 81) / 365)
+              - 1.5  * Math.sin(2 * Math.PI * (day - 81) / 365);
+    // Local clocks run an hour ahead of the sun during daylight saving.
+    const jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+    const jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
+    const dst = (Math.max(jan, jul) - now.getTimezoneOffset()) / 60;
+    const noon = 12 + dst - eot / 60;
+    const hour = now.getHours() + now.getMinutes() / 60;
+    return hour < noon - half || hour > noon + half;
+  }
+  BF.isNight = isNight;
+
+  BF.resolveMode = m => (m === 'light' || m === 'dark') ? m : (isNight() ? 'dark' : 'light');
+
+  BF.readMode = function () {
+    try {
+      const m = localStorage.getItem(MODE_KEY);
+      if (m) return m;
+      const old = localStorage.getItem(OLD_KEY);        // migrate the old setting
+      if (old) return old === 'system' ? 'auto' : old;
+    } catch (e) {}
+    return 'auto';
+  };
+
+  let modeTimer = null;
+  BF.applyMode = function (m, label) {
+    document.documentElement.setAttribute('data-theme', BF.resolveMode(m));
+    try { localStorage.setItem(MODE_KEY, m); } catch (e) {}
+    if (label) label.textContent = 'Mode: ' + m;
+    clearInterval(modeTimer);
+    // so it turns over while somebody is still sitting there writing
+    if (m === 'auto') modeTimer = setInterval(() => {
+      document.documentElement.setAttribute('data-theme', BF.resolveMode('auto'));
+    }, 300000);
+  };
+
+  BF.cycleMode = function (label) {
+    const i = BF.MODES.indexOf(BF.readMode());
+    BF.applyMode(BF.MODES[(i + 1) % BF.MODES.length], label);
+  };
+
   BF.money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
   BF.when = iso => {
     if (!iso) return '—';

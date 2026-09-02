@@ -82,8 +82,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
 <script>
-(function(){ let t='system'; try{ t=localStorage.getItem('beatfall.theme')||'system'; }catch(e){}
-  if (t!=='system') document.documentElement.setAttribute('data-theme', t); })();
+BF.applyMode(BF.readMode());
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

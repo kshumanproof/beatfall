@@ -28,7 +28,7 @@
   <a href="/" class="wordmark">Beat<span>fall</span></a>
   <span class="slug">Settings</span>
   <div class="right">
-    <button class="btn btn-ghost" id="theme">Theme</button>
+    <button class="btn btn-ghost" id="theme">Mode</button>
     <a class="btn btn-ghost" href="/">Back to the board</a>
     <button class="btn btn-ghost" id="out">Sign out</button>
   </div>
@@ -108,19 +108,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
 <script>
-const THEMES = ['system','light','dark'];
-function applyTheme(t){
-  if (t === 'system') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('theme').textContent =
-    'Theme: ' + (t === 'system' ? 'auto' : t);
-  try { localStorage.setItem('beatfall.theme', t); } catch(e){}
-}
-document.getElementById('theme').addEventListener('click', () => {
-  let t = 'system'; try { t = localStorage.getItem('beatfall.theme') || 'system'; } catch(e){}
-  applyTheme(THEMES[(THEMES.indexOf(t)+1) % THEMES.length]);
-});
-(function(){ let t='system'; try{ t = localStorage.getItem('beatfall.theme')||'system'; }catch(e){} applyTheme(t); })();
+const modeBtn = document.getElementById('theme');
+modeBtn.addEventListener('click', () => BF.cycleMode(modeBtn));
+BF.applyMode(BF.readMode(), modeBtn);
 
 function flash(kind, msg){
   const el = document.getElementById('flash');
