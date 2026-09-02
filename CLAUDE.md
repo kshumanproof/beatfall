@@ -156,12 +156,21 @@ the desktop rule in the file. A media query adds no specificity; source order
 is all that decides, and the override was silently losing at every width until
 the block was moved down.
 
-**The lockup.** The mark's bottom edge IS the bottom of the lowest card, and a
-replaced element's baseline is its bottom edge, so `.brand` uses
-`align-items:baseline` — the stack sits on the wordmark's baseline with no
-magic offset that would drift the moment either size changed. Mark is 34px
-against a 29px wordmark in the app header, 29px against 24px on the other
-pages. Centre alignment is what made it look crooked; don't go back to it.
+**The lockup.** Kris supplied a finished lockup on 2 Sep; the SVG is measured
+off it, not eyeballed. Bars are 181x37 with a 6px gap and a ~8px corner radius
+(rounded rectangles, NOT pills — the pill version was wrong); the falling card
+is the same rectangle rotated -12 degrees, centred on the same axis, its lowest
+corner about 4px above the top bar; three hairline ticks above it, drawn
+thicker than literal because at 29px the true weight disappears.
+
+The stack sits ON the wordmark's baseline: the mark's bottom edge IS the bottom
+of the lowest card, and a replaced element's baseline is its bottom edge, so
+`.brand` uses `align-items:baseline` and needs no magic offset. In his lockup
+mark height is 1.33x cap height with a gap of 0.18x cap; ours runs a little
+larger (29px mark against a 29px wordmark, cap 19.7 — ratio 1.47, gap 6px)
+because his exact ratio turns the bars to mush at UI size. `theme.css` carries
+24px/5px for the 24px wordmark on the other pages. Centre alignment is what
+made it look crooked; don't go back to it.
 
 **Removed from the dashboard, 2 Sep:** the grey subtitle ("33% of the way in.
 Nothing has gone cold."). Kris likes the line but it describes ONE script, so it
@@ -294,3 +303,20 @@ Ordered. Everything in the first group changes whether the test is worth running
   render — thirty-odd unguarded `STRUCTURES[proj.structure].slots` lookups, any
   one of which would have shown a writer a blank board. `load()` now coerces
   unknown keys to `stc` at the door.
+
+## The dashboard lede (2 Sep 2026)
+
+"One project saved. Six beats empty." One line at EVERY width — it used to wrap
+to two lines on a laptop and three on a phone, which turns the first thing a
+writer sees into a paragraph. `white-space:nowrap` plus
+`font-size:clamp(17px, 2.55vw + 4px, 34px)`, so it shrinks to fit rather than
+wrapping. Both figures are totals across every project, not the active one.
+
+The floor of that clamp is set from the longest string the code can generate
+("Twelve projects saved. 171 beats empty.") fitting a 390px phone. If the
+wording gets longer, re-check the floor.
+
+Adding `min-width:192px` to the two slate buttons — Kris asked for a matched
+pair — pushed the phone into horizontal scroll, because two of them plus the
+gap is wider than 390px. Under 760px they drop the fixed width and share the
+row with `flex:1 1 0`, which keeps them equal by a different means.

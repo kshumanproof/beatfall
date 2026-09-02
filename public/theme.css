@@ -58,8 +58,8 @@ button{font-family:inherit;color:inherit}
 
 /* The mark and the name travel together. Drawn inline so it inherits the
    palette in dark mode and costs no request. */
-.brand{display:inline-flex;align-items:baseline;gap:10px;text-decoration:none;color:var(--ink)}
-.mark{height:29px;width:auto;flex:0 0 auto}
+.brand{display:inline-flex;align-items:baseline;gap:5px;text-decoration:none;color:var(--ink)}
+.mark{height:24px;width:auto;flex:0 0 auto}
 .wordmark{
   font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:-.014em;
   margin:0;text-decoration:none;color:var(--ink);line-height:1;
