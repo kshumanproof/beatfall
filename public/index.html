@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beatfall</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
@@ -123,6 +126,8 @@ header{
 }
 /* The name of the thing, at the size a masthead is set. Everything else in
    this bar is a control; this is the only object. */
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink)}
+.mark{height:42px;width:auto;flex:0 0 auto;display:block}
 .wordmark{
   font-family:var(--serif);font-weight:600;font-size:29px;
   letter-spacing:-.016em;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
@@ -771,10 +776,9 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .slate-wrap{max-width:1360px;margin:0 auto;padding:46px 28px 90px}
 .slate-lede{
   font-family:var(--serif);font-size:34px;line-height:1.28;letter-spacing:-.012em;
-  color:var(--ink);max-width:26ch;margin:0 0 12px;
+  color:var(--ink);max-width:26ch;margin:0 0 30px;
 }
 .slate-lede em{font-style:normal;color:var(--gold)}
-.slate-sub{font-size:13px;color:var(--ink-3);margin:0 0 38px}
 
 /* ------------------------------------------------------------ scoreboard --
    Standings, not decoration. A writer opening this should be able to read
@@ -828,6 +832,63 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   .score-cell:nth-child(n+3){border-top:1px solid var(--rule-soft)}
   .score-n{font-size:30px}
 }
+
+/* ---------------------------------------------------------- the leader --
+   Which script is closest to done. On a shelf of half-finished things the
+   useful question is never "how are they all doing" — it's "which one is
+   nearly there", because that is the one worth an hour tonight. It names the
+   script, says exactly how many beats stand between it and a full board, and
+   offers the next one to go and fill. */
+.leader{
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow);padding:18px 22px;margin:0 0 38px;
+}
+.leader .lk{
+  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-4);white-space:nowrap;
+}
+.leader .lname{
+  font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.012em;
+  color:var(--ink);background:none;border:none;padding:0;cursor:pointer;text-align:left;
+}
+.leader .lname:hover{color:var(--blue)}
+.leader .lbar{
+  flex:1 1 180px;min-width:120px;height:5px;background:var(--rule-soft);
+  border-radius:3px;overflow:hidden;
+}
+.leader .lbar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
+.leader .lpct{
+  font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.leader .lgo{font-size:12.5px;color:var(--gold);font-weight:600;white-space:nowrap}
+.leader .lnext{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+.leader .lnext b{color:var(--ink-2);font-weight:600}
+@media (max-width:899px){
+  .leader{gap:12px 18px}
+  .leader .lbar{flex-basis:100%}
+}
+
+/* The two ways in. A matched pair — same size, same shape, same weight — so
+   neither looks like the afterthought the ghost link used to be. The filled
+   one is Paste your notes, because that is the move that makes the product do
+   the thing it exists to do. */
+.bigbtn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--sans);font-size:13.5px;font-weight:600;letter-spacing:-.002em;
+  padding:0 20px;height:42px;border-radius:var(--r-ctl);cursor:pointer;white-space:nowrap;
+  border:1px solid var(--blue);background:var(--card);color:var(--blue);
+  box-shadow:0 1px 1px rgba(58,48,36,.04);
+  transition:background var(--settle),color var(--settle),border-color var(--settle),
+             box-shadow var(--settle),transform var(--settle);
+}
+.bigbtn svg{flex:0 0 auto;opacity:.85}
+.bigbtn:hover{background:var(--blue-soft);box-shadow:var(--shadow);transform:translateY(-1px)}
+.bigbtn:active{transform:translateY(0);box-shadow:none}
+.bigbtn.solid{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.bigbtn.solid:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.bigbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
 .slate-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
 .slate-h{
@@ -1024,7 +1085,24 @@ footer{
 
 <header>
   <div class="topline">
-    <a class="wordmark" href="/" title="Beatfall">Beat<span>fall</span></a>
+    <!-- The mark: three beats already in place, and the one still coming down.
+         Drawn rather than loaded so it takes the palette with it into dark
+         mode and costs no request. -->
+    <a class="brand" href="/" title="Beatfall">
+      <svg class="mark" viewBox="13.4 5 37.2 54" aria-hidden="true" focusable="false">
+        <g stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round">
+          <path d="M27.4 11.4v5.8"/>
+          <path d="M30.6 6.6v9.0"/>
+          <path d="M33.8 10.6v5.0"/>
+        </g>
+        <rect x="15.6" y="20.4" width="32.8" height="6.6" rx="3.3"
+              fill="var(--gold)" transform="rotate(-12 32 23.7)"/>
+        <rect x="15" y="34.2" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+        <rect x="15" y="43.1" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+        <rect x="15" y="52.0" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+      </svg>
+      <span class="wordmark">Beat<span>fall</span></span>
+    </a>
 
     <div class="hsep"></div>
 
@@ -1357,16 +1435,20 @@ footer{
 <section id="slate" hidden>
   <div class="slate-wrap">
     <h2 class="slate-lede" id="slatelede"></h2>
-    <p class="slate-sub" id="slatesub"></p>
 
     <div class="score" id="slatescore"></div>
+    <div class="leader" id="slateleader" hidden></div>
 
     <div class="slate-head">
       <h2 class="slate-h">Your scripts</h2>
       <div class="slate-rule"></div>
       <div class="slate-acts">
-        <button class="btn btn-primary" id="slatenew" data-tip="Start another script. Each one keeps its own board, structure and notes.">New project</button>
-        <button class="btn btn-ghost" id="slatedump" data-tip="Paste or drop a text file of scattered notes. It can even tell when the file covers more than one story and split it into separate projects.">Paste in your notes</button>
+        <button class="bigbtn" id="slatenew" data-tip="Start another script. Each one keeps its own board, structure and notes.">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 3.4v9.2M3.4 8h9.2"/></svg>
+          New project</button>
+        <button class="bigbtn solid" id="slatedump" data-tip="Paste or drop a text file of scattered notes. It can even tell when the file covers more than one story and split it into separate projects.">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 2.6h6.8v10.8H4.6z"/><path d="M6.5 5.6h3.1M6.5 8h3.1M6.5 10.4h1.9"/></svg>
+          Paste your notes</button>
       </div>
     </div>
     <div class="slate-grid" id="slategrid"></div>
@@ -1940,6 +2022,7 @@ function save(){
   saveTimer = setTimeout(flush, 700);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}   // crash cushion only
   markWorked();
+  notePlacements();
 }
 
 /* ------------------------------------------------------------- the chain --
@@ -1966,6 +2049,50 @@ function markWorked(){
   days.push(today);
   try { localStorage.setItem(DAYS_KEY, JSON.stringify(days.slice(-90))); } catch(e){}
 }
+/* ------------------------------------------------------ beats this week --
+   Momentum, which is the only number on the dashboard that answers "am I
+   actually moving". It is kept as a high-water mark rather than by hooking
+   every place a card can land: on each save we look at how many beats are
+   filled, and if that is more than last time, the difference belongs to today.
+   Every placement path is covered by construction, including import, and it
+   can't double-count. Take a card off a beat and the mark simply drops, so
+   putting one back counts once, not twice. */
+const PLACED_KEY = "beatfall.placed";
+function filledNow(){
+  try {
+    return (state.projects || []).reduce((n, p) => n + coverage(p).filled, 0);
+  } catch (e) { return null; }
+}
+function placedRead(){
+  try { const d = JSON.parse(localStorage.getItem(PLACED_KEY) || "{}");
+        if (!d.days) d.days = {}; return d; } catch(e){ return {days:{}}; }
+}
+function notePlacements(){
+  const now = filledNow();
+  if (now === null) return;
+  const d = placedRead();
+  if (typeof d.mark === "number" && now > d.mark){
+    const t = dayStamp();
+    d.days[t] = (d.days[t] || 0) + (now - d.mark);
+  }
+  d.mark = now;
+  const cut = Date.now() - 40 * 86400000;
+  Object.keys(d.days).forEach(k => {
+    if (new Date(k + "T12:00:00").getTime() < cut) delete d.days[k];
+  });
+  try { localStorage.setItem(PLACED_KEY, JSON.stringify(d)); } catch(e){}
+}
+function placedThisWeek(){
+  const days = placedRead().days;
+  const t = new Date(); t.setHours(12, 0, 0, 0);
+  let n = 0;
+  for (let i = 0; i < 7; i++){
+    const x = new Date(t); x.setDate(x.getDate() - i);
+    n += days[dayStamp(x)] || 0;
+  }
+  return n;
+}
+
 // How many days in a row, counting back from today — or from yesterday, so a
 // streak isn't declared broken before the writer has had a chance to sit down.
 function chain(){
@@ -4563,8 +4690,10 @@ document.getElementById("notesbtn").addEventListener("click", () =>
 document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
 
 /* The standings. Four counts and a chain, and every one of them is something
-   the writer did — no points, no badges, no invented currency. The gold number
-   is the empty beats, because on this product the hole is the thing.  */
+   the writer actually did — no points, no badges, no invented currency. The
+   gold number is the empty beats, because on this product the hole is the
+   thing, and momentum sits beside it because a hole with no movement toward
+   it is just a reproach. */
 function renderScore(t){
   const el = document.getElementById("slatescore");
   if (!el) return;
@@ -4574,6 +4703,10 @@ function renderScore(t){
 
   const ch = chain();
   const pct = total ? Math.round((filled / total) * 100) : 0;
+  const week = placedThisWeek();
+  // Everything sitting in Notes and Set Aside: raw material, not work done.
+  const waiting = state.projects.reduce((n, p) =>
+    n + p.cards.filter(c => c.slot === "__shelf").length, 0);
 
   const cell = (n, of, key, kind, note) =>
     '<div class="score-cell' + (kind ? " " + kind : "") + '">'
@@ -4596,8 +4729,15 @@ function renderScore(t){
                     ? "your board" : "your boards") : "No structure yet.")
     + cell(t.empty, "", "Still empty", "gap",
            t.empty ? "Where the work is." : "Nothing left open.")
-    + cell(t.cards, "", "Cards written", "quiet",
-           t.cards === 1 ? "One so far." : "Beats and notes together.")
+    /* This cell used to read "Cards written", counting every card in the
+       project — which meant a pasted notes file showed up as 171 things the
+       writer had supposedly written. It flattered and it confused. Momentum
+       is the honest number: beats that actually landed in the last week,
+       with the unsorted pile named underneath as what's left to work with. */
+    + cell(week, week ? " beat" + (week === 1 ? "" : "s") : "", "This week", week ? "" : "quiet",
+           waiting
+             ? waiting + " note" + (waiting === 1 ? "" : "s") + " still to sort"
+             : (week ? "Landed on the board." : "Nothing placed yet."))
     + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'
         + '<div class="score-n">' + ch.run + '<span class="of">'
         + (ch.run === 1 ? "day" : "days") + "</span></div>"
@@ -4609,18 +4749,58 @@ function renderScore(t){
     + '<div class="score-bar"><i style="width:' + pct + '%"></i></div>';
 }
 
+/* Which script is nearest the finish. Deliberately not "the one with the most
+   cards" — a script at 80% with three beats left is closer to done than one
+   with sixty notes and no structure filled.
+
+   Two rules keep it honest. A board that is already complete is not "closest
+   to done", it is done, so it steps aside for the next one behind it — and if
+   every board is complete the band has nothing to say and hides. And with a
+   single script the project card below already carries its bar, its count and
+   its next beat, so naming a leader among one is just repetition. */
+function renderLeader(){
+  const el = document.getElementById("slateleader");
+  if (!el) return;
+
+  const hide = () => { el.hidden = true; el.innerHTML = ""; };
+  if (state.projects.length < 2) return hide();
+
+  let best = null;
+  state.projects.forEach(p => {
+    const c = coverage(p);
+    if (c.pct <= 0 || c.filled >= c.total) return;      // nothing started, or finished
+    if (!best || c.pct > best.c.pct
+        || (c.pct === best.c.pct && (p.touched || 0) > (best.p.touched || 0))) {
+      best = {p, c};
+    }
+  });
+  if (!best) return hide();
+
+  const left = best.c.total - best.c.filled;
+  const nx = nextHole(best.p);
+
+  el.hidden = false;
+  el.innerHTML =
+      '<span class="lk">Closest to done</span>'
+    + '<button class="lname">' + esc(best.p.name) + "</button>"
+    + '<div class="lbar"><i style="width:' + best.c.pct + '%"></i></div>'
+    + '<span class="lpct">' + best.c.pct + "%</span>"
+    + '<span class="lgo">' + left + " beat" + (left === 1 ? "" : "s") + " to go</span>"
+    + (nx ? '<span class="lnext">Next &mdash; <b>' + esc(nx.name) + "</b></span>" : "");
+
+  const open = () => { state.activeId = best.p.id || best.p.localId; setView("board"); };
+  el.querySelector(".lname").addEventListener("click", open);
+  el.querySelector(".lname").setAttribute("data-tip", "Open this board.");
+}
+
 function renderSlate(){
   const grid = document.getElementById("slategrid");
   grid.innerHTML = "";
 
-  let cards = 0, holes = 0, empty = 0, stalled = 0, best = null;
+  let empty = 0;
   state.projects.forEach(p => {
     const c = coverage(p);
-    cards += p.cards.length;
-    holes += c.holes;
     empty += (c.total - c.filled);
-    if (p.touched && Date.now() - p.touched > 21 * 86400000) stalled++;
-    if (!best || c.pct > best.pct) best = {name: p.name, pct: c.pct};
   });
 
   // The scoreboard is a sentence, not a row of boxes. It should read like
@@ -4641,15 +4821,10 @@ function renderSlate(){
           + "</em> still empty" + (one ? " in it." : " between them.")
         : " Every beat has a card.");
 
-  const sub = [];
-  if (best && N > 1) sub.push("Furthest along — " + best.name + ", " + best.pct + "% of the way in.");
-  else if (best && N === 1) sub.push(best.pct + "% of the way in.");
-  sub.push(stalled
-    ? (stalled === 1 ? "One has" : stalled + " have") + " been sitting untouched for three weeks."
-    : "Nothing has gone cold.");
-  document.getElementById("slatesub").textContent = sub.join(" ");
-
-  renderScore({cards, empty, holes});
+  // How far along one script is, and whether it has gone cold, are facts about
+  // that script. They belong on its own page, not on the shelf of all of them.
+  renderLeader();
+  renderScore({empty});
 
   state.projects.forEach(p => {
     const c = coverage(p);

@@ -99,8 +99,8 @@ both platforms. Runs on a phone today through Expo Go (`npx expo start`).
   to sync" on a first run would be a lie.
 - Fonts are deep-imported per weight; importing the package root drags 4.3MB of
   unused faces into the binary.
-- Icons in `assets/` are placeholders — paper and the wordmark's `b`. Branding
-  is still closed; replace them when the mark lands. `tools/mkicon.py` rebuilds.
+- Icons in `assets/` are built from Kris's mark by `tools/mkicon.py`, which
+  reads `tools/mark.png` (his artwork, black export field flood-filled away).
 - `.vercelignore` keeps `mobile/` out of the web deployment.
 
 **Next on the app, in order:** sign-in (Supabase magic link on the phone), a
@@ -114,20 +114,51 @@ wins, and it would clobber desktop edits.
 ## Dashboard scoreboard (2 Sep 2026)
 
 Kris asked for the dashboard to read like a scoreboard and be gamified a little.
-He likes the "two scripts open…" sentence; it stays. Added above the project
-cards: four counts — beats filled / total, still empty (gold), cards written,
-days in a row — and a seven-day chain of dots, over a progress rail.
+He likes the "two scripts open…" sentence; it stays. Above the project cards:
+four counts — beats filled / total, still empty (gold), beats placed this week,
+days in a row — over a seven-day chain of dots and a progress rail.
 
-The chain hangs off `save()`, never off a render: a day counts when the writer
-changed something, not when they opened a tab. It lives in `localStorage`
-(`beatfall.days`), so it is per-browser and private, and it resets on a new
-machine. That is a known limit, not a bug to chase yet.
+The third cell first read "Cards written" and counted every card in the project.
+On a real board that showed **171**, because a pasted notes file is 166 cards
+sitting on the shelf. It flattered and it confused, and Kris caught it. It now
+reads beats placed in the last seven days, with the unsorted pile named
+underneath as raw material rather than as work done.
+
+Both counters hang off `save()`, never off a render: a day counts when the
+writer changed something, not when they opened a tab. `beatfall.days` holds the
+chain; `beatfall.placed` holds a high-water mark of filled beats plus a per-day
+tally, which covers every placement path — drag, menu, proposal, import — with
+no hooks, and can't double-count. Both live in `localStorage`, so they are
+per-browser and private and reset on a new machine. Known limit, not a bug.
 
 No points, no badges, no invented currency. Every figure is a count of something
 they actually did.
 
-**Branding is closed.** Kris rejected both designers' marks. The existing
-wordmark stays. Do not reopen the mark question or propose graphics.
+Below the strip: **Closest to done** — the script nearest a full board, with its
+bar, the exact number of beats left, and the next hole to fill. On a shelf of
+half-finished things the useful question is never "how are they all doing", it
+is "which one is nearly there". A finished board steps aside for the next one
+behind it (it is done, not closest to done), and with a single project the band
+hides because the project card below already carries the same three facts.
+
+**Removed from the dashboard, 2 Sep:** the grey subtitle ("33% of the way in.
+Nothing has gone cold."). Kris likes the line but it describes ONE script, so it
+belongs on that script's own page. Put it there when the project page is built —
+do not put it back on the dashboard.
+
+## The mark (2 Sep 2026)
+
+**Branding is settled.** Kris rejected both designers' marks and then supplied
+his own: three blue index cards stacked, one gold card still falling into place,
+three motion ticks above it. That IS Beatfall — the name drawn.
+
+It is redrawn as inline SVG in the header of every page, so it takes the palette
+into dark mode and costs no request, and rasterised from his PNG for the
+favicon, the touch icon and the phone app. Do not propose alternatives.
+
+`/home/claude/mkfavicon.py` builds the web set from his artwork; the supplied
+PNG has an opaque black export field, flood-filled away from the corners rather
+than colour-keyed, so the mark's own dark ink survives.
 
 ## Taken from the two designer reviews
 

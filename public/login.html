@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in — Beatfall</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <meta name="description" content="Beatfall turns a pile of scattered notes into a beat board that shows you where your story has holes.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +36,19 @@
 
   <div class="side pitch">
     <div class="pitch-in">
-      <a href="/login.html" class="wordmark">Beat<span>fall</span></a>
+      <a href="/login.html" class="brand">
+      <svg class="mark" viewBox="13.4 5 37.2 54" aria-hidden="true" focusable="false">
+        <g stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round">
+          <path d="M27.4 11.4v5.8"/><path d="M30.6 6.6v9.0"/><path d="M33.8 10.6v5.0"/>
+        </g>
+        <rect x="15.6" y="20.4" width="32.8" height="6.6" rx="3.3"
+              fill="var(--gold)" transform="rotate(-12 32 23.7)"/>
+        <rect x="15" y="34.2" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+        <rect x="15" y="43.1" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+        <rect x="15" y="52.0" width="34" height="6.7" rx="3.35" fill="var(--blue)"/>
+      </svg>
+      <span class="wordmark">Beat<span>fall</span></span>
+    </a>
       <h1 style="margin-top:22px">Your notes already know the story. They're just in the wrong order.</h1>
       <p>Paste in three months of scattered notes — the ones in the file you never open — and
          Beatfall works out which are story beats, puts them where they belong in the structure
