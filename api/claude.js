@@ -10,6 +10,10 @@ import { requireUser, entitlement, send, readBody, COST, MODEL, PRICE_IN, PRICE_
 // A hard ceiling per call, so one runaway request can't cost a fortune.
 const MAX_INPUT_CHARS = 60000;
 const MAX_OUTPUT_TOKENS = 1400;
+// Reading a notes folder returns a classification per note. 1400 tokens
+// truncated those replies into unparseable JSON, which the board then papered
+// over by guessing. Give that one job room.
+const OUTPUT_CAP = { import: 6000 };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'POST only' });
@@ -74,7 +78,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: Math.min(MAX_OUTPUT_TOKENS, body.maxTokens || MAX_OUTPUT_TOKENS),
+        max_tokens: (cap => Math.min(cap, body.maxTokens || cap))(OUTPUT_CAP[kind] || MAX_OUTPUT_TOKENS),
         messages
       })
     });

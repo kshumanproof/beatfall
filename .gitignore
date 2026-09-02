@@ -6,3 +6,4 @@ node_modules/
 .DS_Store
 *.log
 _transfer.zip
+_testdata/

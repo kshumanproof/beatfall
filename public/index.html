@@ -600,24 +600,6 @@ main{max-width:1440px;margin:0 auto;padding:4px 22px 60px}
 
 /* ---------- the slate ---------- */
 .slate-wrap{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
-.slate-capture{
-  border-top:1px solid var(--rule);border-radius:0;padding:20px 0 0;margin-top:34px;
-}
-.slate-lede{font-size:13px;color:var(--ink-3);margin-bottom:11px}
-.slate-capture input{
-  flex:1;min-width:0;background:var(--surface);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:12px 14px;
-  font-family:var(--mono);font-size:14.5px;
-}
-.slate-capture input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-soft)}
-#routeout{margin-top:13px}
-.routehit{
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
-  background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:12px 14px;
-}
-.routehit .to{font-weight:700;font-size:14.5px}
-.routehit .why{font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px}
-.routehit .btn{margin-left:auto}
 
 .slate-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
 .stat{
@@ -1027,18 +1009,6 @@ footer{
       </div>
     </div>
     <div class="slate-grid" id="slategrid"></div>
-
-    <!-- Only earns its place once there are enough scripts for the question
-         "which one is this for?" to be a real question. -->
-    <div class="slate-capture" id="slatecapture" hidden>
-      <div class="slate-lede">Had an idea and you're not sure which script it's for? Type it here and it will tell you.</div>
-      <div class="capture-row">
-        <input id="routenote" type="text" autocomplete="off"
-          placeholder="The dog knows before anyone else does&hellip;">
-        <button class="btn" id="routego" data-tip="Reads your note against every project's logline and characters, then names the script and the beat it belongs in.">Find its home</button>
-      </div>
-      <div id="routeout" hidden></div>
-    </div>
   </div>
 </section>
 
@@ -1108,112 +1078,112 @@ const STRUCTURES = {
     label: "Feature — Classic Three-Act (9 beats)",
     acts: ["Act One","Act Two","Act Three"],
     slots: [
-      {id:"t-open", act:0, name:"Opening Image",     fn:"Where and who we start with.", cues:[["opening",4],["first shot",6],["opens on",6],["we open",5],["cold open",4],["establishing",4],["begins",2]]},
-      {id:"t-setup",act:0, name:"Setup",             fn:"The world, the want, and the wound.", cues:[["ordinary",4],["routine",4],["we meet",4],["introduce",3],["his job",3],["backstory",3],["normal life",5],["small town",2]]},
-      {id:"t-inc",  act:0, name:"Inciting Incident", fn:"The event that starts the story engine.", cues:[["inciting",6],["catalyst",5],["gets a call",5],["a letter",4],["dies",3],["body",3],["discovers",4],["finds out",4],["arrives",3],["accident",3],["fired",3]]},
-      {id:"t-p1",   act:0, name:"Plot Point One",    fn:"The point of no return into a new world.", cues:[["decides to",5],["commits",5],["leaves town",5],["no going back",6],["takes the job",5],["takes the case",5],["says yes",5],["sets off",5],["hesitates",4],["almost turns around",5],["anyway",3]]},
-      {id:"t-rise", act:1, name:"Rising Action",     fn:"Attempts, obstacles, allies, and cost.", cues:[["tries to",4],["obstacle",4],["montage",4],["searches",4],["investigates",4],["meets",4],["a woman who",4],["chase",3],["learns to",3],["digs into",4],["asks around",4]]},
-      {id:"t-mid",  act:1, name:"Midpoint",          fn:"The turn. What they thought was true isn't.", cues:[["midpoint",6],["halfway",5],["twist",5],["turns out",5],["everything changes",5],["false victory",6],["big win",4],["personal now",5]]},
-      {id:"t-low",  act:1, name:"Low Point",         fn:"The bottom, where the old approach fails.", cues:[["lowest",5],["rock bottom",6],["all is lost",6],["loses everything",6],["funeral",5],["arrested",4],["fails",4],["gives up",5],["betray",4],["walks out on",6],["closing in",5],["nobody will",5],["third lie",4]]},
-      {id:"t-cli",  act:2, name:"Climax",            fn:"The final confrontation, on the story's real terms.", cues:[["climax",6],["showdown",6],["confronts",5],["final fight",6],["shootout",5],["rescues",5],["storms",4],["face to face",5]]},
-      {id:"t-res",  act:2, name:"Resolution",        fn:"The new normal, and what it cost.", cues:[["resolution",5],["the ending",5],["ends with",5],["last shot",6],["final image",6],["years later",5],["aftermath",5],["walks away",4],["fade out",5]]}
+      {id:"t-open", act:0, name:"Opening Image",     fn:"Where and who we start with.", req:"A specific image, location or moment that shows where and who we begin with, before the story engine starts. May be purely visual. A logline, premise summary or thematic statement about the film is not an Opening Image.", cues:[["opening",4],["first shot",6],["opens on",6],["we open",5],["cold open",4],["establishing",4],["begins",2]]},
+      {id:"t-setup",act:0, name:"Setup",             fn:"The world, the want, and the wound.", req:"Establishes the ordinary world plus the protagonist's WANT and the WOUND driving it. Covers who they are before change. The disruptive event that ends this ordinary state belongs to Inciting Incident, not here, however early it arrives.", cues:[["ordinary",4],["routine",4],["we meet",4],["introduce",3],["his job",3],["backstory",3],["normal life",5],["small town",2]]},
+      {id:"t-inc",  act:0, name:"Inciting Incident", fn:"The event that starts the story engine.", req:"The EVENT that starts the story engine and forces the protagonist to engage with a problem. Must be something that happens. Background trauma, an existing unhappy situation, or a question about what could kick things off does not qualify.", cues:[["inciting",6],["catalyst",5],["gets a call",5],["a letter",4],["dies",3],["body",3],["discovers",4],["finds out",4],["arrives",3],["accident",3],["fired",3]]},
+      {id:"t-p1",   act:0, name:"Plot Point One",    fn:"The point of no return into a new world.", req:"A DECISION or commitment that crosses into the new world and forecloses return. The protagonist chooses or is locked in. Merely reacting to the inciting incident, or considering an option not yet acted on, is not Plot Point One.", cues:[["decides to",5],["commits",5],["leaves town",5],["no going back",6],["takes the job",5],["takes the case",5],["says yes",5],["sets off",5],["hesitates",4],["almost turns around",5],["anyway",3]]},
+      {id:"t-rise", act:1, name:"Rising Action",     fn:"Attempts, obstacles, allies, and cost.", req:"Escalating ATTEMPTS against obstacles, with allies gained, enemies made, and mounting cost. Progress that is tested and complicated. A single static setpiece with no bearing on the protagonist's pursuit, or worldbuilding detail, does not belong here.", cues:[["tries to",4],["obstacle",4],["montage",4],["searches",4],["investigates",4],["meets",4],["a woman who",4],["chase",3],["learns to",3],["digs into",4],["asks around",4]]},
+      {id:"t-mid",  act:1, name:"Midpoint",          fn:"The turn. What they thought was true isn't.", req:"A TURN where an assumption the protagonist or audience held is proven false, flipping the story's terms. Ask whether the goal or understanding changes after it. A big action sequence occurring midway with the same objective intact is not the Midpoint.", cues:[["midpoint",6],["halfway",5],["twist",5],["turns out",5],["everything changes",5],["false victory",6],["big win",4],["personal now",5]]},
+      {id:"t-low",  act:1, name:"Low Point",         fn:"The bottom, where the old approach fails.", req:"The old APPROACH fails completely and the protagonist hits bottom, stripped of plan, ally or hope. Must show failure of their method. A sad or bleak moment early in the story, or an obstacle they overcome and move past, is not the Low Point.", cues:[["lowest",5],["rock bottom",6],["all is lost",6],["loses everything",6],["funeral",5],["arrested",4],["fails",4],["gives up",5],["betray",4],["walks out on",6],["closing in",5],["nobody will",5],["third lie",4]]},
+      {id:"t-cli",  act:2, name:"Climax",            fn:"The final confrontation, on the story's real terms.", req:"The final CONFRONTATION where the protagonist faces the antagonist or the central problem using what they learned. Their real flaw is at stake. An escalating action beat that still leaves the central conflict unresolved is not the Climax.", cues:[["climax",6],["showdown",6],["confronts",5],["final fight",6],["shootout",5],["rescues",5],["storms",4],["face to face",5]]},
+      {id:"t-res",  act:2, name:"Resolution",        fn:"The new normal, and what it cost.", req:"The AFTERMATH showing the changed world and what the victory or defeat cost. Comes after the conflict is settled. A last twist, a threat reasserting itself, or a sequel tease is a different beat and does not belong here.", cues:[["resolution",5],["the ending",5],["ends with",5],["last shot",6],["final image",6],["years later",5],["aftermath",5],["walks away",4],["fade out",5]]}
     ]
   },
   circle: {
     label: "Either — Story Circle (8 stages)",
     acts: ["Order","Descent","Chaos","Return"],
     slots: [
-      {id:"c-you",  act:0, name:"You",     fn:"A character in a zone of comfort.", cues:[["ordinary",4],["routine",4],["normal life",5],["we meet",4],["opens on",5],["at home",4],["his job",3],["comfortable",4],["introduce",3],["small town",3],["dawn",3],["morning",3]]},
-      {id:"c-need", act:0, name:"Need",    fn:"But they want something they don't have.", cues:[["wants",5],["needs",5],["longing",5],["missing",4],["restless",4],["dreams of",5],["unhappy",4],["a call",4],["a body",4],["gets word",5],["news",4]]},
-      {id:"c-go",   act:1, name:"Go",      fn:"They enter an unfamiliar situation.", cues:[["leaves",5],["decides to",4],["sets off",5],["crosses",4],["arrives",4],["travels",4],["takes the job",5],["takes the case",5],["says yes",4],["hesitates",4],["drives out",5]]},
-      {id:"c-search",act:1,name:"Search",  fn:"They adapt to it, badly at first.", cues:[["tries to",4],["struggles",5],["learns to",5],["adapts",5],["out of place",6],["investigates",5],["asks around",5],["meets",4],["montage",3],["digs",5]]},
-      {id:"c-find", act:2, name:"Find",    fn:"They get what they wanted.", cues:[["finds",4],["gets what",6],["succeeds",5],["wins",4],["achieves",5],["turns out",5],["discovers",5],["knew the whole time",6],["the truth",5],["false victory",5]]},
-      {id:"c-take", act:2, name:"Take",    fn:"And pay a heavy price for it.", cues:[["price",6],["cost",5],["consequence",5],["loses",5],["betray",5],["dies",4],["backfires",6],["falls apart",5],["closing in",6],["walks out on",6],["nobody will",5]]},
-      {id:"c-ret",  act:3, name:"Return",  fn:"Then they come back to where they started.", cues:[["returns",6],["goes home",6],["comes back",6],["back to",4],["homecoming",6],["drives back",5],["sitting in",5]]},
-      {id:"c-chg",  act:3, name:"Change",  fn:"Having changed. That's the whole point.", cues:[["changed",6],["different now",6],["the ending",5],["ends with",6],["last shot",5],["years later",5],["finally",4],["fade out",4],["at dusk",4]]}
+      {id:"c-you",  act:0, name:"You",     fn:"A character in a zone of comfort.", req:"Establishes the character inside a familiar zone of COMFORT and the rules of that ordinary state. Psychological, not plot mechanical. A description of the world's premise, setting or genre with no sense of this character's equilibrium is not You.", cues:[["ordinary",4],["routine",4],["normal life",5],["we meet",4],["opens on",5],["at home",4],["his job",3],["comfortable",4],["introduce",3],["small town",3],["dawn",3],["morning",3]]},
+      {id:"c-need", act:0, name:"Need",    fn:"But they want something they don't have.", req:"An internal LACK or want that makes the comfort zone insufficient, whether or not the character can name it. It is a felt absence. An external obstacle imposed by another character or a plot event is not the Need.", cues:[["wants",5],["needs",5],["longing",5],["missing",4],["restless",4],["dreams of",5],["unhappy",4],["a call",4],["a body",4],["gets word",5],["news",4]]},
+      {id:"c-go",   act:1, name:"Go",      fn:"They enter an unfamiliar situation.", req:"The character CROSSES into unfamiliar territory, physical or psychological, leaving the comfort zone behind. Movement is the point. Deciding to go, being invited, or being tempted while still in the familiar world is not yet Go.", cues:[["leaves",5],["decides to",4],["sets off",5],["crosses",4],["arrives",4],["travels",4],["takes the job",5],["takes the case",5],["says yes",4],["hesitates",4],["drives out",5]]},
+      {id:"c-search",act:1,name:"Search",  fn:"They adapt to it, badly at first.", req:"The character ADAPTS clumsily to the new situation, testing old habits that do not work there. Trial and error is the substance. Succeeding smoothly, or arriving at the thing they wanted, belongs to Find rather than Search.", cues:[["tries to",4],["struggles",5],["learns to",5],["adapts",5],["out of place",6],["investigates",5],["asks around",5],["meets",4],["montage",3],["digs",5]]},
+      {id:"c-find", act:2, name:"Find",    fn:"They get what they wanted.", req:"The character OBTAINS what they went looking for, or its apparent equivalent. Possession or attainment is the moment. Getting closer, spotting the prize, or being told where it is does not qualify as Find.", cues:[["finds",4],["gets what",6],["succeeds",5],["wins",4],["achieves",5],["turns out",5],["discovers",5],["knew the whole time",6],["the truth",5],["false victory",5]]},
+      {id:"c-take", act:2, name:"Take",    fn:"And pay a heavy price for it.", req:"The heavy PRICE extracted for what was found, paid in sacrifice, loss or self knowledge. Cost follows possession. A difficulty encountered on the way to the prize, before anything has been gained, is not Take.", cues:[["price",6],["cost",5],["consequence",5],["loses",5],["betray",5],["dies",4],["backfires",6],["falls apart",5],["closing in",6],["walks out on",6],["nobody will",5]]},
+      {id:"c-ret",  act:3, name:"Return",  fn:"Then they come back to where they started.", req:"The character travels BACK toward the familiar world carrying what the journey did to them. It is the crossing home. Staying in the new world, or the final demonstration of who they have become, is not Return.", cues:[["returns",6],["goes home",6],["comes back",6],["back to",4],["homecoming",6],["drives back",5],["sitting in",5]]},
+      {id:"c-chg",  act:3, name:"Change",  fn:"Having changed. That's the whole point.", req:"Shows the character DIFFERENT in the original context, the transformation made visible against the starting equilibrium. It is the proof. A plot resolution or a solved external problem that leaves the character unchanged does not qualify.", cues:[["changed",6],["different now",6],["the ending",5],["ends with",6],["last shot",5],["years later",5],["finally",4],["fade out",4],["at dusk",4]]}
     ]
   },
   short: {
     label: "Short film — Eight beats (5–20 minutes)",
     acts: ["Set Up","Push","Land"],
     slots: [
-      {id:"sh-hook",  act:0, name:"Hook",              fn:"The first shot. A short has seconds, not minutes — tone, world and trouble at once.", cues:[["opens on",6],["first shot",6],["cold open",5],["we open",5],["hook",5],["establishing",4],["begins",3],["opening",4]]},
-      {id:"sh-who",   act:0, name:"Who, and What They Want", fn:"The person and the want, landed almost immediately. No slow introductions.", cues:[["we meet",5],["wants",6],["needs",5],["introduce",4],["his job",3],["her job",3],["every day",4],["routine",4],["longing",5],["trying to",4]]},
-      {id:"sh-break", act:0, name:"The Disruption",     fn:"The thing that breaks the situation. In a short it arrives early and hard.", cues:[["disruption",6],["interrupt",5],["arrives",4],["knock",5],["a call",4],["discovers",4],["finds",4],["suddenly",5],["until",3],["one day",5],["breaks",4]]},
-      {id:"sh-try",   act:1, name:"The First Attempt",  fn:"They try the obvious thing. It isn't enough.", cues:[["tries to",6],["attempts",6],["first tries",6],["tries the",5],["asks for",4],["fails",4],["doesn't work",6],["not enough",6]]},
-      {id:"sh-cost",  act:1, name:"The Cost",           fn:"What the attempt costs, and what that cost exposes.", cues:[["cost",6],["price",5],["loses",5],["hurts",5],["backfires",6],["exposes",5],["caught",4],["consequence",5],["worse",4]]},
-      {id:"sh-turn",  act:2, name:"The Turn",           fn:"The pivot. What the short has actually been about all along.", cues:[["turn",5],["realizes",6],["understands",5],["twist",6],["turns out",6],["it clicks",6],["sees that",5],["the truth",5],["reveal",5]]},
-      {id:"sh-choice",act:2, name:"The Choice",         fn:"They act on the turn. This is the moment the short exists to reach.", cues:[["decides",6],["chooses",6],["confronts",5],["walks",4],["finally",5],["acts",4],["says it",5],["lets go",6],["refuses",5]]},
-      {id:"sh-last",  act:2, name:"Final Image",        fn:"The last shot, which recolours everything before it.", cues:[["last shot",6],["final image",6],["ends with",6],["closing shot",6],["the ending",5],["cut to black",6],["walks away",5],["fade out",5],["holds on",5]]}
+      {id:"sh-hook",  act:0, name:"Hook",              fn:"The first shot. A short has seconds, not minutes — tone, world and trouble at once.", req:"The FIRST SHOT or opening seconds that seize attention immediately. It must work in seconds, not build. A gradual atmospheric establishing sequence, or context the audience needs explained first, is not the Hook of a short.", cues:[["opens on",6],["first shot",6],["cold open",5],["we open",5],["hook",5],["establishing",4],["begins",3],["opening",4]]},
+      {id:"sh-who",   act:0, name:"Who, and What They Want", fn:"The person and the want, landed almost immediately. No slow introductions.", req:"Lands WHO the person is and WHAT THEY WANT almost instantly, through action or a single telling detail. Compression is the requirement. A layered backstory or a slow character study that a feature could afford does not fit here.", cues:[["we meet",5],["wants",6],["needs",5],["introduce",4],["his job",3],["her job",3],["every day",4],["routine",4],["longing",5],["trying to",4]]},
+      {id:"sh-break", act:0, name:"The Disruption",     fn:"The thing that breaks the situation. In a short it arrives early and hard.", req:"The DISRUPTION that breaks the situation, arriving early and hard because a short has no room for a slow build. A mild irritation, or an ongoing unhappy condition already present at the start, is not the Disruption.", cues:[["disruption",6],["interrupt",5],["arrives",4],["knock",5],["a call",4],["discovers",4],["finds",4],["suddenly",5],["until",3],["one day",5],["breaks",4]]},
+      {id:"sh-try",   act:1, name:"The First Attempt",  fn:"They try the obvious thing. It isn't enough.", req:"The protagonist takes the OBVIOUS ACTION to fix the problem and it proves insufficient. An attempt that falls short. A plan being considered, or a montage of many efforts a feature would allow, is not the First Attempt.", cues:[["tries to",6],["attempts",6],["first tries",6],["tries the",5],["asks for",4],["fails",4],["doesn't work",6],["not enough",6]]},
+      {id:"sh-cost",  act:1, name:"The Cost",           fn:"What the attempt costs, and what that cost exposes.", req:"What the failed attempt COSTS, and what that cost reveals about the character. Loss plus exposure. A rising obstacle or a new complication that costs the protagonist nothing personally is not the Cost.", cues:[["cost",6],["price",5],["loses",5],["hurts",5],["backfires",6],["exposes",5],["caught",4],["consequence",5],["worse",4]]},
+      {id:"sh-turn",  act:2, name:"The Turn",           fn:"The pivot. What the short has actually been about all along.", req:"The PIVOT that reveals what the short has actually been about, reframing the problem as something other than it seemed. Merely raising the stakes on the same problem, or a plot twist that changes no meaning, is not the Turn.", cues:[["turn",5],["realizes",6],["understands",5],["twist",6],["turns out",6],["it clicks",6],["sees that",5],["the truth",5],["reveal",5]]},
+      {id:"sh-choice",act:2, name:"The Choice",         fn:"They act on the turn. This is the moment the short exists to reach.", req:"The protagonist ACTS on the turn, making the decision the entire short exists to reach. Choice, not realisation. Understanding something without doing anything about it, or an outcome handed to them by others, is not the Choice.", cues:[["decides",6],["chooses",6],["confronts",5],["walks",4],["finally",5],["acts",4],["says it",5],["lets go",6],["refuses",5]]},
+      {id:"sh-last",  act:2, name:"Final Image",        fn:"The last shot, which recolours everything before it.", req:"The FINAL SHOT, whose image recolours everything preceding it. It is a visual, not a summary. A concluding explanation, a wrap up of what happened, or an idea for the ending's meaning stated abstractly is not the Final Image.", cues:[["last shot",6],["final image",6],["ends with",6],["closing shot",6],["the ending",5],["cut to black",6],["walks away",5],["fade out",5],["holds on",5]]}
     ]
   },
   vertep: {
     label: "Vertical — One episode (60–120 seconds)",
     acts: ["Detonate","Escalate","Cut"],
     slots: [
-      {id:"ve-hook",    act:0, name:"Hook — 0 to 15s",       fn:"You are not easing in, you are detonating. The first image has to earn the next ten seconds.", cues:[["opens on",6],["hook",6],["first shot",6],["cold open",5],["slaps",5],["walks in on",6],["catches him",5],["catches her",5],["humiliat",5],["we open",5]]},
-      {id:"ve-friction",act:1, name:"Friction — 15 to 60s",  fn:"Active conflict, visible on screen. Two people wanting different things out loud.", cues:[["argues",6],["confronts",6],["refuses",5],["threatens",6],["demands",5],["fight",5],["accuses",6],["mocks",5],["in front of everyone",6],["tension",4]]},
-      {id:"ve-spike",   act:1, name:"Spike — 60 to 90s",     fn:"The jolt. A revelation or a shift that recontextualises everything before it.", cues:[["turns out",6],["reveal",6],["twist",6],["it was",4],["all along",6],["secretly",6],["actually the",5],["identity",5],["is really",5]]},
-      {id:"ve-button",  act:2, name:"Button — last 5 to 10s",fn:"Cut on the question, never the answer. The reason they tap the next episode.", cues:[["cliffhanger",6],["cut to black",6],["ends with",5],["last shot",6],["turns and sees",6],["the door opens",6],["freeze",5],["who is",4],["button",5]]}
+      {id:"ve-hook",    act:0, name:"Hook — 0 to 15s",       fn:"You are not easing in, you are detonating. The first image has to earn the next ten seconds.", req:"Occupies the FIRST 15 SECONDS. A detonating image or line that earns the next ten seconds outright. Setup, world explanation, or a slow reveal building toward something interesting later in the episode does not belong in this slot.", cues:[["opens on",6],["hook",6],["first shot",6],["cold open",5],["slaps",5],["walks in on",6],["catches him",5],["catches her",5],["humiliat",5],["we open",5]]},
+      {id:"ve-friction",act:1, name:"Friction — 15 to 60s",  fn:"Active conflict, visible on screen. Two people wanting different things out loud.", req:"Roughly 15 to 60 SECONDS: active conflict happening visibly on screen between people with opposed wants. Internal deliberation, backstory narration, or characters discussing conflict that occurred elsewhere is not Friction.", cues:[["argues",6],["confronts",6],["refuses",5],["threatens",6],["demands",5],["fight",5],["accuses",6],["mocks",5],["in front of everyone",6],["tension",4]]},
+      {id:"ve-spike",   act:1, name:"Spike — 60 to 90s",     fn:"The jolt. A revelation or a shift that recontextualises everything before it.", req:"Roughly 60 to 90 SECONDS: a JOLT that recontextualises what the episode already showed. New information that changes meaning. A louder version of the same argument, or escalation with no reframing, is not the Spike.", cues:[["turns out",6],["reveal",6],["twist",6],["it was",4],["all along",6],["secretly",6],["actually the",5],["identity",5],["is really",5]]},
+      {id:"ve-button",  act:2, name:"Button — last 5 to 10s",fn:"Cut on the question, never the answer. The reason they tap the next episode.", req:"The LAST 5 to 10 SECONDS, cutting on an unanswered question so the viewer taps the next episode. Ends open. A resolution, a satisfying payoff, or an answer delivered before the cut is not a Button.", cues:[["cliffhanger",6],["cut to black",6],["ends with",5],["last shot",6],["turns and sees",6],["the door opens",6],["freeze",5],["who is",4],["button",5]]}
     ]
   },
   vertseason: {
     label: "Vertical — Season arc (60–100 episodes)",
     acts: ["Free · eps 1–10","Escalation · 11–40","Dark middle · 41–70","Resolution · 71+"],
     slots: [
-      {id:"v-hook",   act:0, name:"Episode One Hook",      fn:"The premise detonates inside the first minute of the whole series. No setup, no easing in.", cues:[["opens on",6],["hook",5],["first episode",6],["premise",5],["divorce",4],["fired",4],["betray",4],["wedding",4],["humiliat",5]]},
-      {id:"v-setup",  act:0, name:"The Setup",             fn:"Who they are, what they want, and the wrong they are carrying — laid down fast.", cues:[["we meet",5],["wants",5],["secretly",4],["hidden",4],["poor",4],["ordinary",4],["works as",4],["backstory",4]]},
-      {id:"v-paywall",act:0, name:"The Paywall Turn — ep 10", fn:"The question big enough that a stranger pays to find out the answer. Everything before this is free.", cues:[["paywall",6],["episode ten",6],["cliffhanger",5],["the question",5],["finds out",5],["discovers",5],["turns out",4]]},
-      {id:"v-reveal", act:1, name:"First Big Reveal",      fn:"Lands an episode or two after the paywall, so paying immediately feels rewarded.", cues:[["reveal",6],["identity",6],["actually a",6],["billionaire",6],["heir",6],["secretly",6],["all along",5]]},
-      {id:"v-layer",  act:1, name:"Complication Layers",   fn:"New antagonists, new secrets, the situation compounding episode on episode.", cues:[["complication",6],["rival",5],["new enemy",6],["mother in law",5],["blackmail",6],["threatens",5],["escalates",5],["another",3]]},
-      {id:"v-mid",    act:1, name:"Midpoint Reversal — around ep 40", fn:"What they thought was true isn't. The series resets on new terms.", cues:[["midpoint",6],["reversal",6],["twist",6],["turns out",5],["everything changes",6],["betrayed by",6],["was lying",6]]},
-      {id:"v-dark",   act:2, name:"The Dark Middle",       fn:"Episodes 41 to 70. Deepest in it, furthest from any resolution.", cues:[["dark",5],["worst",5],["alone",5],["loses",5],["separated",5],["exiled",5],["falls apart",5],["deeper",4]]},
-      {id:"v-low",    act:2, name:"The Lowest Point",      fn:"They lose the thing the whole series has been about.", cues:[["lowest",6],["rock bottom",6],["dies",5],["loses everything",6],["gives up",5],["divorce",4],["hospital",4],["funeral",5]]},
-      {id:"v-turn",   act:3, name:"The Turn",              fn:"What they finally understand, and what acting on it will cost.", cues:[["realizes",6],["decides",6],["stands up",6],["fights back",6],["returns",5],["reveals herself",6],["reveals himself",6],["no longer",5]]},
-      {id:"v-unwind", act:3, name:"Payoffs, In Order",     fn:"Threads resolve in the order they were introduced. Every planted debt gets paid.", cues:[["payoff",6],["revenge",5],["exposed",5],["ruined",5],["apolog",5],["justice",5],["each",3],["one by one",6]]},
-      {id:"v-final",  act:3, name:"The Central Arc Lands", fn:"The main relationship or reckoning resolves last, in the final episodes.", cues:[["finale",6],["final episode",6],["ends with",5],["together",4],["reunion",6],["married",5],["walks away",5],["last shot",5]]}
+      {id:"v-hook",   act:0, name:"Episode One Hook",      fn:"The premise detonates inside the first minute of the whole series. No setup, no easing in.", req:"The premise DETONATES within the first minute of episode one, stated through action a stranger scrolling can grasp instantly. Character introduction, worldbuilding, or a hook that arrives in episode two or three does not qualify.", cues:[["opens on",6],["hook",5],["first episode",6],["premise",5],["divorce",4],["fired",4],["betray",4],["wedding",4],["humiliat",5]]},
+      {id:"v-setup",  act:0, name:"The Setup",             fn:"Who they are, what they want, and the wrong they are carrying — laid down fast.", req:"Establishes WHO they are, WHAT they want, and the WRONG they carry, delivered fast across the free early episodes. A plot complication or an antagonist's scheme, however early it lands, belongs to another beat rather than the Setup.", cues:[["we meet",5],["wants",5],["secretly",4],["hidden",4],["poor",4],["ordinary",4],["works as",4],["backstory",4]]},
+      {id:"v-paywall",act:0, name:"The Paywall Turn — ep 10", fn:"The question big enough that a stranger pays to find out the answer. Everything before this is free.", req:"Positioned at roughly EPISODE 10, ending on a question compelling enough that a stranger pays to continue. Everything before it is free. A strong cliffhanger placed elsewhere in the run, or an answer given here, is not the Paywall Turn.", cues:[["paywall",6],["episode ten",6],["cliffhanger",5],["the question",5],["finds out",5],["discovers",5],["turns out",4]]},
+      {id:"v-reveal", act:1, name:"First Big Reveal",      fn:"Lands an episode or two after the paywall, so paying immediately feels rewarded.", req:"A REVELATION landing an episode or two AFTER the paywall so the payment feels immediately rewarded. It must deliver on the paywall question. A new mystery that only defers the answer further is not the First Big Reveal.", cues:[["reveal",6],["identity",6],["actually a",6],["billionaire",6],["heir",6],["secretly",6],["all along",5]]},
+      {id:"v-layer",  act:1, name:"Complication Layers",   fn:"New antagonists, new secrets, the situation compounding episode on episode.", req:"Accumulating COMPLICATIONS through the middle run: new antagonists, fresh secrets, alliances compounding pressure. Additive by design. The single reversal that resets the series, or the collapse into the dark stretch, belongs to its own beat.", cues:[["complication",6],["rival",5],["new enemy",6],["mother in law",5],["blackmail",6],["threatens",5],["escalates",5],["another",3]]},
+      {id:"v-mid",    act:1, name:"Midpoint Reversal — around ep 40", fn:"What they thought was true isn't. The series resets on new terms.", req:"Around EPISODE 40: a reversal that RESETS the series onto new terms, changing what the show is now about. An escalation of the existing conflict, or a large event that leaves the show's premise intact, is not the Midpoint Reversal.", cues:[["midpoint",6],["reversal",6],["twist",6],["turns out",5],["everything changes",6],["betrayed by",6],["was lying",6]]},
+      {id:"v-dark",   act:2, name:"The Dark Middle",       fn:"Episodes 41 to 70. Deepest in it, furthest from any resolution.", req:"EPISODES 41 to 70, the stretch furthest from resolution where the antagonist holds the advantage and pressure compounds. Defined by position in the run. A single dark scene elsewhere, or the final defeat itself, is not the Dark Middle.", cues:[["dark",5],["worst",5],["alone",5],["loses",5],["separated",5],["exiled",5],["falls apart",5],["deeper",4]]},
+      {id:"v-low",    act:2, name:"The Lowest Point",      fn:"They lose the thing the whole series has been about.", req:"The protagonist LOSES the very thing the series has been about, the central want or relationship taken from them. Total. A serious setback that leaves the core stake intact, or a temporary separation, is not the Lowest Point.", cues:[["lowest",6],["rock bottom",6],["dies",5],["loses everything",6],["gives up",5],["divorce",4],["hospital",4],["funeral",5]]},
+      {id:"v-turn",   act:3, name:"The Turn",              fn:"What they finally understand, and what acting on it will cost.", req:"What the protagonist finally UNDERSTANDS about themselves, and the price of acting on it. Insight plus action. A tactical plan to win, or an ally arriving with a solution, is not the Turn.", cues:[["realizes",6],["decides",6],["stands up",6],["fights back",6],["returns",5],["reveals herself",6],["reveals himself",6],["no longer",5]]},
+      {id:"v-unwind", act:3, name:"Payoffs, In Order",     fn:"Threads resolve in the order they were introduced. Every planted debt gets paid.", req:"Subplots and planted questions PAYING OFF, resolved in the ORDER they were introduced across the season. Sequencing is the requirement. A single climactic confrontation, or the central relationship resolving, sits elsewhere.", cues:[["payoff",6],["revenge",5],["exposed",5],["ruined",5],["apolog",5],["justice",5],["each",3],["one by one",6]]},
+      {id:"v-final",  act:3, name:"The Central Arc Lands", fn:"The main relationship or reckoning resolves last, in the final episodes.", req:"The main RELATIONSHIP or reckoning resolves LAST, after every other thread has closed. It is the series emotional final word. A plot resolution, a villain's defeat, or a sequel hook is not this beat.", cues:[["finale",6],["final episode",6],["ends with",5],["together",4],["reunion",6],["married",5],["walks away",5],["last shot",5]]}
     ]
   },
   broadcast: {
     label: "TV — Broadcast Hour (teaser + 4 acts)",
     acts: ["Teaser","Act One","Act Two","Act Three","Act Four"],
     slots: [
-      {id:"b-teas", act:0, name:"Teaser",        fn:"The hook before the titles. Usually the problem, rarely the hero.", cues:[["teaser",6],["cold open",6],["opens on",5],["before the titles",6],["body",4],["a murder",5],["someone finds",5],["first shot",4]]},
-      {id:"b-1a",   act:1, name:"Act One — In",  fn:"Our people take the case or the problem.", cues:[["we meet",4],["the team",4],["assigned",5],["takes the case",6],["briefing",5],["arrives at",4],["introduce",3]]},
-      {id:"b-1b",   act:1, name:"Act One — Out", fn:"The first turn that raises the question for the act break.", cues:[["first lead",5],["turns out",4],["complication",5],["act break",5],["but then",4],["discovers",4]]},
-      {id:"b-2a",   act:2, name:"Act Two — In",  fn:"Investigation, escalation, the wrong theory.", cues:[["investigates",5],["interviews",5],["digs into",5],["follows",4],["searches",4],["wrong",4],["dead end",6],["theory",4],["meets",4],["a woman who",4],["asks around",4]]},
-      {id:"b-2b",   act:2, name:"Act Two — Out", fn:"The midpoint reversal. It's worse or other than they thought.", cues:[["midpoint",5],["reversal",6],["twist",5],["turns out",5],["everything changes",5],["worse than",6]]},
-      {id:"b-3a",   act:3, name:"Act Three — In",fn:"Personal cost lands on someone we care about.", cues:[["personal",5],["family",4],["threatened",5],["his wife",4],["her son",4],["closing in",5],["pressure",4],["argue",4]]},
-      {id:"b-3b",   act:3, name:"Act Three — Out",fn:"Lowest point going into the last break.", cues:[["lowest",5],["all is lost",6],["loses",4],["arrested",5],["taken",4],["fails",4],["cliffhanger",6],["walks out on",6],["nobody will",5],["third lie",4]]},
-      {id:"b-4a",   act:4, name:"Act Four — Climax", fn:"The confrontation and the answer.", cues:[["climax",6],["confronts",5],["showdown",6],["arrest",5],["rescue",5],["final",4],["catches",5],["chase",4]]},
-      {id:"b-tag",  act:4, name:"Tag",           fn:"The short beat after. Character, not plot. Sets up next week.", cues:[["tag",5],["the ending",4],["last scene",5],["afterward",5],["quiet moment",6],["next episode",6],["sets up",5],["button",4]]}
+      {id:"b-teas", act:0, name:"Teaser",        fn:"The hook before the titles. Usually the problem, rarely the hero.", req:"The pre titles HOOK, usually presenting the problem itself, often through guest characters rather than the series regulars. Ends before the main titles. A scene introducing our team going about their day is not the Teaser.", cues:[["teaser",6],["cold open",6],["opens on",5],["before the titles",6],["body",4],["a murder",5],["someone finds",5],["first shot",4]]},
+      {id:"b-1a",   act:1, name:"Act One — In",  fn:"Our people take the case or the problem.", req:"Our REGULARS engage: they take the case, the patient or the problem and commit to working it. First act after titles. The discovery of the problem, before our people are involved, belongs to the Teaser instead.", cues:[["we meet",4],["the team",4],["assigned",5],["takes the case",6],["briefing",5],["arrives at",4],["introduce",3]]},
+      {id:"b-1b",   act:1, name:"Act One — Out", fn:"The first turn that raises the question for the act break.", req:"The first TURN, placed at the ACT BREAK, ending on a hook that holds the audience across the commercial. Must end open. A discovery that closes a line of inquiry, or a mid act development, is not Act One Out.", cues:[["first lead",5],["turns out",4],["complication",5],["act break",5],["but then",4],["discovers",4]]},
+      {id:"b-2a",   act:2, name:"Act Two — In",  fn:"Investigation, escalation, the wrong theory.", req:"The INVESTIGATION deepens: pursuit, escalation, and a theory that proves wrong. Middle of the hour, momentum building. The reversal that overturns the case, which lands at the break, is not part of Act Two In.", cues:[["investigates",5],["interviews",5],["digs into",5],["follows",4],["searches",4],["wrong",4],["dead end",6],["theory",4],["meets",4],["a woman who",4],["asks around",4]]},
+      {id:"b-2b",   act:2, name:"Act Two — Out", fn:"The midpoint reversal. It's worse or other than they thought.", req:"The MIDPOINT REVERSAL placed at the second ACT BREAK, overturning the working theory and sending the story a new direction. Cut on the hook. New evidence that confirms what our people already believed is not Act Two Out.", cues:[["midpoint",5],["reversal",6],["twist",5],["turns out",5],["everything changes",5],["worse than",6]]},
+      {id:"b-3a",   act:3, name:"Act Three — In",fn:"Personal cost lands on someone we care about.", req:"The PERSONAL COST lands on a regular we care about, making the case hurt someone inside the show. Emotional stakes. Danger to a guest character or victim, with no cost to our people, is not Act Three In.", cues:[["personal",5],["family",4],["threatened",5],["his wife",4],["her son",4],["closing in",5],["pressure",4],["argue",4]]},
+      {id:"b-3b",   act:3, name:"Act Three — Out",fn:"Lowest point going into the last break.", req:"The LOWEST POINT, at the third ACT BREAK: the case appears lost or the threat wins, cut on despair before the final commercial. A setback our people immediately solve, or a resolution, does not qualify.", cues:[["lowest",5],["all is lost",6],["loses",4],["arrested",5],["taken",4],["fails",4],["cliffhanger",6],["walks out on",6],["nobody will",5],["third lie",4]]},
+      {id:"b-4a",   act:4, name:"Act Four — Climax", fn:"The confrontation and the answer.", req:"The CONFRONTATION that delivers the answer and settles the case. Resolution of the hour's problem. A quiet character moment after the danger passes, or an epilogue, belongs to the Tag instead.", cues:[["climax",6],["confronts",5],["showdown",6],["arrest",5],["rescue",5],["final",4],["catches",5],["chase",4]]},
+      {id:"b-tag",  act:4, name:"Tag",           fn:"The short beat after. Character, not plot. Sets up next week.", req:"A short beat AFTER the case closes, about CHARACTER rather than plot. Aftermath and relationship. A final piece of case information, a twist, or a next episode setup is not the Tag.", cues:[["tag",5],["the ending",4],["last scene",5],["afterward",5],["quiet moment",6],["next episode",6],["sets up",5],["button",4]]}
     ]
   },
   streaming: {
     label: "TV — Streaming Hour (5 acts, serialized)",
     acts: ["Open","Act One","Act Two","Act Three","Close"],
     slots: [
-      {id:"s-open",act:0, name:"Cold Open",     fn:"An image or scene that sets the question of the hour.", cues:[["cold open",6],["opens on",5],["teaser",5],["first shot",5],["flash forward",6],["flashback",5],["before the titles",6]]},
-      {id:"s-1",   act:1, name:"Act One",       fn:"Where every thread stands after last episode.", cues:[["we meet",4],["picks up",5],["aftermath",5],["the morning after",6],["reeling",5],["introduce",3],["at home",3],["gets a call",5],["a body",5],["hesitates",4]]},
-      {id:"s-2",   act:2, name:"Act Two",       fn:"Threads complicate and start to collide.", cues:[["complication",5],["meanwhile",5],["subplot",5],["b story",5],["parallel",5],["investigates",4],["tries to",3],["takes the case",5],["meets",4],["a woman who",4],["asks around",4]]},
-      {id:"s-3a",  act:3, name:"Act Three — Turn", fn:"The midpoint reversal that recontextualizes the season.", cues:[["reversal",6],["twist",6],["turns out",5],["midpoint",5],["reveal",6],["everything changes",5],["secret",5],["knew the whole time",6]]},
-      {id:"s-3b",  act:3, name:"Act Three — Cost", fn:"Someone pays for it.", cues:[["price",5],["cost",5],["dies",5],["betray",5],["loses",5],["confesses",5],["falls apart",5],["consequence",5],["walks out on",6],["closing in",5],["nobody will",5]]},
-      {id:"s-4",   act:4, name:"Act Four",      fn:"The episode's confrontation, on the season's terms.", cues:[["confronts",5],["climax",5],["showdown",6],["face to face",6],["final",4],["standoff",6]]},
-      {id:"s-hook",act:4, name:"Closing Hook",  fn:"The last image that makes the next episode unskippable.", cues:[["hook",5],["cliffhanger",6],["last shot",6],["final image",6],["ends with",5],["cut to black",6],["next episode",6],["reveals",4]]}
+      {id:"s-open",act:0, name:"Cold Open",     fn:"An image or scene that sets the question of the hour.", req:"A pre credits image or scene that poses the QUESTION the hour will pursue. Often oblique or tonal. A recap of last episode's events, or a straightforward continuation of the previous ending, is not the Cold Open.", cues:[["cold open",6],["opens on",5],["teaser",5],["first shot",5],["flash forward",6],["flashback",5],["before the titles",6]]},
+      {id:"s-1",   act:1, name:"Act One",       fn:"Where every thread stands after last episode.", req:"Re establishes where EVERY THREAD and character stands after the last episode, redistributing the season's pieces. Positional. The complications and collisions those threads generate later in the hour belong to Act Two.", cues:[["we meet",4],["picks up",5],["aftermath",5],["the morning after",6],["reeling",5],["introduce",3],["at home",3],["gets a call",5],["a body",5],["hesitates",4]]},
+      {id:"s-2",   act:2, name:"Act Two",       fn:"Threads complicate and start to collide.", req:"Threads COMPLICATE and begin to COLLIDE, characters and storylines intersecting under mounting pressure. Convergence is the point. The reversal that reframes the season, or the cost paid for it, sits in Act Three.", cues:[["complication",5],["meanwhile",5],["subplot",5],["b story",5],["parallel",5],["investigates",4],["tries to",3],["takes the case",5],["meets",4],["a woman who",4],["asks around",4]]},
+      {id:"s-3a",  act:3, name:"Act Three — Turn", fn:"The midpoint reversal that recontextualizes the season.", req:"The midpoint REVERSAL that recontextualises the SEASON, not merely the episode, changing what the larger story means. A twist confined to this hour's plot, resolved by the end of it, is not the Act Three Turn.", cues:[["reversal",6],["twist",6],["turns out",5],["midpoint",5],["reveal",6],["everything changes",5],["secret",5],["knew the whole time",6]]},
+      {id:"s-3b",  act:3, name:"Act Three — Cost", fn:"Someone pays for it.", req:"Someone PAYS for the turn: a concrete consequence borne by a specific character, immediately after the reversal. A threat implied for later, or a character being upset without material consequence, is not the Cost.", cues:[["price",5],["cost",5],["dies",5],["betray",5],["loses",5],["confesses",5],["falls apart",5],["consequence",5],["walks out on",6],["closing in",5],["nobody will",5]]},
+      {id:"s-4",   act:4, name:"Act Four",      fn:"The episode's confrontation, on the season's terms.", req:"The episode's CONFRONTATION, decided on the SEASON's terms rather than a self contained case. Consequences carry forward. A tidy standalone resolution that leaves the season untouched does not qualify.", cues:[["confronts",5],["climax",5],["showdown",6],["face to face",6],["final",4],["standoff",6]]},
+      {id:"s-hook",act:4, name:"Closing Hook",  fn:"The last image that makes the next episode unskippable.", req:"The FINAL IMAGE, engineered to make autoplay irresistible. It opens rather than closes. A satisfying emotional conclusion, a resolved arc, or a next time preview of coming events is not the Closing Hook.", cues:[["hook",5],["cliffhanger",6],["last shot",6],["final image",6],["ends with",5],["cut to black",6],["next episode",6],["reveals",4]]}
     ]
   },
   halfhour: {
     label: "TV — Half-Hour Comedy (cold open + 3 acts + tag)",
     acts: ["Cold Open","Act One","Act Two","Act Three"],
     slots: [
-      {id:"h-cold",act:0, name:"Cold Open",      fn:"A self-contained laugh that sets the world.", cues:[["cold open",6],["opens on",5],["gag",6],["bit",4],["joke",5],["teaser",5],["runner",5]]},
-      {id:"h-a",   act:1, name:"A Story Setup",  fn:"The main character's want and the dumb plan.", cues:[["wants",5],["decides to",5],["plan",5],["scheme",6],["idea",4],["convinced",5],["bet",5],["main story",5]]},
-      {id:"h-b",   act:1, name:"B Story Setup",  fn:"The runner or second-tier want that will collide with it.", cues:[["b story",6],["subplot",6],["meanwhile",5],["runner",5],["second story",6],["side plot",6]]},
-      {id:"h-comp",act:2, name:"Complication",   fn:"The plan meets reality and starts to bend.", cues:[["complication",6],["goes wrong",6],["backfires",6],["lies",5],["covers",5],["digs deeper",6],["escalates",6],["worse",4]]},
-      {id:"h-esc", act:2, name:"Escalation",     fn:"It bends further than anyone would let it in real life.", cues:[["escalates",6],["spirals",6],["out of hand",6],["chaos",5],["disaster",5],["everyone finds out",6],["gets caught",5]]},
-      {id:"h-low", act:2, name:"Low Point",      fn:"Fallout. Someone's actually hurt under the joke.", cues:[["lowest",5],["hurt",5],["apologizes",5],["fight",4],["falls apart",5],["real feelings",6],["fallout",6]]},
-      {id:"h-res", act:3, name:"Resolution",     fn:"Repair, and the lesson nobody fully learns.", cues:[["resolution",5],["makes up",6],["fixes",5],["lesson",5],["back to normal",6],["ends with",4],["forgives",5]]},
-      {id:"h-tag", act:3, name:"Tag",            fn:"One last joke, usually the runner paying off.", cues:[["tag",6],["last joke",6],["button",5],["payoff",6],["callback",6],["final gag",6],["after the credits",6]]}
+      {id:"h-cold",act:0, name:"Cold Open",      fn:"A self-contained laugh that sets the world.", req:"A SELF CONTAINED bit before the titles that gets a laugh and establishes the show's world and voice. Rarely connected to the plot. A scene that sets up the episode's main story or want is not the Cold Open.", cues:[["cold open",6],["opens on",5],["gag",6],["bit",4],["joke",5],["teaser",5],["runner",5]]},
+      {id:"h-a",   act:1, name:"A Story Setup",  fn:"The main character's want and the dumb plan.", req:"The main character's WANT plus the DUMB PLAN they hatch to get it. Specific, flawed, and comedically doomed. A secondary character's parallel storyline, or the moment the plan starts failing, is not the A Story Setup.", cues:[["wants",5],["decides to",5],["plan",5],["scheme",6],["idea",4],["convinced",5],["bet",5],["main story",5]]},
+      {id:"h-b",   act:1, name:"B Story Setup",  fn:"The runner or second-tier want that will collide with it.", req:"The SECONDARY want or runner, carried by other characters, that will eventually COLLIDE with the A story. Lower stakes by design. The main character's own plan, or a one off joke with no thread, is not the B Story Setup.", cues:[["b story",6],["subplot",6],["meanwhile",5],["runner",5],["second story",6],["side plot",6]]},
+      {id:"h-comp",act:2, name:"Complication",   fn:"The plan meets reality and starts to bend.", req:"The plan MEETS REALITY and starts to bend, the first real friction between intention and outcome. Early strain. The absurd overreach where nobody would still be doing this, or the emotional fallout, comes later.", cues:[["complication",6],["goes wrong",6],["backfires",6],["lies",5],["covers",5],["digs deeper",6],["escalates",6],["worse",4]]},
+      {id:"h-esc", act:2, name:"Escalation",     fn:"It bends further than anyone would let it in real life.", req:"The situation bends FURTHER THAN ANY REAL PERSON WOULD ALLOW, absurdity compounding as the character doubles down. Peak comic overreach. A single logical setback, or the moment the joke stops being funny, is not Escalation.", cues:[["escalates",6],["spirals",6],["out of hand",6],["chaos",5],["disaster",5],["everyone finds out",6],["gets caught",5]]},
+      {id:"h-low", act:2, name:"Low Point",      fn:"Fallout. Someone's actually hurt under the joke.", req:"The FALLOUT where someone is genuinely HURT beneath the comedy and the character sees what the plan cost. Real feeling under the joke. A funny disaster that damages nobody's relationships is not the Low Point.", cues:[["lowest",5],["hurt",5],["apologizes",5],["fight",4],["falls apart",5],["real feelings",6],["fallout",6]]},
+      {id:"h-res", act:3, name:"Resolution",     fn:"Repair, and the lesson nobody fully learns.", req:"REPAIR of the relationship and a lesson only half absorbed, since the character must stay recognisable next week. A permanent transformation, or a final gag with no mending, does not belong here.", cues:[["resolution",5],["makes up",6],["fixes",5],["lesson",5],["back to normal",6],["ends with",4],["forgives",5]]},
+      {id:"h-tag", act:3, name:"Tag",            fn:"One last joke, usually the runner paying off.", req:"ONE LAST JOKE after the story ends, usually the runner or B story paying off. Post resolution. A scene that repairs a relationship, delivers the lesson, or advances plot is not the Tag.", cues:[["tag",6],["last joke",6],["button",5],["payoff",6],["callback",6],["final gag",6],["after the credits",6]]}
     ]
   }
 };
@@ -3216,17 +3186,24 @@ function cleanBrief(b){
 }
 
 /* The offline reading of a header block — no model needed for "Genre: ..." */
+/* Notes files are almost never clean. Every one of these lines is a header:
+     Title: X   *  TITLE: X   - **Title:** X   # Title - X
+   Missing them was why a whole file's title, genre and logline went unread. */
+const LEAD = "^[ \\t>*+\\-\u2022#]*(?:\\*\\*|__)?\\s*";
+const TAIL = "(?:\\*\\*|__)?\\s*[:\\-\u2013]\\s*";
+const head = (words, rest) => new RegExp(LEAD + "(?:" + words + ")" + TAIL + rest, "im");
 const HEAD = {
-  name:    /^\s*(?:proposed\s+)?title\s*[:\-]\s*(.+)$/im,
-  log:     /^\s*(?:proposed\s+)?logline\s*[:\-]\s*([\s\S]*?)(?=\n\s*\n|\n\s*[*\-•]|\n\s*\w[\w ]{0,18}\s*:|$)/im,
-  genre:   /^\s*genre\s*[:\-]\s*(.+)$/im,
-  like:    /^\s*(?:tone|comps?|possible comps?|comparisons?)\s*[:\-]\s*(.+)$/im,
-  setting: /^\s*setting\s*[:\-]\s*(.+)$/im,
-  who:     /^\s*(?:protagonist|main character|who it'?s about)\s*[:\-]\s*(.+)$/im
+  name:    head("(?:proposed\\s+)?(?:working\\s+)?title", "(.+)$"),
+  log:     head("(?:proposed\\s+)?logline(?:\\s+idea)?",
+                "([\\s\\S]*?)(?=\\n\\s*\\n|\\n\\s*[*\\-\u2022]|\\n\\s*\\w[\\w ]{0,18}\\s*:|$)"),
+  genre:   head("genre", "(.+)$"),
+  like:    head("tone|comps?|possible comps?|comparisons?", "(.+)$"),
+  setting: head("setting", "(.+)$"),
+  who:     head("protagonist|main character|who it'?s about", "(.+)$")
 };
 /* A value already lifted into the brief must not also become a card. */
 function isHeaderNote(text, brief){
-  if (/^\s*(?:proposed\s+)?(title|format|genre|tone|comps?|possible comps?|comparisons?|setting|logline|protagonist|main character)\s*[:\-]/i.test(text)) return true;
+  if (head("(?:proposed\\s+)?(?:working\\s+)?(?:title|format|genre|tone|comps?|possible comps?|comparisons?|setting|logline(?:\\s+idea)?|protagonist|main character)", "").test(text)) return true;
   if (!brief) return false;
   const norm = x => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
   const t = norm(text);
@@ -3241,9 +3218,9 @@ function localBrief(raw){
   const out = {};
   Object.keys(HEAD).forEach(k => {
     const m = raw.match(HEAD[k]);
-    if (m && m[1]) out[k] = m[1].trim().replace(/\s+/g, " ").slice(0, 500);
+    if (m && m[1]) out[k] = m[1].trim().replace(/\*\*|__/g, "").replace(/\s+/g, " ").slice(0, 500);
   });
-  const f = raw.match(/^\s*format\s*[:\-]\s*(.+)$/im);
+  const f = raw.match(head("format", "(.+)$"));
   if (f){
     const v = f[1].toLowerCase();
     if (/vertical/.test(v)) out.format = /season|series/.test(v) ? "vertseason" : "vertep";
@@ -3256,14 +3233,29 @@ function localBrief(raw){
 }
 
 /* ---- the local reading: no thinking, just split and place ---- */
+/* The floor the built-in matcher has to clear before it is allowed to place a
+   card. Without this it assigned every note to whatever sorted first, which is
+   how a notes file once ended up entirely inside Opening Image. */
+const LOCAL_FLOOR = 6;      // absolute points
+const LOCAL_EDGE  = 2;      // and it must beat the runner-up by this much
+
 function localPlan(raw){
   const proj = P();
   const head = localBrief(raw);
   const notes = splitNotes(raw).map(text => {
     const spec = SPECULATIVE.test(text) && !declaredBeat(text);
     const ranked = score(text, proj.structure, {cards: []});
-    return {text, kind: spec ? "question" : "beat",
-            beat: spec ? null : ranked[0].slot.id, maybe: null, conf: spec ? 0 : 70, keep: true};
+    const top = ranked[0], next = ranked[1];
+    const sure = !spec && top && top.pts >= LOCAL_FLOOR
+                 && (!next || top.pts - next.pts >= LOCAL_EDGE);
+    return {
+      text,
+      kind: sure ? "beat" : (spec ? "question" : "structural"),
+      beat: sure ? top.slot.id : null,
+      maybe: (!sure && !spec && top && top.pts >= LOCAL_FLOOR / 2) ? top.slot.id : null,
+      conf: sure ? Math.min(95, 60 + Math.round(top.pts * 2)) : 0,
+      keep: true
+    };
   });
   // fold referring lines back onto the note they describe
   for (let i = notes.length - 1; i > 0; i--){
@@ -3284,109 +3276,155 @@ function localPlan(raw){
            notes: notes.filter(n => !isHeaderNote(n.text, head))}];
 }
 
-/* ---- the real reading: Claude separates, classifies and assigns ---- */
+/* ---- the real reading: Claude separates, classifies and assigns ----
+   Notes are split and NUMBERED here, and the model answers by number. Two
+   consequences, both deliberate: the reply is small enough that it can't be
+   truncated into nonsense, and a note the model doesn't come back with is left
+   unplaced rather than guessed at. Files run to hundreds of lines, so this goes
+   out in batches. Asking for the whole file in one reply is what silently
+   truncated and dumped an entire notes folder into Opening Image. */
+const IMPORT_BATCH = 40;
+const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
+
 async function claudePlan(raw){
   const proj = P();
   const S = STRUCTURES[proj.structure];
+  const header = localBrief(raw) || {};
+
+  // fold the writer's own second thoughts back onto the line above
+  const items = [];
+  splitNotes(raw).forEach(text => {
+    const prev = items[items.length - 1];
+    if (prev){
+      const to = refersToPrevious(text, proj.structure);
+      if (to){ prev.beat = to; prev.declared = true; return; }
+      if (refersSoftly(text)){ prev.text += "  " + text; return; }
+    }
+    items.push({text, beat: null, declared: false});
+  });
+  const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
+  if (!notes.length) return [];
+
+  const sid = newSid();                       // the whole import bills as one
+  const ask = (prompt) => ai_sample.json(prompt, {kind: "import", session: sid, signal: dumpCtl.signal});
+
+  /* ---- pass one: what the file says it is, and how many stories are in it ---- */
+  const formats = Object.keys(STRUCTURES).map(k => k + " (" + STRUCTURES[k].label + ")").join(", ");
+  let top = null;
+  try {
+    top = await ask(
+      "A screenwriter has pasted a raw notes file. Answer two questions about it.\n\n"
+      + "1. What does the file state about the project? Use only what is actually written. "
+      + "Where the writer listed several candidate titles or loglines, choose the one they settled "
+      + "on - the one they marked as better or praised - not the first one listed. Leave any field "
+      + "blank if the file does not say.\n"
+      + "2. Does this file cover more than one distinct STORY? Notes files usually carry one main "
+      + "project plus unrelated pitches, errands and reminders. List only genuinely distinct stories, "
+      + "never errands or stray thoughts. The main project is always first.\n\n"
+      + "For format, return one of these ids only if the text clearly states a format: " + formats + ".\n\n"
+      + "FILE:\n\"\"\"\n" + raw.slice(0, 20000) + "\n\"\"\"\n\n"
+      + "Reply with JSON only:\n"
+      + "{\"brief\":{\"name\":\"\",\"log\":\"\",\"who\":\"\",\"genre\":\"\",\"like\":\"\",\"setting\":\"\",\"format\":\"\"},"
+      + "\"stories\":[{\"name\":\"short name in the writer's own words\",\"about\":\"one line\"}]}");
+  } catch (e) { if (e && e.code === "cancelled") throw e; }
+
+  const groups = (top && Array.isArray(top.stories) && top.stories.length
+    ? top.stories : [{name: proj.name, about: ""}]).slice(0, 4);
+  groups[0].name = header.name || (top && top.brief && top.brief.name) || groups[0].name || proj.name;
+
+  /* ---- pass two onward: classify, in batches, by number ---- */
   const beats = S.slots.map(x => "- " + x.id + " | " + x.name + ": " + (x.req || x.fn)).join("\n");
+  const storyList = groups.map((g, i) => i + " = " + g.name + (g.about ? "  (" + g.about + ")" : "")).join("\n");
+  const rules =
+      "Rules that matter more than filling the board:\n"
+    + "- Most notes in a real file are NOT beats. Character sketches, images, lines of dialogue, "
+    + "rules the writer set, research to do and open questions are not beats. Label them as such.\n"
+    + "- A note where the writer is thinking out loud, weighing options, or rejecting an idea is a "
+    + "question or a structural note, never a beat. Lines like Too easy, More interesting, "
+    + "Absolutely not, Stop, Save, or NO DOG are the writer talking to themselves.\n"
+    + "- A note that only floats a possibility - maybe, what if, could be, or ending in a question "
+    + "mark - is not yet a beat.\n"
+    + "- Lists of candidates, such as alternate titles or possible place names, are structural notes.\n"
+    + "- If you are not certain which beat a note is, set b to null. An empty beat is useful to the "
+    + "writer, because it shows them a hole. A wrongly filled one is worse than useless.\n"
+    + "- Give no beat more than " + MAX_PER_BEAT + " notes in a batch. If more seem to fit, keep only "
+    + "the strongest and leave the rest unplaced.\n\n";
 
-  const prompt =
-    "You are organizing a screenwriter's raw notes folder into a beat board. The text below is "
-    + "unstructured: paragraphs, fragments, stray dialogue, character thoughts, half-scenes. It may "
-    + "contain notes for MORE THAN ONE story.\n\n"
-    + "STRUCTURE IN USE: " + S.label + "\nBEATS:\n" + beats + "\n\n"
-    + "CURRENT PROJECT NAME: " + proj.name + "\n" + briefBlock() + "\nRAW NOTES:\n\"\"\"\n"
-    + raw.slice(0, 24000) + "\n\"\"\"\n\n"
-    + "Do this:\n"
-    + "1. Split the text into discrete individual notes — one idea each. Split run-on paragraphs. "
-    + "Merge lines that are obviously one thought. Drop pure duplicates.\n"
-    + "2. KEEP THE WRITER'S EXACT WORDING. Trim leading bullets and tidy whitespace only. Never "
-    + "rewrite, polish, expand or invent. If you cannot use their words, drop the note.\n"
-    + "3. Classify each note: \"beat\" (a story event that happens in the plot), \"character\" "
-    + "(who someone is, backstory, want, wound), \"theme\" (tone, meaning, what it's about, style), "
-    + "\"line\" (a line of dialogue or a title), \"research\" (fact, place, reference, logistics).\n"
-    + "4. BE STRICT ABOUT WHAT COUNTS AS A BEAT. A beat is an EVENT: something happens, somebody "
-    + "does something, the story moves. These are NOT beats, however story-ish they sound:\n"
-    + "   - a question the writer is asking themselves (\"why does he come home?\", \"too cliche?\", "
-    + "\"or no body, empty coffin?\", anything ending in a question mark or offering alternatives)\n"
-    + "   - a fact about the world or a character's past, with no scene attached\n"
-    + "   - an image or location with nobody doing anything in it\n"
-    + "   - a structural musing about the film as a whole (\"could open on a funeral and end on a "
-    + "wedding?\", \"maybe the person who died isn't the real death\")\n"
-    + "5. For notes classified \"beat\" ONLY, assign the beat id it belongs in, plus a confidence "
-    + "from 0 to 100 for that assignment.\n"
-    + "6. AN EXPLICIT LABEL OVERRIDES EVERYTHING BELOW. If the writer names the beat themselves — "
-    + "\"Final image: ...\", \"Opening maybe him changing a tire\", \"that could be the "
-    + "midpoint\" — that is them DECLARING where it goes, and it should score high (85+) even if "
-    + "the sentence also contains hedging words. Set \"declared\": true on those. Their own "
-    + "labelling beats your judgement about their story.\n"
-    + "7. A SHORT LINE THAT ONLY POINTS AT THE LINE ABOVE IT IS NOT ITS OWN NOTE. \"That could be "
-    + "the midpoint.\", \"Nah. Bo.\", \"No goat. That's trying too hard.\", \"Maybe not.\", "
-    + "\"Better: they need a red flag.\", \"Actually Grandpa isn't buried there.\" — these comment "
-    + "on, qualify or overrule the note before them. Never make them a card of their own. If such a "
-    + "line NAMES A BEAT, apply that beat to the note above it with high confidence and drop the "
-    + "referring line. If it overrules the note above, merge the correction into that note's text. "
-    + "If it just muses, attach it to that note or drop it.\n"
-    + "8. BUT IF TWO OR MORE NOTES CLAIM THE SAME BEAT, the writer has not chosen yet. Place them "
-    + "all on that beat at high confidence and set \"declared\": true on each. Never pick a winner "
-    + "between the writer's own alternatives, and never drop one to make the board tidy.\n"
-    + "9. SPECULATIVE LANGUAGE IS A STRONG SIGNAL NOT TO PLACE, unless rule 6 applies. Words like maybe, what if, could, "
-    + "perhaps, OR, ??, \"need a scene where\", \"figure out\", \"why does\", \"too cliche\", "
-    + "\"don't know yet\", or a list of alternatives mean the writer is brainstorming, not "
-    + "declaring story canon. \"Maybe she isn't actually missing?\" is a question. \"He discovers "
-    + "she has been alive the whole time\" is a beat. These are not equivalent.\n"
-    + "10. DO NOT JUDGE BY KEYWORDS. Halfway, end, opening, death, missing, dark, final and body are "
-    + "weak evidence. Ask what the event DOES to the story. A storm that happens halfway through is "
-    + "not a Midpoint.\n"
-    + "11. CHECK THE CHAIN. The beats you assign should form cause and effect — setup, therefore "
-    + "catalyst, therefore debate, therefore commitment, therefore escalation. If your assignments "
-    + "only sit near each other chronologically and do not cause one another, lower their "
-    + "confidence sharply.\n"
-    + "12. DO NOT TRY TO FILL THE BOARD. Leaving most beats empty is the CORRECT outcome — the empty "
-    + "beats are what show the writer the holes in their story, and filling them with the nearest "
-    + "available fragment destroys the only thing this board is for. A pile of notes almost never "
-    + "contains a whole story. If a note does not clearly belong to one specific beat, set its beat "
-    + "to null and its confidence to 0 rather than reaching for the closest slot. Expect to place "
-    + "only a handful.\n"
-    + "13. IF THE TEXT STATES PROJECT DETAILS — a title, format, genre, tone, comparisons, setting or "
-    + "logline, usually in a header block near the top — extract them into the story's \"brief\", "
-    + "VERBATIM. Never invent or improve any of them: leave a field out entirely if the writer did "
-    + "not state it. Do not treat those header lines as notes; they belong in the brief, not on the "
-    + "board. For \"format\", return one of these ids only if the text clearly states a format: "
-    + Object.keys(STRUCTURES).map(k => k + " (" + STRUCTURES[k].label + ")").join(", ") + ".\n"
-    + "14. If the notes clearly cover more than one distinct story, group them into separate stories "
-    + "and give each a short name taken from the writer's own words. If it's all one story, return "
-    + "one group named exactly \"" + proj.name + "\".\n\n"
-    + "Reply with JSON only:\n"
-    + "{\"stories\":[{\"name\":\"...\","
-    + "\"brief\":{\"log\":\"\",\"who\":\"\",\"genre\":\"\",\"like\":\"\",\"setting\":\"\",\"format\":\"\"},"
-    + "\"notes\":[{\"text\":\"...\","
-    + "\"kind\":\"beat|character|clue|image|structural|theme|line|question|rule|research\","
-    + "\"beat\":\"<beat id or null>\",\"confidence\":<0-100>,\"declared\":<true|false>}]}]}";
+  const placed = {};
+  let answered = 0;
+  for (let i = 0; i < notes.length; i += IMPORT_BATCH){
+    const batch = notes.slice(i, i + IMPORT_BATCH);
+    const lines = batch.map((n, k) => (i + k) + ". " + n.text.replace(/\s+/g, " ").slice(0, 400)).join("\n");
+    document.getElementById("dumpcount").innerHTML =
+      '<span class="spinner"></span>reading notes ' + (i + 1) + " to "
+      + Math.min(notes.length, i + IMPORT_BATCH) + " of " + notes.length;
+    let data = null;
+    try {
+      data = await ask(
+        "You are sorting a screenwriter's numbered notes onto a beat board. Do not rewrite the "
+        + "notes and do not invent any.\n\n"
+        + "STRUCTURE: " + S.label + "\n"
+        + "BEATS - a note may only be given a beat id if it actually satisfies that beat's stated "
+        + "requirement:\n" + beats + "\n\n"
+        + "STORIES FOUND IN THIS FILE:\n" + storyList + "\n\n"
+        + "NOTES:\n" + lines + "\n\n"
+        + "For each numbered note return:\n"
+        + "n  its number\n"
+        + "s  which story it belongs to, by the number above. Use -1 for anything that is not story "
+        + "material at all: errands, reminders, appointments, shopping, unrelated observations.\n"
+        + "k  the kind of note: beat, character, clue, image, structural, theme, line, question, rule, research\n"
+        + "b  the beat id, only if k is beat and the note clearly meets that beat's requirement. Otherwise null.\n"
+        + "c  0 to 100, how certain you are of b\n"
+        + "d  true only if the writer named that beat themselves\n\n"
+        + rules
+        + "Reply with JSON only, every note accounted for:\n"
+        + "{\"notes\":[{\"n\":0,\"s\":0,\"k\":\"beat\",\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"d\":false}]}");
+    } catch (e) {
+      if (e && e.code === "cancelled") throw e;
+    }
+    ((data && data.notes) || []).forEach(r => {
+      const n = Number(r && r.n);
+      if (!Number.isInteger(n) || n < 0 || n >= notes.length || placed[n]) return;
+      placed[n] = r;
+      answered++;
+    });
+  }
 
-  const data = await ai_sample.json(prompt, {kind: "import", signal: dumpCtl.signal});
-  const head0 = localBrief(raw) || {};
-  const stories = (data && data.stories || []).map((st, i) => ({
-    name: String((i === 0 && head0.name) || st.name || ("Story " + (i + 1))).slice(0, 60),
+  // Nothing came back at all. Say so — do not quietly hand this to the matcher.
+  if (!answered) { const e = new Error("unreadable"); e.code = "unreadable"; throw e; }
+
+  /* ---- assemble, with the confidence gate and a hard per-beat ceiling ---- */
+  const perBeat = {};
+  const buckets = groups.map(() => []);
+  notes.forEach((n, idx) => {
+    const r = placed[idx] || {};
+    const si = Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
+    const kind = KINDS[r.k] ? r.k : "structural";
+    const conf = typeof r.c === "number" ? r.c : 0;
+    const named = kind === "beat" && S.slots.some(x => x.id === r.b);
+    let beat = n.beat || ((named && conf >= 75) ? r.b : null);
+    if (beat){
+      perBeat[beat] = (perBeat[beat] || 0) + 1;
+      if (perBeat[beat] > MAX_PER_BEAT) beat = null;      // the board is not a bin
+    }
+    buckets[si].push({
+      text: n.text,
+      kind: beat ? "beat" : kind,
+      beat,
+      maybe: (!beat && named && conf >= 55) ? r.b : null,
+      conf,
+      declared: !!(n.declared || r.d),
+      keep: r.s !== -1                                     // errands arrive unticked
+    });
+  });
+
+  const brief = Object.assign({}, cleanBrief(top && top.brief) || {}, header);
+  return groups.map((g, i) => ({
+    name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
-    // what the writer literally typed in a header line beats the model's reading of it
-    brief: Object.assign({}, cleanBrief(st.brief) || {}, i === 0 ? (localBrief(raw) || {}) : {}),
-    notes: (st.notes || []).map(n => {
-      const kind = KINDS[n.kind] ? n.kind : "beat";
-      const conf = typeof n.confidence === "number" ? n.confidence : 100;
-      const named = kind === "beat" && S.slots.some(x => x.id === n.beat);
-      // 75+ lands on the board, 55-74 is offered as a possibility, below 55 never assigns
-      return {
-        text: String(n.text || "").trim(),
-        kind,
-        beat: (named && conf >= 75) ? n.beat : null,
-        maybe: (named && conf >= 55 && conf < 75) ? n.beat : null,
-        conf, declared: !!n.declared,
-        keep: true
-      };
-    }).filter(n => n.text.length > 2 && !isHeaderNote(n.text, cleanBrief(st.brief) || localBrief(raw)))
+    brief: i === 0 ? brief : {},
+    notes: buckets[i]
   })).filter(st => st.notes.length);
-  return stories.length ? stories : localPlan(raw);
 }
 
 /* ---- the review: nothing lands on the board until the writer says so ---- */
@@ -3484,11 +3522,23 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
     try{
       plan = await claudePlan(raw);
     }catch(e){
+      plan = null;
       if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Read it"; stop.hidden = true; return; }
-      plan = localPlan(raw);
-      document.getElementById("dumpcount").textContent = "read with the built-in matcher";
+      // A failed read used to fall through to the built-in matcher without saying
+      // so, which looked exactly like a successful one. It says so now.
+      document.getElementById("dumpcount").innerHTML =
+        "<b>Couldn't read that file.</b> Nothing has been placed and nothing was lost \u2014 "
+        + "your text is still in the box. Try again, or paste it in two halves."
+        + (e && e.code === "out_of_credits" ? " (You're out of credits this month.)" : "");
+      go.disabled = false; go.textContent = "Try again"; stop.hidden = true; dumpCtl = null;
+      return;
     }finally{
       go.disabled = false; go.textContent = "Sort them out"; stop.hidden = true; dumpCtl = null;
+    }
+    if (!plan || !plan.length){
+      document.getElementById("dumpcount").textContent =
+        "Nothing in there read as story material.";
+      return;
     }
   } else {
     plan = localPlan(raw);
@@ -3843,7 +3893,6 @@ document.getElementById("viewtoggle").addEventListener("click", () =>
 function renderSlate(){
   const grid = document.getElementById("slategrid");
   grid.innerHTML = "";
-  document.getElementById("slatecapture").hidden = state.projects.length < 3;
 
   let cards = 0, holes = 0, stalled = 0, best = null;
   state.projects.forEach(p => {
@@ -3927,71 +3976,6 @@ function stat(n, l, cls){
 document.getElementById("slatenew").addEventListener("click", () => openIntake("new"));
 document.getElementById("slatedump").addEventListener("click", openImport);
 
-/* ---- routing: which script does this note belong to? ---- */
-function localRoute(text){
-  let best = null;
-  state.projects.forEach(p => {
-    const r = score(text, p.structure, {cards: []})[0];
-    if (!best || r.pts > best.pts) best = {proj: p, slot: r.slot, pts: r.pts,
-      why: "Closest match on this board's beats."};
-  });
-  return best;
-}
-async function claudeRoute(text){
-  const list = state.projects.map(p => {
-    const b = p.brief || {};
-    return "- " + (p.id || p.localId) + " | " + p.name + " (" + STRUCTURES[p.structure].label + ")"
-      + (b.log ? " — " + b.log : "")
-      + (b.who ? " Protagonist: " + b.who : "")
-      + (b.genre ? " Genre: " + b.genre : "");
-  }).join("\n");
-  const data = await ai_sample.json(
-    "A screenwriter has several projects going and just typed one loose note. Decide which project "
-    + "it belongs to, judging by subject, characters, tone and premise.\n\nPROJECTS:\n" + list
-    + "\n\nTHE NOTE: \"" + text + "\"\n\n"
-    + "Reply with JSON only: {\"id\":<project id>,\"why\":\"<one short sentence, addressed to the writer>\"}",
-    {kind: "route"});
-  const p = state.projects.find(x => String(x.id || x.localId) === String(data && data.id));
-  if (!p) return localRoute(text);
-  const r = score(text, p.structure, p)[0];
-  return {proj: p, slot: r.slot, pts: r.pts, why: String(data.why || "")};
-}
-
-const routeNote = document.getElementById("routenote");
-document.getElementById("routego").addEventListener("click", async () => {
-  const text = routeNote.value.trim();
-  if (!text) return;
-  const out = document.getElementById("routeout");
-  const go = document.getElementById("routego");
-  go.disabled = true; go.textContent = "Reading…";
-  let hit;
-  try{ hit = ai_sample ? await claudeRoute(text) : localRoute(text); }
-  catch(e){ hit = localRoute(text); }
-  go.disabled = false; go.textContent = "Find its home";
-  if (!hit) return;
-
-  out.innerHTML = "";
-  const row = document.createElement("div");
-  row.className = "routehit";
-  row.innerHTML = '<span class="to">' + esc(hit.proj.name) + " &rarr; " + esc(hit.slot.name) + "</span>"
-    + '<span class="why">' + esc(hit.why) + "</span>";
-  const put = document.createElement("button");
-  put.className = "btn btn-primary"; put.textContent = "Put it there";
-  put.addEventListener("click", () => {
-    state.activeId = hit.proj.id || hit.proj.localId;
-    snapshot();
-    hit.proj.cards.push({id: uid++, text, slot: hit.slot.id, pinned: false, kind: "beat"});
-    settle(hit.proj);
-    routeNote.value = ""; out.hidden = true;
-    setView("board");
-  });
-  row.appendChild(put);
-  out.appendChild(row);
-  out.hidden = false;
-});
-routeNote.addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("routego").click();
-});
 
 
 
