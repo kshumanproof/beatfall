@@ -25,6 +25,7 @@
   --gold:#9A7716;         /* goldenrod - the gap signal */
   --gold-soft:#F6EED8;
   --sage:#4A7358;
+  --red:#8C2F2F;
   --shadow:0 1px 2px rgba(21,24,29,.07),0 6px 16px -8px rgba(21,24,29,.18);
   --shadow-lift:0 2px 4px rgba(21,24,29,.10),0 18px 32px -14px rgba(21,24,29,.34);
   --mono:"Courier Prime",ui-monospace,"Courier New",monospace;
@@ -47,6 +48,7 @@
     --gold:#D2AC52;
     --gold-soft:#2A2416;
     --sage:#7FAE8D;
+    --red:#D98A8A;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
     --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 32px -14px rgba(0,0,0,.8);
   }
@@ -67,6 +69,7 @@
   --gold:#D2AC52;
   --gold-soft:#2A2416;
   --sage:#7FAE8D;
+  --red:#D98A8A;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px -8px rgba(0,0,0,.6);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 32px -14px rgba(0,0,0,.8);
 }
@@ -658,6 +661,8 @@ main{max-width:1440px;margin:0 auto;padding:4px 22px 60px}
 .pcard .next{color:var(--gold);font-weight:700}
 .pcard .acts{display:flex;gap:6px;margin-top:3px;flex-wrap:wrap}
 .pcard .acts .btn{font-size:11.5px;padding:5px 10px}
+.pcard .acts .del{color:var(--red);margin-left:auto}
+.pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
 /* ---------- import review ---------- */
 .revbody{max-height:46vh;overflow-y:auto;border:1px solid var(--rule-soft);border-radius:2px}
@@ -758,7 +763,7 @@ footer{
     <span id="savestate"></span>
     <div class="masthead-right">
       <button class="btn btn-ghost" id="theme" data-tip="Auto goes dark at sunset and light at sunrise where you are. Or force light or dark.">Mode</button>
-      <button class="btn btn-ghost" id="viewtoggle" data-tip="See every project at once — how far along each one is, and where you left off.">All projects</button>
+      <button class="btn btn-ghost" id="viewtoggle" data-tip="Every project at once — how far along each one is, and where you left off.">Dashboard</button>
       <button class="btn btn-ghost" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own." >See an example</button>
       <span class="creditcount" id="credits" hidden data-tip="Credits left this month. Placing notes is always free; conversations and reading a notes file are what count."></span>
       <a class="btn btn-ghost" href="/settings.html" id="acct" data-tip="Your plan, what you've used this month, and your data.">Account</a>
@@ -1594,22 +1599,12 @@ function renderTabs(){
     const b = document.createElement("button");
     b.className = "tab" + ((p.id || p.localId) === state.activeId ? " on" : "");
     b.title = (p.id || p.localId) === state.activeId ? "Edit this project's details" : "Switch to " + p.name;
+    // Tabs only switch. Deleting a script is a decision, not a stray click on a
+    // close icon two pixels from the one you meant.
     b.innerHTML = esc(p.name)
-      + ((p.id || p.localId) === state.activeId ? ' <span class="pencil" aria-hidden="true">&#9998;</span>' : "")
-      + (state.projects.length > 1 ? ' <span class="x" title="Close project">&times;</span>' : "");
+      + ((p.id || p.localId) === state.activeId ? ' <span class="pencil" aria-hidden="true">&#9998;</span>' : "");
     b.addEventListener("click", e => {
       const key = p.id || p.localId;
-      if (e.target.classList.contains("x")){
-        e.stopPropagation();
-        if (state.projects.length < 2) return;
-        if (!confirm("Close “" + p.name + "”? This deletes the project and its cards.")) return;
-        snapshot();
-        if (p.id) BF.deleteProject(p.id).catch(() => {});
-        state.projects = state.projects.filter(x => x !== p);
-        if (state.activeId === key) state.activeId = state.projects[0].id || state.projects[0].localId;
-        hideAll(); render();
-        return;
-      }
       if (key === state.activeId){         // clicking the project you're in opens its details
         openIntake("edit");
         return;
@@ -3832,7 +3827,7 @@ function setView(v, quiet){
   document.querySelector(".projbar").hidden = v === "slate";
   // "Empty this board" acts on one board; it has no meaning on the slate.
   document.getElementById("clear").hidden = v === "slate";
-  document.getElementById("viewtoggle").textContent = onBoard ? "All projects" : "Back to the board";
+  document.getElementById("viewtoggle").textContent = onBoard ? "Dashboard" : "Back to the board";
   if (v === "slate"){ hideAll(); renderSlate(); }
   else if (v === "notes"){ hideAll(); render(); renderNotes(); }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
@@ -3888,10 +3883,28 @@ function renderSlate(){
     acts.appendChild(btn("Open", () => open(p.id || p.localId)));
     acts.appendChild(btn("Details", () => { open(p.id || p.localId); openIntake("edit"); }));
     if (nx) acts.appendChild(btn("What's missing", () => { open(p.id || p.localId); askAbout(nx); }));
+    if (state.projects.length > 1){
+      const d = btn("Delete", () => remove(p));
+      d.className = "btn del";
+      d.setAttribute("data-tip", "Removes this project and everything in it, permanently.");
+      acts.appendChild(d);
+    }
     grid.appendChild(el);
   });
 
   function open(id){ state.activeId = id; setView("board"); }
+  function remove(p){
+    const n = (p.cards || []).length;
+    if (!confirm("Delete \u201c" + p.name + "\u201d?\n\n"
+        + (n ? n + (n === 1 ? " card goes" : " cards go") + " with it. " : "")
+        + "This cannot be undone.")) return;
+    if (p.id) BF.deleteProject(p.id).catch(() => {});
+    state.projects = state.projects.filter(x => x !== p);
+    if (state.activeId === (p.id || p.localId))
+      state.activeId = state.projects[0].id || state.projects[0].localId;
+    save();
+    renderSlate();
+  }
   function btn(label, fn){
     const b = document.createElement("button");
     b.className = "btn"; b.textContent = label;
