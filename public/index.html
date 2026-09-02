@@ -16,18 +16,18 @@
   --surface:#F6F3ED;       /* header, rails, recessed panels */
   --card:#FDFBF6;          /* paper */
   --ink:#2B2620;
-  --ink-2:#6E655C;
-  --ink-3:#9C9287;
-  --ink-4:#A79C8E;
+  --ink-2:#5C5349;         /* 6.50 on ground */
+  --ink-3:#726859;         /* 4.72 — carries beat jobs, so it must clear AA */
+  --ink-4:#8A8075;         /* decorative micro-labels only */
   --rule:#E0D9CB;
   --rule-soft:#EDE7DA;
   --blue:#2C5C8F;          /* what you can touch */
   --blue-soft:#EAEFF5;
   --blue-ink:#1E4269;
   --on-blue:#FFFFFF;
-  --gold:#8A6A1E;          /* what's missing */
+  --gold:#7B5A13;          /* what's missing — 5.47, passes AA for small text */
   --gold-soft:#F4EEDF;
-  --gold-hair:#D9C08A;
+  --gold-hair:#D9C08A;     /* hairlines only, never text */
   --sage:#4A7358;
   --sage-soft:#E7EEE9;
   --red:#8C2F2F;
@@ -37,6 +37,11 @@
   --mono:"Courier Prime",ui-monospace,"Courier New",monospace;
   --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  /* softened, not rounded away: paper keeps its edge, chrome loses its bite */
+  --r-card:4px;            /* cards, gaps, inputs */
+  --r-ctl:5px;             /* buttons, chips, selects */
+  --r-panel:9px;           /* modals, popovers, sheets, trays */
+  --settle:180ms cubic-bezier(.2,.7,.3,1);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -44,9 +49,9 @@
     --surface:#211D19;
     --card:#292420;
     --ink:#EFE9DE;
-    --ink-2:#B7AC9D;
-    --ink-3:#8C8175;
-    --ink-4:#776D62;
+    --ink-2:#C2B7A8;
+    --ink-3:#9A8F82;
+    --ink-4:#8C8175;
     --rule:#3A342C;
     --rule-soft:#2E2923;
     --blue:#8FB6DE;
@@ -69,9 +74,9 @@
   --surface:#211D19;
   --card:#292420;
   --ink:#EFE9DE;
-  --ink-2:#B7AC9D;
-  --ink-3:#8C8175;
-  --ink-4:#776D62;
+  --ink-2:#C2B7A8;
+  --ink-3:#9A8F82;
+  --ink-4:#8C8175;
   --rule:#3A342C;
   --rule-soft:#2E2923;
   --blue:#8FB6DE;
@@ -97,7 +102,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 button{font-family:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:var(--r-ctl)}
 
 /* ---------- the label voice: small, spaced, upper ---------- */
 .slug{
@@ -131,6 +136,7 @@ header{
   padding:6px 8px;margin-left:-8px;border-radius:2px;max-width:340px;
 }
 .projbtn:hover{background:var(--rule-soft)}
+.projbtn{transition:background .13s ease}
 .projbtn .nm{
   font-size:15px;font-weight:600;letter-spacing:-.005em;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -163,8 +169,8 @@ header{
 /* ---------- popovers ---------- */
 .pop{
   position:absolute;top:calc(100% + 9px);z-index:70;width:266px;
-  background:var(--card);border:1px solid var(--rule);
-  box-shadow:var(--shadow-lift);padding:7px 0;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow-lift);padding:7px 0;overflow:hidden;
 }
 .pop.right{right:0}
 .pop.left{left:-8px}
@@ -216,7 +222,7 @@ header{
 .strip{padding:4px 15px 12px;display:flex;flex-direction:column;gap:10px}
 select{
   font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink);
-  background:var(--card);border:1px solid var(--rule);border-radius:0;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
   padding:8px 10px;cursor:pointer;max-width:100%;
 }
 select:focus{border-color:var(--blue);outline:none}
@@ -229,7 +235,7 @@ select:focus{border-color:var(--blue);outline:none}
 
 /* ---------- buttons ---------- */
 .btn{
-  border:1px solid var(--rule);background:var(--card);border-radius:0;
+  border:1px solid var(--rule);background:var(--card);border-radius:var(--r-ctl);
   padding:8px 15px;font-family:var(--sans);font-size:12.5px;font-weight:500;cursor:pointer;
   transition:background .12s ease,border-color .12s ease;white-space:nowrap;color:var(--ink);
 }
@@ -282,9 +288,13 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .acthead .r i{display:block;height:100%;background:var(--blue);opacity:.7;
   transition:width .5s cubic-bezier(.2,.7,.3,1)}
 .acthead .c{font-size:11px;color:var(--ink-4);letter-spacing:.06em;white-space:nowrap}
-.beats{display:flex;flex-wrap:wrap;gap:24px 20px;align-items:flex-start}
-
-.slot{width:262px;display:flex;flex-direction:column;gap:8px;transition:opacity .15s ease}
+/* Columns, not a fixed-width row: the act band owns its grid and the last
+   row can never leave a dead gutter on the right. */
+.beats{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--slot-min,240px),1fr));
+  gap:26px 20px;align-items:start;
+}
+.slot{min-width:0;display:flex;flex-direction:column;gap:8px;transition:opacity .15s ease}
 .slotname{
   font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.13em;
   text-transform:uppercase;color:var(--ink-3);
@@ -326,7 +336,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 
 /* ---------- the card: paper ---------- */
 .icard{
-  background:var(--card);border:1px solid var(--rule);border-radius:0;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
   padding:15px 17px 17px;box-shadow:var(--shadow);cursor:grab;position:relative;
   font-family:var(--mono);font-size:13px;line-height:1.62;color:var(--ink);
   transition:box-shadow .15s ease,transform .15s ease;
@@ -344,7 +354,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .icard:hover .del,.icard:hover .move,.icard:hover .pin{opacity:1}
 .icard .del:hover,.icard .move:hover,.icard .pin:hover{color:var(--ink);background:var(--rule-soft)}
 .icard[contenteditable="true"],.icard .body[contenteditable="true"]{cursor:text}
-.icard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.icard.pinned{box-shadow:inset 3px 0 0 var(--gold-hair),var(--shadow)}
 .icard.pinned .pin{opacity:1;color:var(--gold)}
 .icard .maybe{
   margin-top:9px;font-family:var(--sans);font-size:10px;font-weight:600;
@@ -400,8 +410,11 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 /* set aside: flat paper, no shadow — it isn't on the wall yet */
 .tray{width:100%}
 .tray .acthead .n{color:var(--ink-4)}
-.tray-body{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;min-height:40px}
-.tray-body .icard{width:262px;background:var(--surface);box-shadow:none;color:var(--ink-2)}
+.tray-body{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--slot-min,240px),1fr));
+  gap:20px;align-items:start;min-height:40px;
+}
+.tray-body .icard{background:var(--surface);box-shadow:none;color:var(--ink-2)}
 .tray-body .icard:hover{box-shadow:var(--shadow);transform:none}
 .tray-body.dragover{outline:1px dashed var(--blue);outline-offset:8px}
 .tray-empty{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-4)}
@@ -415,8 +428,8 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .trays:empty{display:none}
 .proposal{padding:22px 0 0}
 .proposal-inner{
-  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
-  padding:16px 18px;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow);padding:16px 18px;
 }
 .proposal-note{
   font-family:var(--mono);font-size:14px;line-height:1.6;color:var(--ink);
@@ -433,7 +446,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .nosignal-acts{flex:1 1 100%;display:flex;gap:9px;align-items:center;margin-top:2px}
 .orplace{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4);font-weight:600}
 .candidate{
-  flex:1 1 262px;text-align:left;background:var(--surface);
+  flex:1 1 262px;text-align:left;background:var(--surface);border-radius:var(--r-card);
   border:1px solid var(--rule);padding:13px 15px;cursor:pointer;
   transition:border-color .12s ease,background .12s ease;
 }
@@ -451,7 +464,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 
 .settled{padding:22px 0 0}
 .settled-inner{
-  background:var(--gold-soft);border:1px solid var(--gold-hair);
+  background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-panel);
   padding:13px 15px;display:flex;gap:14px;align-items:flex-start;
 }
 .settled-list{flex:1;min-width:0}
@@ -469,7 +482,8 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 
 .ask{padding:22px 0 0}
 .ask-inner{
-  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);padding:18px 20px;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow);padding:18px 20px;
 }
 .ask-beat{
   font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
@@ -495,7 +509,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .compose{display:flex;gap:10px;margin-top:16px;align-items:stretch}
 .compose textarea{
   flex:1;min-width:0;resize:vertical;background:var(--surface);color:var(--ink);
-  border:1px solid var(--rule);padding:11px 13px;
+  border:1px solid var(--rule);border-radius:var(--r-card);padding:11px 13px;
   font-family:var(--mono);font-size:13.5px;line-height:1.6;
 }
 .compose textarea:focus{border-color:var(--blue);outline:none}
@@ -508,7 +522,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 #drafttext{
   width:100%;resize:vertical;background:var(--surface);color:var(--ink);
-  border:1px solid var(--rule);padding:12px 14px;
+  border:1px solid var(--rule);border-radius:var(--r-card);padding:12px 14px;
   font-family:var(--mono);font-size:13.5px;line-height:1.65;
 }
 #drafttext:focus{outline:none;border-color:var(--blue)}
@@ -541,7 +555,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   backdrop-filter:blur(2px);
 }
 .sheet{
-  background:var(--surface);border:1px solid var(--rule);
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-panel);
   box-shadow:var(--shadow-lift);width:min(640px,100%);padding:26px 28px 22px;
   max-height:calc(100vh - 48px);overflow-y:auto;
 }
@@ -552,7 +566,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .sheet textarea{
   width:100%;resize:vertical;background:var(--card);color:var(--ink);
-  border:1px solid var(--rule);padding:13px 15px;
+  border:1px solid var(--rule);border-radius:var(--r-card);padding:13px 15px;
   font-family:var(--mono);font-size:13.5px;line-height:1.65;
 }
 .sheet textarea:focus{border-color:var(--blue);outline:none}
@@ -568,7 +582,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   letter-spacing:.13em;color:var(--ink-4);margin-bottom:7px;
 }
 .field input[type=text], .field textarea, .field select{
-  width:100%;background:var(--card);color:var(--ink);
+  width:100%;background:var(--card);color:var(--ink);border-radius:var(--r-card);
   border:1px solid var(--rule);padding:10px 12px;
   font-family:var(--mono);font-size:13.5px;line-height:1.55;
 }
@@ -580,7 +594,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .firstrun-choices{display:grid;gap:11px}
 .fr{
   text-align:left;background:var(--card);border:1px solid var(--rule);
-  padding:16px 18px;cursor:pointer;transition:border-color .12s ease,background .12s ease;
+  border-radius:var(--r-card);padding:16px 18px;cursor:pointer;transition:border-color .12s ease,background .12s ease;
 }
 .fr:hover{border-color:var(--blue);background:var(--blue-soft)}
 .fr b{display:block;font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:5px;color:var(--ink)}
@@ -620,7 +634,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .revrow .txt{flex:1;min-width:0;font-family:var(--mono);color:var(--ink)}
 .revrow .dest{font-size:11px;color:var(--ink-4);margin-top:4px}
 .chip{
-  flex:0 0 auto;font-size:9px;font-weight:600;letter-spacing:.08em;
+  flex:0 0 auto;font-size:9px;font-weight:600;letter-spacing:.08em;border-radius:3px;
   text-transform:uppercase;padding:3px 6px;margin-top:2px;
 }
 .chip.beat{background:var(--blue-soft);color:var(--blue)}
@@ -659,14 +673,15 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .obeat .job{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);margin-bottom:12px}
 .ocards{display:flex;flex-direction:column;gap:8px;margin-bottom:11px}
 .ocard{
-  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
+  box-shadow:var(--shadow);
   padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.6;
 }
 .ocard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
 .ocard,.oprose{max-width:74ch}
 .oprose{
   width:100%;min-height:54px;resize:vertical;background:transparent;color:var(--ink);
-  border:1px dashed var(--rule);padding:11px 13px;
+  border:1px dashed var(--rule);border-radius:var(--r-card);padding:11px 13px;
   font-family:var(--serif);font-size:16px;line-height:1.65;
 }
 .oprose:focus{border-style:solid;border-color:var(--blue);outline:none;background:var(--card)}
@@ -681,7 +696,8 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .railhead + .railbox{margin-bottom:24px}
 .railbox{display:flex;flex-direction:column;gap:7px}
 .railcard{
-  background:var(--card);border:1px solid var(--rule);padding:9px 11px;cursor:grab;
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
+  padding:9px 11px;cursor:grab;
   font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-2);
 }
 .railcard:hover{border-color:var(--blue);color:var(--ink)}
@@ -708,6 +724,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .notebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
 .fchip{
   border:1px solid var(--rule);background:transparent;padding:7px 12px;cursor:pointer;
+  border-radius:var(--r-ctl);
   color:var(--ink-2);font-family:var(--sans);font-size:10.5px;font-weight:600;
   text-transform:uppercase;letter-spacing:.09em;
 }
@@ -721,7 +738,8 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .notefind:focus{border-color:var(--blue);outline:none}
 .ncard{
-  background:var(--card);border:1px solid var(--rule);box-shadow:var(--shadow);
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
+  box-shadow:var(--shadow);
   padding:14px 15px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
 }
 .ncard .chip{align-self:flex-start}
@@ -751,6 +769,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .slate-grid{display:flex;flex-wrap:wrap;gap:24px}
 .pcard{
   width:396px;max-width:100%;background:var(--card);border:1px solid var(--rule);
+  border-radius:var(--r-panel);
   padding:22px 24px 20px;box-shadow:var(--shadow);
   display:flex;flex-direction:column;gap:13px;transition:box-shadow .14s ease,transform .14s ease;
 }
@@ -783,7 +802,8 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    ===================================================================== */
 .modal{
   width:min(1000px,100%);height:min(680px,calc(100vh - 48px));
-  background:var(--surface);border:1px solid var(--rule);box-shadow:var(--shadow-lift);
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow-lift);
   display:flex;overflow:hidden;
 }
 .modal-side{
@@ -815,11 +835,13 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .setrow .ctl{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .setrow input[type=text],.setrow input[type=email],.setrow select{
   border:1px solid var(--rule);background:var(--card);padding:9px 12px;
+  border-radius:var(--r-card);
   font-family:var(--sans);font-size:13px;color:var(--ink);width:268px;max-width:100%;
 }
 .setrow input:focus,.setrow select:focus{border-color:var(--blue);outline:none}
 .setrow input:disabled{color:var(--ink-4);background:var(--ground)}
-.seg{display:flex;border:1px solid var(--rule);background:var(--card)}
+.seg{display:flex;border:1px solid var(--rule);background:var(--card);
+  border-radius:var(--r-ctl);overflow:hidden}
 .seg button{
   border:none;background:none;cursor:pointer;padding:8px 13px;
   font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
@@ -836,14 +858,16 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .kind b{display:block;font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);
   text-transform:none;letter-spacing:0;margin-bottom:2px}
 .plans{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
-.plan{flex:1 1 200px;border:1px solid var(--rule);background:var(--card);padding:18px}
+.plan{flex:1 1 200px;border:1px solid var(--rule);background:var(--card);padding:18px;
+  border-radius:var(--r-card)}
 .plan.current{border-color:var(--blue)}
 .plan h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0 0 3px}
 .plan .price{font-size:12px;color:var(--ink-3);margin-bottom:11px}
 .plan .what{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);
   line-height:1.5;margin-bottom:15px;min-height:40px}
 .plan .btn{width:100%}
-.note{padding:13px 15px;font-size:13.5px;line-height:1.6;margin-bottom:18px}
+.note{padding:13px 15px;font-size:13.5px;line-height:1.6;margin-bottom:18px;
+  border-radius:var(--r-card)}
 .note.info{background:var(--blue-soft);border:1px solid var(--blue);color:var(--ink)}
 .note.warn{background:var(--gold-soft);border:1px solid var(--gold-hair);color:var(--ink)}
 .note.bad{background:var(--red-soft);border:1px solid var(--red);color:var(--ink)}
@@ -864,7 +888,7 @@ footer{
   .spinner{animation:none;border-top-color:var(--blue);opacity:.6}
 }
 #tip{
-  position:fixed;z-index:200;max-width:290px;pointer-events:none;
+  position:fixed;z-index:200;max-width:290px;pointer-events:none;border-radius:var(--r-card);
   background:var(--ink);color:var(--ground);
   padding:9px 12px;font-family:var(--sans);font-size:12.5px;line-height:1.5;
   box-shadow:var(--shadow-lift);opacity:0;transform:translateY(-3px);
@@ -879,20 +903,47 @@ footer{
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+/* ---------------------------------------------------------- the ladder --
+   Five columns of breathing room down to a single readable list. Below 900
+   the board stops pretending to be spatial and reads as a sequence; capture
+   stays native the whole way down. */
+@media (max-width:1439px){ :root{ --slot-min:250px } }
+@media (max-width:1179px){ :root{ --slot-min:270px } .beats{gap:22px 16px} }
+
+@media (max-width:899px){
+  :root{ --slot-min:100% }
+  .beats,.tray-body{grid-template-columns:1fr;gap:18px}
+  .slot{border-bottom:1px solid var(--rule-soft);padding-bottom:16px}
+  .band:last-child .slot:last-child{border-bottom:none}
+  .fmtline,#savestate{display:none}
+}
+
 @media (max-width:760px){
-  .topline{padding:0 16px;gap:12px}
+  /* the header was overlapping itself: let it wrap rather than collide */
+  .topline{padding:10px 16px;gap:8px 14px;height:auto;flex-wrap:wrap}
+  .hsep{display:none}
+  .projbar{order:2;flex-basis:100%;margin-top:-2px}
+  .projbtn{max-width:100%}
+  .grow{display:none}
+  .tally{order:3;margin-left:auto}
   main,.trays{padding-left:16px;padding-right:16px}
-  .capture{padding:0 16px}
+  main{padding-top:20px}
+  .capture{padding:0 16px;height:64px}
+  .capture .btn-ghost{display:none}
   .slate-wrap,.outline-wrap{padding-left:16px;padding-right:16px}
   .slate-lede{font-size:26px}
-  .slot,.tray-body .icard,.pcard{width:100%}
-  .beats{gap:20px}
+  .pcard{width:100%}
+  .pop,.pop.wide{width:min(300px,calc(100vw - 32px))}
   .modal{flex-direction:column;height:calc(100vh - 32px)}
   .modal-side{width:100%;flex:0 0 auto;border-right:none;border-bottom:1px solid var(--rule);
     flex-direction:row;overflow-x:auto;padding:10px;gap:10px}
   .modal-nav{flex-direction:row}
+  .modal-pane{padding:20px 18px 24px}
   .setrow{flex-direction:column;gap:12px}
-  .setrow .ctl{align-items:flex-start}
+  .setrow .ctl{align-items:flex-start;width:100%}
+  .setrow input[type=text],.setrow input[type=email],.setrow select{width:100%}
+  /* every control stays thumb-sized even when its label is small */
+  .btn,.navlink,.popitem,.mnav{min-height:40px}
 }
 </style>
 

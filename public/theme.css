@@ -5,10 +5,10 @@
    =========================================================================== */
 :root{
   --ground:#F1EEE7; --surface:#F6F3ED; --card:#FDFBF6;
-  --ink:#2B2620; --ink-2:#6E655C; --ink-3:#9C9287; --ink-4:#A79C8E;
+  --ink:#2B2620; --ink-2:#5C5349; --ink-3:#726859; --ink-4:#8A8075;
   --rule:#E0D9CB; --rule-soft:#EDE7DA;
   --blue:#2C5C8F; --blue-soft:#EAEFF5; --blue-ink:#1E4269; --on-blue:#FFFFFF;
-  --gold:#8A6A1E; --gold-soft:#F4EEDF; --gold-hair:#D9C08A;
+  --gold:#7B5A13; --gold-soft:#F4EEDF; --gold-hair:#D9C08A;
   --sage:#4A7358; --sage-soft:#E7EEE9;
   --red:#8C2F2F; --red-soft:#F6E7E7;
   --shadow:0 1px 1px rgba(58,48,36,.05),0 10px 20px -14px rgba(58,48,36,.45);
@@ -16,11 +16,12 @@
   --mono:"Courier Prime",ui-monospace,"Courier New",monospace;
   --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --r-card:4px; --r-ctl:5px; --r-panel:9px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --ground:#1A1714; --surface:#211D19; --card:#292420;
-    --ink:#EFE9DE; --ink-2:#B7AC9D; --ink-3:#8C8175; --ink-4:#776D62;
+    --ink:#EFE9DE; --ink-2:#C2B7A8; --ink-3:#9A8F82; --ink-4:#8C8175;
     --rule:#3A342C; --rule-soft:#2E2923;
     --blue:#8FB6DE; --blue-soft:#20303E; --blue-ink:#B9D3F0; --on-blue:#14181C;
     --gold:#D9BC77; --gold-soft:#2B2517; --gold-hair:#7E6C3E;
@@ -32,7 +33,7 @@
 }
 :root[data-theme="dark"]{
   --ground:#1A1714; --surface:#211D19; --card:#292420;
-  --ink:#EFE9DE; --ink-2:#B7AC9D; --ink-3:#8C8175; --ink-4:#776D62;
+  --ink:#EFE9DE; --ink-2:#C2B7A8; --ink-3:#9A8F82; --ink-4:#8C8175;
   --rule:#3A342C; --rule-soft:#2E2923;
   --blue:#8FB6DE; --blue-soft:#20303E; --blue-ink:#B9D3F0; --on-blue:#14181C;
   --gold:#D9BC77; --gold-soft:#2B2517; --gold-hair:#7E6C3E;
@@ -69,7 +70,7 @@ button{font-family:inherit;color:inherit}
 .topbar-in .right{margin-left:auto;display:flex;gap:18px;align-items:center}
 
 .btn{
-  border:1px solid var(--rule);background:var(--card);border-radius:0;
+  border:1px solid var(--rule);background:var(--card);border-radius:var(--r-ctl);
   padding:9px 16px;font-family:var(--sans);font-size:12.5px;font-weight:500;cursor:pointer;
   transition:border-color .12s ease,background .12s ease;white-space:nowrap;color:var(--ink);
 }
@@ -84,7 +85,7 @@ button{font-family:inherit;color:inherit}
 .btn-danger:hover{background:var(--red);color:var(--card);border-color:var(--red)}
 
 .wrap{max-width:1100px;margin:0 auto;padding:40px 24px 90px}
-.panel{background:var(--card);border:1px solid var(--rule);
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
   padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow)}
 .panel h2{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--ink-4);margin:0 0 16px}
@@ -96,20 +97,20 @@ button{font-family:inherit;color:inherit}
   font-variant-numeric:tabular-nums}
 
 input[type=text],input[type=email]{
-  background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:0;
-  padding:11px 13px;font-family:var(--mono);font-size:14px;width:100%;
+  background:var(--surface);color:var(--ink);border:1px solid var(--rule);
+  border-radius:var(--r-card);padding:11px 13px;font-family:var(--mono);font-size:14px;width:100%;
 }
 input:focus{border-color:var(--blue);outline:none}
 label.field{display:block;margin-bottom:15px}
 label.field span{display:block;font-family:var(--sans);font-size:10px;font-weight:600;
   text-transform:uppercase;letter-spacing:.13em;color:var(--ink-4);margin-bottom:7px}
 
-.meter{height:3px;background:var(--rule);overflow:hidden;flex:1;min-width:140px}
+.meter{height:3px;background:var(--rule);overflow:hidden;flex:1;min-width:140px;border-radius:2px}
 .meter i{display:block;height:100%;background:var(--blue)}
 .meter i.warn{background:var(--gold)}
 .meter i.full{background:var(--red)}
 
-.note{padding:13px 15px;font-size:13.5px;line-height:1.6;margin-bottom:18px}
+.note{padding:13px 15px;font-size:13.5px;line-height:1.6;margin-bottom:18px;border-radius:var(--r-card)}
 .note.info{background:var(--blue-soft);border:1px solid var(--blue);color:var(--ink)}
 .note.warn{background:var(--gold-soft);border:1px solid var(--gold-hair);color:var(--ink)}
 .note.bad {background:var(--red-soft); border:1px solid var(--red);  color:var(--ink)}
@@ -122,7 +123,7 @@ td{padding:10px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
 td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
 .tablewrap{overflow-x:auto}
 .pill{font-family:var(--sans);font-size:9px;font-weight:600;text-transform:uppercase;
-  letter-spacing:.09em;padding:3px 6px;background:var(--rule-soft);color:var(--ink-2)}
+  letter-spacing:.09em;padding:3px 6px;border-radius:3px;background:var(--rule-soft);color:var(--ink-2)}
 .pill.on{background:var(--sage-soft);color:var(--sage)}
 .pill.trial{background:var(--blue-soft);color:var(--blue)}
 .pill.off{background:var(--gold-soft);color:var(--gold)}
