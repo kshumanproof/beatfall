@@ -31,6 +31,9 @@ works.
 1. Create a project at **supabase.com**. Any region near you; the free tier is
    plenty for a test.
 2. Open **SQL Editor**, paste the entire contents of `supabase/schema.sql`, run it.
+   The file is idempotent, so re-run it any time it changes — it adds new columns
+   and triggers without touching your data. **Re-run it now if you last ran it
+   before the `card_count` column existed**, or `/api/admin` will fail.
    It should say success with no rows returned.
 3. **Authentication → Providers →** make sure **Email** is on, and turn
    **Confirm email** ON. That is what makes the magic link work.
@@ -131,7 +134,8 @@ point, which is why they're on it.
 - [ ] Paste in a notes file. Details fill in, cards land, gaps stay empty.
 - [ ] Reload the page. Everything is still there.
 - [ ] Sign in on a phone or another browser. Same projects.
-- [ ] Type a note. Confirm the credits counter in the corner drops.
+- [ ] Type a note. Confirm the credit count in the account menu (your avatar,
+      top right) drops.
 - [ ] Settings shows the right usage and the trial countdown.
 - [ ] Subscribe with Stripe's test card `4242 4242 4242 4242`, any future
       expiry, any CVC. Plan updates on the settings page within a few seconds.
@@ -143,6 +147,11 @@ point, which is why they're on it.
 - [ ] `/admin.html` shows you, your usage and your cost. Sign out and confirm a
       second test account can't reach it.
 - [ ] Delete a throwaway test account and confirm it's gone from Supabase.
+- [ ] Drag a note from the outline rail onto a beat. It should sit UNDER the
+      beat as a note, not become the beat. Emptying the board must not take it.
+- [ ] Save as PDF. A file downloads and the empty beats print as dashed
+      "— OPEN —" boxes.
+- [ ] /terms.html and /privacy.html load, and the sign-in page links to both.
 
 ---
 

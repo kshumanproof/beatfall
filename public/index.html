@@ -740,8 +740,6 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .slate-lede em{font-style:normal;color:var(--gold)}
 .slate-sub{font-size:13px;color:var(--ink-3);margin:0 0 38px}
-.slate-stats{display:none}
-.stat{display:none}
 
 .slate-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
 .slate-h{
@@ -940,7 +938,7 @@ footer{
           Paste in your notes</button>
         <button class="popitem" id="pdf" data-tip="Prints the board as index cards grouped by act, including the empty beats, so you can spread it on a table.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
-          Save as PDF</button>
+          <span class="lbl">Save as PDF</span></button>
         <button class="popitem" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2v3.4l2.2 1.3"/></svg>
           See an example</button>
@@ -1234,7 +1232,6 @@ footer{
   <div class="slate-wrap">
     <h2 class="slate-lede" id="slatelede"></h2>
     <p class="slate-sub" id="slatesub"></p>
-    <div class="slate-stats" id="slatestats"></div>
 
     <div class="slate-head">
       <h2 class="slate-h">Your scripts</h2>
@@ -2791,11 +2788,15 @@ document.getElementById("newpaste").addEventListener("click", () => {
    ========================================================================= */
 async function exportPDF(){
   const btn = document.getElementById("pdf");
+  const say = t => { const l = btn.querySelector(".lbl"); if (l) l.textContent = t; };
   const proj = P();
   const S = STRUCTURES[proj.structure];
-  const dl = await claude.use("downloads");
-  if (!dl){ btn.textContent = "Export unavailable"; setTimeout(() => btn.textContent = "Export PDF", 2400); return; }
 
+  if (!window.jspdf || !window.jspdf.jsPDF){
+    say("PDF library didn't load");
+    setTimeout(() => say("Save as PDF"), 2600);
+    return;
+  }
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit: "pt", format: "letter"});
   const PW = 612, PH = 792, M = 42;
@@ -2945,16 +2946,18 @@ async function exportPDF(){
     parked.forEach(c => slotBox({id: "__aside", name: "Set aside", fn: "", act: 0}, [c]));
   }
 
-  const blob = doc.output("blob");
-  const fname = proj.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "beatfall";
-  btn.disabled = true; btn.textContent = "Saving…";
+  const fname = (proj.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase()
+                 || "beatfall") + "-beats.pdf";
+  btn.disabled = true; say("Saving…");
   try{
-    await dl.save({filename: fname + "-beats.pdf", data: blob});
-    btn.textContent = "Saved";
+    // A plain browser download. This used to call the Claude artifact runtime,
+    // which does not exist on the real site — the button did nothing at all.
+    doc.save(fname);
+    say("Saved");
   }catch(e){
-    btn.textContent = e && e.code === "declined" ? "Export PDF" : "Couldn't save";
+    say("Couldn't save");
   }finally{
-    setTimeout(() => { btn.textContent = "Export PDF"; btn.disabled = false; }, 2000);
+    setTimeout(() => { say("Save as PDF"); btn.disabled = false; }, 2000);
   }
 }
 document.getElementById("pdf").addEventListener("click", exportPDF);
@@ -4399,7 +4402,6 @@ function renderSlate(){
     ? (stalled === 1 ? "One has" : stalled + " have") + " been sitting untouched for three weeks."
     : "Nothing has gone cold.");
   document.getElementById("slatesub").textContent = sub.join(" ");
-  document.getElementById("slatestats").innerHTML = "";
 
   state.projects.forEach(p => {
     const c = coverage(p);
@@ -4461,10 +4463,6 @@ function renderSlate(){
     b.addEventListener("click", fn);
     return b;
   }
-}
-function stat(n, l, cls){
-  return '<div class="stat ' + (cls || "") + '"><div class="n">' + n + '</div><div class="l">'
-    + esc(l) + "</div></div>";
 }
 
 document.getElementById("slatenew").addEventListener("click", () => openIntake("new"));
@@ -4863,8 +4861,6 @@ document.addEventListener("focusout", hideTip);
 /* =========================================================================
    BOOT — sign the person in, load their projects, then run the board.
    ========================================================================= */
-function kindFor(what){ return what; }
-
 document.getElementById("foot").innerHTML =
   "Every note is placed instantly by a built-in matcher, then read more closely by Claude. "
   + "Your projects are saved to your account and follow you between machines — privately: "

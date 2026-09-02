@@ -21,7 +21,7 @@ vercel dev        # local, once the environment variables are set
 ## Layout
 
 ```
-public/     the board, sign-in, settings, admin
+public/     the board, sign-in, settings, admin, terms, privacy
 api/        the metered Claude proxy, projects, account, billing, webhook
-supabase/   schema.sql — run once in the SQL editor
+supabase/   schema.sql — idempotent; re-run in the SQL editor whenever it changes
 ```

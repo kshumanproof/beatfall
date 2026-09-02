@@ -9,7 +9,7 @@ create table if not exists public.profiles (
   id                  uuid primary key references auth.users on delete cascade,
   email               text,
   display_name        text,
-  plan                text not null default 'trial',          -- trial | writer | working | volume | none
+  plan                text not null default 'trial',          -- trial | beatfall | owner | none
   stripe_customer_id  text,
   stripe_subscription_id text,
   subscription_status text,                                    -- trialing | active | past_due | canceled
@@ -47,7 +47,7 @@ create index if not exists projects_user_idx on public.projects (user_id, sort_o
 create table if not exists public.usage (
   id            bigserial primary key,
   user_id       uuid not null references auth.users on delete cascade,
-  kind          text not null,          -- place | conversation | import | ideas | logline | route
+  kind          text not null,          -- conversation | import | ideas | logline | place
   credits       int  not null default 0,
   session_id    text,                   -- multi-turn features bill once per session
 
@@ -70,7 +70,7 @@ create index if not exists usage_time_idx      on public.usage (created_at desc)
 create table if not exists public.events (
   id         bigserial primary key,
   user_id    uuid references auth.users on delete set null,
-  name       text not null,             -- signed_up | first_run_choice | import_done | card_placed …
+  name       text not null,             -- signed_up | first_run_choice | topup | subscription_*
   props      jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );

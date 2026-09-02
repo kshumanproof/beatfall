@@ -7,3 +7,5 @@ node_modules/
 *.log
 _transfer.zip
 _testdata/
+_to_delete/
+handoff/
