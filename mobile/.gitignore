@@ -1,0 +1,21 @@
+node_modules/
+.expo/
+dist/
+dist-web/
+web-build/
+
+# native projects, if `expo prebuild` ever generates them
+/ios
+/android
+
+# secrets never belong in the repo
+.env
+.env.*
+!.env.example
+
+*.log
+npm-debug.*
+yarn-error.*
+
+.DS_Store
+*.orig.*

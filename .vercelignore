@@ -1,0 +1,7 @@
+# The phone app ships to Apple and Google, not to Vercel. Keeping it out of
+# the deployment bundle saves upload time and makes it obvious that nothing
+# under mobile/ is ever served from beatfall.app.
+mobile/
+_to_delete/
+_testdata/
+handoff/

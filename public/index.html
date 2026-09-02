@@ -759,6 +759,59 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .slate-lede em{font-style:normal;color:var(--gold)}
 .slate-sub{font-size:13px;color:var(--ink-3);margin:0 0 38px}
 
+/* ------------------------------------------------------------ scoreboard --
+   Standings, not decoration. A writer opening this should be able to read
+   where they stand in about a second, from across a desk — so the numbers are
+   big, tabular and serif, and the words under them are small enough to stay
+   out of the way until you want them. Gold is still, and only, what's missing.
+
+   Nothing here is a fake trophy. Every figure is a count of something the
+   writer actually did, which is the only kind of score worth keeping. */
+.score{
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+  box-shadow:var(--shadow);margin:0 0 38px;overflow:hidden;
+}
+.score-row{display:flex;flex-wrap:wrap}
+.score-cell{
+  flex:1 1 0;min-width:130px;padding:20px 22px 18px;
+  border-left:1px solid var(--rule-soft);
+}
+.score-cell:first-child{border-left:none}
+.score-n{
+  font-family:var(--serif);font-size:38px;line-height:1;font-weight:600;
+  color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  display:flex;align-items:baseline;gap:6px;
+}
+.score-n .of{font-size:17px;color:var(--ink-4);font-weight:500}
+.score-cell.gap .score-n{color:var(--gold)}
+.score-cell.quiet .score-n{color:var(--ink-3)}
+.score-k{
+  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-4);margin-top:9px;
+}
+.score-note{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.45}
+
+/* The chain. Seven days, filled or not — the one thing on this page that is
+   about showing up rather than about the script. */
+.chain{display:flex;gap:5px;margin-top:12px;align-items:flex-end;height:18px}
+.chain i{
+  flex:0 0 9px;height:9px;border-radius:2px;background:var(--rule);
+  transition:background var(--settle);
+}
+.chain i.on{background:var(--blue)}
+.chain i.today{height:15px;border-radius:2px}
+.chain i.today.off{background:var(--rule);outline:1px solid var(--gold-hair);outline-offset:1px}
+
+.score-bar{height:4px;background:var(--rule-soft);position:relative}
+.score-bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
+
+@media (max-width:899px){
+  .score-cell{flex:1 1 46%;min-width:0;padding:16px 18px 14px}
+  .score-cell:nth-child(odd){border-left:none}
+  .score-cell:nth-child(n+3){border-top:1px solid var(--rule-soft)}
+  .score-n{font-size:30px}
+}
+
 .slate-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
 .slate-h{
   font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
@@ -1283,6 +1336,8 @@ footer{
   <div class="slate-wrap">
     <h2 class="slate-lede" id="slatelede"></h2>
     <p class="slate-sub" id="slatesub"></p>
+
+    <div class="score" id="slatescore"></div>
 
     <div class="slate-head">
       <h2 class="slate-h">Your scripts</h2>
@@ -1862,6 +1917,51 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flush, 700);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}   // crash cushion only
+  markWorked();
+}
+
+/* ------------------------------------------------------------- the chain --
+   A day counts when the writer CHANGED something, not when they looked at the
+   dashboard. So this hangs off save() and nothing else — a streak you can run
+   up by opening a tab is not a streak, it's a lie with a number on it.
+
+   Local to this browser on purpose. It is a private nudge, not a stat we hold
+   over anyone, and it never leaves the machine. */
+const DAYS_KEY = "beatfall.days";
+const dayStamp = (d) => {
+  d = d || new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+       + "-" + String(d.getDate()).padStart(2, "0");
+};
+function workedDays(){
+  try { const a = JSON.parse(localStorage.getItem(DAYS_KEY) || "[]");
+        return Array.isArray(a) ? a : []; } catch(e){ return []; }
+}
+function markWorked(){
+  const today = dayStamp();
+  const days = workedDays();
+  if (days[days.length - 1] === today) return;
+  days.push(today);
+  try { localStorage.setItem(DAYS_KEY, JSON.stringify(days.slice(-90))); } catch(e){}
+}
+// How many days in a row, counting back from today — or from yesterday, so a
+// streak isn't declared broken before the writer has had a chance to sit down.
+function chain(){
+  const set = new Set(workedDays());
+  const day = new Date(); day.setHours(12, 0, 0, 0);
+  const last7 = [];
+  for (let i = 6; i >= 0; i--){
+    const d = new Date(day); d.setDate(d.getDate() - i);
+    last7.push(set.has(dayStamp(d)));
+  }
+  let run = 0;
+  const start = set.has(dayStamp(day)) ? 0 : 1;
+  for (let i = start; i < 90; i++){
+    const d = new Date(day); d.setDate(d.getDate() - i);
+    if (!set.has(dayStamp(d))) break;
+    run++;
+  }
+  return {run, last7, today: set.has(dayStamp(day))};
 }
 
 async function flush(){
@@ -1897,10 +1997,19 @@ function setSaved(msg){
   if (el) el.textContent = msg;
 }
 
+// A project row is data from last month, not a promise about today. Structure
+// keys have been renamed once already, and thirty-odd places in this file do
+// STRUCTURES[proj.structure].slots with no guard — one stale key would throw
+// on render and lock a writer out of their own board with a blank screen.
+// So every row gets checked at the door, and nowhere else has to worry.
+function knownStructure(key){
+  return (key && STRUCTURES[key]) ? key : "stc";
+}
+
 async function load(){
   const rows = await BF.loadProjects();
   const projects = rows.map(r => ({
-    id: r.id, localId: pid++, name: r.name, structure: r.structure,
+    id: r.id, localId: pid++, name: r.name, structure: knownStructure(r.structure),
     brief: r.brief || {}, cards: r.cards || [], outline: r.outline || {},
     touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
   }));
@@ -4414,6 +4523,53 @@ document.getElementById("notesbtn").addEventListener("click", () =>
 document.getElementById("viewtoggle").addEventListener("click", () =>
   setView(state.view === "board" ? "slate" : "board"));
 
+/* The standings. Four counts and a chain, and every one of them is something
+   the writer did — no points, no badges, no invented currency. The gold number
+   is the empty beats, because on this product the hole is the thing.  */
+function renderScore(t){
+  const el = document.getElementById("slatescore");
+  if (!el) return;
+
+  let filled = 0, total = 0;
+  state.projects.forEach(p => { const c = coverage(p); filled += c.filled; total += c.total; });
+
+  const ch = chain();
+  const pct = total ? Math.round((filled / total) * 100) : 0;
+
+  const cell = (n, of, key, kind, note) =>
+    '<div class="score-cell' + (kind ? " " + kind : "") + '">'
+      + '<div class="score-n">' + n + (of ? '<span class="of">' + of + "</span>" : "") + "</div>"
+      + '<div class="score-k">' + key + "</div>"
+      + (note ? '<div class="score-note">' + note + "</div>" : "")
+    + "</div>";
+
+  const chainDots = ch.last7.map((on, i) =>
+    '<i class="' + (on ? "on" : "off") + (i === 6 ? " today" : "") + '"></i>').join("");
+
+  const runNote = ch.run > 1
+    ? (ch.today ? "Don’t break it." : "Yesterday counted. Today hasn’t yet.")
+    : ch.today ? "Started today." : "A day you change something counts.";
+
+  el.innerHTML =
+      '<div class="score-row">'
+    + cell(filled, " / " + total, "Beats filled", "",
+           total ? pct + "% of the way across " + (state.projects.length === 1
+                    ? "your board" : "your boards") : "No structure yet.")
+    + cell(t.empty, "", "Still empty", "gap",
+           t.empty ? "Where the work is." : "Nothing left open.")
+    + cell(t.cards, "", "Cards written", "quiet",
+           t.cards === 1 ? "One so far." : "Beats and notes together.")
+    + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'
+        + '<div class="score-n">' + ch.run + '<span class="of">'
+        + (ch.run === 1 ? "day" : "days") + "</span></div>"
+        + '<div class="score-k">In a row</div>'
+        + '<div class="chain">' + chainDots + "</div>"
+        + '<div class="score-note">' + runNote + "</div>"
+      + "</div>"
+    + "</div>"
+    + '<div class="score-bar"><i style="width:' + pct + '%"></i></div>';
+}
+
 function renderSlate(){
   const grid = document.getElementById("slategrid");
   grid.innerHTML = "";
@@ -4453,6 +4609,8 @@ function renderSlate(){
     ? (stalled === 1 ? "One has" : stalled + " have") + " been sitting untouched for three weeks."
     : "Nothing has gone cold.");
   document.getElementById("slatesub").textContent = sub.join(" ");
+
+  renderScore({cards, empty, holes});
 
   state.projects.forEach(p => {
     const c = coverage(p);
