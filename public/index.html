@@ -118,15 +118,18 @@ header{
   position:sticky;top:0;z-index:40;
 }
 .topline{
-  max-width:1560px;margin:0 auto;height:60px;padding:0 28px;
-  display:flex;align-items:center;gap:18px;
+  max-width:1680px;margin:0 auto;height:76px;padding:0 34px;
+  display:flex;align-items:center;gap:20px;
 }
+/* The name of the thing, at the size a masthead is set. Everything else in
+   this bar is a control; this is the only object. */
 .wordmark{
-  font-family:var(--serif);font-weight:600;font-size:22px;
-  letter-spacing:-.012em;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
+  font-family:var(--serif);font-weight:600;font-size:29px;
+  letter-spacing:-.016em;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
+  line-height:1;
 }
 .wordmark span{color:var(--blue)}
-.hsep{width:1px;height:20px;background:var(--rule);flex:0 0 auto}
+.hsep{width:1px;height:26px;background:var(--rule);flex:0 0 auto}
 .grow{flex:1 1 auto;min-width:8px}
 .tagline{display:none}
 
@@ -144,7 +147,14 @@ header{
 .projbtn svg{flex:0 0 auto}
 .fmtline{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
 @media (max-width:1180px){ .fmtline{display:none} }
-#savestate{font-size:11px;color:var(--ink-4);letter-spacing:.02em;white-space:nowrap}
+/* Only ever seen when something is wrong — see setSaved(). Sized and coloured
+   to be noticed across a room, because by the time it appears the writer's
+   work exists in one browser tab and nowhere else. */
+#savestate{
+  font-size:11.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+  color:var(--gold);background:var(--gold-soft);border:1px solid var(--gold-hair);
+  border-radius:var(--r-ctl);padding:4px 9px;
+}
 
 .tally{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
 .tally b{font-weight:400;font-size:12.5px;color:var(--ink-2)}
@@ -157,11 +167,16 @@ header{
 }
 .navlink:hover{color:var(--ink)}
 .navlink.on{color:var(--blue);font-weight:500}
+/* Bottom-left corner, always reachable, never in the way. It sits at the same
+   height as the middle of the capture dock, so on a board it reads as part of
+   that rail rather than as something floating over it. */
+.acct{position:fixed;left:22px;bottom:18px;z-index:45}
 .avatar{
-  width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;flex:0 0 auto;
+  width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;flex:0 0 auto;
   background:var(--blue);color:var(--on-blue);
-  font-size:11.5px;font-weight:600;letter-spacing:.02em;
+  font-size:12.5px;font-weight:600;letter-spacing:.02em;
   display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--shadow);
 }
 .avatar:hover{box-shadow:0 0 0 3px var(--blue-soft)}
 .avatar.open{box-shadow:0 0 0 3px var(--blue-soft)}
@@ -174,6 +189,8 @@ header{
 }
 .pop.right{right:0}
 .pop.left{left:-8px}
+/* Anchored to the bottom of the screen, so it has to grow upward. */
+.pop.up{top:auto;bottom:calc(100% + 9px)}
 .pop.wide{width:300px}
 .pophead{
   font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.14em;
@@ -260,7 +277,7 @@ select:focus{border-color:var(--blue);outline:none}
 .capture{
   position:fixed;left:0;right:0;bottom:0;z-index:35;height:68px;
   border-top:1px solid var(--rule);background:var(--surface);
-  display:flex;align-items:center;gap:14px;padding:0 28px;
+  display:flex;align-items:center;gap:14px;padding:0 28px 0 72px;   /* left clears .acct */
 }
 .capture-lede{display:none}
 .capture-row{display:flex;align-items:center;gap:14px;flex:1;max-width:1560px;margin:0 auto;width:100%}
@@ -973,7 +990,7 @@ footer{
 
 @media (max-width:760px){
   /* the header was overlapping itself: let it wrap rather than collide */
-  .topline{padding:10px 16px;gap:8px 14px;height:auto;flex-wrap:wrap}
+  .topline{padding:12px 16px;gap:8px 14px;height:auto;flex-wrap:wrap}
   .hsep{display:none}
   .projbar{order:2;flex-basis:100%;margin-top:-2px}
   .projbtn{max-width:100%}
@@ -981,8 +998,10 @@ footer{
   .tally{order:3;margin-left:auto}
   main,.trays{padding-left:16px;padding-right:16px}
   main{padding-top:20px}
-  .capture{padding:0 16px;height:64px}
+  .capture{padding:0 16px 0 58px;height:64px}   /* still clears .acct */
   .capture .btn-ghost{display:none}
+  .acct{left:14px;bottom:16px}
+  .wordmark{font-size:24px}
   .slate-wrap,.outline-wrap{padding-left:16px;padding-right:16px}
   .slate-lede{font-size:26px}
   .pcard{width:100%}
@@ -1052,7 +1071,7 @@ footer{
       </div>
     </div>
 
-    <span id="savestate"></span>
+    <span id="savestate" hidden role="status" aria-live="polite"></span>
     <div class="grow"></div>
 
     <span class="tally" id="tally" hidden
@@ -1063,12 +1082,17 @@ footer{
     <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
     <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat — character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
     <button class="navlink" id="viewtoggle" data-tip="Every project at once — how far along each one is, and where you left off.">Dashboard</button>
+  </div>
+</header>
 
-    <div style="position:relative">
+<!-- The account lives in the bottom-left corner, out of the way of the work.
+     It is the one control that has nothing to do with the story on screen, so
+     it does not belong in the line of things that do. -->
+<div class="acct" id="acct">
       <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false"
         data-tip="Your account, plan, credits and settings.">K</button>
 
-      <div class="pop right" id="acctmenu" hidden>
+      <div class="pop up left" id="acctmenu" hidden>
         <div class="popwho">
           <div class="n" id="whoname">Your account</div>
           <div class="e" id="whoemail"></div>
@@ -1108,9 +1132,7 @@ footer{
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M6.2 13.4H3.4V2.6h2.8M9.6 11l2.9-3-2.9-3M12.5 8H6.6"/></svg>
           Sign out</button>
       </div>
-    </div>
-  </div>
-</header>
+</div>
 
 <div class="scrim" id="scrim" hidden>
 
@@ -1992,9 +2014,23 @@ window.addEventListener("beforeunload", e => {
   if (dirty.size){ flush(); e.preventDefault(); e.returnValue = ""; }
 });
 
+/* Silence when it works, and only then.
+
+   A permanent "saved" in the corner is noise: it is true almost all of the
+   time, so it stops being read, and the one moment it changes to something
+   that matters is the moment nobody is looking. Worse, it made the failure
+   case a whisper — eleven pixels of grey saying the writer's last half hour
+   is sitting in a browser tab and nowhere else.
+
+   So: nothing at all while saving is working, and a mark you cannot miss when
+   it isn't. `bad` is the only state this element has. */
 function setSaved(msg){
   const el = document.getElementById("savestate");
-  if (el) el.textContent = msg;
+  if (!el) return;
+  const trouble = msg && msg !== "saved";
+  el.textContent = trouble ? msg : "";
+  el.classList.toggle("bad", !!trouble);
+  el.hidden = !trouble;
 }
 
 // A project row is data from last month, not a promise about today. Structure
@@ -4500,18 +4536,22 @@ function setView(v, quiet){
   boardview.hidden   = !onBoard;
   document.querySelector(".capture").hidden = !onBoard;
   document.querySelector(".projbar").hidden = v === "slate";
+  // The rule divides the wordmark from the script's name. With no script on
+  // screen it divides nothing, and reads as a dangling stroke after the mark.
+  document.querySelector(".hsep").hidden = v === "slate";
   document.getElementById("tally").hidden   = v === "slate";
   // Outline and Notes belong to a script, not to the shelf of them
   document.getElementById("outlinebtn").hidden = v === "slate";
   document.getElementById("notesbtn").hidden   = v === "slate";
   // "Empty this board" acts on one board; it has no meaning on the slate.
   document.getElementById("clear").hidden = v === "slate";
-  document.getElementById("viewtoggle").textContent = onBoard ? "Dashboard" : "Back to the board";
+  // A one-way door. You leave the dashboard by opening a script, not by a
+  // button that changes its own name depending on where you happen to be.
+  document.getElementById("viewtoggle").hidden = v === "slate";
   closePops();
   // the header says where you are
   document.getElementById("outlinebtn").classList.toggle("on", v === "outline");
   document.getElementById("notesbtn").classList.toggle("on", v === "notes");
-  document.getElementById("viewtoggle").classList.toggle("on", v === "slate");
   if (v === "slate"){ hideAll(); renderSlate(); }
   else if (v === "notes"){ hideAll(); render(); renderNotes(); }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
@@ -4520,8 +4560,7 @@ function setView(v, quiet){
 }
 document.getElementById("notesbtn").addEventListener("click", () =>
   setView(state.view === "notes" ? "board" : "notes"));
-document.getElementById("viewtoggle").addEventListener("click", () =>
-  setView(state.view === "board" ? "slate" : "board"));
+document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
 
 /* The standings. Four counts and a chain, and every one of them is something
    the writer did — no points, no badges, no invented currency. The gold number
