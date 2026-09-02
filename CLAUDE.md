@@ -118,17 +118,25 @@ He likes the "two scripts open…" sentence; it stays. Above the project cards:
 four counts — beats filled / total, still empty (gold), beats placed this week,
 days in a row — over a seven-day chain of dots and a progress rail.
 
-The third cell has been wrong twice, and both misses are worth remembering.
-It first read "Cards written" and counted every card in the project, so a
-pasted notes file showed up as **171** things Kris had supposedly written — it
-flattered and it confused. Replaced with "This week" (beats placed in seven
-days), which he rejected in turn: on a quiet week it is a zero that scolds, and
-a count of your own past effort is not an incentive. It now reads **Notes to
-sort** — the pile on the shelf, raw material with a number on it, and that
-number is a reason to open the board.
+The third cell was wrong three times, and the sequence is the lesson:
 
-The lesson: a scoreboard figure has to point somewhere. Two of the three
-attempts pointed backwards at the writer.
+1. **"Cards written"** counted every card in the project, so a pasted notes
+   file showed up as **171** things Kris had supposedly written. Flattering and
+   confusing.
+2. **"This week"** — beats placed in seven days. He rejected it: on a quiet
+   week it is a zero that scolds, and a count of your own past effort is not an
+   incentive.
+3. **"Notes to sort"** — honest, but 158 unsorted notes is a wall. "Daunting"
+   was his word, and he was right.
+4. **"Nearly finished"** — the one script closest to a full board, named, with
+   its bar, its percentage, the beats left and the next hole. Double width,
+   because a title is not a number and will not live in a number's column. The
+   title opens that board.
+
+Every rejected version pointed backwards at the writer or at the size of the
+pile. The one that stuck points at the single next thing worth an hour. A
+scoreboard figure has to point somewhere, and forward is the only direction
+that helps.
 
 The chain hangs off `save()`, never off a render: a day counts when the writer
 changed something, not when they opened a tab. `beatfall.days` in `localStorage`
@@ -137,14 +145,16 @@ changed something, not when they opened a tab. `beatfall.days` in `localStorage`
 No points, no badges, no invented currency. Every figure is a count of something
 they actually did.
 
-Below the strip: **Closest to done** — the script nearest a full board, with its
-bar, the exact number of beats left, and the next hole to fill; the title opens
-it. On a shelf of half-finished things the useful question is never "how are
-they all doing", it is "which one is nearly there". A finished board steps aside
-for the next one behind it (it is done, not closest to done). With a single
-script the label becomes "Where you are" — Kris explicitly wanted it visible
-even with one project, so it never hides on project count, only when there is
-genuinely nothing to point at.
+This lived briefly as a separate band under the strip; it belongs in the strip.
+A finished board steps aside for the next one behind it — complete is not
+"nearly finished", it is finished — and if nothing is started the cell says so
+instead of showing a leader among zero. Cell 1 dropped its "% of the way" note
+when this landed, because the percentage is now said here.
+
+Watch the cascade: `.score-cell.wide`'s narrow-screen override must sit AFTER
+the desktop rule in the file. A media query adds no specificity; source order
+is all that decides, and the override was silently losing at every width until
+the block was moved down.
 
 **The lockup.** The mark's bottom edge IS the bottom of the lowest card, and a
 replaced element's baseline is its bottom edge, so `.brand` uses

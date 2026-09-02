@@ -830,48 +830,41 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .score-bar{height:4px;background:var(--rule-soft);position:relative}
 .score-bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
 
+/* The nearly-finished cell. Wider than its neighbours because it carries a
+   title, and a title is not a number — it will not live in a number's column. */
+.score-cell.wide{flex:2.1 1 0;min-width:230px}
+.score-cell.wide .score-k{margin-top:0;margin-bottom:7px}
+.score-name{
+  font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.014em;
+  line-height:1.15;color:var(--ink);background:none;border:none;padding:0;
+  cursor:pointer;text-align:left;display:block;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.score-name:hover{color:var(--blue)}
+.score-line{display:flex;align-items:center;gap:11px;margin-top:10px;flex-wrap:wrap}
+.score-line .lbar{
+  flex:1 1 90px;min-width:70px;height:5px;background:var(--rule-soft);
+  border-radius:3px;overflow:hidden;
+}
+.score-line .lbar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
+.score-pct{
+  font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.score-left{font-size:12px;color:var(--gold);font-weight:600;white-space:nowrap}
+.score-cell.wide .score-note{margin-top:7px}
+.score-cell.wide .score-note b{color:var(--ink-2);font-weight:600}
+
+/* Stacked, so the wide cell takes a row of its own. This block has to sit
+   AFTER the rules it overrides — a media query adds no specificity, only
+   source order decides. */
 @media (max-width:899px){
   .score-cell{flex:1 1 46%;min-width:0;padding:16px 18px 14px}
+  .score-cell.wide{flex:1 1 100%;min-width:0;border-left:none;border-top:1px solid var(--rule-soft)}
   .score-cell:nth-child(odd){border-left:none}
   .score-cell:nth-child(n+3){border-top:1px solid var(--rule-soft)}
   .score-n{font-size:30px}
-}
-
-/* ---------------------------------------------------------- the leader --
-   Which script is closest to done. On a shelf of half-finished things the
-   useful question is never "how are they all doing" — it's "which one is
-   nearly there", because that is the one worth an hour tonight. It names the
-   script, says exactly how many beats stand between it and a full board, and
-   offers the next one to go and fill. */
-.leader{
-  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
-  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
-  box-shadow:var(--shadow);padding:18px 22px;margin:0 0 38px;
-}
-.leader .lk{
-  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
-  letter-spacing:.14em;color:var(--ink-4);white-space:nowrap;
-}
-.leader .lname{
-  font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.012em;
-  color:var(--ink);background:none;border:none;padding:0;cursor:pointer;text-align:left;
-}
-.leader .lname:hover{color:var(--blue)}
-.leader .lbar{
-  flex:1 1 180px;min-width:120px;height:5px;background:var(--rule-soft);
-  border-radius:3px;overflow:hidden;
-}
-.leader .lbar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
-.leader .lpct{
-  font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink-2);
-  font-variant-numeric:tabular-nums;
-}
-.leader .lgo{font-size:12.5px;color:var(--gold);font-weight:600;white-space:nowrap}
-.leader .lnext{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
-.leader .lnext b{color:var(--ink-2);font-weight:600}
-@media (max-width:899px){
-  .leader{gap:12px 18px}
-  .leader .lbar{flex-basis:100%}
+  .score-name{font-size:21px}
 }
 
 /* The two ways in. A matched pair — same size, same shape, same weight — so
@@ -1441,7 +1434,6 @@ footer{
     <h2 class="slate-lede" id="slatelede"></h2>
 
     <div class="score" id="slatescore"></div>
-    <div class="leader" id="slateleader" hidden></div>
 
     <div class="slate-head">
       <h2 class="slate-h">Your scripts</h2>
@@ -4662,9 +4654,18 @@ function renderScore(t){
 
   const ch = chain();
   const pct = total ? Math.round((filled / total) * 100) : 0;
-  // Everything sitting in Notes and Set Aside: raw material, not work done.
-  const waiting = state.projects.reduce((n, p) =>
-    n + p.cards.filter(c => c.slot === "__shelf").length, 0);
+
+  // The script nearest a full board. Not the one with the most cards — a board
+   // at 80% with three beats left is closer to done than one holding sixty
+   // notes and no structure filled. A finished board steps aside for the next
+   // one behind it: complete is not "nearly finished", it is finished.
+  let lead = null;
+  state.projects.forEach(p => {
+    const c = coverage(p);
+    if (c.pct <= 0 || c.filled >= c.total) return;
+    if (!lead || c.pct > lead.c.pct
+        || (c.pct === lead.c.pct && (p.touched || 0) > (lead.p.touched || 0))) lead = {p, c};
+  });
 
   const cell = (n, of, key, kind, note) =>
     '<div class="score-cell' + (kind ? " " + kind : "") + '">'
@@ -4676,6 +4677,28 @@ function renderScore(t){
   const chainDots = ch.last7.map((on, i) =>
     '<i class="' + (on ? "on" : "off") + (i === 6 ? " today" : "") + '"></i>').join("");
 
+  function nearly(){
+    if (!lead) return '<div class="score-cell wide quiet">'
+      + '<div class="score-k">Nearly finished</div>'
+      + '<div class="score-note">'
+      + (state.projects.some(p => { const c = coverage(p); return c.filled >= c.total; })
+          ? "Every board you\u2019ve started is full."
+          : "Nothing started yet. Put one card on a board and this fills in.")
+      + "</div></div>";
+    const left = lead.c.total - lead.c.filled;
+    const nx = nextHole(lead.p);
+    return '<div class="score-cell wide">'
+      + '<div class="score-k">Nearly finished</div>'
+      + '<button class="score-name" data-tip="Open this board.">' + esc(lead.p.name) + "</button>"
+      + '<div class="score-line">'
+        + '<div class="lbar"><i style="width:' + lead.c.pct + '%"></i></div>'
+        + '<span class="score-pct">' + lead.c.pct + "%</span>"
+        + '<span class="score-left">' + left + " beat" + (left === 1 ? "" : "s") + " to go</span>"
+      + "</div>"
+      + (nx ? '<div class="score-note">Next &mdash; <b>' + esc(nx.name) + "</b></div>" : "")
+      + "</div>";
+  }
+
   const runNote = ch.run > 1
     ? (ch.today ? "Don’t break it." : "Yesterday counted. Today hasn’t yet.")
     : ch.today ? "Started today." : "A day you change something counts.";
@@ -4683,17 +4706,20 @@ function renderScore(t){
   el.innerHTML =
       '<div class="score-row">'
     + cell(filled, " / " + total, "Beats filled", "",
-           total ? pct + "% of the way across " + (state.projects.length === 1
-                    ? "your board" : "your boards") : "No structure yet.")
+           total ? "across " + (state.projects.length === 1
+                    ? "your board" : "your " + state.projects.length + " boards")
+                 : "No structure yet.")
     + cell(t.empty, "", "Still empty", "gap",
            t.empty ? "Where the work is." : "Nothing left open.")
-    /* This cell read "Cards written" and counted every card in the project,
-       so a pasted notes file showed up as 171 things the writer had supposedly
-       written. Then it read "This week", which on a quiet week is a zero that
-       scolds. What is actually here is a pile of raw material with a number on
-       it, and that number is the reason to open the board. */
-    + cell(waiting, "", "Notes to sort", "quiet",
-           waiting ? "Raw material, not yet on a beat." : "Nothing left on the shelf.")
+    /* This slot has been wrong twice. It read "Cards written" and counted every
+       card in the project, so a pasted notes file showed up as 171 things the
+       writer had supposedly written. Then "This week", which on a quiet week is
+       a zero that scolds. Then "Notes to sort" — honest, but 158 unsorted notes
+       is a wall, not a nudge.
+       What belongs here is the one script that is nearly there, named, because
+       that is the thing worth an hour tonight. It gets double width: a title is
+       not a number and will not live in a number's column. */
+    + nearly()
     + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'
         + '<div class="score-n">' + ch.run + '<span class="of">'
         + (ch.run === 1 ? "day" : "days") + "</span></div>"
@@ -4703,51 +4729,14 @@ function renderScore(t){
       + "</div>"
     + "</div>"
     + '<div class="score-bar"><i style="width:' + pct + '%"></i></div>';
-}
 
-/* Which script is nearest the finish. Deliberately not "the one with the most
-   cards" — a script at 80% with three beats left is closer to done than one
-   with sixty notes and no structure filled.
-
-   Two rules keep it honest. A board that is already complete is not "closest
-   to done", it is done, so it steps aside for the next one behind it — and if
-   every board is complete the band has nothing to say and hides. With a single
-   script "closest to done" is a strange thing to say about the only one, so the
-   label changes and the fact stays. */
-function renderLeader(){
-  const el = document.getElementById("slateleader");
-  if (!el) return;
-
-  const hide = () => { el.hidden = true; el.innerHTML = ""; };
-
-  let best = null;
-  state.projects.forEach(p => {
-    const c = coverage(p);
-    if (c.pct <= 0 || c.filled >= c.total) return;      // nothing started, or finished
-    if (!best || c.pct > best.c.pct
-        || (c.pct === best.c.pct && (p.touched || 0) > (best.p.touched || 0))) {
-      best = {p, c};
-    }
+  // The title is the way in: naming the script that's nearly there and then
+  // making the writer go find it in the list below would be a poor joke.
+  const name = el.querySelector(".score-name");
+  if (name && lead) name.addEventListener("click", () => {
+    state.activeId = lead.p.id || lead.p.localId;
+    setView("board");
   });
-  if (!best) return hide();
-
-  const left = best.c.total - best.c.filled;
-  const nx = nextHole(best.p);
-
-  el.hidden = false;
-  el.innerHTML =
-      '<span class="lk">'
-    + (state.projects.length > 1 ? "Closest to done" : "Where you are")
-    + "</span>"
-    + '<button class="lname">' + esc(best.p.name) + "</button>"
-    + '<div class="lbar"><i style="width:' + best.c.pct + '%"></i></div>'
-    + '<span class="lpct">' + best.c.pct + "%</span>"
-    + '<span class="lgo">' + left + " beat" + (left === 1 ? "" : "s") + " to go</span>"
-    + (nx ? '<span class="lnext">Next &mdash; <b>' + esc(nx.name) + "</b></span>" : "");
-
-  const open = () => { state.activeId = best.p.id || best.p.localId; setView("board"); };
-  el.querySelector(".lname").addEventListener("click", open);
-  el.querySelector(".lname").setAttribute("data-tip", "Open this board.");
 }
 
 function renderSlate(){
@@ -4780,7 +4769,6 @@ function renderSlate(){
 
   // How far along one script is, and whether it has gone cold, are facts about
   // that script. They belong on its own page, not on the shelf of all of them.
-  renderLeader();
   renderScore({empty});
 
   state.projects.forEach(p => {
