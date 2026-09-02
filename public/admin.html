@@ -121,9 +121,11 @@ async function load(days) {
       <div><span>Median</span><b>${BF.money(m.median)}</b></div>
       <div><span>90th percentile</span><b>${BF.money(m.p90)}</b></div>
       <div><span>Heaviest</span><b>${BF.money(m.max)}</b></div></div>
-    <div class="cap"><h3>Current plans</h3>
-      ${['writer','working','volume'].map(k =>
-        `<div><span>${d.plans[k].name} · $${d.plans[k].price}</span><b>${d.plans[k].credits}</b></div>`).join('')}
+    <div class="cap"><h3>Current plan</h3>
+      <div><span>Trial · 14 days, no card</span><b>${d.plans.trial.credits}</b></div>
+      <div><span>Beatfall · $12 a month</span><b>${d.plans.beatfall.credits}</b></div>
+      <div><span>Beatfall · $99 a year</span><b>${d.plans.beatfall.credits}</b></div>
+      <div><span>Top-up · $6 one-off</span><b>100</b></div>
     </div>`;
 
   const ev = Object.entries(d.events || {}).sort((a,b) => b[1]-a[1]);

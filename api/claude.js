@@ -20,7 +20,18 @@ export default async function handler(req, res) {
 
   const body = await readBody(req);
   const kind = String(body.kind || 'conversation');
-  const credits = COST[kind] ?? 1;
+  const session = typeof body.session === 'string' ? body.session.slice(0, 60) : null;
+  let credits = COST[kind] ?? 1;
+
+  // A multi-turn feature sends the same session id on every call. The first
+  // one pays; the rest of the conversation is free. Checked server-side so it
+  // can't be gamed from the browser.
+  if (credits > 0 && session) {
+    const { data: already } = await db.from('usage')
+      .select('id').eq('user_id', user.id).eq('session_id', session).limit(1);
+    if (already && already.length) credits = 0;
+  }
+
   const ent = entitlement(profile);
 
   if (ent.key === 'none') {
@@ -89,7 +100,7 @@ export default async function handler(req, res) {
 
   // ---- record what it cost ----------------------------------------------
   await db.from('usage').insert({
-    user_id: user.id, kind, credits, model: MODEL,
+    user_id: user.id, kind, credits, model: MODEL, session_id: session,
     tokens_in: tin, tokens_out: tout, cost_micros: costMicros(tin, tout)
   });
   if (credits > 0) {

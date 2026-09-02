@@ -47,13 +47,17 @@ create table if not exists public.usage (
   user_id       uuid not null references auth.users on delete cascade,
   kind          text not null,          -- place | conversation | import | ideas | logline | route
   credits       int  not null default 0,
+  session_id    text,                   -- multi-turn features bill once per session
+
   model         text,
   tokens_in     int  not null default 0,
   tokens_out    int  not null default 0,
   cost_micros   bigint not null default 0,   -- millionths of a dollar, so no float drift
   created_at    timestamptz not null default now()
 );
+alter table public.usage add column if not exists session_id text;
 create index if not exists usage_user_time_idx on public.usage (user_id, created_at desc);
+create index if not exists usage_session_idx    on public.usage (user_id, session_id);
 create index if not exists usage_time_idx      on public.usage (created_at desc);
 
 -- ------------------------------------------------------------------ events --

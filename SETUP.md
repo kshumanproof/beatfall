@@ -58,16 +58,19 @@ works.
 
 Leave the **Test mode** toggle ON for the whole of this section.
 
-1. **Products → Add product**, three times:
-   - Writer — $19 / month recurring
-   - Working — $29 / month recurring
-   - Volume — $39 / month recurring
+1. **Products → Add product**. One product called **Beatfall**, with two
+   recurring prices on it:
+   - $12 / month
+   - $99 / year
 
-   Then one more, **one-off**: Top-up — $6 one time.
+   Then a second product, **one-off**: Top-up — $6 one time, 100 credits.
 
    Open each price and copy its **price id** (`price_…`) →
-   `STRIPE_PRICE_WRITER`, `STRIPE_PRICE_WORKING`, `STRIPE_PRICE_VOLUME`,
-   `STRIPE_PRICE_TOPUP`.
+   `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, `STRIPE_PRICE_TOPUP`.
+
+   The fourteen-day trial is **not** configured in Stripe. It runs card-free
+   in the app itself, from the day someone signs up. Adding a Stripe trial on
+   top would hand out the same fourteen days twice.
 2. **Developers → API keys →** copy the **Secret key** (`sk_test_…`) →
    `STRIPE_SECRET_KEY` **SERVER ONLY**
 3. **Settings → Billing → Customer portal →** click **Activate**. Allow
@@ -145,7 +148,7 @@ point, which is why they're on it.
 
 ## 8. When you go live
 
-1. Stripe: flip off Test mode, recreate the four products, swap the four price
+1. Stripe: flip off Test mode, recreate the products, swap the three price
    ids and `STRIPE_SECRET_KEY` in Vercel, and create the webhook again in live
    mode for a new `STRIPE_WEBHOOK_SECRET`. **Test-mode ids do not work in live
    mode** — this is the step everyone forgets.
@@ -182,11 +185,18 @@ cent and it's the core habit — charging for it would make people hesitate befo
 capturing an idea, which would break the product. Conversations and notes-file
 imports are what get metered.
 
+**A credit is one piece of work, not one message.** A conversation costs one
+credit whether it takes two questions or five. Every turn carries the same
+session id and `api/claude.js` bills only the first — charging per turn would
+teach writers to answer tersely to save money, which starves the feature of the
+input it needs.
+
 ## The numbers to watch, once testers are in
 
 `/admin.html` shows credits and API cost per active user at the median, 75th and
-90th percentile. **Set the tier caps from those, not from the guesses currently
-in the code.** A cap near the 90th percentile means almost nobody ever discovers
-there is one.
+90th percentile. **Set the allowance from those, not from the guesses currently in the code.**
+A cap near the 90th percentile means almost nobody ever discovers there is one.
+Tiers are a thing to introduce once that distribution is real — the machinery is
+already in `PLANS` and dormant.
 
 To change them: `api/_lib/core.js`, the `PLANS` object.

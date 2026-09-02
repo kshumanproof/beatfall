@@ -121,6 +121,8 @@
       const body = {
         input,
         kind: opts.kind || 'conversation',
+        // every turn of one conversation carries the same id, so it bills once
+        session: opts.session || null,
         maxTokens: opts.maxTokens
       };
       const res = await BF.api('/api/claude', {

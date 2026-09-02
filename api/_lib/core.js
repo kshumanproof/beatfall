@@ -15,14 +15,25 @@ export const admin = () => createClient(
 // Credits are the metered unit. Placing a note is free — it costs a fifth of a
 // cent and it's the core habit; making someone hesitate before capturing an
 // idea would break the product. Conversations and imports are what we count.
+// One paid plan. Tiers are a thing you introduce once you can see a real usage
+// distribution on /admin.html — not something a buyer should have to guess at
+// before they have used the product once.
 export const PLANS = {
-  trial:   { name: 'Trial',   credits: 40,  price: 0  },
-  writer:  { name: 'Writer',  credits: 100, price: 19 },
-  working: { name: 'Working', credits: 300, price: 29 },
-  volume:  { name: 'Volume',  credits: 800, price: 39 },
-  none:    { name: 'No plan', credits: 0,   price: 0  }
+  trial:    { name: 'Trial',    credits: 25,  price: 0  },
+  beatfall: { name: 'Beatfall', credits: 150, price: 12 },
+  none:     { name: 'No plan',  credits: 0,   price: 0  }
 };
 
+export const PAID_PLAN   = 'beatfall';
+export const PRICE_MONTH = 12;
+export const PRICE_YEAR  = 99;
+export const TOPUP_CREDITS = 100;
+export const TOPUP_PRICE   = 6;
+
+// A credit is one piece of work, not one message. A conversation costs the
+// same whether it takes two questions or five — charging per turn would teach
+// writers to answer in three words to save money, which wrecks the input the
+// whole feature depends on. Calls carrying a session id are billed once.
 export const COST = {           // credits per action
   place: 0, route: 0,
   conversation: 1, ideas: 1, logline: 1,

@@ -6,7 +6,7 @@
 // Vercel must not parse the body for us, or the signature check fails.
 // ============================================================================
 import Stripe from 'stripe';
-import { admin, PLANS } from './_lib/core.js';
+import { admin, PAID_PLAN } from './_lib/core.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -20,9 +20,8 @@ const raw = async (req) => {
 function planFromSubscription(sub) {
   const priceId = sub?.items?.data?.[0]?.price?.id;
   const map = {
-    [process.env.STRIPE_PRICE_WRITER]:  'writer',
-    [process.env.STRIPE_PRICE_WORKING]: 'working',
-    [process.env.STRIPE_PRICE_VOLUME]:  'volume'
+    [process.env.STRIPE_PRICE_MONTHLY]: PAID_PLAN,
+    [process.env.STRIPE_PRICE_ANNUAL]:  PAID_PLAN
   };
   return map[priceId] || null;
 }

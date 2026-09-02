@@ -63,7 +63,8 @@
       <div class="kinds" id="kinds"></div>
       <p class="muted" style="margin-top:14px;max-width:66ch">
         Placing a note is free and always will be — it's the whole point of the app.
-        A conversation costs one credit and reading in a notes file costs two.
+        A whole conversation costs one credit however many questions it takes, and
+        reading in a notes file costs two.
         If you run out, everything except the AI keeps working and your credits reset on the 1st.
       </p>
     </div>
@@ -75,7 +76,7 @@
       <div class="row" style="margin-top:16px">
         <button class="btn" id="portal">Manage billing</button>
         <button class="btn" id="topup">Top up 100 credits — $6</button>
-        <span class="muted">Cancelling, changing card and switching tier all happen on Stripe's own pages.</span>
+        <span class="muted">Cancelling, changing card and switching between monthly and annual all happen on Stripe's own pages.</span>
       </div>
     </div>
 
@@ -126,11 +127,12 @@ function flash(kind, msg){
   el.className = 'note ' + kind; el.innerHTML = msg; el.hidden = false;
 }
 
-const PLAN_BLURB = {
-  writer:  'One script at a time, with room to think.',
-  working: 'Several projects on the go at once.',
-  volume:  'Writing at pace — episodic, vertical, a full slate.'
-};
+const PERIODS = [
+  { key:'month', label:'Monthly',  price:'$12', per:'a month',
+    note:'Cancel any time, from your own billing page.' },
+  { key:'year',  label:'Annual',   price:'$99', per:'a year',
+    note:'Two and a half months free, paid once.' }
+];
 
 (async function () {
   if (!await BF.requireSession()) return;
@@ -183,29 +185,30 @@ const PLAN_BLURB = {
       + `the board works normally — it's the writing help that's switched off.`;
   } else {
     note.className = 'note info';
-    note.innerHTML = `<b>${me.plan_name} — $${me.price} a month.</b> `
+    note.innerHTML = `<b>You're subscribed. Thank you — genuinely.</b> `
       + (me.subscription_status === 'past_due'
           ? 'Your last payment failed. Update your card under Manage billing to keep the AI on.'
-          : 'Thank you — genuinely.');
+          : `${me.credits_allowance} credits a month, and everything on the board stays free.`);
   }
 
-  document.getElementById('plans').innerHTML = ['writer','working','volume'].map(k => {
-    const p = me.plans[k];
-    const current = me.plan === k;
-    return `<div class="plan ${current ? 'current' : ''}">
-      <h3>${p.name}</h3>
-      <div class="price">$${p.price} / month · ${p.credits} credits</div>
-      <div class="what">${PLAN_BLURB[k]}</div>
-      ${current ? '<button class="btn" disabled>Your plan</button>'
-                : `<button class="btn ${k==='writer'?'btn-primary':''}" data-plan="${k}">Choose ${p.name}</button>`}
-    </div>`;
-  }).join('');
+  const paid = (me.plans && me.plans.beatfall) || { credits: 150 };
+  const subscribed = me.plan === 'beatfall';
 
-  document.querySelectorAll('[data-plan]').forEach(b => b.addEventListener('click', async () => {
+  document.getElementById('plans').innerHTML = PERIODS.map((p, i) => `
+    <div class="plan ${subscribed ? '' : (i === 1 ? 'current' : '')}">
+      <h3>${p.label}</h3>
+      <div class="price">${p.price} ${p.per} · ${paid.credits} credits a month</div>
+      <div class="what">${p.note}</div>
+      ${subscribed
+        ? '<button class="btn" disabled>Manage below</button>'
+        : `<button class="btn ${i === 1 ? 'btn-primary' : ''}" data-period="${p.key}">Choose ${p.label.toLowerCase()}</button>`}
+    </div>`).join('');
+
+  document.querySelectorAll('[data-period]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
     try {
       const { url } = await BF.api('/api/billing', {
-        method:'POST', body: JSON.stringify({ action:'checkout', plan: b.dataset.plan }) });
+        method:'POST', body: JSON.stringify({ action:'checkout', period: b.dataset.period }) });
       location.href = url;
     } catch (e) { flash('bad', BF.explain(e)); b.disabled = false; b.textContent = 'Try again'; }
   }));

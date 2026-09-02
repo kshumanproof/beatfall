@@ -2316,12 +2316,13 @@ async function runLogTurn(){
   const send = document.getElementById("logsend");
   const stop = document.getElementById("logstop");
   logCtl = new AbortController();
+  logThread.sid = logThread.sid || newSid();
   send.disabled = true; stop.hidden = false;
   drawLog("");
   let acc = "";
   try{
     const {text} = await ai_sample(withPacing(logThread.turns, LOG_LIMIT), {
-      kind: "logline", signal: logCtl.signal,
+      kind: "logline", session: logThread.sid, signal: logCtl.signal,
       onText: ({text}) => { acc = text; const el = document.getElementById("logstream"); if (el) el.innerHTML = fmt(text); }
     });
     logThread.turns.push({role: "assistant", content: text});
@@ -2393,7 +2394,8 @@ document.getElementById("logwrite").addEventListener("click", async () => {
     + "- Use only what I actually said. Invent no plot, no characters, no stakes I didn't give you.\n"
     + "- No title, no quote marks, no preamble, no markdown, no alternatives. The sentence only."}]);
   try{
-    const {text} = await ai_sample(turns, {kind: "logline", signal: logCtl.signal});
+    const {text} = await ai_sample(turns, {kind: "logline",
+      session: logThread && logThread.sid, signal: logCtl.signal});
     F.log.value = text.trim().replace(/^["']|["']$/g, "");
     document.getElementById("logpane").hidden = true;
     F.log.focus();
@@ -2596,7 +2598,14 @@ document.getElementById("pdf").addEventListener("click", exportPDF);
    ========================================================================= */
 const ASK_LIMIT = 5;
 let askCtl = null;
-let thread = null;   // {slot, turns:[{role,content}]}
+/* One conversation costs one credit however many questions it takes. Every
+   turn carries the same id and the server bills only the first. */
+function newSid(){
+  try { return crypto.randomUUID(); }
+  catch(e){ return "s" + Date.now() + Math.random().toString(36).slice(2, 8); }
+}
+
+let thread = null;   // {slot, turns:[{role,content}], sid}
 
 const askThreadEl = document.getElementById("askthread");
 const askInput = document.getElementById("askinput");
@@ -2734,12 +2743,14 @@ async function runTurn(){
   const send = document.getElementById("asksend");
   const stop = document.getElementById("askstop");
   askCtl = new AbortController();
+  thread.sid = thread.sid || newSid();
   send.disabled = true; stop.hidden = false;
   drawThread("");
   let acc = "";
   try{
     const {text} = await ai_sample(withPacing(thread.turns, thread.mode === "note" ? 3 : ASK_LIMIT), {
       kind: "conversation",
+      session: thread.sid,
       signal: askCtl.signal,
       onText: ({text}) => { acc = text; const el = document.getElementById("streaming"); if (el) el.innerHTML = fmt(text); }
     });
@@ -2883,7 +2894,7 @@ document.getElementById("askcard").addEventListener("click", async () => {
 
   try{
     await ai_sample(turns, {
-      kind: "conversation", signal: askCtl.signal,
+      kind: "conversation", session: thread && thread.sid, signal: askCtl.signal,
       onText: ({text}) => { dt.value = text.replace(/^["']|["']$/g, ""); }
     });
   }catch(e){
