@@ -2150,7 +2150,9 @@ function openIntake(mode){
     mode === "edit" ? "Save" : "Start the board";
   document.getElementById("newpaste").hidden = mode === "edit";
   F.name.value   = mode === "edit" ? (proj.name === "Untitled" ? "" : proj.name) : "";
-  F.format.value = mode === "edit" ? proj.structure : proj.structure;
+  // A new project starts on the feature structure, not on whatever the project
+  // you happened to have open was using.
+  F.format.value = mode === "edit" ? proj.structure : "stc";
   F.log.value    = b.log || "";
   F.who.value    = b.who || "";
   F.genre.value  = b.genre || "";
