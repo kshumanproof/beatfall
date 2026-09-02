@@ -118,28 +118,40 @@ He likes the "two scripts open…" sentence; it stays. Above the project cards:
 four counts — beats filled / total, still empty (gold), beats placed this week,
 days in a row — over a seven-day chain of dots and a progress rail.
 
-The third cell first read "Cards written" and counted every card in the project.
-On a real board that showed **171**, because a pasted notes file is 166 cards
-sitting on the shelf. It flattered and it confused, and Kris caught it. It now
-reads beats placed in the last seven days, with the unsorted pile named
-underneath as raw material rather than as work done.
+The third cell has been wrong twice, and both misses are worth remembering.
+It first read "Cards written" and counted every card in the project, so a
+pasted notes file showed up as **171** things Kris had supposedly written — it
+flattered and it confused. Replaced with "This week" (beats placed in seven
+days), which he rejected in turn: on a quiet week it is a zero that scolds, and
+a count of your own past effort is not an incentive. It now reads **Notes to
+sort** — the pile on the shelf, raw material with a number on it, and that
+number is a reason to open the board.
 
-Both counters hang off `save()`, never off a render: a day counts when the
-writer changed something, not when they opened a tab. `beatfall.days` holds the
-chain; `beatfall.placed` holds a high-water mark of filled beats plus a per-day
-tally, which covers every placement path — drag, menu, proposal, import — with
-no hooks, and can't double-count. Both live in `localStorage`, so they are
-per-browser and private and reset on a new machine. Known limit, not a bug.
+The lesson: a scoreboard figure has to point somewhere. Two of the three
+attempts pointed backwards at the writer.
+
+The chain hangs off `save()`, never off a render: a day counts when the writer
+changed something, not when they opened a tab. `beatfall.days` in `localStorage`
+— per-browser, private, resets on a new machine. Known limit, not a bug.
 
 No points, no badges, no invented currency. Every figure is a count of something
 they actually did.
 
 Below the strip: **Closest to done** — the script nearest a full board, with its
-bar, the exact number of beats left, and the next hole to fill. On a shelf of
-half-finished things the useful question is never "how are they all doing", it
-is "which one is nearly there". A finished board steps aside for the next one
-behind it (it is done, not closest to done), and with a single project the band
-hides because the project card below already carries the same three facts.
+bar, the exact number of beats left, and the next hole to fill; the title opens
+it. On a shelf of half-finished things the useful question is never "how are
+they all doing", it is "which one is nearly there". A finished board steps aside
+for the next one behind it (it is done, not closest to done). With a single
+script the label becomes "Where you are" — Kris explicitly wanted it visible
+even with one project, so it never hides on project count, only when there is
+genuinely nothing to point at.
+
+**The lockup.** The mark's bottom edge IS the bottom of the lowest card, and a
+replaced element's baseline is its bottom edge, so `.brand` uses
+`align-items:baseline` — the stack sits on the wordmark's baseline with no
+magic offset that would drift the moment either size changed. Mark is 34px
+against a 29px wordmark in the app header, 29px against 24px on the other
+pages. Centre alignment is what made it look crooked; don't go back to it.
 
 **Removed from the dashboard, 2 Sep:** the grey subtitle ("33% of the way in.
 Nothing has gone cold."). Kris likes the line but it describes ONE script, so it
