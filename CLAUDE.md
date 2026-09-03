@@ -488,8 +488,35 @@ endpoint refuses without it), and `RESEND_API_KEY` + `MAIL_FROM` or the
 warning email goes nowhere while deletion still happens on time. Test with
 `/api/cleanup?dry=1` and the secret, which reports what it WOULD do.
 
-### Legal
+### Where billing is written down
 
-Terms §8 now states the two-credit model plainly, §8b covers what happens when
-a subscription ends and the six-month rule. Privacy's retention list says the
-same thing. Both still carry the not-reviewed-by-a-lawyer notice.
+Three places, and they have to agree:
+
+- **`public/billing.html`** is the plain version and the one to keep current.
+  Price, what a credit buys, the two buckets, the warning ladder, what happens
+  on cancel, the six-month rule, refunds. Linked from the footer, from Settings,
+  and from the top bar of both legal pages.
+- **Terms §8 and §8b** are the contract, and open with a pointer to that page.
+- **Privacy** retention list carries the six-month rule.
+
+Every number on billing.html is also a constant in `api/_lib/core.js`. Change
+one, change the other in the same commit or the page starts lying.
+
+### Cancelling
+
+`confirmCancel()` in index.html. A sheet that states four facts and the
+six-month rule, with a checkbox that has to be ticked before Continue works,
+and a "Download my work first" button right there. Then `action: 'cancel'` in
+billing.js opens Stripe's portal deep-linked to its cancel step
+(`flow_data.type = 'subscription_cancel'`).
+
+The checkbox is not a dark pattern: nothing is hidden behind it and the button
+sits next to it. It exists so "I didn't know my boards would close" is not a
+sentence anybody can honestly say afterwards. Stripe's own cancel screen says
+nothing about what happens to a person's WORK, which is the only part a writer
+cares about.
+
+A pack can still be bought while a cancellation is scheduled. Kris's call and
+he was right: buying credits was never a way to keep access, access is the
+subscription, and blocking the purchase decides for them. The copy says the
+credits would wait in their account instead.

@@ -1079,6 +1079,21 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .lk-out{font-size:12.5px;color:var(--ink-3);text-decoration:none}
 .lk-out:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 
+/* the acknowledgement before cancelling */
+.cancelscrim{display:flex}
+.cancelsheet{max-width:560px}
+.cancelsheet .cx{margin:4px 0 18px;padding-left:20px}
+.cancelsheet .cx li{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-bottom:10px}
+.cancelsheet .cx b{color:var(--ink);font-weight:600}
+.cxack{
+  display:flex;gap:10px;align-items:flex-start;cursor:pointer;
+  background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-card);
+  padding:13px 15px;margin-bottom:4px;
+}
+.cxack input{margin-top:2px;flex:0 0 auto;accent-color:var(--blue);width:16px;height:16px}
+.cxack span{font-size:13px;line-height:1.5;color:var(--ink)}
+.cancelsheet .sheet-actions .btn-danger{margin-left:auto}
+
 /* =====================================================================
    SETTINGS: a modal over the board, never a page you navigate away to
    ===================================================================== */
@@ -1764,6 +1779,7 @@ footer{
     </div>
 
     <nav class="foot-links" aria-label="Site">
+      <a href="/billing.html">How billing works</a>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
       <a href="mailto:kris@beatfall.app?subject=Beatfall%20feedback">Send feedback</a>
@@ -5385,6 +5401,79 @@ function paneUsage(){
   }
 }
 
+/* Cancelling is the one action here somebody can take by accident and regret
+   later, so it is the one that gets stopped and read to. Stripe's own cancel
+   screen says nothing about what happens to a person's WORK, which is the only
+   part a writer actually cares about. Four facts, plainly, and a box they have
+   to tick. Then we hand over.
+
+   The box is not a dark pattern: nothing is hidden behind it, the button is
+   right there, and it exists so that "I didn't know my boards would close" is
+   not a sentence anybody can honestly say afterwards. */
+function confirmCancel(go){
+  const when = ME.current_period_end
+    ? new Date(ME.current_period_end).toLocaleDateString(undefined,
+        {month: "long", day: "numeric", year: "numeric"})
+    : "the end of this billing period";
+  const banked = ME.credits_banked || 0;
+
+  const scrim = document.createElement("div");
+  scrim.className = "scrim cancelscrim";
+  scrim.innerHTML = `
+    <div class="sheet cancelsheet" role="dialog" aria-modal="true" aria-label="Before you cancel">
+      <div class="sheet-title">Before you cancel</div>
+      <p class="sheet-note">Your plan would run until <b>${esc(String(when))}</b>. Nothing
+        changes before then. Here is what happens after.</p>
+      <ul class="cx">
+        <li><b>Your boards close.</b> A subscription is what opens them. Everything is still
+          there, you just cannot work on it until you subscribe again.</li>
+        <li><b>Nothing is deleted.</b> Every project, card, note and outline stays exactly
+          where it is.</li>
+        <li><b>You can still download all of it</b>, any time, including after your plan ends.
+          One file, no conditions.</li>
+        <li><b>${banked ? "Your " + banked + " bought credit" + (banked === 1 ? "" : "s") + " stay in your account."
+                        : "Any credits you have bought stay in your account."}</b>
+          They do not expire and we do not take them back.</li>
+        <li><b>After six months with no sign-in, the account is deleted</b> along with
+          everything in it. We email you about a month before, and signing in resets the clock.
+          <a href="/billing.html#sixmonths" target="_blank" rel="noopener">More on that</a>.</li>
+      </ul>
+      <label class="cxack"><input type="checkbox" id="cxbox">
+        <span>I understand my boards will close and my work will be deleted after six
+          months of not signing in.</span></label>
+      <div class="sheet-actions">
+        <button class="btn" id="cxexport">Download my work first</button>
+        <button class="btn" id="cxstay">Never mind</button>
+        <button class="btn btn-danger" id="cxgo" disabled>Continue to cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(scrim);
+
+  const close = () => scrim.remove();
+  scrim.addEventListener("click", e => { if (e.target === scrim) close(); });
+  document.getElementById("cxstay").addEventListener("click", close);
+  document.getElementById("cxbox").addEventListener("change", e => {
+    document.getElementById("cxgo").disabled = !e.target.checked;
+  });
+  document.getElementById("cxgo").addEventListener("click", ev => { close(); go(ev); });
+
+  document.getElementById("cxexport").addEventListener("click", async ev => {
+    const b = ev.currentTarget, was = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Getting it\u2026';
+    try {
+      const data = await BF.api("/api/account", {method: "POST",
+        body: JSON.stringify({action: "export"})});
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)],
+        {type: "application/json"}));
+      const a = document.createElement("a");
+      a.href = url; a.download = "beatfall-export.json"; a.click();
+      URL.revokeObjectURL(url);
+      b.textContent = "Downloaded";
+    } catch (e) { b.textContent = "Couldn\u2019t download"; }
+    setTimeout(() => { b.disabled = false; b.textContent = was; }, 2600);
+  });
+}
+
 function panePlan(){
   /* Plain statements of fact. The old copy thanked people for subscribing and
      described the annual plan as "two and a half months free, paid once",
@@ -5450,8 +5539,9 @@ function panePlan(){
               + '">Choose ' + p.label.toLowerCase() + "</button>")
         + "</div>").join("") + "</div>"
     + '<div class="setrow" style="border-top:none;margin-top:22px">'
-      + '<div><div class="lab">Manage billing</div><div class="help">Cancelling, changing your card '
-      + "and switching between monthly and yearly all happen on Stripe's pages.</div></div>"
+      + '<div><div class="lab">Manage billing</div><div class="help">Changing your card and '
+      + "switching between monthly and yearly happen on Stripe's pages. "
+      + '<a href="/billing.html" target="_blank" rel="noopener">How billing works</a>.</div></div>'
       + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button></div></div>'
     + '<div class="setrow">'
       + '<div><div class="lab">Buy more credits</div><div class="help">'
@@ -5461,7 +5551,15 @@ function panePlan(){
           ? " Your plan is ending, so these would wait in your account until you subscribe again."
           : "") + "</div></div>"
       + '<div class="ctl"><button class="btn" id="s-topup">Add '
-      + (ME.topup_credits || 50) + " credits</button></div></div>";
+      + (ME.topup_credits || 50) + " credits</button></div></div>"
+    + (subscribed && !ME.unlimited && !ME.cancel_at_period_end
+        ? '<div class="setrow">'
+          + '<div><div class="lab" style="color:var(--red)">Cancel your plan</div>'
+          + '<div class="help">Takes effect at the end of the period you have already paid '
+          + "for. We'll show you what changes before anything happens.</div></div>"
+          + '<div class="ctl"><button class="btn btn-danger" id="s-cancel">Cancel plan</button>'
+          + "</div></div>"
+        : "");
 
   const openStripe = action => async ev => {
     const b = ev.currentTarget, was = b.textContent;
@@ -5473,6 +5571,8 @@ function panePlan(){
   };
   document.getElementById("s-portal").addEventListener("click", openStripe("portal"));
   document.getElementById("s-topup") .addEventListener("click", openStripe("topup"));
+  const cancelBtn = document.getElementById("s-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", () => confirmCancel(openStripe("cancel")));
   setBody.querySelectorAll("[data-period]").forEach(b => b.addEventListener("click", async () => {
     b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening\u2026';
     try {

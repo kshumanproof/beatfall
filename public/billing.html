@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<!--
+  ==========================================================================
+  The honest version of section 8.
+
+  The Terms have to be a contract. This page has to be true and readable, and
+  it exists because a writer deciding whether to pay $12 should not have to
+  parse a legal document to find out what happens to money they spend here.
+
+  Every number on this page is read from the same constants the software runs
+  on. If a price changes, change api/_lib/core.js and change this page in the
+  same commit, or one of them starts lying.
+  ==========================================================================
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How billing works · Beatfall</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="description" content="What Beatfall costs, what a credit is, and exactly what happens to your work and your credits if you stop paying.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:54px 28px 120px}
+  .doc h1{font-family:var(--serif);font-size:38px;font-weight:600;letter-spacing:-.014em;
+    line-height:1.2;margin:0 0 8px}
+  .doc .eff{font-size:12.5px;color:var(--ink-4);margin:0 0 34px}
+  .doc h2{scroll-margin-top:80px;font-family:var(--sans);font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);margin:44px 0 4px}
+  .doc h3{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em;
+    margin:0 0 14px;color:var(--ink)}
+  .doc p,.doc li{font-family:var(--serif);font-size:16.5px;line-height:1.68;color:var(--ink-2);
+    margin:0 0 15px}
+  .doc li{margin-bottom:9px}
+  .doc ul{padding-left:22px;margin:0 0 15px}
+  .doc strong{color:var(--ink);font-weight:600}
+  .doc a{text-decoration:underline;text-underline-offset:3px}
+  .plain{background:var(--card);border:1px solid var(--rule);border-left:2px solid var(--blue);
+    padding:20px 24px;margin:0 0 40px;box-shadow:var(--shadow)}
+  .plain .h{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--blue);margin-bottom:10px}
+  .plain p{margin-bottom:10px;font-size:16px}
+  .plain p:last-child{margin-bottom:0}
+  .loud{background:var(--gold-soft);border:1px solid var(--gold-hair);padding:18px 22px;margin:0 0 15px}
+  .loud p{margin-bottom:0}
+  .doc hr{border:none;border-top:1px solid var(--rule);margin:44px 0}
+
+  /* the two plans, and the pack */
+  .cards{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 22px}
+  .card2{flex:1 1 220px;background:var(--card);border:1px solid var(--rule);
+    border-radius:var(--r-panel);padding:20px 22px;box-shadow:var(--shadow)}
+  .card2 .k{font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.14em;color:var(--ink-4)}
+  .card2 .n{font-family:var(--serif);font-size:34px;font-weight:600;line-height:1.05;
+    letter-spacing:-.02em;color:var(--ink);margin:8px 0 2px}
+  .card2 .s{font-family:var(--sans);font-size:12.5px;color:var(--ink-3);line-height:1.55}
+
+  table{width:100%;border-collapse:collapse;margin:0 0 22px}
+  th{font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.12em;color:var(--ink-4);text-align:left;padding:10px 12px;
+    border-bottom:1px solid var(--rule)}
+  td{font-family:var(--sans);font-size:13.5px;color:var(--ink-2);padding:11px 12px;
+    border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.55}
+  td b{color:var(--ink);font-weight:600}
+
+  .totop{margin:30px 0 0}
+  .totop a{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--blue);
+    text-decoration:none;border:1px solid var(--rule);border-radius:var(--r-ctl);
+    padding:9px 15px;display:inline-block;background:var(--card)}
+  .totop a:hover{border-color:var(--ink-4)}
+  .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
+  .foot a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="top"><div class="topbar-in">
+  <a href="/" class="brand">
+    <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
+      <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
+        <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
+      </g>
+      <rect x="15" y="22.6" width="32.8" height="6.95" rx="1.6"
+            fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
+      <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+      <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+      <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+    </svg>
+    <span class="wordmark">Beat<span>fall</span></span>
+  </a>
+  <span class="slug">How billing works</span>
+  <div class="right">
+    <a class="btn" href="/terms.html">Terms</a>
+    <a class="btn btn-primary" href="/">Back to the board</a>
+  </div>
+</div></div>
+
+<div class="doc">
+
+  <h1>How billing works</h1>
+  <p class="eff">Last updated 2 September 2026. This page is the plain version. The
+    <a href="/terms.html#s8">Terms</a> are the contract, and they say the same things.</p>
+
+  <div class="plain">
+    <div class="h">The short version</div>
+    <p>$12 a month, or $99 a year. Fourteen days free first, no card.</p>
+    <p>Putting notes on the board is free forever. Credits are only for the AI: conversations
+      about an empty beat, idea sets, and reading in a notes file.</p>
+    <p>You get 150 credits a month. They reset on the 1st. You can buy 50 more for $6, and
+      bought credits never expire.</p>
+    <p>If you stop paying, the boards close. Nothing is deleted, and you can download all of
+      your work at any time, including after you have stopped paying.</p>
+  </div>
+
+  <h2 id="price">1</h2>
+  <h3>What it costs</h3>
+
+  <div class="cards">
+    <div class="card2">
+      <div class="k">Monthly</div>
+      <div class="n">$12</div>
+      <div class="s">a month, billed every month. Cancel whenever you like.</div>
+    </div>
+    <div class="card2">
+      <div class="k">Yearly</div>
+      <div class="n">$99</div>
+      <div class="s">a year, billed once. Saves $45 against paying monthly.</div>
+    </div>
+    <div class="card2">
+      <div class="k">Extra credits</div>
+      <div class="n">$6</div>
+      <div class="s">for 50 credits, whenever you want them. Never expire.</div>
+    </div>
+  </div>
+
+  <p>New accounts get <strong>14 days free with no card required</strong>. We do not ask for a
+    card to start, so nothing charges you by surprise at the end of the trial: if you do not
+    pick a plan, the trial simply ends.</p>
+  <p>Payments run through <strong>Stripe</strong>. We never see or store your card number.
+    Subscriptions renew automatically until you cancel. We would give 30 days' notice before
+    changing a price, and it would take effect at your next renewal, never mid-period.</p>
+
+  <h2 id="credits">2</h2>
+  <h3>What a credit is, and what is free</h3>
+
+  <p><strong>Placing notes on the board costs nothing and always will.</strong> That is the
+    heart of the product and metering it would be daft: it would teach you to hesitate before
+    writing an idea down, which is the one thing this app exists to stop.</p>
+
+  <table>
+    <tr><th>What you do</th><th>Cost</th></tr>
+    <tr><td><b>Put a note on the board</b><br>Typing, dragging, pinning, rearranging, the
+      outline, exporting a PDF</td><td><b>Free</b></td></tr>
+    <tr><td><b>A conversation about an empty beat</b><br>However many questions it takes</td>
+      <td><b>1 credit</b> for the whole conversation, not per question</td></tr>
+    <tr><td><b>A set of ideas for a beat</b></td><td><b>1 credit</b></td></tr>
+    <tr><td><b>Help finding a logline</b></td><td><b>1 credit</b> for the session</td></tr>
+    <tr><td><b>Reading in a notes file</b><br>However long the file is</td><td><b>2 credits</b></td></tr>
+  </table>
+
+  <p>150 credits is a lot of work. If you had a conversation about every beat of a Save the Cat
+    board you would spend fifteen.</p>
+
+  <h2 id="two">3</h2>
+  <h3>Two kinds of credit</h3>
+
+  <p>This is the part worth reading twice, because the two behave differently on purpose.</p>
+
+  <table>
+    <tr><th></th><th>Comes with your plan</th><th>Credits you buy</th></tr>
+    <tr><td><b>How many</b></td><td>150 a month</td><td>50 per $6 pack</td></tr>
+    <tr><td><b>When they arrive</b></td><td>The 1st of each month</td><td>Immediately</td></tr>
+    <tr><td><b>Do they expire</b></td><td>Yes. Whatever is left on the 1st is gone</td>
+      <td><b>No. Ever.</b></td></tr>
+    <tr><td><b>Which is spent first</b></td><td>These, always</td>
+      <td>Only once the month's are gone</td></tr>
+  </table>
+
+  <div class="loud">
+    <p>You can never spend a credit you paid for while you still have a free one in hand. The
+      software takes from the monthly allowance first, every time, and only spills into bought
+      credits when the month's are used up.</p>
+  </div>
+
+  <p>So if you buy a pack during a heavy month and then have a quiet one, the pack is untouched.
+    It is still there in six months, and it is still there if you cancel and come back.</p>
+
+  <h2 id="running">4</h2>
+  <h3>When you are running low</h3>
+
+  <p>We tell you before it matters, and we count in credits rather than percentages, because
+    "eight left" means something and "95% used" does not.</p>
+  <ul>
+    <li><strong>30 left</strong>: a small count appears next to your account, bottom left.
+      Nothing interrupts you.</li>
+    <li><strong>10 left</strong>: one message, once, which you can dismiss.</li>
+    <li><strong>None left</strong>: you are told when you next reach for the AI, not before.
+      Everything that does not need credits keeps working exactly as it did.</li>
+  </ul>
+
+  <h2 id="stop">5</h2>
+  <h3>If you stop paying</h3>
+
+  <p>Cancelling takes effect <strong>at the end of the period you have already paid for</strong>,
+    not straight away. If you cancel on the 15th and you are paid up to the 30th, nothing
+    changes until the 30th.</p>
+  <p>After that, <strong>the boards close</strong>. A subscription is what gives you access to
+    them. But:</p>
+  <ul>
+    <li><strong>Nothing is deleted.</strong> Every project, card, note and outline stays exactly
+      where it is.</li>
+    <li><strong>You can still export everything</strong>, at any time, including after your plan
+      has ended. One file, no questions, no conditions.</li>
+    <li><strong>Bought credits stay in your account.</strong> They do not burn and we do not
+      take them back. If you subscribe again they are waiting.</li>
+    <li>Subscribe again and everything opens exactly as you left it.</li>
+  </ul>
+  <p>If a payment simply fails rather than you cancelling, the AI features pause while Stripe
+    retries, and your material does not go anywhere.</p>
+
+  <h2 id="sixmonths">6</h2>
+  <h3>The six month rule</h3>
+
+  <div class="loud">
+    <p><strong>An account that nobody signs into for six months, and that has no live
+      subscription, is deleted along with everything in it.</strong> Every board, every note,
+      every outline, and any credits left in it.</p>
+  </div>
+
+  <p>We email the address on the account about a month beforehand. <strong>Signing in once
+    resets the clock.</strong> If you want to keep the work, sign in and export it.</p>
+  <p>This is deliberate and it runs on a schedule rather than being something we get around to.
+    We would rather not be sitting on a stranger's unfinished screenplay indefinitely, and if
+    we say we delete dormant accounts then it has to be a thing that actually happens.</p>
+
+  <h2 id="refunds">7</h2>
+  <h3>Refunds</h3>
+
+  <p>Unless the law where you live says otherwise: subscription payments are not refunded for
+    part of a period, and credit packs are not refunded. The 14 day trial exists precisely so
+    you can find out whether this works for you before any money changes hands.</p>
+  <p>If something has gone genuinely wrong, write to
+    <a href="mailto:kris@beatfall.app">kris@beatfall.app</a> and a person will read it.</p>
+
+  <hr>
+
+  <p class="foot">
+    Beatfall, LLC · Georgia, USA<br>
+    The contract version of all this is in the <a href="/terms.html#s8">Terms, section 8</a>.<br>
+    What we store and who can see it is in the <a href="/privacy.html">Privacy Policy</a>.
+  </p>
+
+  <p class="totop"><a href="#top">Back to the top</a></p>
+
+</div>
+</body>
+</html>

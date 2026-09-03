@@ -87,5 +87,17 @@ export default async function handler(req, res) {
     return send(res, 200, { url: session.url });
   }
 
+  // The same portal, opened straight on the cancel step. The app shows what
+  // cancelling means and takes an acknowledgement first; this only saves the
+  // person hunting for the button once they have decided.
+  if (body.action === 'cancel') {
+    const session = await s.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${site}/settings.html?cancelled=1`,
+      flow_data: { type: 'subscription_cancel' }
+    });
+    return send(res, 200, { url: session.url });
+  }
+
   return send(res, 400, { error: 'bad_request' });
 }
