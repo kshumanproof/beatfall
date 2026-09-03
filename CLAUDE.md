@@ -996,6 +996,58 @@ books: "New film idea. Call it THE LONG WAY DOWN." was expected to be `null`.
 The writer named it, so it is a project. The code was right and the test was
 wrong, which is worth remembering the next time a test disagrees.
 
+## The shelf, the price, and one way in (3 Sep 2026)
+
+Five changes Kris asked for after seeing the dashboard with real projects on it.
+
+**One way into the import.** "Paste your notes" is gone from the dashboard and
+from the sample board's CTA. The box is reached through New project → **Start
+from my notes**, which is now `btn-gold`. Two entrances to the same box, one of
+them with no project in front of it, is what caused the Night Haul overwrite;
+the gold button makes the notes path the obvious one on the sheet where the
+format is chosen, which is also the sheet whose answers the parse depends on.
+`--gold-ink` and `--on-gold` were added to theme.css so gold text flips with the
+theme the way blue already did.
+
+**Every spend says its price first.** `CREDIT` in index.html mirrors `COST` in
+`api/_lib/core.js` — keep them together, a gap between them ends up in a support
+email. `costWords`, `costTag` and `marksCost` put a small figure on the control
+and append "Costs N credits." to its tooltip; `marksCost` is idempotent so a
+re-render cannot stack two chips. Reading a file (2 credits) gets a whole
+sentence on the paste sheet instead, because the button's label is rewritten
+while it works and a chip would be wiped.
+
+The first version set the chip in caps everywhere. On a board with fifteen empty
+beats that is thirty "1 CREDIT" labels down one page — the price stops being
+information and becomes noise. It is lowercase and hairline now, one per gap row
+("1 credit each", since both buttons cost the same), and caps only inside the
+card's Next up, where it answers a caps label.
+
+**A finished board looks finished.** `.pcard.full` when nothing is open: gold
+ground, gold hairline, gold grade and gold Open. Gold means "what's missing"
+everywhere else in this app, which is only a contradiction from outside the
+card — a full board has nothing missing on it, so there is no gold count to
+clash with.
+
+**Nothing runs off a card.** `Half-Hour Comedy (cold open + 3 acts + tag) · 8
+beats` was overflowing. Two causes and both are fixed: `structureLine` now drops
+the parenthetical as well as the medium, and `.gstat` / `.gline` got
+`min-width:0`. That second one is the general defect — **a flex child will not
+shrink below its content, so `white-space:nowrap` plus `text-overflow:ellipsis`
+does nothing until the child is allowed to shrink.** Check for it anywhere a
+nowrap line sits in a flex row.
+
+**The shelf is grouped by medium.** Features, Television, Short films, Vertical,
+Any length — read from the half of the structure label the card drops
+(`mediumOf`), so there is no second copy of that fact to disagree. Headings only
+appear when there is more than one group, and `#slategrid` switches between
+`slate-grid` and `slate-groups` because it has to lay out cards in one case and
+sections in the other.
+
+Held down by `/home/claude/vcost.js`, which runs light and dark: one dashboard
+button, the gold one on the sheet, the grouping, the finished card, nothing
+spilling, and every spend carrying its price.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
