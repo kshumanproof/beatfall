@@ -946,7 +946,17 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere;
 }
 .pcard .when{font-size:11.5px;color:var(--ink-4);white-space:nowrap}
-.pcard .log{font-family:var(--serif);font-size:14.5px;line-height:1.55;color:var(--ink-2);font-style:italic}
+/* Three lines, always, whether the logline is four lines long, one line long
+   or not written yet. Every row below this one then starts at the same height
+   on every card, so a shelf of projects reads as a shelf and not as a pile.
+   A logline that runs past three lines is clipped here and whole everywhere
+   else; a logline is meant to be one sentence, and Details has the full text. */
+.pcard .log{
+  font-family:var(--serif);font-size:14.5px;line-height:1.55;color:var(--ink-2);
+  font-style:italic;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;min-height:calc(14.5px * 1.55 * 3);
+}
 .pcard .log.none{color:var(--ink-4)}
 
 /* the grade */
@@ -972,9 +982,10 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 
 /* next up, the one action worth its own row */
 .pcard .up{
-  display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+  display:flex;align-items:center;gap:12px;width:100%;min-height:46px;
+  text-align:left;cursor:pointer;
   background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-ctl);
-  padding:10px 14px;font-family:var(--sans);color:var(--ink);
+  padding:9px 14px;font-family:var(--sans);color:var(--ink);
   transition:background var(--settle),border-color var(--settle);
 }
 .pcard .up:hover{background:#EFE6D0;border-color:var(--gold)}
@@ -988,11 +999,12 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .pcard .up .arw{color:var(--gold);flex:0 0 auto}
 .pcard .done{
+  display:flex;align-items:center;min-height:46px;
   font-size:12.5px;color:var(--sage);background:var(--sage-soft);
-  border:1px solid var(--sage);border-radius:var(--r-ctl);padding:10px 14px;
+  border:1px solid var(--sage);border-radius:var(--r-ctl);padding:9px 14px;
 }
 
-.pcard .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.pcard .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:2px}
 .pcard .acts .btn{
   border:1px solid var(--rule);background:var(--surface);color:var(--ink-2);
   border-radius:var(--r-ctl);padding:0 14px;height:34px;font-size:12.5px;font-weight:500;
@@ -4958,7 +4970,8 @@ function renderSlate(){
     el.innerHTML =
         '<div class="ph"><h3>' + esc(p.name) + "</h3>"
         + '<span class="when">' + esc(ago(p.touched)) + "</span></div>"
-      + '<div class="log' + (b.log ? "" : " none") + '">'
+      + '<div class="log' + (b.log ? "" : " none") + '"'
+        + (b.log ? ' title="' + esc(b.log) + '"' : "") + ">"
         + esc(b.log || "No logline yet. It reads better once it has one.") + "</div>"
 
       /* The grade. A writer should be able to read it from across the room and

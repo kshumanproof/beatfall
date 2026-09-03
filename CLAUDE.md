@@ -402,3 +402,15 @@ Set in caps by CSS (`text-transform`), never by changing the stored name, so
 what the writer typed is what is saved, exported and shown everywhere else.
 Size dropped 22px to 19px with letter-spacing added, because caps at the old
 size shout.
+
+**Every card is the same shape whatever is in it.** The logline block reserves
+three lines and clips past them; next-up and the finished panel share a 46px
+slot; the buttons sit on the floor with `margin-top:auto`. So the grade, the
+bar, the slot and the buttons start at the same height on every card in a row,
+and a shelf of projects reads as a shelf rather than a pile. Verified with
+`/home/claude/uniform.js`, which builds four projects in four different states
+and asserts the offsets match.
+
+A clipped logline keeps its full text in a `title` attribute and is whole
+everywhere else. A logline is meant to be one sentence; three lines is already
+generous.
