@@ -1048,6 +1048,45 @@ Held down by `/home/claude/vcost.js`, which runs light and dark: one dashboard
 button, the gold one on the sheet, the grouping, the finished card, nothing
 spilling, and every spend carrying its price.
 
+### The format is answered, not assumed (3 Sep 2026)
+
+Kris pasted a one-hour drama's notes and got Save the Cat, because the
+new-project sheet arrived pre-filled with Save the Cat whether or not anybody
+had chosen it. The sheet says "Only the format is required" and then quietly
+answered it for him. His fix, and it is the right one: **stop asking about the
+format afterwards, and make the sheet insist on it up front.**
+
+- `askStructure` — the "these notes read like a different shape" dialog — is
+  **deleted**. Being asked to second-guess a choice you just made, by something
+  that only inferred an alternative, is worse than not asking. A format the
+  writer TYPED in the file still switches; a format the model read does nothing.
+- The chooser has an unanswered first option, so "no format" is a state the
+  select can be in. `gateIntake()` disables **both** Start the board and Start
+  from my notes until it is answered, puts a gold ring on the field, and swaps
+  the hint to "Pick one. It decides which beats your board has."
+- `storedStructure()` returns null when nobody has set one. A format set in
+  Settings is a choice already made, so it fills in and nothing is asked;
+  `defaultStructure()` is now just `storedStructure() || "stc"` for the Settings
+  menu, which needs an answer even when there is none.
+
+**A title on the line after the words that introduce it.** His file had
+"Different project accidentally in here:" then "**COLD STORAGE**", and the same
+shape again for SMALL GODS. Those arrive folded into one sentence with no label
+word anywhere in it and no punctuation before the title, so `TITLE_BARE` — which
+needs the start of the line or a `.:;` in front — found nothing. `shoutedTail`
+reads the shouted run at the END of the line, and only inside a line that has
+already announced another project. Two words, or one of five letters or more:
+admits SIDEWORK and COLD STORAGE, keeps out the FBI, the DMV and LA.
+
+**A finished card is a reward now.** `--win`, `--win-2`, `--win-hair`: a
+champagne wash with a real gold edge and a ring, a white plaque for "Every beat
+has a card", a deep gold Open. The first version used `--gold-soft`, which is
+two shades off paper and, in Kris's words, barely noticeable. Contrast was
+checked against the wash rather than against paper — a grey that reads fine on
+`#FDFBF6` drops to about 2.6:1 on this fill.
+
+`/home/claude/vformat.js` covers all of it against his Witness Tree paste.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
