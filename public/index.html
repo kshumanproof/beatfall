@@ -5157,14 +5157,17 @@ function renderScore(t){
 
   el.innerHTML =
       '<div class="score-row">'
-    /* The label has to answer "so many WHAT", and the note under it has to be a
-       sentence rather than a dangling fragment. "25 / STILL EMPTY / Where the
-       work is" managed neither: 25 of what, and where is what work. */
-    + cell(filled, " / " + total, "Beats filled", "",
-           total ? (state.projects.length === 1
-                    ? "On your board."
-                    : "Across your " + state.projects.length + " boards.")
-                 : "No structure yet.")
+    /* The label has to answer "so many WHAT", and it should do it in one
+       sentence. This cell used to be a label with a fragment hanging under it,
+       "BEATS FILLED" over "Across your 2 boards.", which reads as two thoughts
+       about the same number. One line, and the writer's own word for them: a
+       board is what they work on, a project is what they have. */
+    + cell(filled, " / " + total,
+           !total ? "Beats filled"
+                  : state.projects.length === 1
+                    ? "Beats filled in your project"
+                    : "Beats filled across your " + state.projects.length + " projects",
+           "", total ? "" : "No structure yet.")
     + cell(t.empty, "", "Beats still empty", "gap",
            t.empty ? "" : "Every one has a card.")
     /* This slot has been wrong twice. It read "Cards written" and counted every
