@@ -713,6 +713,56 @@ the laptop is already signed in.
 buttons render in place but read "Coming to the App Store" and are spans, not
 links. Fill them in and they become real buttons with no other change.
 
+## Import parse: the Night Haul test (3 Sep 2026)
+
+Kris pasted a real 86-note file. The app reported **114**. The 28 extra, and
+what each one taught:
+
+**Section headers became notes.** "OPENING:", "FIRST CHASE:", "BIG TURN:",
+"MIDPOINT:", "BREAK INTO THREE:", "ENDING:", "FINAL IMAGE:", "TITLE IDEAS:" all
+landed on the Structural idea shelf as material. `isHeaderNote()` only ever
+caught brief-field labels (TITLE, LOGLINE, GENRE); it had no idea a writer
+organises a page with headings. `headerLine()` handles that now.
+
+The valuable half: some of those headings NAME A BEAT. A writer who types
+"MIDPOINT:" and then a line has told us where that line goes, which beats
+anything a model can infer, and we were discarding it and then guessing.
+
+**But scope it to ONE note.** The first version scoped everything until the
+next heading, and that was worse than the bug: "MIDPOINT:" swallowed thirty
+lines including three notes for other films entirely ("Unrelated horror idea:
+a motel pool…"). A heading declares the note directly beneath it and is then
+spent. On the real file that produces exactly three declarations — Midpoint,
+Break Into Three, Final Image — and all three are right.
+
+**Dialogue was split from its scene.** `"Dale?"`, `"Hey, Ronnie."`, `"I don't
+steal cars."`, `"Legally."` each became a note. A one-line quote is a fragment
+of the beat above it. `isQuoteFragment()` folds it up, and handles the
+screenplay habit of `Dale: "Mine's brass."` too.
+
+**Attribution lines dangled.** "Rusk calls Dale:" is setup for the next line;
+alone both halves are meaningless. Folded together.
+
+**Markdown survived, and the order was the reason.** `**NIGHT HAUL**` arrived
+as `NIGHT HAUL**` because the list-marker stripper (`^\s*[-*…]+`) treats a
+leading `*` as a bullet and ate the opening pair. Emphasis now comes off
+BEFORE the bullet strip. Order, not regex.
+
+Result: 114 -> **96**. Not 86, and I would not chase 86 — over-folding
+destroys real notes, and ChatGPT's count is not ground truth either.
+
+### The bug that was not a counting problem
+
+A note the model was **91% sure** about was set aside reading "only 91% sure".
+It was not uncertain. Its beat was full: `MAX_PER_BEAT` (3) cleared the
+placement, and the review row had no field to tell a ceiling from a doubt, so
+it printed a limit as a confidence. There is now a separate `full` field, and
+that row says "Midpoint already has 3 cards". Four distinct messages, checked
+in `/tmp/vdest.js`.
+
+The fixture lives at `/home/claude/_testdata/nighthaul.txt` (gitignored) and
+`/tmp/vsplit.js` runs the real splitter over it without spending credits.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

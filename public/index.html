@@ -2946,6 +2946,60 @@ const REFERS_BEAT = /^\s*(?:and\s+)?(?:that|this|it|which)\s+(?:could|might|may|
 const REFERS_SOFT = /^\s*(?:no|nah|nope|yes|hmm+|or|better|actually|maybe not|that'?s|this is|probably|too )\b/i;
 function refersSoftly(text){ return text.length <= 60 && REFERS_SOFT.test(text); }
 
+/* A line the writer used as a HEADING rather than as a note.
+
+   Two shapes, and they are treated differently.
+
+   A section header ("OPENING:", "BIG TURN:", "FINAL IMAGE:") is short, has
+   nothing after the colon, and is written in the shouty register people use
+   for headings: all caps, or Title Case, or a known structural phrase. It is
+   not material. But if it names a beat in the writer's structure, it says
+   where everything under it belongs, which is worth more than a guess.
+
+   An attribution ("Rusk calls Dale:", "Line for Dale maybe:") also ends in a
+   colon with nothing after it, but it is ordinary sentence case and it is
+   setting up the line below. Alone it means nothing; so does the quote it
+   introduces. Those two belong together. */
+const HEADERISH = /^[^a-z0-9]*[A-Z][^:]{0,42}:\s*$/;
+
+function headerLine(text){
+  const t = String(text).trim();
+  if (!HEADERISH.test(t)) return null;
+  const label = t.replace(/:\s*$/, "").replace(/[*_#]/g, "").trim();
+  if (!label || label.length > 42) return null;
+  const letters = label.replace(/[^A-Za-z]/g, "");
+  if (letters.length < 3) return null;
+
+  // ALL CAPS, or Title Case with no lower-case first word, reads as a heading.
+  const shouty = letters === letters.toUpperCase();
+  const titled = /^[A-Z]/.test(label) && !/^[A-Z][a-z]+ (?:for|to|about|of|on) /.test(label);
+  return { label, kind: shouty || (titled && /^[A-Z\s\d'’-]+$/.test(label)) ? "section" : "attribution" };
+}
+
+/* Does a heading name one of this structure's beats? Matched loosely, because
+   a writer types "BREAK INTO THREE:" and "MIDPOINT:" and "FIRST CHASE:", and
+   only the first two are beat names in Save the Cat. The ones that aren't
+   still get dropped as headings; they just don't scope anything. */
+function beatFromHeading(label, key){
+  const want = String(label).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  if (want.length < 4) return null;
+  const slots = (STRUCTURES[key] || {}).slots || [];
+  const hit = slots.find(x => {
+    const n = x.name.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+    return n === want || n.replace(/ /g, "") === want.replace(/ /g, "");
+  });
+  return hit ? hit.id : null;
+}
+
+/* A short quoted line is a piece of the scene above it, not a note about the
+   story. Also catches the screenplay habit of writing the speaker first:
+   `Dale: "Mine's brass."` and `Mara: "How do you know?"` */
+const QUOTED = /^\s*(?:[A-Z][A-Za-z .'’-]{0,24}:\s*)?["“”'‘’]/;
+function isQuoteFragment(text){
+  const t = String(text).trim();
+  return t.length <= 90 && QUOTED.test(t);
+}
+
 function refersToPrevious(text, key){
   const m = text.match(REFERS_BEAT);
   if (!m) return null;
@@ -4258,7 +4312,14 @@ const KINDS = {
 };
 
 function splitNotes(raw){
-  return String(raw).split(/\n{2,}|\n/).map(s => s.replace(/^\s*[-*••\d.)\]]+\s*/, "").trim())
+  return String(raw).split(/\n{2,}|\n/)
+    /* Emphasis comes off FIRST. The list-marker stripper below treats a
+       leading "*" as a bullet, so on "**NIGHT HAUL**" it ate the opening pair
+       and left the closing one stranded: the board showed "NIGHT HAUL**". */
+    .map(s => s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1")
+               .replace(/(^|\s)[*_](\S[^*_]*?)[*_](?=\s|$)/g, "$1$2")
+               .replace(/^\s*#{1,6}\s*/, ""))
+    .map(s => s.replace(/^\s*[-*••\d.)\]]+\s*/, "").trim())
     .filter(s => s.length > 2);
 }
 
@@ -4428,10 +4489,43 @@ async function claudePlan(raw){
   const S = STRUCTURES[proj.structure];
   const header = localBrief(raw) || {};
 
-  // fold the writer's own second thoughts back onto the line above
+  /* Fold the writer's own second thoughts, dialogue and headings back into the
+     notes they belong to.
+
+     `section` carries the beat named by the last heading we passed, so
+     everything typed under "MIDPOINT:" is declared to the Midpoint without a
+     model call. `pendingLead` holds an attribution line waiting for its quote.
+
+     Order matters here: a beat reference wins over a soft aside, a soft aside
+     wins over quote folding, and a heading is checked first because a heading
+     that looks like anything else is still a heading. */
   const items = [];
   const shortQ = t => t.length <= 70 && /\?\s*$/.test(t);
+  let section = null, pendingLead = null;
+
   splitNotes(raw).forEach(text => {
+    const head = headerLine(text);
+    if (head){
+      if (head.kind === "attribution"){ pendingLead = head.label; return; }
+      // A section heading: never a note. If it names a beat it declares the
+      // note directly under it, and ONLY that one.
+      //
+      // Scoping everything until the next heading was tried first and was
+      // worse than the bug it fixed: "MIDPOINT:" swallowed thirty lines
+      // including three notes for other films entirely. A writer who types
+      // MIDPOINT: and then a line has told us about that line. Everything
+      // after it is just notes that happen to sit nearby.
+      section = beatFromHeading(head.label, proj.structure);
+      pendingLead = null;
+      return;
+    }
+
+    // "Rusk calls Dale:" then the quote. One exchange, one note.
+    if (pendingLead){
+      text = pendingLead + " " + text.trim();
+      pendingLead = null;
+    }
+
     const prev = items[items.length - 1];
     if (prev){
       const to = refersToPrevious(text, proj.structure);
@@ -4442,8 +4536,19 @@ async function claudePlan(raw){
       if (shortQ(text) || (shortQ(prev.text) && text.length <= 70)){
         prev.text += " " + text; return;
       }
+      // A one-line quote is part of the scene above it. Consecutive quotes are
+      // an exchange and stay together, so a four-line back-and-forth arrives
+      // as one card rather than four fragments nobody can read.
+      if (isQuoteFragment(text) && prev.text.length < 600){
+        prev.text += "  " + text.trim(); return;
+      }
     }
-    items.push({text, beat: null, declared: false});
+
+    // Take the heading's beat, then spend it. One heading, one declaration.
+    // `declared` because the writer said it, not because we worked it out;
+    // declared placements skip the confidence gate.
+    items.push({text, beat: section, declared: !!section});
+    section = null;
   });
   const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
   if (!notes.length) return [];
@@ -4549,15 +4654,24 @@ async function claudePlan(raw){
     const conf = typeof r.c === "number" ? r.c : 0;
     const named = kind === "beat" && S.slots.some(x => x.id === r.b);
     let beat = n.beat || ((named && conf >= 75) ? r.b : null);
+    /* The ceiling and the confidence gate are different reasons to hold a note
+       back, and the review screen has to say which one applied. It used to
+       report both as confidence, so a note the model was 91% sure about was
+       set aside "only 91% sure", which reads as a bug because it is one. */
+    let full = null;
     if (beat){
       perBeat[beat] = (perBeat[beat] || 0) + 1;
-      if (perBeat[beat] > MAX_PER_BEAT) beat = null;      // the board is not a bin
+      if (perBeat[beat] > MAX_PER_BEAT){                  // the board is not a bin
+        full = beat;
+        beat = null;
+      }
     }
     buckets[si].push({
       text: n.text,
       kind: beat ? "beat" : kind,
       beat,
-      maybe: (!beat && named && conf >= 55) ? r.b : null,
+      maybe: (!beat && !full && named && conf >= 55) ? r.b : null,
+      full,
       conf,
       declared: !!(n.declared || r.d),
       keep: r.s !== -1                                     // errands arrive unticked
@@ -4623,7 +4737,12 @@ function renderReview(){
       row.className = "revrow" + (n.keep ? "" : " off");
       const nm = id => (S.slots.find(x => x.id === id) || {name:"Set aside"}).name;
       const dest = n.kind !== "beat" ? "→ " + KINDS[n.kind] + " shelf"
-        : n.beat  ? "→ " + nm(n.beat) + "  (" + n.conf + "% sure)"
+        : n.beat  ? "→ " + nm(n.beat) + (n.declared ? "  (you said so)"
+                                                    : "  (" + n.conf + "% sure)")
+        // A full beat, said plainly. This is the one case where the writer
+        // should be told the board pushed back rather than the reader.
+        : n.full  ? "→ Set aside · " + nm(n.full) + " already has "
+                    + MAX_PER_BEAT + " cards"
         : n.maybe ? "→ Set aside · possibly " + nm(n.maybe) + ", only " + n.conf + "% sure"
         :           "→ Set aside, an event but not clearly any one beat";
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
@@ -4738,7 +4857,7 @@ document.getElementById("revgo").addEventListener("click", () => {
     notes.forEach(n => {
       target.cards.push({
         id: uid++, text: n.text, pinned: false, kind: n.kind,
-        maybe: n.maybe || null, declared: !!n.declared,
+        maybe: n.maybe || null, full: n.full || null, declared: !!n.declared,
         slot: n.kind === "beat" ? (n.beat || "__none") : "__shelf"
       });
       added++;
