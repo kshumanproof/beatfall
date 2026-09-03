@@ -2,7 +2,7 @@
 <html lang="en">
 <!--
   ==========================================================================
-  DRAFT — NOT REVIEWED BY A LAWYER.
+  DRAFT. NOT REVIEWED BY A LAWYER.
   Every factual claim here was checked against the code before it was
   written. If the app changes, this page has to change with it:
 
@@ -23,7 +23,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy — Beatfall</title>
+<title>Privacy Policy · Beatfall</title>
 <meta name="description" content="What Beatfall stores, who can see it, and how to get it all back.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,29 +60,34 @@
     font-weight:500;white-space:nowrap}
   .tablewrap{overflow-x:auto;margin-bottom:15px}
   .doc hr{border:none;border-top:1px solid var(--rule);margin:44px 0}
+  .totop{margin:30px 0 0}
+  .totop a{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--blue);
+    text-decoration:none;border:1px solid var(--rule);border-radius:var(--r-ctl);
+    padding:9px 15px;display:inline-block;background:var(--card)}
+  .totop a:hover{border-color:var(--ink-4)}
   .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
   .foot a{color:var(--blue)}
 </style>
 </head>
 <body>
 
-<div class="topbar"><div class="topbar-in">
+<div class="topbar" id="top"><div class="topbar-in">
   <a href="/" class="wordmark">Beat<span>fall</span></a>
   <span class="slug">Privacy Policy</span>
   <div class="right">
-    <a class="btn btn-ghost" href="/terms.html">Terms</a>
-    <a class="btn btn-ghost" href="/">Back to the board</a>
+    <a class="btn" href="/terms.html">Terms</a>
+    <a class="btn btn-primary" href="/">Back to the board</a>
   </div>
 </div></div>
 
 <div class="doc">
 
   <h1>Privacy Policy</h1>
-  <p class="eff">Effective 1 September 2026. Beatfall, LLC — a Georgia limited liability company.</p>
+  <p class="eff">Effective 1 September 2026. Beatfall, LLC, a Georgia limited liability company.</p>
 
   <div class="plain">
     <div class="h">The short version</div>
-    <p><strong>Yes, your projects are saved.</strong> That's the product — your boards follow you
+    <p><strong>Yes, your projects are saved.</strong> That's the product: your boards follow you
       between machines. Anyone who tells you a tool like this stores nothing is describing a
       different tool.</p>
     <p><strong>They're saved privately.</strong> Every row in our database is locked to one
@@ -98,7 +103,7 @@
   <h2 id="s1">1</h2>
   <h3>What we hold</h3>
   <ul>
-    <li><strong>Your email address.</strong> It's how you sign in — we email you a link. There is
+    <li><strong>Your email address.</strong> It's how you sign in: we email you a link. There is
       no password, so we hold no password.</li>
     <li><strong>A display name</strong>, if you give us one.</li>
     <li><strong>Your material.</strong> Project titles, structures, loglines and briefs, every card
@@ -106,11 +111,11 @@
       project.</li>
     <li><strong>Usage counts.</strong> One record per AI call: which kind of call it was, how many
       credits and tokens it used, what it cost us, and when. <strong>These records contain none of
-      your writing</strong> — no card text, no prompts, no responses.</li>
+      your writing</strong>: no card text, no prompts, no responses.</li>
     <li><strong>A few product events</strong>, so we can tell whether the thing works: which option
       you picked on the welcome screen, and your billing state changes. Nothing else, and no story
       text.</li>
-    <li><strong>Billing identifiers</strong> from Stripe — a customer ID, a subscription ID and its
+    <li><strong>Billing identifiers</strong> from Stripe: a customer ID, a subscription ID and its
       status. <strong>We never see or store your card number.</strong></li>
     <li><strong>Ordinary server logs</strong> kept by our hosting provider, which include IP
       addresses, as any web server does.</li>
@@ -129,8 +134,8 @@
   <p><strong>We can't, in the ordinary course.</strong> The administrative dashboard we use to run
     the business is built so it cannot request the text of your cards. It reports counts, costs and
     dates. This is a property of the code, not a policy we're asking you to trust.</p>
-  <p>The three narrow exceptions — you ask us for help, the law compels us, or we're investigating
-    a specific security incident or abuse report — are set out in
+  <p>The three narrow exceptions (you ask us for help, the law compels us, or we're investigating
+    a specific security incident or abuse report) are set out in
     <a href="/terms.html">section 4 of the Terms</a>. We don't review accounts routinely, at
     random, or out of curiosity.</p>
 
@@ -138,15 +143,15 @@
   <h3>What leaves the app, and when</h3>
   <p>Placing a note on the board with the built-in matcher happens entirely in your browser and
     sends nothing anywhere.</p>
-  <p>When you use a feature that needs the AI — reading in a notes file, a conversation about a
-    beat, an idea set, help with a logline, or a closer look at where a note belongs — we send
+  <p>When you use a feature that needs the AI (reading in a notes file, a conversation about a
+    beat, an idea set, help with a logline, or a closer look at where a note belongs) we send
     <strong>Anthropic</strong> the text that feature needs: the note or file you're working on, the
     beats around it, and your project's logline and brief where they'd change the answer. We do not
     send your email address or any account identifier with it.</p>
   <p>Anthropic, under its commercial terms:
     <strong>does not use this to train its models</strong>, and
     <strong>deletes inputs and outputs within 30 days</strong>. Content its automated systems flag
-    as a usage-policy violation is kept longer — up to two years — which is why the acceptable-use
+    as a usage-policy violation is kept longer, up to two years, which is why the acceptable-use
     rules in the Terms exist.</p>
 
   <h2 id="s4">4</h2>
@@ -203,11 +208,11 @@
   <h2 id="s6">6</h2>
   <h3>How long we keep things</h3>
   <ul>
-    <li><strong>Your material</strong> — until you delete it, or delete your account.</li>
-    <li><strong>Usage and billing records</strong> — kept while your account exists and for as long
+    <li><strong>Your material</strong>: until you delete it, or delete your account.</li>
+    <li><strong>Usage and billing records</strong>: kept while your account exists and for as long
       afterwards as tax and accounting rules require. They contain no story text.</li>
-    <li><strong>Server logs</strong> — on our host's ordinary retention schedule.</li>
-    <li><strong>Backups</strong> — routine encrypted backups are overwritten on our providers'
+    <li><strong>Server logs</strong>: on our host's ordinary retention schedule.</li>
+    <li><strong>Backups</strong>: routine encrypted backups are overwritten on our providers'
       rolling cycle, so a deleted project can persist in a backup briefly after you delete it.</li>
   </ul>
 
@@ -224,7 +229,7 @@
       <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a>. The export button will
       generally answer the question faster than we can.</li>
   </ul>
-  <p>Depending on where you live — the EEA and UK, California, and a growing number of US states —
+  <p>Depending on where you live (the EEA and UK, California, and a growing number of US states)
     you may have statutory rights of access, correction, deletion, portability and objection, and a
     right not to be discriminated against for exercising them. We honour these requests from
     everyone, wherever you are, rather than checking your postcode first. For EEA and UK users, our
@@ -259,6 +264,8 @@
     Privacy questions: <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a><br>
     See also the <a href="/terms.html">Terms of Service</a>.
   </p>
+
+  <p class="totop"><a href="#top">Back to the top</a></p>
 
 </div>
 </body>

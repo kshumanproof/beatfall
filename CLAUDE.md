@@ -346,3 +346,45 @@ rule, on the DASHBOARD only. On a board that slot holds the script's name;
 one or the other, never both, never empty. Hidden below 1024px, and the rule
 hides with it there (`header[data-view="slate"] .hsep` in the media query, set
 from `setView` via `dataset.view`) so it never leaves a dangling stroke.
+
+## Copy rule: no em dashes (2 Sep 2026)
+
+Kris asked for none anywhere, and there are none: every page, `app.js` and
+`theme.css` are at zero, comments included. Do not reintroduce them.
+
+They were not swapped for one substitute, because the em dash was doing three
+different jobs in this copy and one character gets two of them wrong every
+time: introducing a list (now a colon), holding an aside (commas or brackets),
+joining two independent clauses (a full stop). Each was rewritten by hand.
+
+Two knock-on effects worth remembering, both of which would have shipped
+silently:
+- Structure labels changed from `"Feature — Save the Cat!"` to
+  `"Feature · Save the Cat!"`, and TWO pieces of code strip that prefix by
+  regex: `structureLine()` and the structure-switch message. Both had
+  `/^[^—]*— /` and now have `/^[^·]*· /`.
+- `DECLARED` still matches `[:\-–—]` on purpose. That regex reads the WRITER'S
+  notes, and a writer may well type an em dash. Our copy has none; theirs is
+  theirs.
+
+## Footer, account, legal pages (2 Sep 2026)
+
+- **Footer.** Was an italic paragraph floating under the board. Now a real
+  footer: rule across the top, surface background, the mark and the tagline,
+  two short columns (what happens to your material, how placing works) and the
+  three links that belong at the bottom of a site.
+- **Account control.** Was a 32px circle with an initial in it, bottom-left.
+  That is a convention people who build software know and nobody else does, and
+  the question it produces is "how do I get to my profile?" It is now a pill
+  that says **Account** next to the initial, with a chevron. Below 760px it
+  drops back to a circle; the capture dock's left padding clears whichever.
+- **Legal pages.** Top links are real buttons now (Privacy/Terms outlined,
+  "Back to the board" filled), and both docs end with a Back to the top button
+  against `id="top"` on the topbar.
+
+## Project card titles (2 Sep 2026)
+
+Set in caps by CSS (`text-transform`), never by changing the stored name, so
+what the writer typed is what is saved, exported and shown everywhere else.
+Size dropped 22px to 19px with letter-spacing added, because caps at the old
+size shout.

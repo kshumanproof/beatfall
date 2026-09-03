@@ -2,7 +2,7 @@
 <html lang="en">
 <!--
   ==========================================================================
-  DRAFT — NOT REVIEWED BY A LAWYER.
+  DRAFT. NOT REVIEWED BY A LAWYER.
   Written to be accurate about how Beatfall actually works today. Every
   factual claim in here is checked against the code: the admin dashboard
   cannot select card text (api/admin.js), row-level security scopes every
@@ -10,7 +10,7 @@
   training terms are as stated at privacy.claude.com.
 
   Before this goes live, a Georgia attorney should look at:
-    - section 5 (independent development) — this is the clause that matters
+    - section 5 (independent development), the clause that matters
     - section 12 (arbitration, class waiver, 30-day opt-out)
     - section 11 (liability cap) against Georgia's unconscionability rules
     - the entity name below, once the GA SOS amendment is filed
@@ -19,7 +19,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Terms of Service — Beatfall</title>
+<title>Terms of Service · Beatfall</title>
 <meta name="description" content="The agreement between you and Beatfall. Your material stays yours.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,36 +49,41 @@
   .loud{background:var(--gold-soft);border:1px solid var(--gold-hair);padding:18px 22px;margin:0 0 15px}
   .loud p{margin-bottom:0}
   .doc hr{border:none;border-top:1px solid var(--rule);margin:44px 0}
+  .totop{margin:30px 0 0}
+  .totop a{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--blue);
+    text-decoration:none;border:1px solid var(--rule);border-radius:var(--r-ctl);
+    padding:9px 15px;display:inline-block;background:var(--card)}
+  .totop a:hover{border-color:var(--ink-4)}
   .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
   .foot a{color:var(--blue)}
 </style>
 </head>
 <body>
 
-<div class="topbar"><div class="topbar-in">
+<div class="topbar" id="top"><div class="topbar-in">
   <a href="/" class="wordmark">Beat<span>fall</span></a>
   <span class="slug">Terms of Service</span>
   <div class="right">
-    <a class="btn btn-ghost" href="/privacy.html">Privacy</a>
-    <a class="btn btn-ghost" href="/">Back to the board</a>
+    <a class="btn" href="/privacy.html">Privacy</a>
+    <a class="btn btn-primary" href="/">Back to the board</a>
   </div>
 </div></div>
 
 <div class="doc">
 
   <h1>Terms of Service</h1>
-  <p class="eff">Effective 1 September 2026. Beatfall, LLC — a Georgia limited liability company.</p>
+  <p class="eff">Effective 1 September 2026. Beatfall, LLC, a Georgia limited liability company.</p>
 
   <div class="plain">
     <div class="h">The short version</div>
     <p><strong>Your writing is yours.</strong> Every note, card, logline and outline you put into
       Beatfall belongs to you. We claim no ownership of it, ever, and we don't take a cut of
       anything you go on to make.</p>
-    <p><strong>We don't read it.</strong> Not as a promise — as a fact about how the software is
+    <p><strong>We don't read it.</strong> Not as a promise, but as a fact about how the software is
       built. Our own admin tools cannot retrieve the text of your cards; they can only count them.</p>
     <p><strong>We don't train anything on it.</strong> Not our models, not anyone else's.</p>
     <p><strong>But you should know one thing before you start.</strong> The person who runs Beatfall
-      is a working writer and producer with his own projects. Stories converge — two people write a
+      is a working writer and producer with his own projects. Stories converge. Two people write a
       dead body in a spillway every week of the year. Section 5 says plainly that we may develop
       work that resembles yours, and that using Beatfall isn't pitching us. If that isn't a trade
       you want to make, don't put your material in.</p>
@@ -97,8 +102,8 @@
 
   <h2 id="s2">2</h2>
   <h3>What you put in stays yours</h3>
-  <p>Everything you write, paste, upload or generate in Beatfall — your notes, cards, loglines,
-    briefs, outlines, project titles and everything else — is <strong>Your Material</strong>. As
+  <p>Everything you write, paste, upload or generate in Beatfall (your notes, cards, loglines,
+    briefs, outlines, project titles and everything else) is <strong>Your Material</strong>. As
     between you and Beatfall, <strong>you own Your Material outright</strong>, including every
     copyright and every other right in it. Nothing in these Terms transfers any ownership of Your
     Material to us, and we acquire no interest in any script, film, series, book or other work you
@@ -134,7 +139,7 @@
     application code.</p>
   <p><strong>Our own administrative tools cannot retrieve the text of your cards, notes or
     outlines.</strong> They report how many projects and cards an account has, how much it costs
-    us to serve, and when it was last used — nothing more. That is a deliberate constraint on what
+    us to serve, and when it was last used, and nothing more. That is a deliberate constraint on what
     we built, so that we are not in a position to read your work even if we wanted to.</p>
   <p>There are three narrow circumstances in which a human at Beatfall could access the content of
     a specific account, and we will not pretend otherwise:</p>
@@ -169,8 +174,8 @@
     from other people. Beatfall and the people behind it will continue to do all of that.</p>
   <p><strong>Similarity happens, and it isn't evidence of anything.</strong> Ideas, premises,
     themes, plots, historical facts, genre conventions, stock characters and standard scenes are
-    not protected by copyright. Structure — including every beat sheet and template offered in the
-    Service — is a common tool of the trade used by everyone. Independent creation is a complete
+    not protected by copyright. Structure, including every beat sheet and template offered in the
+    Service, is a common tool of the trade used by everyone. Independent creation is a complete
     defence to a copyright claim.</p>
   <p>Accordingly, you acknowledge and agree that:</p>
   <ul>
@@ -183,15 +188,15 @@
       such similarity; and</li>
     <li><strong>you waive, and agree not to bring, any claim against Beatfall or its personnel
       based solely on the similarity between Your Material and any work created, acquired or
-      produced by them</strong> — including claims for breach of implied contract, breach of
+      produced by them</strong>, including claims for breach of implied contract, breach of
       confidence, idea misappropriation, unjust enrichment, unfair competition or the like.</li>
   </ul>
   <p>Nothing in this section waives a claim for actual copyright infringement where a Beatfall work
     was in fact copied from Your Material, and nothing here reduces your ownership under section 2.
     This section limits claims founded on <em>resemblance</em>, which is not the same thing as
     copying.</p>
-  <p>If you send us creative material outside the Service — by email, in a support ticket, in a
-    message — it is not confidential, we are under no obligation regarding it, and we may
+  <p>If you send us creative material outside the Service, by email or in a support ticket or a
+    message, it is not confidential, we are under no obligation regarding it, and we may
     disregard or delete it. Please don't send us your scripts.</p>
 
   <h2 id="s6">6</h2>
@@ -206,8 +211,8 @@
       starting point you rewrite, not as finished work of certain provenance.</li>
     <li>Nothing the Service produces is legal, financial, or professional advice, and it is not a
       chain-of-title or clearance record.</li>
-    <li>Clearing your own material — rights, releases, chain of title, defamation, privacy, the
-      use of real people and real events — is your responsibility and yours alone.</li>
+    <li>Clearing your own material (rights, releases, chain of title, defamation, privacy, the
+      use of real people and real events) is your responsibility and yours alone.</li>
   </ul>
 
   <h2 id="s7">7</h2>
@@ -226,24 +231,24 @@
   <p>New accounts get a <strong>14-day free trial with no card required</strong>. After that,
     Beatfall is <strong>$12 per month or $99 per year</strong>, and includes a monthly allowance of
     credits. Placing notes on the board is free and always will be; credits are spent on the
-    AI-backed features — conversations, idea sets and reading in a notes file. Additional credits
+    AI-backed features: conversations, idea sets and reading in a notes file. Additional credits
     can be bought as a one-off top-up.</p>
   <p>Payments are handled by Stripe. We never see or store your card number. Subscriptions renew
     automatically until cancelled. You can cancel at any time from your billing page; cancellation
     takes effect at the end of the period you have already paid for, and your projects, boards and
     notes stay exactly where they are either way. Unless the law requires otherwise, payments are
-    not refundable for partial periods — the free trial exists so you can find out before you pay.
+    not refundable for partial periods. The free trial exists so you can find out before you pay.
     We may change pricing on 30 days' notice, effective at your next renewal.</p>
   <p>If a payment fails, AI features pause. Your material does not go anywhere.</p>
 
   <h2 id="s9">9</h2>
   <h3>Getting your material out, and deleting it</h3>
-  <p>You can export everything — every project, card, note and outline — as a single file, at any
+  <p>You can export everything, every project, card, note and outline, as a single file, at any
     time, from Settings, without asking us and without conditions.</p>
   <p>You can delete an individual project, or your whole account, from Settings. Deleting your
     account removes your profile, projects, usage records and events from the live database
     immediately. Residual copies in routine encrypted backups are overwritten on our providers'
-    ordinary backup cycle. <strong>Export first — deletion is permanent and we cannot undo it.</strong></p>
+    ordinary backup cycle. <strong>Export first. Deletion is permanent and we cannot undo it.</strong></p>
 
   <h2 id="s10">10</h2>
   <h3>Availability, changes and termination</h3>
@@ -299,7 +304,7 @@
 
   <h2 id="s13">13</h2>
   <h3>Odds and ends</h3>
-  <p>Feedback you send us about the product — bug reports, feature ideas, what's annoying — we may
+  <p>Feedback you send us about the product (bug reports, feature ideas, what's annoying) we may
     use freely and without obligation. For the avoidance of doubt, that means feedback about
     Beatfall; it does not apply to Your Material, which is governed by sections 2 to 5.</p>
   <p>If a provision is unenforceable, the rest survives. Our not enforcing something isn't a
@@ -314,6 +319,8 @@
     Questions about these Terms: <a href="mailto:legal@beatfall.app">legal@beatfall.app</a><br>
     See also the <a href="/privacy.html">Privacy Policy</a>.
   </p>
+
+  <p class="totop"><a href="#top">Back to the top</a></p>
 
 </div>
 </body>

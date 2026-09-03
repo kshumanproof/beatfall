@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Settings — Beatfall</title>
+<title>Settings · Beatfall</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
@@ -77,7 +77,7 @@
       </div>
       <div class="kinds" id="kinds"></div>
       <p class="muted" style="margin-top:14px;max-width:66ch">
-        Placing a note is free and always will be — it's the whole point of the app.
+        Placing a note is free and always will be. It's the whole point of the app.
         A whole conversation costs one credit however many questions it takes, and
         reading in a notes file costs two.
         If you run out, everything except the AI keeps working and your credits reset on the 1st.
@@ -90,7 +90,7 @@
       <div class="plans" id="plans"></div>
       <div class="row" style="margin-top:16px">
         <button class="btn" id="portal">Manage billing</button>
-        <button class="btn" id="topup">Top up 100 credits — $6</button>
+        <button class="btn" id="topup">Top up 100 credits for $6</button>
         <span class="muted">Cancelling, changing card and switching between monthly and annual all happen on Stripe's own pages.</span>
       </div>
     </div>
@@ -143,7 +143,7 @@ const PERIODS = [
   if (!await BF.requireSession()) return;
 
   const q = new URLSearchParams(location.search);
-  if (q.get('checkout') === 'done') flash('info', "<b>You're set.</b> It can take a few seconds for the plan to show below — reload if it looks stale.");
+  if (q.get('checkout') === 'done') flash('info', "<b>You're set.</b> It can take a few seconds for the plan to show below. Reload if it looks stale.");
   if (q.get('checkout') === 'cancelled') flash('warn', 'Checkout cancelled. Nothing was charged.');
   if (q.get('topup') === 'done') flash('info', '<b>Credits added.</b> They carry over month to month.');
 
@@ -182,7 +182,7 @@ const PERIODS = [
   const note = document.getElementById('planNote');
   if (me.unlimited) {
     note.className = 'note info';
-    note.innerHTML = '<b>Owner account.</b> No plan, no limits, no billing — '
+    note.innerHTML = '<b>Owner account.</b> No plan, no limits, no billing. '
       + 'your usage is excluded from the numbers on the admin dashboard so it '
       + "can't skew where the customer allowance should sit.";
   } else if (me.plan === 'trial' && me.trialing) {
@@ -196,7 +196,7 @@ const PERIODS = [
   } else if (me.plan === 'none') {
     note.className = 'note warn';
     note.innerHTML = `<b>No active plan.</b> Your projects, boards and notes are all still here and `
-      + `the board works normally — it's the writing help that's switched off.`;
+      + `the board works normally. It's the writing help that's switched off.`;
   } else {
     const when = me.current_period_end
       ? new Date(me.current_period_end).toLocaleDateString(undefined,

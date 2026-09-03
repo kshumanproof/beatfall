@@ -1,5 +1,5 @@
 // ============================================================================
-// beatfall — the platform layer.
+// beatfall: the platform layer.
 //
 // Everything the board needs from the outside world lives here: who you are,
 // where your projects are saved, and how the app talks to Claude. The board
@@ -25,7 +25,7 @@
       '<div style="border:1px solid #CFD5DD;border-left:3px solid #9A7716;background:#fff;' +
       'padding:20px 22px;border-radius:2px;line-height:1.6;font-size:14.5px">' +
       '<b>This deployment isn\'t connected to its database yet.</b><br><br>' +
-      'The site is built and serving correctly — it just has no account system ' +
+      'The site is built and serving correctly. It just has no account system ' +
       'behind it, so there is nothing to sign in to.<br><br>' +
       '<span style="color:#7C8593;font-family:ui-monospace,monospace;font-size:12.5px">' +
       'missing: ' + what + '</span></div></div>';
@@ -114,7 +114,7 @@
   // --------------------------------------------------------------- claude --
   // Deliberately shaped like the artifact runtime's sample() so the board's
   // code didn't have to change: ai(input, opts) resolves {text}, ai.json()
-  // parses. onText fires once with the whole answer — the proxy doesn't stream,
+  // parses. onText fires once with the whole answer, because the proxy doesn't stream,
   // and the spinner covers the wait.
   function makeAI() {
     async function ask(input, opts = {}) {
@@ -147,7 +147,7 @@
   BF.explain = function (e) {
     if (!e) return "Something went wrong.";
     if (e.code === 'out_of_credits' || e.code === 'no_plan') return e.message;
-    if (e.status === 502) return "Couldn't reach Claude just now — try again in a moment.";
+    if (e.status === 502) return "Couldn't reach Claude just now. Try again in a moment.";
     return e.message || "Something went wrong.";
   };
 
@@ -176,7 +176,7 @@
     return byRegion[region] != null ? byRegion[region] : 40;
   }
 
-  // Low-precision solar position — accurate to a few minutes, which is far
+  // Low-precision solar position, accurate to a few minutes, which is far
   // finer than anyone notices a screen changing colour.
   function isNight(now) {
     now = now || new Date();
@@ -231,7 +231,7 @@
 
   BF.money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
   BF.when = iso => {
-    if (!iso) return '—';
+    if (!iso) return '·';
     const d = Math.floor((Date.now() - new Date(iso)) / 86400000);
     if (d <= 0) return 'today';
     if (d === 1) return 'yesterday';

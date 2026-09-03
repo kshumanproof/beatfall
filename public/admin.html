@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin — Beatfall</title>
+<title>Admin · Beatfall</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
@@ -151,7 +151,7 @@ async function load(days) {
     const pill = u.plan === 'none' ? 'off' : u.plan === 'trial' ? 'trial' : 'on';
     const kinds = Object.entries(u.kinds || {}).map(([k,v]) => `${k}&nbsp;${v}`).join(' · ');
     return `<tr>
-      <td>${esc(u.name || u.email || '—')}${u.name ? `<div class="muted">${esc(u.email)}</div>` : ''}</td>
+      <td>${esc(u.name || u.email || '·')}${u.name ? `<div class="muted">${esc(u.email)}</div>` : ''}</td>
       <td><span class="pill ${pill}">${esc(u.plan)}</span>${u.status ? `<div class="muted">${esc(u.status)}</div>` : ''}</td>
       <td class="muted">${BF.when(u.created_at)}</td>
       <td class="muted">${BF.when(u.last_seen_at)}</td>
@@ -160,7 +160,7 @@ async function load(days) {
       <td class="num">${u.calls}</td>
       <td class="num">${u.credits}<span class="muted"> / ${u.allowance}</span></td>
       <td class="num">${BF.money(u.cost_usd)}</td>
-      <td class="kindbits">${kinds || '—'}</td>
+      <td class="kindbits">${kinds || '·'}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" class="muted">Nobody yet.</td></tr>';
 }

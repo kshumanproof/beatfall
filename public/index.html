@@ -20,7 +20,7 @@
   --card:#FDFBF6;          /* paper */
   --ink:#2B2620;
   --ink-2:#5C5349;         /* 6.50 on ground */
-  --ink-3:#726859;         /* 4.72 — carries beat jobs, so it must clear AA */
+  --ink-3:#726859;         /* 4.72, carries beat jobs, so it must clear AA */
   --ink-4:#8A8075;         /* decorative micro-labels only */
   --rule:#E0D9CB;
   --rule-soft:#EDE7DA;
@@ -28,7 +28,7 @@
   --blue-soft:#EAEFF5;
   --blue-ink:#1E4269;
   --on-blue:#FFFFFF;
-  --gold:#7B5A13;          /* what's missing — 5.47, passes AA for small text */
+  --gold:#7B5A13;          /* what's missing. 5.47, passes AA for small text */
   --gold-soft:#F4EEDF;
   --gold-hair:#D9C08A;     /* hairlines only, never text */
   --sage:#4A7358;
@@ -98,7 +98,7 @@
 }
 
 *{box-sizing:border-box}
-[hidden]{display:none !important}   /* .scrim sets display:flex — never let it beat this */
+[hidden]{display:none !important}   /* .scrim sets display:flex, never let it beat this */
 body{
   margin:0;background:var(--ground);color:var(--ink);
   font-family:var(--sans);font-size:14px;line-height:1.55;
@@ -128,7 +128,7 @@ header{
    this bar is a control; this is the only object. */
 /* The stack sits ON the wordmark's baseline. The mark's bottom edge IS the
    bottom of the lowest card, and a replaced element's baseline is its bottom
-   edge, so baseline alignment does the whole job — no magic offsets that drift
+   edge, so baseline alignment does the whole job, no magic offsets that drift
    the moment either size changes. */
 .brand{display:inline-flex;align-items:baseline;gap:6px;text-decoration:none;color:var(--ink)}
 .mark{height:29px;width:auto;flex:0 0 auto}
@@ -138,12 +138,23 @@ header{
   line-height:1;
 }
 .wordmark span{color:var(--blue)}
-.hsep{width:1px;height:26px;background:var(--rule);flex:0 0 auto}
+/* Baseline-aligned like the two texts it divides: a block's baseline is its
+   bottom edge, so the rule runs from above the cap down to the baseline. */
+.hsep{width:1px;height:24px;background:var(--rule);flex:0 0 auto;align-self:baseline}
 .grow{flex:1 1 auto;min-width:8px}
+/* Sits on the wordmark's baseline, not centred against it. The brand's own
+   baseline is the mark's bottom edge, which is the wordmark's baseline, so
+   pulling both out of the row's centre alignment lines the two texts up. */
 .tagline{
   font-family:var(--serif);font-style:italic;font-size:16px;letter-spacing:-.004em;
-  color:var(--ink-3);white-space:nowrap;
+  color:var(--ink-3);white-space:nowrap;align-self:baseline;
 }
+/* The row centres this group as one object; inside it, the mark, the rule and
+   whichever text is in the slot all sit on a shared baseline. Doing the
+   baseline alignment on .topline itself pins the whole group to the top of the
+   bar, because a flex line's baseline group hangs from its ascent. */
+.lead{display:flex;align-items:baseline;gap:20px;min-width:0}
+.projbar{align-self:center}
 @media (max-width:1023px){
   .tagline{display:none}
   /* nothing left for it to divide */
@@ -164,7 +175,7 @@ header{
 .projbtn svg{flex:0 0 auto}
 .fmtline{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
 @media (max-width:1180px){ .fmtline{display:none} }
-/* Only ever seen when something is wrong — see setSaved(). Sized and coloured
+/* Only ever seen when something is wrong, see setSaved(). Sized and coloured
    to be noticed across a room, because by the time it appears the writer's
    work exists in one browser tab and nowhere else. */
 #savestate{
@@ -186,17 +197,30 @@ header{
 .navlink.on{color:var(--blue);font-weight:500}
 /* Bottom-left corner, always reachable, never in the way. It sits at the same
    height as the middle of the capture dock, so on a board it reads as part of
-   that rail rather than as something floating over it. */
+   that rail rather than as something floating over it.
+
+   It says "Account" out loud. A lone circle with an initial in it is a
+   convention people who build software know and nobody else does, and the
+   question it produces is "how do I get to my profile?" */
 .acct{position:fixed;left:22px;bottom:18px;z-index:45}
 .avatar{
-  width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;flex:0 0 auto;
-  background:var(--blue);color:var(--on-blue);
-  font-size:12.5px;font-weight:600;letter-spacing:.02em;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;gap:9px;cursor:pointer;
+  height:42px;padding:0 14px 0 5px;border-radius:23px;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink-2);
+  font-family:var(--sans);font-size:13px;font-weight:600;
   box-shadow:var(--shadow);
+  transition:border-color var(--settle),box-shadow var(--settle),color var(--settle);
 }
-.avatar:hover{box-shadow:0 0 0 3px var(--blue-soft)}
-.avatar.open{box-shadow:0 0 0 3px var(--blue-soft)}
+.avatar .ini{
+  width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+  background:var(--blue);color:var(--on-blue);
+  font-size:13px;font-weight:600;letter-spacing:.02em;
+  display:flex;align-items:center;justify-content:center;
+}
+.avatar .cv{color:var(--ink-4);transition:transform var(--settle)}
+.avatar:hover{border-color:var(--ink-4);color:var(--ink);box-shadow:var(--shadow-lift)}
+.avatar.open{border-color:var(--blue);color:var(--ink)}
+.avatar.open .cv{transform:rotate(180deg)}
 
 /* ---------- popovers ---------- */
 .pop{
@@ -289,12 +313,12 @@ select:focus{border-color:var(--blue);outline:none}
 .linky:hover{color:var(--blue-ink)}
 
 /* =====================================================================
-   THE DOCK — capture, out of the way at the bottom of the room
+   THE DOCK: capture, out of the way at the bottom of the room
    ===================================================================== */
 .capture{
   position:fixed;left:0;right:0;bottom:0;z-index:35;height:68px;
   border-top:1px solid var(--rule);background:var(--surface);
-  display:flex;align-items:center;gap:14px;padding:0 28px 0 72px;   /* left clears .acct */
+  display:flex;align-items:center;gap:14px;padding:0 28px 0 156px;  /* left clears .acct */
 }
 .capture-lede{display:none}
 .capture-row{display:flex;align-items:center;gap:14px;flex:1;max-width:1560px;margin:0 auto;width:100%}
@@ -308,7 +332,7 @@ select:focus{border-color:var(--blue);outline:none}
 .capture .btn-primary{padding:10px 20px}
 
 /* =====================================================================
-   THE WALL — acts are horizontal bands, so nothing runs off the screen
+   THE WALL: acts are horizontal bands, so nothing runs off the screen
    ===================================================================== */
 main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .board{display:flex;flex-direction:column;gap:34px}
@@ -341,7 +365,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;
   color:var(--gold);
 }
-/* an empty beat is the ABSENCE of a card — never a box drawn around nothing */
+/* an empty beat is the ABSENCE of a card, never a box drawn around nothing */
 .gapbody{padding:7px 1px 0}
 .slotfn{
   font-family:var(--serif);font-size:13.5px;font-style:italic;line-height:1.5;color:var(--ink-3);
@@ -441,7 +465,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .ncard .on{font-size:11.5px;color:var(--ink-4)}
 .ncard .on b{color:var(--gold);font-weight:600}
 
-/* set aside: flat paper, no shadow — it isn't on the wall yet */
+/* set aside: flat paper, no shadow, it isn't on the wall yet */
 .tray{width:100%}
 .tray .acthead .n{color:var(--ink-4)}
 .tray-body{
@@ -456,7 +480,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .shelf-body{display:flex;flex-wrap:wrap;gap:20px}
 
 /* =====================================================================
-   TRAYS — proposal, settle log, conversation
+   TRAYS: proposal, settle log, conversation
    ===================================================================== */
 .trays{max-width:1560px;margin:0 auto;padding:0 28px}
 .trays:empty{display:none}
@@ -581,7 +605,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 #logthread{max-height:30vh}
 
 /* =====================================================================
-   SHEETS — paste, intake, review, welcome
+   SHEETS: paste, intake, review, welcome
    ===================================================================== */
 .scrim{
   position:fixed;inset:0;z-index:80;background:rgba(30,24,18,.5);
@@ -783,7 +807,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .ncard .btn{font-size:11px;padding:5px 10px}
 
 /* =====================================================================
-   DASHBOARD — the scoreboard, as a sentence rather than a row of boxes
+   DASHBOARD: the scoreboard, as a sentence rather than a row of boxes
    ===================================================================== */
 .slate-wrap{max-width:1360px;margin:0 auto;padding:46px 28px 90px}
 /* One line, always. It shrinks to fit rather than wrapping, because the
@@ -800,7 +824,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 
 /* ------------------------------------------------------------ scoreboard --
    Standings, not decoration. A writer opening this should be able to read
-   where they stand in about a second, from across a desk — so the numbers are
+   where they stand in about a second, from across a desk, so the numbers are
    big, tabular and serif, and the words under them are small enough to stay
    out of the way until you want them. Gold is still, and only, what's missing.
 
@@ -830,7 +854,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .score-note{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.45}
 
-/* The chain. Seven days, filled or not — the one thing on this page that is
+/* The chain. Seven days, filled or not, the one thing on this page that is
    about showing up rather than about the script. */
 .chain{display:flex;gap:5px;margin-top:12px;align-items:flex-end;height:18px}
 .chain i{
@@ -845,7 +869,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .score-bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
 
 /* The nearly-finished cell. Wider than its neighbours because it carries a
-   title, and a title is not a number — it will not live in a number's column. */
+   title, and a title is not a number, it will not live in a number's column. */
 .score-cell.wide{flex:2.1 1 0;min-width:230px}
 .score-cell.wide .score-k{margin-top:0;margin-bottom:7px}
 .score-name{
@@ -870,7 +894,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .score-cell.wide .score-note b{color:var(--ink-2);font-weight:600}
 
 /* Stacked, so the wide cell takes a row of its own. This block has to sit
-   AFTER the rules it overrides — a media query adds no specificity, only
+   AFTER the rules it overrides, a media query adds no specificity, only
    source order decides. */
 @media (max-width:899px){
   .score-cell{flex:1 1 46%;min-width:0;padding:16px 18px 14px}
@@ -881,7 +905,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   .score-name{font-size:21px}
 }
 
-/* The two ways in. A matched pair — same size, same shape, same weight — so
+/* The two ways in. A matched pair, same size, same shape, same weight, so
    neither looks like the afterthought the ghost link used to be. The filled
    one is Paste your notes, because that is the move that makes the product do
    the thing it exists to do. */
@@ -914,7 +938,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    A title card, not a table row. The grade leads because it is the one figure
    that answers "how am I doing" without arithmetic; the counts sit beside it
    as the working it out. Nothing on this card is clickable unless it looks
-   like a button — the old version hid the two most useful actions inside
+   like a button, the old version hid the two most useful actions inside
    blue text that read as a caption. */
 .pcard{
   width:396px;max-width:100%;background:var(--card);border:1px solid var(--rule);
@@ -924,8 +948,12 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .pcard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .pcard .ph{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+/* Set in caps whatever the writer typed, the way a title card is set. Done in
+   CSS rather than by changing the name, so what they wrote is what is stored,
+   what is exported, and what shows everywhere else. */
 .pcard h3{
-  font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;
+  font-family:var(--serif);font-size:19px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.028em;
   margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere;
 }
 .pcard .when{font-size:11.5px;color:var(--ink-4);white-space:nowrap}
@@ -953,7 +981,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .pcard .bar{height:4px;background:var(--rule-soft);border-radius:3px;overflow:hidden}
 .pcard .bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
 
-/* next up — the one action worth its own row */
+/* next up, the one action worth its own row */
 .pcard .up{
   display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
   background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-ctl);
@@ -989,7 +1017,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
 /* =====================================================================
-   SETTINGS — a modal over the board, never a page you navigate away to
+   SETTINGS: a modal over the board, never a page you navigate away to
    ===================================================================== */
 .modal{
   width:min(1000px,100%);height:min(680px,calc(100vh - 48px));
@@ -1065,9 +1093,46 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .muted{color:var(--ink-3);font-size:13px}
 .paneflash{margin-bottom:16px}
 
+/* A real footer, not a paragraph floating under the board. It closes the page:
+   a rule across the top, the mark and the line, what happens to a writer's
+   material, and the three links that belong at the bottom of every site. */
 footer{
-  max-width:1560px;margin:0 auto;padding:16px 28px 96px;
-  font-family:var(--serif);font-size:13px;font-style:italic;color:var(--ink-4);line-height:1.6;
+  border-top:1px solid var(--rule);background:var(--surface);margin-top:60px;
+}
+.foot-in{
+  max-width:1560px;margin:0 auto;padding:34px 28px 120px;
+  display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:30px 44px;align-items:start;
+}
+.foot-brand{display:flex;align-items:flex-start;gap:11px}
+.foot-mark{display:block;flex:0 0 auto}
+.foot-mark svg{height:30px;width:auto;display:block}
+.foot-name{
+  font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:-.012em;
+  color:var(--ink);line-height:1.1;
+}
+.foot-tag{
+  font-family:var(--serif);font-style:italic;font-size:13.5px;color:var(--ink-3);
+  margin-top:3px;
+}
+.foot-k{
+  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-4);margin-bottom:8px;
+}
+.foot-col p{
+  font-family:var(--sans);font-size:12.5px;line-height:1.65;color:var(--ink-3);margin:0;
+}
+.foot-links{display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.foot-links a{
+  font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--blue);
+  text-decoration:none;
+}
+.foot-links a:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
+@media (max-width:1023px){
+  .foot-in{grid-template-columns:1fr 1fr;gap:26px 34px;padding-bottom:130px}
+  .foot-brand{grid-column:1 / -1}
+}
+@media (max-width:600px){
+  .foot-in{grid-template-columns:1fr}
 }
 .spinner{
   display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-1px;
@@ -1123,9 +1188,13 @@ footer{
      matched pair by sharing the row equally instead of by a fixed width. */
   .slate-acts{width:100%;gap:10px}
   .bigbtn{min-width:0;flex:1 1 0;padding:0 12px}
-  .capture{padding:0 16px 0 58px;height:64px}   /* still clears .acct */
+  .capture{padding:0 16px 0 62px;height:64px}   /* the pill drops its label here */
   .capture .btn-ghost{display:none}
+  /* no room for the word at this width; the circle carries it alone */
   .acct{left:14px;bottom:16px}
+  .avatar{padding:0;height:38px;width:38px;justify-content:center;border-radius:50%}
+  .avatar .lbl,.avatar .cv{display:none}
+  .avatar .ini{width:36px;height:36px}
   .wordmark{font-size:24px}
   .mark{height:24px}
   .slate-wrap,.outline-wrap{padding-left:16px;padding-right:16px}
@@ -1152,6 +1221,7 @@ footer{
     <!-- The mark: three beats already in place, and the one still coming down.
          Drawn rather than loaded so it takes the palette with it into dark
          mode and costs no request. -->
+    <div class="lead">
     <a class="brand" href="/" title="Beatfall">
       <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
         <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
@@ -1174,7 +1244,7 @@ footer{
 
     <div class="projbar">
       <button class="projbtn" id="projbtn" aria-haspopup="true" aria-expanded="false"
-        data-tip="Everything this script can do — switch between scripts, change its structure, paste in more notes, print it.">
+        data-tip="Everything this script can do: switch between scripts, change its structure, paste in more notes, print it.">
         <span class="nm" id="projname">Untitled</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--blue)" stroke-width="1.6" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
       </button>
@@ -1190,7 +1260,7 @@ footer{
         <div class="popsep"></div>
         <div class="pophead">Structure</div>
         <div class="strip">
-          <select id="structure" aria-label="Story structure" data-tip="The skeleton your cards hang on. Switch it and every card is re-sorted into the new shape — nothing is lost, and you can switch back."></select>
+          <select id="structure" aria-label="Story structure" data-tip="The skeleton your cards hang on. Switch it and every card is re-sorted into the new shape. Nothing is lost, and you can switch back."></select>
           <div class="meter"><div class="meter-track"><div class="meter-fill" id="fill"></div></div></div>
           <span class="meter-label" id="meterlabel"></span>
           <span class="gapcount" id="gapcount"></span>
@@ -1215,6 +1285,8 @@ footer{
       </div>
     </div>
 
+    </div><!-- /.lead -->
+
     <span id="savestate" hidden role="status" aria-live="polite"></span>
     <div class="grow"></div>
 
@@ -1224,8 +1296,8 @@ footer{
     </span>
 
     <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
-    <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat — character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
-    <button class="navlink" id="viewtoggle" data-tip="Every project at once — how far along each one is, and where you left off.">Dashboard</button>
+    <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat: character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
+    <button class="navlink" id="viewtoggle" data-tip="Every project at once: how far along each one is, and where you left off.">Dashboard</button>
   </div>
 </header>
 
@@ -1234,7 +1306,13 @@ footer{
      it does not belong in the line of things that do. -->
 <div class="acct" id="acct">
       <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false"
-        data-tip="Your account, plan, credits and settings.">K</button>
+        data-tip="Your account, plan, credits and settings.">
+        <span class="ini" id="avatarini">K</span>
+        <span class="lbl">Account</span>
+        <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none"
+          stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true"><path d="M2 6.5l3-3 3 3"/></svg>
+      </button>
 
       <div class="pop up left" id="acctmenu" hidden>
         <div class="popwho">
@@ -1282,14 +1360,14 @@ footer{
 
   <div class="sheet" id="sheetpaste">
     <div class="sheet-title">Paste in your notes</div>
-    <p class="sheet-note">Paste the whole mess — or drop the text files straight in. It doesn't need
+    <p class="sheet-note">Paste the whole mess, or drop the text files straight in. It doesn't need
       to be tidy, one-per-line, or even about one story. Beatfall reads it, separates the ideas,
       works out which are beats and which are character, voice or dialogue notes, and builds the
       board. Your wording is kept exactly as you wrote it.</p>
     <p class="sheet-note" style="margin-top:-8px">It goes to your account and nowhere else. It is
-      never used to train a model, and no other person can read it &mdash;
-      <a href="/privacy.html" target="_blank" rel="noopener">how that works</a>.</p>
-    <textarea id="dumptext" spellcheck="false" placeholder="drag .txt or .md files here, or paste&#10;&#10;he never tells her about the money — maybe that's the whole thing?&#10;the dog knows before anyone else does&#10;GRANDMOTHER: &quot;We don't say that name at this table.&quot;&#10;ends at the same kitchen table, different chair"></textarea>
+      never used to train a model, and no other person can read it.
+      <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
+    <textarea id="dumptext" spellcheck="false" placeholder="drag .txt or .md files here, or paste&#10;&#10;he never tells her about the money, maybe that's the whole thing?&#10;the dog knows before anyone else does&#10;GRANDMOTHER: &quot;We don't say that name at this table.&quot;&#10;ends at the same kitchen table, different chair"></textarea>
     <div class="sheet-actions">
       <span class="sheet-count" id="dumpcount">nothing yet</span>
       <button class="btn" id="dumpcancel">Cancel</button>
@@ -1300,7 +1378,7 @@ footer{
 
   <div class="sheet" id="sheetnew" hidden>
     <div class="sheet-title" id="newtitle">A new project</div>
-    <p class="sheet-note">Everything here is optional except the format — but the more it knows, the
+    <p class="sheet-note">Everything here is optional except the format, but the more it knows, the
       better its questions get, and the better it places a note you type six weeks from now.</p>
 
     <div class="field">
@@ -1324,7 +1402,7 @@ footer{
           <div class="ask-beat">Working out the logline</div>
           <div class="thread" id="logthread"></div>
           <div class="compose">
-            <textarea id="loginput" rows="2" placeholder="Answer here &mdash; Enter to send"></textarea>
+            <textarea id="loginput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
             <button class="btn btn-primary" id="logsend">Send</button>
           </div>
           <div class="ask-actions">
@@ -1381,7 +1459,7 @@ footer{
       </div>
       <div>
       <label for="f-like">What it's like</label>
-      <input id="f-like" type="text" autocomplete="off" placeholder="Winter's Bone meets Mud — the comparison you'd say out loud in a room">
+      <input id="f-like" type="text" autocomplete="off" placeholder="Winter's Bone meets Mud: the comparison you'd say out loud in a room">
       <div class="hint">Tone travels better than genre.</div>
       </div>
     </div>
@@ -1417,7 +1495,7 @@ footer{
         <button class="btn btn-ghost" id="unplace" data-tip="Keeps the note without deciding where it goes. It waits in Set aside until you drag it somewhere.">Set it aside for now</button>
         <button class="btn btn-ghost" id="cancel">Cancel</button>
         <span class="sharpen" id="sharpen"></span>
-        <span class="proposal-hint">Pick a beat &mdash; you can drag the card anywhere afterwards.</span>
+        <span class="proposal-hint">Pick a beat. You can drag the card anywhere afterwards.</span>
       </div>
     </div>
   </div>
@@ -1440,7 +1518,7 @@ footer{
 
       <div id="askconvo">
         <div class="compose">
-          <textarea id="askinput" rows="2" placeholder="Answer here, or push back &mdash; Enter to send"></textarea>
+          <textarea id="askinput" rows="2" placeholder="Answer here, or push back (Enter to send)"></textarea>
           <button class="btn btn-primary" id="asksend">Send</button>
         </div>
         <div class="ask-actions">
@@ -1452,7 +1530,7 @@ footer{
       </div>
 
       <div id="askdraft" hidden>
-        <div class="draft-label" id="draftlabel">The card &mdash; everything you said, in one beat. Edit it before it lands.</div>
+        <div class="draft-label" id="draftlabel">The card: everything you said, in one beat. Edit it before it lands.</div>
         <textarea id="drafttext" rows="3"></textarea>
         <div class="ask-actions">
           <button class="btn btn-primary" id="draftgo" data-tip="Adds this as the card for that beat, pinned so the board won't move it later.">Put it on the board</button>
@@ -1577,7 +1655,46 @@ footer{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
 
-<footer id="foot"></footer>
+<footer id="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <span class="foot-mark">
+        <svg viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
+          <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
+            <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.8 13.3v3.6"/>
+          </g>
+          <rect x="15" y="20.4" width="32.8" height="6.6" rx="1.6"
+                fill="var(--gold)" transform="rotate(-12 32 23.7)"/>
+          <rect x="15" y="34.2" width="34" height="6.7" rx="1.6" fill="var(--blue)"/>
+          <rect x="15" y="43.1" width="34" height="6.7" rx="1.6" fill="var(--blue)"/>
+          <rect x="15" y="52.0" width="34" height="6.7" rx="1.6" fill="var(--blue)"/>
+        </svg>
+      </span>
+      <div>
+        <div class="foot-name">Beatfall</div>
+        <div class="foot-tag">Where your story falls into place.</div>
+      </div>
+    </div>
+
+    <div class="foot-col">
+      <div class="foot-k">Your material</div>
+      <p>Nothing you write trains a model. No other person can read it, including us.
+        Export or delete all of it whenever you like.</p>
+    </div>
+
+    <div class="foot-col">
+      <div class="foot-k">How placing works</div>
+      <p>A built-in matcher proposes a beat the moment you type. Claude reads it more
+        closely afterwards, and asks rather than guesses.</p>
+    </div>
+
+    <nav class="foot-links" aria-label="Site">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="mailto:kris@beatfall.app?subject=Beatfall%20feedback">Send feedback</a>
+    </nav>
+  </div>
+</footer>
 <div id="tip" role="tooltip" hidden></div>
 
 <div class="scrim" id="firstrun" hidden>
@@ -1589,7 +1706,7 @@ footer{
     <div class="firstrun-choices">
       <button class="fr" data-go="paste">
         <b>I have notes already</b>
-        <span>Paste in a file — three months of scraps is ideal. It sorts the whole thing and
+        <span>Paste in a file. Three months of scraps is ideal. It sorts the whole thing and
           builds the board.</span>
         <i>The fastest way to see what this does</i>
       </button>
@@ -1610,33 +1727,33 @@ footer{
 
 <script>
 /* =========================================================================
-   STRUCTURES — the container. Each slot carries the job it does in the story,
+   STRUCTURES: the container. Each slot carries the job it does in the story,
    which is what a note gets matched against.
    ========================================================================= */
 const STRUCTURES = {
   stc: {
-    label: "Feature — Save the Cat! (15 beats)",
+    label: "Feature · Save the Cat! (15 beats)",
     acts: ["Act One","Act Two","Act Three"],
     slots: [
       {id:"open",  act:0, name:"Opening Image",     fn:"The first shot. Tone, mood, and the 'before' snapshot.", req:"A visual, situation or moment establishing the protagonist's world, tone or condition BEFORE the story changes. May be purely visual with no plot mechanics.", cues:[["opening image",6],["first shot",6],["opens on",6],["cold open",5],["we open",5],["establishing",4],["begins",2],["opening",3],["first",1],["morning",1],["wakes",1]]},
-      {id:"theme", act:0, name:"Theme Stated",      fn:"Someone says out loud what the story is really about.", req:"A statement, question, argument or exchange expressing what the story is about on a HUMAN level — memory, guilt, family, identity, truth, loyalty. A plot twist is NOT a theme.", cues:[["theme",5],["says to him",4],["tells him",3],["warns",3],["advice",3],["lesson",3],["moral",3],["you can't",2],["someone says",4]]},
+      {id:"theme", act:0, name:"Theme Stated",      fn:"Someone says out loud what the story is really about.", req:"A statement, question, argument or exchange expressing what the story is about on a HUMAN level: memory, guilt, family, identity, truth, loyalty. A plot twist is NOT a theme.", cues:[["theme",5],["says to him",4],["tells him",3],["warns",3],["advice",3],["lesson",3],["moral",3],["you can't",2],["someone says",4]]},
       {id:"setup", act:0, name:"Setup",             fn:"The ordinary world, and everything broken in it.", req:"Establishes protagonist, relationships, flaw, ordinary world, unresolved history, or elements that pay off later.", cues:[["ordinary",4],["routine",4],["normal life",5],["everyday",3],["his job",3],["her job",3],["at home",3],["introduce",3],["we meet",4],["backstory",3],["small town",2],["before",1]]},
       {id:"cat",   act:0, name:"Catalyst",          fn:"The thing that breaks the ordinary world open.", req:"An ACTUAL EVENT that disrupts the status quo and creates the central problem. A question about what the catalyst could be is NOT the catalyst.", cues:[["catalyst",5],["inciting",5],["gets a call",5],["phone call",4],["a letter",4],["news that",4],["body",3],["dies",3],["is killed",4],["arrives",3],["discovers",3],["finds out",4],["knock at the door",5],["fired",3],["accident",3]]},
-      {id:"debate",act:0, name:"Debate",            fn:"Should they go? Doubt, resistance, the cost of saying yes.", req:"The protagonist REACTS to the catalyst — hesitates, refuses, investigates superficially, weighs the choice. A clue discovered later is not Debate.", cues:[["debate",5],["hesitates",4],["refuses",4],["doubts",4],["argues about",4],["unsure",4],["afraid to",4],["reluctant",4],["can't decide",5],["talks himself out",5]]},
+      {id:"debate",act:0, name:"Debate",            fn:"Should they go? Doubt, resistance, the cost of saying yes.", req:"The protagonist REACTS to the catalyst: hesitates, refuses, investigates superficially, weighs the choice. A clue discovered later is not Debate.", cues:[["debate",5],["hesitates",4],["refuses",4],["doubts",4],["argues about",4],["unsure",4],["afraid to",4],["reluctant",4],["can't decide",5],["talks himself out",5]]},
       {id:"br2",   act:0, name:"Break Into Two",    fn:"They commit. The old world is behind them now.", req:"A consequential CHOICE that commits the protagonist to the story: decision + action + new objective. A clue is not a commitment.", cues:[["decides to",5],["commits",5],["leaves town",5],["packs",4],["sets off",5],["agrees to",4],["takes the job",5],["takes the case",5],["says yes",5],["gets in the car",4]]},
       {id:"bstory",act:1, name:"B Story",           fn:"The relationship that carries the theme.", req:"A secondary RELATIONSHIP or storyline, usually involving another character, that carries the theme. A clue, corpse, location or eerie image is not a B Story.", cues:[["b story",6],["subplot",5],["meets",4],["love interest",5],["romance",4],["mentor",4],["new partner",4],["friendship",4],["falls for",5],["a woman who",4],["a man who",4]]},
-      {id:"fun",   act:1, name:"Fun and Games",     fn:"The promise of the premise. The reason they bought a ticket.", req:"Scenes delivering the promise of the premise — investigating, interrogations, discoveries, escalating weirdness, local characters, darkly funny encounters.", cues:[["montage",5],["set piece",5],["trains",3],["learns to",4],["they try",3],["heist",4],["adventure",3],["road trip",4],["the fun",4],["chase",2],["hustle",3]]},
+      {id:"fun",   act:1, name:"Fun and Games",     fn:"The promise of the premise. The reason they bought a ticket.", req:"Scenes delivering the promise of the premise: investigating, interrogations, discoveries, escalating weirdness, local characters, darkly funny encounters.", cues:[["montage",5],["set piece",5],["trains",3],["learns to",4],["they try",3],["heist",4],["adventure",3],["road trip",4],["the fun",4],["chase",2],["hustle",3]]},
       {id:"mid",   act:1, name:"Midpoint",          fn:"A false win or a false loss. The stakes turn personal.", req:"Must cause a SUBSTANTIAL SHIFT: a major revelation, false victory, false defeat, reversal, escalation of stakes, or change of objective or understanding. Ask: after this, is the protagonist pursuing the story differently? If no, it is not the Midpoint. An event merely happening halfway through does NOT qualify.", cues:[["midpoint",6],["halfway",5],["false victory",6],["thinks he's won",6],["thinks she's won",6],["celebration",4],["party",3],["the kiss",4],["everything changes",5],["raises the stakes",5],["personal now",5],["big win",4],["turns out",5],["knew the whole time",6],["the secret",5],["reveal",4]]},
-      {id:"bad",   act:1, name:"Bad Guys Close In", fn:"Pressure mounts outside; the team frays inside.", req:"Pressure increases — antagonist action, danger rising, lies collapsing, relationships deteriorating, allies turning unreliable, clues becoming dangerous. No literal villain required.", cues:[["closing in",6],["pressure",4],["they argue",4],["betray",5],["suspicion",4],["unravels",4],["starts drinking",3],["falling apart",5],["hunting him",5],["losing",3],["cracks",3]]},
+      {id:"bad",   act:1, name:"Bad Guys Close In", fn:"Pressure mounts outside; the team frays inside.", req:"Pressure increases: antagonist action, danger rising, lies collapsing, relationships deteriorating, allies turning unreliable, clues becoming dangerous. No literal villain required.", cues:[["closing in",6],["pressure",4],["they argue",4],["betray",5],["suspicion",4],["unravels",4],["starts drinking",3],["falling apart",5],["hunting him",5],["losing",3],["cracks",3]]},
       {id:"lost",  act:1, name:"All Is Lost",       fn:"The lowest point. Something or someone dies.", req:"Something meaningful is ACTUALLY LOST: a major defeat, a death, evidence destroyed, a relationship collapsing, the objective apparently out of reach. A striking ending concept is not All Is Lost.", cues:[["all is lost",6],["lowest",5],["rock bottom",6],["funeral",5],["destroyed",4],["arrested",4],["loses everything",6],["she dies",5],["he dies",5],["fails",4],["walks out on him",5]]},
-      {id:"dark",  act:1, name:"Dark Night",        fn:"Grief and reckoning, before the answer arrives.", req:"The EMOTIONAL CONSEQUENCE of All Is Lost — absorbing it, losing hope, confronting the flaw, understanding the cost. A plot reveal on its own is not Dark Night.", cues:[["dark night",6],["grieves",5],["mourns",5],["alone in",4],["gives up",5],["despair",4],["sits in the dark",6],["drunk",3],["cries",3]]},
+      {id:"dark",  act:1, name:"Dark Night",        fn:"Grief and reckoning, before the answer arrives.", req:"The EMOTIONAL CONSEQUENCE of All Is Lost: absorbing it, losing hope, confronting the flaw, understanding the cost. A plot reveal on its own is not Dark Night.", cues:[["dark night",6],["grieves",5],["mourns",5],["alone in",4],["gives up",5],["despair",4],["sits in the dark",6],["drunk",3],["cries",3]]},
       {id:"br3",   act:2, name:"Break Into Three",  fn:"The realization that makes the ending possible.", req:"New understanding + decision + final course of action. A fact on its own is not enough until it produces a plan.", cues:[["realizes",5],["figures out",5],["understands",4],["remembers what",5],["the answer",4],["solution",4],["it clicks",5],["decides to go back",6]]},
       {id:"fin",   act:2, name:"Finale",            fn:"They act on it, and the world changes.", req:"The protagonist EXECUTES the final plan and confronts the central conflict. A final revelation alone is not the Finale.", cues:[["finale",6],["climax",6],["showdown",6],["confronts",5],["final fight",6],["storms",4],["rescues",5],["face to face",5],["confrontation",5],["shootout",5]]},
       {id:"last",  act:2, name:"Final Image",       fn:"The 'after' snapshot. Proof that something changed.", req:"A concluding visual or moment reflecting what changed, often echoing or contrasting the Opening Image.", cues:[["final image",6],["last shot",6],["closing shot",6],["ends with",5],["the ending",5],["years later",5],["walks away",4],["fade out",5],["drives off",4]]}
     ]
   },
   three: {
-    label: "Feature — Classic Three-Act (9 beats)",
+    label: "Feature · Classic Three-Act (9 beats)",
     acts: ["Act One","Act Two","Act Three"],
     slots: [
       {id:"t-open", act:0, name:"Opening Image",     fn:"Where and who we start with.", req:"A specific image, location or moment that shows where and who we begin with, before the story engine starts. May be purely visual. A logline, premise summary or thematic statement about the film is not an Opening Image.", cues:[["opening",4],["first shot",6],["opens on",6],["we open",5],["cold open",4],["establishing",4],["begins",2]]},
@@ -1651,7 +1768,7 @@ const STRUCTURES = {
     ]
   },
   circle: {
-    label: "Either — Story Circle (8 stages)",
+    label: "Either · Story Circle (8 stages)",
     acts: ["Order","Descent","Chaos","Return"],
     slots: [
       {id:"c-you",  act:0, name:"You",     fn:"A character in a zone of comfort.", req:"Establishes the character inside a familiar zone of COMFORT and the rules of that ordinary state. Psychological, not plot mechanical. A description of the world's premise, setting or genre with no sense of this character's equilibrium is not You.", cues:[["ordinary",4],["routine",4],["normal life",5],["we meet",4],["opens on",5],["at home",4],["his job",3],["comfortable",4],["introduce",3],["small town",3],["dawn",3],["morning",3]]},
@@ -1665,10 +1782,10 @@ const STRUCTURES = {
     ]
   },
   short: {
-    label: "Short film — Eight beats (5–20 minutes)",
+    label: "Short film · Eight beats (5–20 minutes)",
     acts: ["Set Up","Push","Land"],
     slots: [
-      {id:"sh-hook",  act:0, name:"Hook",              fn:"The first shot. A short has seconds, not minutes — tone, world and trouble at once.", req:"The FIRST SHOT or opening seconds that seize attention immediately. It must work in seconds, not build. A gradual atmospheric establishing sequence, or context the audience needs explained first, is not the Hook of a short.", cues:[["opens on",6],["first shot",6],["cold open",5],["we open",5],["hook",5],["establishing",4],["begins",3],["opening",4]]},
+      {id:"sh-hook",  act:0, name:"Hook",              fn:"The first shot. A short has seconds, not minutes: tone, world and trouble at once.", req:"The FIRST SHOT or opening seconds that seize attention immediately. It must work in seconds, not build. A gradual atmospheric establishing sequence, or context the audience needs explained first, is not the Hook of a short.", cues:[["opens on",6],["first shot",6],["cold open",5],["we open",5],["hook",5],["establishing",4],["begins",3],["opening",4]]},
       {id:"sh-who",   act:0, name:"Who, and What They Want", fn:"The person and the want, landed almost immediately. No slow introductions.", req:"Lands WHO the person is and WHAT THEY WANT almost instantly, through action or a single telling detail. Compression is the requirement. A layered backstory or a slow character study that a feature could afford does not fit here.", cues:[["we meet",5],["wants",6],["needs",5],["introduce",4],["his job",3],["her job",3],["every day",4],["routine",4],["longing",5],["trying to",4]]},
       {id:"sh-break", act:0, name:"The Disruption",     fn:"The thing that breaks the situation. In a short it arrives early and hard.", req:"The DISRUPTION that breaks the situation, arriving early and hard because a short has no room for a slow build. A mild irritation, or an ongoing unhappy condition already present at the start, is not the Disruption.", cues:[["disruption",6],["interrupt",5],["arrives",4],["knock",5],["a call",4],["discovers",4],["finds",4],["suddenly",5],["until",3],["one day",5],["breaks",4]]},
       {id:"sh-try",   act:1, name:"The First Attempt",  fn:"They try the obvious thing. It isn't enough.", req:"The protagonist takes the OBVIOUS ACTION to fix the problem and it proves insufficient. An attempt that falls short. A plan being considered, or a montage of many efforts a feature would allow, is not the First Attempt.", cues:[["tries to",6],["attempts",6],["first tries",6],["tries the",5],["asks for",4],["fails",4],["doesn't work",6],["not enough",6]]},
@@ -1679,25 +1796,25 @@ const STRUCTURES = {
     ]
   },
   vertep: {
-    label: "Vertical — One episode (60–120 seconds)",
+    label: "Vertical · One episode (60–120 seconds)",
     acts: ["Detonate","Escalate","Cut"],
     slots: [
-      {id:"ve-hook",    act:0, name:"Hook — 0 to 15s",       fn:"You are not easing in, you are detonating. The first image has to earn the next ten seconds.", req:"Occupies the FIRST 15 SECONDS. A detonating image or line that earns the next ten seconds outright. Setup, world explanation, or a slow reveal building toward something interesting later in the episode does not belong in this slot.", cues:[["opens on",6],["hook",6],["first shot",6],["cold open",5],["slaps",5],["walks in on",6],["catches him",5],["catches her",5],["humiliat",5],["we open",5]]},
-      {id:"ve-friction",act:1, name:"Friction — 15 to 60s",  fn:"Active conflict, visible on screen. Two people wanting different things out loud.", req:"Roughly 15 to 60 SECONDS: active conflict happening visibly on screen between people with opposed wants. Internal deliberation, backstory narration, or characters discussing conflict that occurred elsewhere is not Friction.", cues:[["argues",6],["confronts",6],["refuses",5],["threatens",6],["demands",5],["fight",5],["accuses",6],["mocks",5],["in front of everyone",6],["tension",4]]},
-      {id:"ve-spike",   act:1, name:"Spike — 60 to 90s",     fn:"The jolt. A revelation or a shift that recontextualises everything before it.", req:"Roughly 60 to 90 SECONDS: a JOLT that recontextualises what the episode already showed. New information that changes meaning. A louder version of the same argument, or escalation with no reframing, is not the Spike.", cues:[["turns out",6],["reveal",6],["twist",6],["it was",4],["all along",6],["secretly",6],["actually the",5],["identity",5],["is really",5]]},
-      {id:"ve-button",  act:2, name:"Button — last 5 to 10s",fn:"Cut on the question, never the answer. The reason they tap the next episode.", req:"The LAST 5 to 10 SECONDS, cutting on an unanswered question so the viewer taps the next episode. Ends open. A resolution, a satisfying payoff, or an answer delivered before the cut is not a Button.", cues:[["cliffhanger",6],["cut to black",6],["ends with",5],["last shot",6],["turns and sees",6],["the door opens",6],["freeze",5],["who is",4],["button",5]]}
+      {id:"ve-hook",    act:0, name:"Hook, 0 to 15s",       fn:"You are not easing in, you are detonating. The first image has to earn the next ten seconds.", req:"Occupies the FIRST 15 SECONDS. A detonating image or line that earns the next ten seconds outright. Setup, world explanation, or a slow reveal building toward something interesting later in the episode does not belong in this slot.", cues:[["opens on",6],["hook",6],["first shot",6],["cold open",5],["slaps",5],["walks in on",6],["catches him",5],["catches her",5],["humiliat",5],["we open",5]]},
+      {id:"ve-friction",act:1, name:"Friction, 15 to 60s",  fn:"Active conflict, visible on screen. Two people wanting different things out loud.", req:"Roughly 15 to 60 SECONDS: active conflict happening visibly on screen between people with opposed wants. Internal deliberation, backstory narration, or characters discussing conflict that occurred elsewhere is not Friction.", cues:[["argues",6],["confronts",6],["refuses",5],["threatens",6],["demands",5],["fight",5],["accuses",6],["mocks",5],["in front of everyone",6],["tension",4]]},
+      {id:"ve-spike",   act:1, name:"Spike, 60 to 90s",     fn:"The jolt. A revelation or a shift that recontextualises everything before it.", req:"Roughly 60 to 90 SECONDS: a JOLT that recontextualises what the episode already showed. New information that changes meaning. A louder version of the same argument, or escalation with no reframing, is not the Spike.", cues:[["turns out",6],["reveal",6],["twist",6],["it was",4],["all along",6],["secretly",6],["actually the",5],["identity",5],["is really",5]]},
+      {id:"ve-button",  act:2, name:"Button, last 5 to 10s",fn:"Cut on the question, never the answer. The reason they tap the next episode.", req:"The LAST 5 to 10 SECONDS, cutting on an unanswered question so the viewer taps the next episode. Ends open. A resolution, a satisfying payoff, or an answer delivered before the cut is not a Button.", cues:[["cliffhanger",6],["cut to black",6],["ends with",5],["last shot",6],["turns and sees",6],["the door opens",6],["freeze",5],["who is",4],["button",5]]}
     ]
   },
   vertseason: {
-    label: "Vertical — Season arc (60–100 episodes)",
+    label: "Vertical · Season arc (60–100 episodes)",
     acts: ["Free · eps 1–10","Escalation · 11–40","Dark middle · 41–70","Resolution · 71+"],
     slots: [
       {id:"v-hook",   act:0, name:"Episode One Hook",      fn:"The premise detonates inside the first minute of the whole series. No setup, no easing in.", req:"The premise DETONATES within the first minute of episode one, stated through action a stranger scrolling can grasp instantly. Character introduction, worldbuilding, or a hook that arrives in episode two or three does not qualify.", cues:[["opens on",6],["hook",5],["first episode",6],["premise",5],["divorce",4],["fired",4],["betray",4],["wedding",4],["humiliat",5]]},
-      {id:"v-setup",  act:0, name:"The Setup",             fn:"Who they are, what they want, and the wrong they are carrying — laid down fast.", req:"Establishes WHO they are, WHAT they want, and the WRONG they carry, delivered fast across the free early episodes. A plot complication or an antagonist's scheme, however early it lands, belongs to another beat rather than the Setup.", cues:[["we meet",5],["wants",5],["secretly",4],["hidden",4],["poor",4],["ordinary",4],["works as",4],["backstory",4]]},
-      {id:"v-paywall",act:0, name:"The Paywall Turn — ep 10", fn:"The question big enough that a stranger pays to find out the answer. Everything before this is free.", req:"Positioned at roughly EPISODE 10, ending on a question compelling enough that a stranger pays to continue. Everything before it is free. A strong cliffhanger placed elsewhere in the run, or an answer given here, is not the Paywall Turn.", cues:[["paywall",6],["episode ten",6],["cliffhanger",5],["the question",5],["finds out",5],["discovers",5],["turns out",4]]},
+      {id:"v-setup",  act:0, name:"The Setup",             fn:"Who they are, what they want, and the wrong they are carrying, laid down fast.", req:"Establishes WHO they are, WHAT they want, and the WRONG they carry, delivered fast across the free early episodes. A plot complication or an antagonist's scheme, however early it lands, belongs to another beat rather than the Setup.", cues:[["we meet",5],["wants",5],["secretly",4],["hidden",4],["poor",4],["ordinary",4],["works as",4],["backstory",4]]},
+      {id:"v-paywall",act:0, name:"The Paywall Turn, ep 10", fn:"The question big enough that a stranger pays to find out the answer. Everything before this is free.", req:"Positioned at roughly EPISODE 10, ending on a question compelling enough that a stranger pays to continue. Everything before it is free. A strong cliffhanger placed elsewhere in the run, or an answer given here, is not the Paywall Turn.", cues:[["paywall",6],["episode ten",6],["cliffhanger",5],["the question",5],["finds out",5],["discovers",5],["turns out",4]]},
       {id:"v-reveal", act:1, name:"First Big Reveal",      fn:"Lands an episode or two after the paywall, so paying immediately feels rewarded.", req:"A REVELATION landing an episode or two AFTER the paywall so the payment feels immediately rewarded. It must deliver on the paywall question. A new mystery that only defers the answer further is not the First Big Reveal.", cues:[["reveal",6],["identity",6],["actually a",6],["billionaire",6],["heir",6],["secretly",6],["all along",5]]},
       {id:"v-layer",  act:1, name:"Complication Layers",   fn:"New antagonists, new secrets, the situation compounding episode on episode.", req:"Accumulating COMPLICATIONS through the middle run: new antagonists, fresh secrets, alliances compounding pressure. Additive by design. The single reversal that resets the series, or the collapse into the dark stretch, belongs to its own beat.", cues:[["complication",6],["rival",5],["new enemy",6],["mother in law",5],["blackmail",6],["threatens",5],["escalates",5],["another",3]]},
-      {id:"v-mid",    act:1, name:"Midpoint Reversal — around ep 40", fn:"What they thought was true isn't. The series resets on new terms.", req:"Around EPISODE 40: a reversal that RESETS the series onto new terms, changing what the show is now about. An escalation of the existing conflict, or a large event that leaves the show's premise intact, is not the Midpoint Reversal.", cues:[["midpoint",6],["reversal",6],["twist",6],["turns out",5],["everything changes",6],["betrayed by",6],["was lying",6]]},
+      {id:"v-mid",    act:1, name:"Midpoint Reversal, around ep 40", fn:"What they thought was true isn't. The series resets on new terms.", req:"Around EPISODE 40: a reversal that RESETS the series onto new terms, changing what the show is now about. An escalation of the existing conflict, or a large event that leaves the show's premise intact, is not the Midpoint Reversal.", cues:[["midpoint",6],["reversal",6],["twist",6],["turns out",5],["everything changes",6],["betrayed by",6],["was lying",6]]},
       {id:"v-dark",   act:2, name:"The Dark Middle",       fn:"Episodes 41 to 70. Deepest in it, furthest from any resolution.", req:"EPISODES 41 to 70, the stretch furthest from resolution where the antagonist holds the advantage and pressure compounds. Defined by position in the run. A single dark scene elsewhere, or the final defeat itself, is not the Dark Middle.", cues:[["dark",5],["worst",5],["alone",5],["loses",5],["separated",5],["exiled",5],["falls apart",5],["deeper",4]]},
       {id:"v-low",    act:2, name:"The Lowest Point",      fn:"They lose the thing the whole series has been about.", req:"The protagonist LOSES the very thing the series has been about, the central want or relationship taken from them. Total. A serious setback that leaves the core stake intact, or a temporary separation, is not the Lowest Point.", cues:[["lowest",6],["rock bottom",6],["dies",5],["loses everything",6],["gives up",5],["divorce",4],["hospital",4],["funeral",5]]},
       {id:"v-turn",   act:3, name:"The Turn",              fn:"What they finally understand, and what acting on it will cost.", req:"What the protagonist finally UNDERSTANDS about themselves, and the price of acting on it. Insight plus action. A tactical plan to win, or an ally arriving with a solution, is not the Turn.", cues:[["realizes",6],["decides",6],["stands up",6],["fights back",6],["returns",5],["reveals herself",6],["reveals himself",6],["no longer",5]]},
@@ -1706,35 +1823,35 @@ const STRUCTURES = {
     ]
   },
   broadcast: {
-    label: "TV — Broadcast Hour (teaser + 4 acts)",
+    label: "TV · Broadcast Hour (teaser + 4 acts)",
     acts: ["Teaser","Act One","Act Two","Act Three","Act Four"],
     slots: [
       {id:"b-teas", act:0, name:"Teaser",        fn:"The hook before the titles. Usually the problem, rarely the hero.", req:"The pre titles HOOK, usually presenting the problem itself, often through guest characters rather than the series regulars. Ends before the main titles. A scene introducing our team going about their day is not the Teaser.", cues:[["teaser",6],["cold open",6],["opens on",5],["before the titles",6],["body",4],["a murder",5],["someone finds",5],["first shot",4]]},
-      {id:"b-1a",   act:1, name:"Act One — In",  fn:"Our people take the case or the problem.", req:"Our REGULARS engage: they take the case, the patient or the problem and commit to working it. First act after titles. The discovery of the problem, before our people are involved, belongs to the Teaser instead.", cues:[["we meet",4],["the team",4],["assigned",5],["takes the case",6],["briefing",5],["arrives at",4],["introduce",3]]},
-      {id:"b-1b",   act:1, name:"Act One — Out", fn:"The first turn that raises the question for the act break.", req:"The first TURN, placed at the ACT BREAK, ending on a hook that holds the audience across the commercial. Must end open. A discovery that closes a line of inquiry, or a mid act development, is not Act One Out.", cues:[["first lead",5],["turns out",4],["complication",5],["act break",5],["but then",4],["discovers",4]]},
-      {id:"b-2a",   act:2, name:"Act Two — In",  fn:"Investigation, escalation, the wrong theory.", req:"The INVESTIGATION deepens: pursuit, escalation, and a theory that proves wrong. Middle of the hour, momentum building. The reversal that overturns the case, which lands at the break, is not part of Act Two In.", cues:[["investigates",5],["interviews",5],["digs into",5],["follows",4],["searches",4],["wrong",4],["dead end",6],["theory",4],["meets",4],["a woman who",4],["asks around",4]]},
-      {id:"b-2b",   act:2, name:"Act Two — Out", fn:"The midpoint reversal. It's worse or other than they thought.", req:"The MIDPOINT REVERSAL placed at the second ACT BREAK, overturning the working theory and sending the story a new direction. Cut on the hook. New evidence that confirms what our people already believed is not Act Two Out.", cues:[["midpoint",5],["reversal",6],["twist",5],["turns out",5],["everything changes",5],["worse than",6]]},
-      {id:"b-3a",   act:3, name:"Act Three — In",fn:"Personal cost lands on someone we care about.", req:"The PERSONAL COST lands on a regular we care about, making the case hurt someone inside the show. Emotional stakes. Danger to a guest character or victim, with no cost to our people, is not Act Three In.", cues:[["personal",5],["family",4],["threatened",5],["his wife",4],["her son",4],["closing in",5],["pressure",4],["argue",4]]},
-      {id:"b-3b",   act:3, name:"Act Three — Out",fn:"Lowest point going into the last break.", req:"The LOWEST POINT, at the third ACT BREAK: the case appears lost or the threat wins, cut on despair before the final commercial. A setback our people immediately solve, or a resolution, does not qualify.", cues:[["lowest",5],["all is lost",6],["loses",4],["arrested",5],["taken",4],["fails",4],["cliffhanger",6],["walks out on",6],["nobody will",5],["third lie",4]]},
-      {id:"b-4a",   act:4, name:"Act Four — Climax", fn:"The confrontation and the answer.", req:"The CONFRONTATION that delivers the answer and settles the case. Resolution of the hour's problem. A quiet character moment after the danger passes, or an epilogue, belongs to the Tag instead.", cues:[["climax",6],["confronts",5],["showdown",6],["arrest",5],["rescue",5],["final",4],["catches",5],["chase",4]]},
+      {id:"b-1a",   act:1, name:"Act One In",  fn:"Our people take the case or the problem.", req:"Our REGULARS engage: they take the case, the patient or the problem and commit to working it. First act after titles. The discovery of the problem, before our people are involved, belongs to the Teaser instead.", cues:[["we meet",4],["the team",4],["assigned",5],["takes the case",6],["briefing",5],["arrives at",4],["introduce",3]]},
+      {id:"b-1b",   act:1, name:"Act One Out", fn:"The first turn that raises the question for the act break.", req:"The first TURN, placed at the ACT BREAK, ending on a hook that holds the audience across the commercial. Must end open. A discovery that closes a line of inquiry, or a mid act development, is not Act One Out.", cues:[["first lead",5],["turns out",4],["complication",5],["act break",5],["but then",4],["discovers",4]]},
+      {id:"b-2a",   act:2, name:"Act Two In",  fn:"Investigation, escalation, the wrong theory.", req:"The INVESTIGATION deepens: pursuit, escalation, and a theory that proves wrong. Middle of the hour, momentum building. The reversal that overturns the case, which lands at the break, is not part of Act Two In.", cues:[["investigates",5],["interviews",5],["digs into",5],["follows",4],["searches",4],["wrong",4],["dead end",6],["theory",4],["meets",4],["a woman who",4],["asks around",4]]},
+      {id:"b-2b",   act:2, name:"Act Two Out", fn:"The midpoint reversal. It's worse or other than they thought.", req:"The MIDPOINT REVERSAL placed at the second ACT BREAK, overturning the working theory and sending the story a new direction. Cut on the hook. New evidence that confirms what our people already believed is not Act Two Out.", cues:[["midpoint",5],["reversal",6],["twist",5],["turns out",5],["everything changes",5],["worse than",6]]},
+      {id:"b-3a",   act:3, name:"Act Three In",fn:"Personal cost lands on someone we care about.", req:"The PERSONAL COST lands on a regular we care about, making the case hurt someone inside the show. Emotional stakes. Danger to a guest character or victim, with no cost to our people, is not Act Three In.", cues:[["personal",5],["family",4],["threatened",5],["his wife",4],["her son",4],["closing in",5],["pressure",4],["argue",4]]},
+      {id:"b-3b",   act:3, name:"Act Three Out",fn:"Lowest point going into the last break.", req:"The LOWEST POINT, at the third ACT BREAK: the case appears lost or the threat wins, cut on despair before the final commercial. A setback our people immediately solve, or a resolution, does not qualify.", cues:[["lowest",5],["all is lost",6],["loses",4],["arrested",5],["taken",4],["fails",4],["cliffhanger",6],["walks out on",6],["nobody will",5],["third lie",4]]},
+      {id:"b-4a",   act:4, name:"Act Four Climax", fn:"The confrontation and the answer.", req:"The CONFRONTATION that delivers the answer and settles the case. Resolution of the hour's problem. A quiet character moment after the danger passes, or an epilogue, belongs to the Tag instead.", cues:[["climax",6],["confronts",5],["showdown",6],["arrest",5],["rescue",5],["final",4],["catches",5],["chase",4]]},
       {id:"b-tag",  act:4, name:"Tag",           fn:"The short beat after. Character, not plot. Sets up next week.", req:"A short beat AFTER the case closes, about CHARACTER rather than plot. Aftermath and relationship. A final piece of case information, a twist, or a next episode setup is not the Tag.", cues:[["tag",5],["the ending",4],["last scene",5],["afterward",5],["quiet moment",6],["next episode",6],["sets up",5],["button",4]]}
     ]
   },
   streaming: {
-    label: "TV — Streaming Hour (5 acts, serialized)",
+    label: "TV · Streaming Hour (5 acts, serialized)",
     acts: ["Open","Act One","Act Two","Act Three","Close"],
     slots: [
       {id:"s-open",act:0, name:"Cold Open",     fn:"An image or scene that sets the question of the hour.", req:"A pre credits image or scene that poses the QUESTION the hour will pursue. Often oblique or tonal. A recap of last episode's events, or a straightforward continuation of the previous ending, is not the Cold Open.", cues:[["cold open",6],["opens on",5],["teaser",5],["first shot",5],["flash forward",6],["flashback",5],["before the titles",6]]},
       {id:"s-1",   act:1, name:"Act One",       fn:"Where every thread stands after last episode.", req:"Re establishes where EVERY THREAD and character stands after the last episode, redistributing the season's pieces. Positional. The complications and collisions those threads generate later in the hour belong to Act Two.", cues:[["we meet",4],["picks up",5],["aftermath",5],["the morning after",6],["reeling",5],["introduce",3],["at home",3],["gets a call",5],["a body",5],["hesitates",4]]},
       {id:"s-2",   act:2, name:"Act Two",       fn:"Threads complicate and start to collide.", req:"Threads COMPLICATE and begin to COLLIDE, characters and storylines intersecting under mounting pressure. Convergence is the point. The reversal that reframes the season, or the cost paid for it, sits in Act Three.", cues:[["complication",5],["meanwhile",5],["subplot",5],["b story",5],["parallel",5],["investigates",4],["tries to",3],["takes the case",5],["meets",4],["a woman who",4],["asks around",4]]},
-      {id:"s-3a",  act:3, name:"Act Three — Turn", fn:"The midpoint reversal that recontextualizes the season.", req:"The midpoint REVERSAL that recontextualises the SEASON, not merely the episode, changing what the larger story means. A twist confined to this hour's plot, resolved by the end of it, is not the Act Three Turn.", cues:[["reversal",6],["twist",6],["turns out",5],["midpoint",5],["reveal",6],["everything changes",5],["secret",5],["knew the whole time",6]]},
-      {id:"s-3b",  act:3, name:"Act Three — Cost", fn:"Someone pays for it.", req:"Someone PAYS for the turn: a concrete consequence borne by a specific character, immediately after the reversal. A threat implied for later, or a character being upset without material consequence, is not the Cost.", cues:[["price",5],["cost",5],["dies",5],["betray",5],["loses",5],["confesses",5],["falls apart",5],["consequence",5],["walks out on",6],["closing in",5],["nobody will",5]]},
+      {id:"s-3a",  act:3, name:"Act Three Turn", fn:"The midpoint reversal that recontextualizes the season.", req:"The midpoint REVERSAL that recontextualises the SEASON, not merely the episode, changing what the larger story means. A twist confined to this hour's plot, resolved by the end of it, is not the Act Three Turn.", cues:[["reversal",6],["twist",6],["turns out",5],["midpoint",5],["reveal",6],["everything changes",5],["secret",5],["knew the whole time",6]]},
+      {id:"s-3b",  act:3, name:"Act Three Cost", fn:"Someone pays for it.", req:"Someone PAYS for the turn: a concrete consequence borne by a specific character, immediately after the reversal. A threat implied for later, or a character being upset without material consequence, is not the Cost.", cues:[["price",5],["cost",5],["dies",5],["betray",5],["loses",5],["confesses",5],["falls apart",5],["consequence",5],["walks out on",6],["closing in",5],["nobody will",5]]},
       {id:"s-4",   act:4, name:"Act Four",      fn:"The episode's confrontation, on the season's terms.", req:"The episode's CONFRONTATION, decided on the SEASON's terms rather than a self contained case. Consequences carry forward. A tidy standalone resolution that leaves the season untouched does not qualify.", cues:[["confronts",5],["climax",5],["showdown",6],["face to face",6],["final",4],["standoff",6]]},
       {id:"s-hook",act:4, name:"Closing Hook",  fn:"The last image that makes the next episode unskippable.", req:"The FINAL IMAGE, engineered to make autoplay irresistible. It opens rather than closes. A satisfying emotional conclusion, a resolved arc, or a next time preview of coming events is not the Closing Hook.", cues:[["hook",5],["cliffhanger",6],["last shot",6],["final image",6],["ends with",5],["cut to black",6],["next episode",6],["reveals",4]]}
     ]
   },
   halfhour: {
-    label: "TV — Half-Hour Comedy (cold open + 3 acts + tag)",
+    label: "TV · Half-Hour Comedy (cold open + 3 acts + tag)",
     acts: ["Cold Open","Act One","Act Two","Act Three"],
     slots: [
       {id:"h-cold",act:0, name:"Cold Open",      fn:"A self-contained laugh that sets the world.", req:"A SELF CONTAINED bit before the titles that gets a laugh and establishes the show's world and voice. Rarely connected to the plot. A scene that sets up the episode's main story or want is not the Cold Open.", cues:[["cold open",6],["opens on",5],["gag",6],["bit",4],["joke",5],["teaser",5],["runner",5]]},
@@ -1749,7 +1866,7 @@ const STRUCTURES = {
   }
 };
 
-/* Generic position cues — nudge notes that describe WHERE rather than WHAT.
+/* Generic position cues, nudge notes that describe WHERE rather than WHAT.
    Deliberately excludes common verbs like "starts" and "closing", which show up
    constantly in ordinary story description and would drag notes to the ends. */
 const EARLY = ["opening","open","opens","first","beginning","early","act one","top of","up top"];
@@ -1766,7 +1883,7 @@ Object.values(STRUCTURES).forEach(S => S.slots.forEach(s => {
   )];
 }));
 
-/* Where each beat actually falls through the running time, 0 to 1 — the
+/* Where each beat actually falls through the running time, 0 to 1, the
    canonical page positions, not an even spread. This is what lets the app
    bisect a story properly: halfway between the opening and the ending is the
    Midpoint, and halfway between the opening and the Midpoint is the act one
@@ -1790,7 +1907,7 @@ const POS = {
              "h-low":.68, "h-res":.85, "h-tag":1}
 };
 /* The load-bearing beats. When a bisection lands between two candidates, the
-   pillar wins — an act break is a more useful thing to solve than the minor
+   pillar wins, an act break is a more useful thing to solve than the minor
    beat sitting next to it. */
 const PILLARS = new Set([
   "open","cat","br2","mid","lost","br3","last",
@@ -1830,7 +1947,7 @@ function score(text, structure, state){
         hits.push({phrase, w});
       }
     }
-    // soft match against the beat's own written job — a tiebreaker, capped so it
+    // soft match against the beat's own written job, a tiebreaker, capped so it
     // can nudge a ranking but never outvote a real cue
     let soft = 0;
     for (const tok of (s.fnTokens || [])){
@@ -1861,7 +1978,7 @@ function reason(entry, noteText){
       ? noteText.slice(idx, Math.min(noteText.length, idx + phrase.length + 14)).trim()
       : phrase;
     return "This beat's job is " + s.fn.charAt(0).toLowerCase() + s.fn.slice(1, s.fn.length - 1)
-         + " — and you wrote “" + quoted + "…”";
+         + ", and you wrote “" + quoted + "…”";
   }
   return "No strong signal yet. This is your next open beat, and the note doesn't fight it.";
 }
@@ -1877,10 +1994,10 @@ function scoreFor(text, key, slotId){
   return hit ? hit.pts : 0;
 }
 /* What the writer told us about the project, for any prompt that needs a spine.
-   Empty until they fill the intake in — every prompt has to work without it. */
+   Empty until they fill the intake in, every prompt has to work without it. */
 
 /* =========================================================================
-   GENRE LENS — the beats don't change, but what a beat has to DO at that
+   GENRE LENS: the beats don't change, but what a beat has to DO at that
    position does. A comedy Midpoint and a horror Midpoint are the same
    structural job wearing different clothes, and the app should know which.
    ========================================================================= */
@@ -1888,9 +2005,9 @@ const GENRE_LENS = [
   {k:["comedy","comedic","sitcom","farce"], skip:["dark comedy","black comedy","romantic comedy","rom-com","romcom"], t:
     "COMEDY. Escalation is the engine: the protagonist commits to a plan that is obviously bad and " +
     "refuses to abandon it, and each beat should make the situation worse in a way they could still " +
-    "have stopped. Fun and Games is proportionally the largest stretch — that's the premise paying " +
+    "have stopped. Fun and Games is proportionally the largest stretch. That's the premise paying " +
     "off. The Midpoint is usually the lie or scheme at maximum inflation, just before it starts " +
-    "collapsing. The low point has to carry a REAL cost under the joke — somebody is actually hurt — " +
+    "collapsing. The low point has to carry a REAL cost under the joke (somebody is actually hurt) " +
     "or the ending won't land. Beware placing a note here just because it's funny; a gag is not a beat."},
   {k:["dark comedy","black comedy","satire","satirical"], t:
     "DARK COMEDY / SATIRE. Same escalating shape as comedy, but the damage is real and stays done, " +
@@ -1899,25 +2016,25 @@ const GENRE_LENS = [
   {k:["horror","supernatural","slasher","creature"], t:
     "HORROR. The Setup must establish the rules of normal precisely, because the whole film is their " +
     "violation. The Catalyst is first contact with the threat. The Midpoint is typically where the " +
-    "RULES OF THE THREAT are revealed and retreat stops being possible — the door closes. Bad Guys " +
+    "RULES OF THE THREAT are revealed and retreat stops being possible. The door closes. Bad Guys " +
     "Close In is isolation: exits removed, help discredited, allies picked off. All Is Lost is often " +
     "the death of whoever understood the most. Break Into Three is grasping the rule that makes the " +
     "threat beatable, and the Finale is applying it. Dread is built by what the audience knows and " +
     "the character doesn't."},
   {k:["thriller","suspense","spy","conspiracy"], t:
     "THRILLER. Information is the currency and time is the pressure. The Midpoint usually flips who " +
-    "the protagonist can trust, not just what they know. Bad Guys Close In is the net tightening — " +
+    "the protagonist can trust, not just what they know. Bad Guys Close In is the net tightening: " +
     "surveillance, betrayal, the walls narrowing. All Is Lost strips their last advantage. Every beat " +
     "should change what the protagonist knows or what it costs them to act on it."},
   {k:["crime","mystery","detective","noir","whodunnit","procedural"], t:
     "CRIME / MYSTERY. The Catalyst is the crime or the body; the Debate is whether to take it on and " +
-    "at what personal cost. Fun and Games is the investigation itself — interviews, dead ends, the " +
+    "at what personal cost. Fun and Games is the investigation itself: interviews, dead ends, the " +
     "chain of clues, the local characters. The Midpoint typically INVALIDATES the working theory, so " +
     "the second half is a different investigation from the first. All Is Lost is often the wrong " +
     "person paying, or the trail going cold. Break Into Three is the detail that reframes everything " +
-    "already seen — and it must have been planted earlier, in view, or the ending cheats."},
+    "already seen, and it must have been planted earlier, in view, or the ending cheats."},
   {k:["romance","romantic","love story","rom-com","romcom","romantic comedy"], t:
-    "ROMANCE. The B Story is frequently the real A Story — the relationship carries the film. The " +
+    "ROMANCE. The B Story is frequently the real A Story. The relationship carries the film. The " +
     "Midpoint is the union that cannot hold yet: the kiss, the night, the decision to try. All Is " +
     "Lost is the separation, and it must be caused by the protagonist's own flaw or lie, not by bad " +
     "luck. Break Into Three is them changing the thing that caused it, and the Finale is the act that " +
@@ -1929,13 +2046,13 @@ const GENRE_LENS = [
     "relationship to home."},
   {k:["western","southern gothic","gothic"], t:
     "WESTERN / SOUTHERN GOTHIC. Land, law, blood and what the past is owed. The Catalyst is usually " +
-    "an incursion — something buried surfacing, or an outsider arriving. The Midpoint often forces " +
+    "an incursion: something buried surfacing, or an outsider arriving. The Midpoint often forces " +
     "the protagonist to become the thing they left town to stop being. Setting is a character; a note " +
     "about a place may be doing real structural work."},
   {k:["science fiction","sci-fi","scifi","fantasy","speculative"], t:
     "SCIENCE FICTION / FANTASY. The Setup carries a second job: teaching the rules of the world, " +
     "quickly and through action. The Midpoint usually reveals the true cost of the world's central " +
-    "premise. The Finale must obey the rules established earlier — a solution the audience couldn't " +
+    "premise. The Finale must obey the rules established earlier: a solution the audience couldn't " +
     "have predicted from what they were shown reads as a cheat."},
   {k:["action","adventure","heist"], t:
     "ACTION / HEIST. Set pieces carry Fun and Games and each should change the situation, not just " +
@@ -1967,7 +2084,7 @@ function briefBlock(){
   if (b.like)  bits.push("TONE AND COMPARISONS: " + b.like);
   if (b.setting) bits.push("SETTING: " + b.setting);
   const rules = P().cards.filter(c => c.slot === "__shelf" && c.kind === "rule").map(c => c.text);
-  if (rules.length) bits.push("RULES THE WRITER HAS SET FOR THIS STORY — treat these as hard "
+  if (rules.length) bits.push("RULES THE WRITER HAS SET FOR THIS STORY. Treat these as hard "
     + "constraints and never suggest anything that breaks one:\n" + rules.map(r => "- " + r).join("\n"));
   const opens = P().cards.filter(c => c.slot === "__shelf" && c.kind === "question").map(c => c.text);
   if (opens.length) bits.push("THINGS THEY ARE STILL DECIDING:\n"
@@ -1975,16 +2092,18 @@ function briefBlock(){
   return genreLens() + (bits.length ? bits.join("\n") + "\n\n" : "");
 }
 
-/* "Save the Cat! (15 beats)" — the format prefix dropped, a beat count added
+/* "Save the Cat! (15 beats)", the format prefix dropped, a beat count added
    only when the label doesn't already carry one. */
 function structureLine(key){
   const S = STRUCTURES[key];
-  const short = S.label.replace(/^[^\u2014]*\u2014\s*/, "");
+  // Labels read "Feature \u00b7 Save the Cat! (15 beats)". The medium is obvious
+  // from the board you are looking at, so only the shape's own name is shown.
+  const short = S.label.replace(/^[^\u00b7]*\u00b7\s*/, "");
   return /beats?|stages?/i.test(short) ? short : short + " \u00b7 " + S.slots.length + " beats";
 }
 
 /* =========================================================================
-   ATTACHED NOTES — a note can sit under a beat as the material you gathered
+   ATTACHED NOTES: a note can sit under a beat as the material you gathered
    for it, without becoming that beat. It keeps its kind and it keeps its home
    in Notes; attachedTo only records which beat it sits under. Taking it off a
    beat sends it straight back. Nothing here can delete a note.
@@ -2045,20 +2164,20 @@ function bestAlternative(card, proj, excludeId){
 }
 
 /* =========================================================================
-   FLOAT — the board re-settles itself.
+   FLOAT: the board re-settles itself.
    A beat holds the card that suits it best. When a later note suits a beat
    better than the card already sitting there, the incumbent is pushed to
    its own next-best beat, which can push another in turn. Pinned cards
    never move.
    ========================================================================= */
 /* A beat holds as many cards as the writer puts there. Setup is often four
-   cards, not one. Nothing is ever evicted to make room — if a card should move,
+   cards, not one. Nothing is ever evicted to make room, if a card should move,
    the writer moves it. (This replaces the earlier auto-float, which fought the
    more basic truth that a beat is a container, not a slot for one winner.) */
 function settle(){ return []; }
 
 /* =========================================================================
-   STATE — a list of projects, because writers run several at once.
+   STATE: a list of projects, because writers run several at once.
    ========================================================================= */
 const KEY = "beatfall.v2";
 let state = null;
@@ -2075,7 +2194,7 @@ function blankProject(name, structure){
 function P(){ return state.projects.find(p => (p.id || p.localId) === state.activeId) || state.projects[0]; }
 
 /* Projects live in Postgres now. We keep the same in-memory shape the board
-   has always used, and push whichever project changed, debounced — so the
+   has always used, and push whichever project changed, debounced, so the
    board stays instant and the network catches up behind it. */
 const dirty = new Set();
 let saveTimer = null;
@@ -2091,7 +2210,7 @@ function save(){
 
 /* ------------------------------------------------------------- the chain --
    A day counts when the writer CHANGED something, not when they looked at the
-   dashboard. So this hangs off save() and nothing else — a streak you can run
+   dashboard. So this hangs off save() and nothing else, a streak you can run
    up by opening a tab is not a streak, it's a lie with a number on it.
 
    Local to this browser on purpose. It is a private nudge, not a stat we hold
@@ -2113,7 +2232,7 @@ function markWorked(){
   days.push(today);
   try { localStorage.setItem(DAYS_KEY, JSON.stringify(days.slice(-90))); } catch(e){}
 }
-// How many days in a row, counting back from today — or from yesterday, so a
+// How many days in a row, counting back from today, or from yesterday, so a
 // streak isn't declared broken before the writer has had a chance to sit down.
 function chain(){
   const set = new Set(workedDays());
@@ -2151,7 +2270,7 @@ async function flush(){
       setSaved("saved");
     }catch(e){
       dirty.add(p);
-      setSaved(e && e.status === 401 ? "signed out" : "not saved — retrying");
+      setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
       clearTimeout(saveTimer);
       saveTimer = setTimeout(flush, 5000);
     }
@@ -2166,7 +2285,7 @@ window.addEventListener("beforeunload", e => {
    A permanent "saved" in the corner is noise: it is true almost all of the
    time, so it stops being read, and the one moment it changes to something
    that matters is the moment nobody is looking. Worse, it made the failure
-   case a whisper — eleven pixels of grey saying the writer's last half hour
+   case a whisper, eleven pixels of grey saying the writer's last half hour
    is sitting in a browser tab and nowhere else.
 
    So: nothing at all while saving is working, and a mark you cannot miss when
@@ -2182,7 +2301,7 @@ function setSaved(msg){
 
 // A project row is data from last month, not a promise about today. Structure
 // keys have been renamed once already, and thirty-odd places in this file do
-// STRUCTURES[proj.structure].slots with no guard — one stale key would throw
+// STRUCTURES[proj.structure].slots with no guard, one stale key would throw
 // on render and lock a writer out of their own board with a blank screen.
 // So every row gets checked at the door, and nowhere else has to worry.
 function knownStructure(key){
@@ -2205,7 +2324,7 @@ async function load(){
 
 function snapshot(){
   // A stack, not a single slot. "Gone forever" should take thirty mistakes,
-  // not one — and a writer's notes are the last thing that should vanish.
+  // not one, and a writer's notes are the last thing that should vanish.
   undoStack.push(JSON.parse(JSON.stringify(state)));
   if (undoStack.length > UNDO_DEPTH) undoStack.shift();
   const p = P(); if (p) p.touched = Date.now();
@@ -2237,7 +2356,7 @@ function esc(s){
   return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
 
-/* A hole is an empty beat with work on BOTH sides — the gap between what you
+/* A hole is an empty beat with work on BOTH sides, the gap between what you
    already know. Empty beats at the ends are just not written yet. */
 function isGap(slot, proj){
   proj = proj || P();
@@ -2273,7 +2392,7 @@ function renderTabs(){
 
   const proj = P();
   const b = proj.brief || {};
-  const line = [b.who, b.log].filter(Boolean).join(" — ");
+  const line = [b.who, b.log].filter(Boolean).join(" · ");
   let el = document.getElementById("brieftext");
   if (!el){
     el = document.createElement("span");
@@ -2327,7 +2446,7 @@ function render(justPlaced){
       el.innerHTML =
         '<div class="slothead"><span class="slotname">' + esc(s.name) + "</span>"
         + (contested ? '<span class="undecided" data-tip="You wrote more than one version of this '
-            + 'beat and haven\'t chosen between them. Both are kept — delete the one you don\'t '
+            + 'beat and haven\'t chosen between them. Both are kept. Delete the one you don\'t '
             + 'want, or leave it and decide later.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
         + "</div>"
@@ -2347,7 +2466,7 @@ function render(justPlaced){
         const ask = document.createElement("button");
         ask.className = "askbtn";
         ask.textContent = "What goes here?";
-        ask.setAttribute("data-tip", "Reads the cards on either side of this gap and talks you through what belongs here — up to five questions, then it writes the card from your answers.");
+        ask.setAttribute("data-tip", "Reads the cards on either side of this gap and talks you through what belongs here: up to five questions, then it writes the card from your answers.");
         ask.addEventListener("click", e => { e.stopPropagation(); askAbout(s); });
         acts.appendChild(ask);
         const sep = document.createElement("span");
@@ -2357,14 +2476,14 @@ function render(justPlaced){
         ideas.className = "askbtn ideasbtn";
         ideas.textContent = "Ideas";
         ideas.setAttribute("data-tip", "Reads the beats either side of this gap and everything you "
-          + "set aside, then offers a few shapes this beat could take — mostly built out of notes "
+          + "set aside, then offers a few shapes this beat could take, mostly built out of notes "
           + "you already wrote. No questions.");
         ideas.addEventListener("click", e => { e.stopPropagation(); ideasFor(s); });
         acts.appendChild(ideas);
         el.appendChild(gap);
       }
 
-      // whatever you gathered for this beat, under it — never replacing it
+      // whatever you gathered for this beat, under it, never replacing it
       const att = attachedList(s, () => render());
       if (att) el.appendChild(att);
 
@@ -2411,7 +2530,7 @@ function render(justPlaced){
   else                   gc.textContent = (total - filled) + " beats still empty";
 
   // The button never names its target. It reads the board when pressed and
-  // opens on the question — the writer shouldn't be told where to go before
+  // opens on the question, the writer shouldn't be told where to go before
   // they've been asked anything.
   document.getElementById("whatsmissing").hidden = filled === total;
   const nShelf = proj.cards.filter(c => c.slot === "__shelf").length;
@@ -2426,7 +2545,7 @@ function cardEl(c){
   el.draggable = true;
   el.dataset.id = c.id;
   const hint = c.maybe && c.slot === "__none"
-    ? '<div class="maybe">possibly &mdash; ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
+    ? '<div class="maybe">possibly: ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
   el.innerHTML =
       '<button class="move" title="Move or relabel">&#8942;</button>'
     + '<button class="pin" title="' + (c.pinned ? "Settled here" : "Mark as settled") + '">'
@@ -2444,7 +2563,7 @@ function cardEl(c){
   el.addEventListener("dragend", () => el.classList.remove("dragging"));
 
   el.querySelector(".pin").setAttribute("data-tip", c.pinned
-    ? "Marked settled — you've decided this one. Click to un-mark it."
+    ? "Marked settled. You've decided this one. Click to un-mark it."
     : "Mark this card as settled, so you can tell at a glance which beats you've decided and "
       + "which are still rough. Nothing on the board moves on its own either way.");
   el.querySelector(".del").setAttribute("data-tip", "Delete this card. Undo brings it back.");
@@ -2460,7 +2579,7 @@ function cardEl(c){
       '<option value="b:' + x.id + '"' + (x.id === c.slot ? " selected" : "") + ">" + esc(x.name) + "</option>").join("");
     sel2.innerHTML = '<optgroup label="Beats">' + beats + "</optgroup>"
       + '<optgroup label="Off the board"><option value="b:__none">Set aside</option></optgroup>'
-      + '<optgroup label="Not a beat — file as">'
+      + '<optgroup label="Not a beat, file as">'
       + SHELVES.map(k => '<option value="k:' + k + '">' + esc(KINDS[k]) + "</option>").join("")
       + "</optgroup>";
     sel2.addEventListener("change", () => {
@@ -2521,14 +2640,14 @@ function wireDrop(el, slotId){
     if (!card) return;
     snapshot();
     card.slot = slotId;
-    card.pinned = true;          // moving it by hand is a decision — hold it there
+    card.pinned = true;          // moving it by hand is a decision, so hold it there
     hideSettled();
     render();
   });
 }
 
 /* =========================================================================
-   THE SETTLE LOG — the board never moves a card silently.
+   THE SETTLE LOG: the board never moves a card silently.
    ========================================================================= */
 function showSettled(moves, title){
   if (!moves.length) return;
@@ -2577,13 +2696,13 @@ const placeBtn = document.getElementById("place");
 let ai_sample = null;   // set at boot to the metered proxy
 
 /* the writer naming the beat themselves outranks anything the matcher thinks */
-const DECLARED = /^\s*(?:alternate\s+|possible\s+|proposed\s+)?(final image|last image|opening image|opening shot|closing image|final shot|last shot|midpoint|inciting incident|catalyst|climax|finale|theme stated|ending|act (?:one|two|three) (?:break|out))\s*[:\-–—]/i;
+const DECLARED = /^\s*(?:alternate\s+|possible\s+|proposed\s+)?(final image|last image|opening image|opening shot|closing image|final shot|last shot|midpoint|inciting incident|catalyst|climax|finale|theme stated|ending|act (?:one|two|three) (?:break|out))\s*[:\-\u2013\u2014]/i;   // a writer may still type one
 const DECLARED_LOOSE = /\b(that could be the midpoint|this is the midpoint|that'?s the (?:midpoint|catalyst|climax|ending)|final image|opening image)\b/i;
-/* A short line that only points at the note above it — "That could be the
-   midpoint.", "Nah. Bo.", "No goat." — is a comment on that note, not a card. */
+/* A short line that only points at the note above it. "That could be the
+   midpoint.", "Nah. Bo.", "No goat.", is a comment on that note, not a card. */
 const REFERS_BEAT = /^\s*(?:and\s+)?(?:that|this|it|which)\s+(?:could|might|may|should|would|is|feels like|reads like)\s+(?:be\s+)?(?:the\s+)?([a-z][a-z '\-]{2,28}?)[.!?]?\s*$/i;
-/* Very short anaphoric lines — "No goat.", "Nah. Bo.", "Actually Grandpa isn't
-   buried there." — belong to the note above. Kept deliberately tight: a long
+/* Very short anaphoric lines. "No goat.", "Nah. Bo.", "Actually Grandpa isn't
+   buried there.", belong to the note above. Kept deliberately tight: a long
    line starting with "NO" is usually a rule the writer is setting. */
 const REFERS_SOFT = /^\s*(?:no|nah|nope|yes|hmm+|or|better|actually|maybe not|that'?s|this is|probably|too )\b/i;
 function refersSoftly(text){ return text.length <= 60 && REFERS_SOFT.test(text); }
@@ -2608,7 +2727,7 @@ function localProposal(text){
   const ranked = score(text, proj.structure, proj);
   const declared = declaredBeat(text);
 
-  // genuinely nothing to go on — say so instead of inventing a percentage
+  // genuinely nothing to go on, say so instead of inventing a percentage
   if (ranked[0].pts <= 0 && !declared) return [];
 
   const speculative = SPECULATIVE.test(text) && !declared;
@@ -2630,7 +2749,7 @@ function localProposal(text){
   if (speculative) out.unshift({
     id: "__none", name: "Set aside",
     why: "This reads like something you're still deciding rather than something that happens. "
-       + "Park it until it becomes an event — or pick a beat anyway.",
+       + "Park it until it becomes an event, or pick a beat anyway.",
     conf: 80
   });
   return out.slice(0, 3);
@@ -2641,7 +2760,7 @@ async function smartProposal(text){
   const S = STRUCTURES[proj.structure];
   const beats = S.slots.map(s => {
     const on = proj.cards.filter(c => c.slot === s.id).map(c => c.text);
-    return "- " + s.id + " | " + s.name + " — " + (s.req || s.fn)
+    return "- " + s.id + " | " + s.name + ": " + (s.req || s.fn)
       + (on.length ? "  [already here: " + on.join(" / ") + "]" : "  [empty]");
   }).join("\n");
 
@@ -2650,8 +2769,8 @@ async function smartProposal(text){
     + "STRUCTURE: " + S.label + "\nBEATS:\n" + beats
     + "\n\n" + briefBlock()
     + "THE NOTE: \"" + text + "\"\n\n"
-    + "If the note does not say enough to tell what it DOES in the story — no event, no change, no "
-    + "clear function — return an empty picks array rather than guessing. Otherwise pick the two "
+    + "If the note does not say enough to tell what it DOES in the story, with no event, no change, no "
+    + "clear function, return an empty picks array rather than guessing. Otherwise pick the two "
     + "beats it belongs in, best first. Judge by the beat's narrative JOB, "
     + "not by keywords. Consider what is already on the board. "
     + "Be honest about confidence: 92 or above means you would stake the placement on it. Use it "
@@ -2682,13 +2801,13 @@ function paintCandidates(options, sharpened){
   const best = options.length ? options[0].conf : 0;
   const askable = !!ai_sample;
 
-  // below the bar, questions come first — a wrong confident placement costs more
+  // below the bar, questions come first, a wrong confident placement costs more
   // than two questions do
   if (options.length && best < SURE && askable){
     const box = document.createElement("div");
     box.className = "nosignal";
     box.innerHTML = "<b>I'd rather ask than guess.</b> Best I have is <b>" + esc(options[0].name)
-      + "</b> at " + best + "% — not enough to put it there on your behalf. Two questions will "
+      + "</b> at " + best + "%. Not enough to put it there on your behalf. Two questions will "
       + "settle it, or place it yourself below.";
     cands.appendChild(box);
     const row = document.createElement("div");
@@ -2709,7 +2828,7 @@ function paintCandidates(options, sharpened){
     const box = document.createElement("div");
     box.className = "nosignal";
     box.innerHTML = "<b>I can't place this yet.</b> There isn't enough here to tell what it does in "
-      + "the story — who it happens to, or what changes because of it. Tell me a little more and "
+      + "the story: who it happens to, or what changes because of it. Tell me a little more and "
       + "I'll place it, or park it and come back to it.";
     cands.appendChild(box);
 
@@ -2718,7 +2837,7 @@ function paintCandidates(options, sharpened){
     const more = document.createElement("button");
     more.className = "btn btn-primary";
     more.textContent = "Tell it more";
-    more.setAttribute("data-tip", "Opens a short conversation — a couple of questions to turn this "
+    more.setAttribute("data-tip", "Opens a short conversation: a couple of questions to turn this "
       + "fragment into something that actually happens, then it goes on the board.");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
@@ -2750,7 +2869,7 @@ function paintCandidates(options, sharpened){
     const more = document.createElement("button");
     more.className = "btn";
     more.textContent = "Flesh it out first";
-    more.setAttribute("data-tip", "Confident about where it goes — but if the note itself is thin, "
+    more.setAttribute("data-tip", "Confident about where it goes, but if the note itself is thin, "
       + "a couple of questions will make it a card worth having.");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
@@ -2762,7 +2881,7 @@ function paintCandidates(options, sharpened){
 
 /* The note is proposed instantly by the built-in matcher, so capture never
    waits on a network. If Claude is reachable, a better answer replaces it a
-   moment later — unless you have already chosen. */
+   moment later, unless you have already chosen. */
 async function propose(){
   const text = input.value.trim();
   if (!text) return;
@@ -2813,7 +2932,7 @@ document.getElementById("cancel").addEventListener("click", () => {
 });
 
 /* =========================================================================
-   STRUCTURE SWITCH — lossless. Every card finds a home in the new shape,
+   STRUCTURE SWITCH: lossless. Every card finds a home in the new shape,
    so you can try a story against a different structure and back again.
    ========================================================================= */
 Object.keys(STRUCTURES).forEach(k => {
@@ -2828,7 +2947,7 @@ sel.addEventListener("change", () => {
   if (from === to) return;
   snapshot();
 
-  // shelf notes aren't beats — a change of structure has nothing to say about them
+  // shelf notes aren't beats, a change of structure has nothing to say about them
   const parked = proj.cards.filter(c => c.slot === "__none" || c.slot === "__shelf");
   const carried = proj.cards.filter(c => c.slot !== "__none" && c.slot !== "__shelf");
   const rebuilt = {structure: to, cards: parked.slice()};
@@ -2845,12 +2964,12 @@ sel.addEventListener("change", () => {
   const moves = settle(proj);
   hideAll();
   render();
-  if (!had) return;                    // nothing was on the board — there is nothing to report
-  const what = STRUCTURES[to].label.replace(/^[^—]*— /, "");
+  if (!had) return;                    // nothing was on the board, so there is nothing to report
+  const what = STRUCTURES[to].label.replace(/^[^·]*· /, "");
   if (moves.length) showSettled(moves, "Rebuilt as " + what);
   else {
     document.getElementById("settledtitle").textContent =
-      "Rebuilt as " + what + " — all " + had + (had === 1 ? " card" : " cards") + " found a beat";
+      "Rebuilt as " + what + ". All " + had + (had === 1 ? " card" : " cards") + " found a beat";
     document.getElementById("settledlines").innerHTML = "";
     settledBox.hidden = false;
   }
@@ -2891,7 +3010,7 @@ function openIntake(mode){
   document.getElementById("newpaste").hidden = mode === "edit";
   F.name.value   = mode === "edit" ? (proj.name === "Untitled" ? "" : proj.name) : "";
   // A new project starts on whatever you told Settings new projects should start
-  // on — not on whatever the project you happened to have open was using.
+  // on, not on whatever the project you happened to have open was using.
   F.format.value = mode === "edit" ? proj.structure : defaultStructure();
   F.log.value    = b.log || "";
   F.who.value    = b.who || "";
@@ -2942,7 +3061,7 @@ function commitIntake(){
 
 
 /* =========================================================================
-   THE LOGLINE COACH — the highest-leverage sentence in the app. It feeds
+   THE LOGLINE COACH: the highest-leverage sentence in the app. It feeds
    placement, the notes-folder import and every beat conversation, so a sharp
    one makes everything downstream sharper. Same contract as the beat rooms:
    it asks, the writer answers, and the sentence is built from THEIR answers.
@@ -2981,7 +3100,7 @@ function drawLog(streaming){
   logInput.disabled = spent;
   document.getElementById("logsend").disabled = spent;
   document.getElementById("loglimit").textContent = spent
-    ? "that's the five — write it"
+    ? "that's the five, write it"
     : "question " + Math.min(asked, LOG_LIMIT) + " of " + LOG_LIMIT;
 }
 
@@ -2995,7 +3114,7 @@ function logBriefing(){
   if (v.brief.who)   have.push("WHO IT'S ABOUT: " + v.brief.who);
   if (v.brief.log)   have.push("THEIR CURRENT LOGLINE ATTEMPT: " + v.brief.log);
 
-  return "You are helping a screenwriter find the logline for their project — one sentence that "
+  return "You are helping a screenwriter find the logline for their project: one sentence that "
     + "makes a stranger want to read the script.\n\n"
     + have.join("\n") + "\n\n"
     + "WHAT A GOOD LOGLINE HAS: an ironic hook up front; a protagonist described by role and "
@@ -3004,14 +3123,14 @@ function logBriefing(){
     + "under about 35 words. No title, no character names, no \"in a world where\", no genre labels, "
     + "no summary of the plot.\n\n"
     + "YOUR FIRST REPLY, AND ONLY THE FIRST:\n"
-    + "Open by saying plainly what a logline is and what it has to do — a couple of sentences, "
+    + "Open by saying plainly what a logline is and what it has to do, in a couple of sentences, "
     + "written for someone who has never written one and shouldn't have to look it up. If they "
     + "already have an attempt above, say in one line what's working and what's missing. Then ask "
     + "your first question. Up to 110 words.\n\n"
     + "HOW TO TALK:\n"
     + "- One question at a time. Go for the essence: what makes this different from every other "
     + "story in its genre.\n"
-    + "- Chase the IRONY — the collision that makes the premise interesting. That is the part most "
+    + "- Chase the IRONY: the collision that makes the premise interesting. That is the part most "
     + "loglines are missing.\n"
     + "- Never write the logline mid-conversation, and never offer them options to pick from. "
     + "If they ask you to just write it, say you need one more thing from them first.\n"
@@ -3127,7 +3246,7 @@ document.getElementById("newpaste").addEventListener("click", () => {
 });
 
 /* =========================================================================
-   PDF EXPORT — the board as index cards, holes included.
+   PDF EXPORT: the board as index cards, holes included.
    ========================================================================= */
 async function exportPDF(){
   const btn = document.getElementById("pdf");
@@ -3242,7 +3361,7 @@ async function exportPDF(){
       doc.splitTextToSize(s.fn, CW - 20).slice(0, 4)
         .forEach((ln, i) => doc.text(ln, x + 10, y + 38 + i * 11));
       doc.setFont("courier", "bold").setFontSize(7.5).setTextColor(175);
-      doc.text("— OPEN —", x + 10, y + CH - 12);
+      doc.text("[ OPEN ]", x + 10, y + CH - 12);
     }
 
     if (++col >= COLS){ col = 0; y += CH + GAP; }
@@ -3260,7 +3379,7 @@ async function exportPDF(){
   coverPage();
   S.acts.forEach((actName, ai) => {
     actHeading(actName);
-    S.slots.filter(x => x.act === ai).forEach(x => slotBox(x));   // not .forEach(slotBox) — the index would land in `only`
+    S.slots.filter(x => x.act === ai).forEach(x => slotBox(x));   // not .forEach(slotBox), or the index would land in `only`
   });
   if (col !== 0){ col = 0; y += CH + GAP; }
 
@@ -3294,7 +3413,7 @@ async function exportPDF(){
   btn.disabled = true; say("Saving…");
   try{
     // A plain browser download. This used to call the Claude artifact runtime,
-    // which does not exist on the real site — the button did nothing at all.
+    // which does not exist on the real site, the button did nothing at all.
     doc.save(fname);
     say("Saved");
   }catch(e){
@@ -3306,7 +3425,7 @@ async function exportPDF(){
 document.getElementById("pdf").addEventListener("click", exportPDF);
 
 /* =========================================================================
-   THE ROOM — an empty beat starts a conversation about itself. Claude reads
+   THE ROOM: an empty beat starts a conversation about itself. Claude reads
    the cards on either side of the hole and asks; the writer answers in the
    box; the answer can become the card. Claude never writes the beat.
    ========================================================================= */
@@ -3335,7 +3454,7 @@ function fmt(t){
 
 
 /* The model can't count its own turns, so tell it. The pacing note rides on a
-   COPY of the last turn — the stored conversation stays clean, because those
+   COPY of the last turn, the stored conversation stays clean, because those
    are the writer's words and they become the card. */
 function withPacing(turns, limit){
   const n = turns.filter(t => t.role === "assistant").length + 1;   // the reply about to be written
@@ -3382,10 +3501,10 @@ function drawThread(streaming){
   askInput.disabled = spent;
   document.getElementById("asksend").disabled = spent;
   askInput.placeholder = spent
-    ? "That's the questions — write it up"
-    : "Answer here, or push back — Enter to send";
+    ? "That's the questions, write it up"
+    : "Answer here, or push back (Enter to send)";
   document.getElementById("limitnote").textContent = ai_sample
-    ? (spent ? "that's the questions — write it up"
+    ? (spent ? "that's the questions, write it up"
              : "question " + Math.min(asked, limit) + " of " + limit)
     : "";
 }
@@ -3418,26 +3537,26 @@ function briefing(hole){
     + "STRUCTURE: " + S.label + "\n"
     + "PROJECT: " + proj.name + "\n"
     + briefBlock()
-    + "THE EMPTY BEAT: " + hole.name + " — " + hole.fn + "\n"
+    + "THE EMPTY BEAT: " + hole.name + ": " + hole.fn + "\n"
     + "WHERE IT SITS: " + wherePhrase(hole.pos) + "\n\n"
     + "WHAT COMES BEFORE IT:\n" + (before.join("\n") || "(nothing on the board yet)") + "\n\n"
     + "WHAT COMES AFTER IT:\n" + (after.join("\n") || "(nothing on the board yet)") + "\n\n"
     + (shelf.length ? "THEIR CHARACTER AND THEME NOTES:\n" + shelf.join("\n") + "\n\n" : "")
     + "YOUR FIRST REPLY, AND ONLY THE FIRST:\n"
     + "Open by teaching the beat before you ask anything. Two or three plain sentences: what this "
-    + "beat is, where it falls in a story, and the job it does there — written for someone who has "
+    + "beat is, where it falls in a story, and the job it does there, written for someone who has "
     + "never heard the term and shouldn't have to look it up. Explain it in your own plain words; "
     + "do not quote the label back at them or use craft jargon as if they already know it "
     + "(\"the stakes turn personal\" means nothing to a writer who hasn't read the book). "
     + "Something in the shape of: 'The midpoint usually carries the weight between your opening and "
-    + "your ending. It's where the hero gets a false victory or a false defeat — a win that costs "
+    + "your ending. It's where the hero gets a false victory or a false defeat: a win that costs "
     + "them something, or a loss that finally shows them what this is really about.' "
     + "Then, and only then, ask your one question about THEIR story. "
-    + "Up to 110 words for this first reply. Every reply after it, under 70, and no more teaching — "
+    + "Up to 110 words for this first reply. Every reply after it, under 70, and no more teaching. "
     + "just the next question.\n\n"
     + "HOW TO TALK:\n"
     + "- Ask ONE question at a time, and wait for the answer.\n"
-    + "- Build every question from THEIR specifics — their character names, their details. "
+    + "- Build every question from THEIR specifics: their character names, their details. "
     + "Never generic screenwriting advice.\n"
     + "- Never invent plot. Never write prose, dialogue, or the beat itself. Never offer them "
     + "options to pick from. If they ask you to write it, say that's their job and ask a better question.\n"
@@ -3478,7 +3597,7 @@ async function runTurn(){
       const msg = e && e.code === "not_granted"
         ? "This needs your permission to ask Claude."
         : e && e.code === "cancelled" ? "Stopped."
-        : e && e.code === "rate_limited" ? "Too many questions at once — give it a moment."
+        : e && e.code === "rate_limited" ? "Too many questions at once. Give it a moment."
         : "Couldn't reach Claude just now.";
       thread.turns.push({role: "assistant", content: msg});
       drawThread();
@@ -3516,7 +3635,7 @@ async function askAboutNote(text){
     + "STRUCTURE: " + STRUCTURES[proj.structure].label + "\nPROJECT: " + proj.name + "\n"
     + briefBlock()
     + "Your job is to find out what this actually IS. Ask what happens, who it happens to, and what "
-    + "changes because of it — whatever is missing. THREE questions maximum; two is better. "
+    + "changes because of it, whatever is missing. THREE questions maximum; two is better. "
     + "Never invent the answer, never offer options to choose from, never write the beat for them. "
     + "Open with one short sentence saying what you'd need to know to place it, then your first "
     + "question. Under 60 words. Plain sentences, no markdown.\n\nAsk now."}]};
@@ -3526,7 +3645,7 @@ async function askAboutNote(text){
 async function askAbout(hole){
   if (!hole) return;
   const box = document.getElementById("ask");
-  document.getElementById("askbeat").textContent = "Empty beat — " + hole.name;
+  document.getElementById("askbeat").textContent = "Empty beat: " + hole.name;
   box.hidden = false;
   box.scrollIntoView({behavior: "smooth", block: "nearest"});
   askInput.value = "";
@@ -3565,7 +3684,7 @@ document.getElementById("askclose").addEventListener("click", () => {
   thread = null;
 });
 
-/* The card is the CONCLUSION of the whole conversation — everything you worked
+/* The card is the CONCLUSION of the whole conversation, everything you worked
    out, compressed into one beat, in your own words. Not the last thing you
    typed, and not anything Claude decided. You edit it before it lands. */
 function myAnswers(){
@@ -3581,8 +3700,8 @@ document.getElementById("askcard").addEventListener("click", async () => {
 
   convo.hidden = true; draft.hidden = false;
   document.getElementById("draftlabel").textContent = thread.mode === "note"
-    ? "The note, filled in — edit it, then it'll find its beat"
-    : "The card — everything you said, in one beat. Edit it before it lands.";
+    ? "The note, filled in. Edit it, then it'll find its beat"
+    : "The card: everything you said, in one beat. Edit it before it lands.";
   document.getElementById("draftgo").textContent = thread.mode === "note"
     ? "Place it" : "Put it on the board";
 
@@ -3630,7 +3749,7 @@ document.getElementById("draftback").addEventListener("click", () => {
 document.getElementById("draftgo").addEventListener("click", () => {
   const text = document.getElementById("drafttext").value.trim();
   if (!text || !thread) return;
-  if (thread.mode === "note"){          // it's a beat now — let it find its own home
+  if (thread.mode === "note"){          // it's a beat now, so let it find its own home
     thread = null;
     document.getElementById("ask").hidden = true;
     document.getElementById("askdraft").hidden = true;
@@ -3657,7 +3776,7 @@ document.getElementById("draftgo").addEventListener("click", () => {
 });
 
 /* =========================================================================
-   WHAT'S MISSING — wide first, then narrower.
+   WHAT'S MISSING: wide first, then narrower.
    Writers arrive with the opening and a rough ending. So the app never walks
    the board left to right; it bisects. With both bookends down, the widest
    span is the whole story and its middle is the Midpoint. Answer that, and the
@@ -3670,16 +3789,16 @@ function nextHole(proj){
   const has = s => proj.cards.some(c => c.slot === s.id);
   const filled = slots.filter(has);
 
-  if (!filled.length) return slots[0];               // nothing yet — start at the top
+  if (!filled.length) return slots[0];               // nothing yet, so start at the top
 
-  if (filled.length === 1){                          // one bookend — go get the other
+  if (filled.length === 1){                          // one bookend, so go get the other
     return filled[0].pos < .5
       ? [...slots].reverse().find(s => !has(s))
       : slots.find(s => !has(s));
   }
 
   // The widest span with room inside it. A later span has to be clearly wider
-  // to beat an earlier one, so a near-tie resolves forward through the story —
+  // to beat an earlier one, so a near-tie resolves forward through the story:
   // act one before act three.
   let best = null;
   for (let i = 0; i < filled.length - 1; i++){
@@ -3708,7 +3827,7 @@ document.getElementById("whatsmissing").addEventListener("click", () => askAbout
 
 
 /* =========================================================================
-   IDEAS — for when you're stuck and don't want to be interviewed. It reads
+   IDEAS: for when you're stuck and don't want to be interviewed. It reads
    the beats around the gap and everything you've set aside, and offers shapes
    the beat could take, built wherever possible out of notes you already wrote.
    Nothing lands without you editing it, and anything you take stays labelled.
@@ -3718,7 +3837,7 @@ async function ideasFor(hole){
   const S = STRUCTURES[proj.structure];
   const box = document.getElementById("ask");
   const body = document.getElementById("askthread");
-  document.getElementById("askbeat").textContent = "Ideas for — " + hole.name;
+  document.getElementById("askbeat").textContent = "Ideas for: " + hole.name;
   document.getElementById("askdraft").hidden = true;
   document.getElementById("askconvo").hidden = true;
   box.hidden = false;
@@ -3745,7 +3864,7 @@ async function ideasFor(hole){
   const prompt =
       "A screenwriter is stuck on one empty beat. Offer three possible shapes it could take.\n\n"
     + "STRUCTURE: " + S.label + "\nPROJECT: " + proj.name + "\n" + briefBlock()
-    + "THE EMPTY BEAT: " + hole.name + " — " + (hole.req || hole.fn) + "\n"
+    + "THE EMPTY BEAT: " + hole.name + ": " + (hole.req || hole.fn) + "\n"
     + "WHERE IT SITS: " + wherePhrase(hole.pos) + "\n\n"
     + "WHAT COMES BEFORE IT:\n" + (before.join("\n") || "(nothing yet)") + "\n\n"
     + "WHAT COMES AFTER IT:\n" + (after.join("\n") || "(nothing yet)") + "\n\n"
@@ -3755,7 +3874,7 @@ async function ideasFor(hole){
     + "abandoned notes are almost always better than anything you would invent, and the most useful "
     + "thing you can tell a stuck writer is that they already wrote the answer. Name the note you "
     + "used in \"from\".\n"
-    + "- Each option is ONE OR TWO SENTENCES describing what happens — a beat, not prose. No "
+    + "- Each option is ONE OR TWO SENTENCES describing what happens: a beat, not prose. No "
     + "dialogue, no scene description, no style.\n"
     + "- Each must genuinely perform this beat's job and connect what comes before to what comes "
     + "after. Say how in \"does\", in one short line.\n"
@@ -3773,7 +3892,7 @@ async function ideasFor(hole){
     lede.className = "figlede";
     lede.style.margin = "0 0 12px";
     lede.textContent = "These are suggestions, not your words. Take one as a starting point and "
-      + "rewrite it — anything you keep stays labelled until you do.";
+      + "rewrite it. Anything you keep stays labelled until you do.";
     body.appendChild(lede);
 
     list.forEach(o => {
@@ -3794,7 +3913,7 @@ async function ideasFor(hole){
         document.getElementById("askconvo").hidden = true;
         document.getElementById("askdraft").hidden = false;
         document.getElementById("draftlabel").textContent =
-          "Make it yours — it stays marked as a suggestion until you change it";
+          "Make it yours. It stays marked as a suggestion until you change it";
         document.getElementById("draftgo").textContent = "Put it on the board";
         document.getElementById("drafttext").value = String(o.text || "");
         document.getElementById("drafttext").focus();
@@ -3853,7 +3972,7 @@ document.getElementById("clear").addEventListener("click", () => {
 });
 
 /* =========================================================================
-   THE DUMP — a writer's notes folder is not a list. It's paragraphs, half
+   THE DUMP: a writer's notes folder is not a list. It's paragraphs, half
    scenes, stray lines of dialogue, character thoughts, and often notes for
    more than one story, all in the same file. This reads that, separates the
    ideas, works out what KIND each one is, and only sends the actual story
@@ -3943,7 +4062,7 @@ function cleanBrief(b){
   return Object.keys(out).length ? out : null;
 }
 
-/* The offline reading of a header block — no model needed for "Genre: ..." */
+/* The offline reading of a header block, no model needed for "Genre: ..." */
 /* Notes files are almost never clean. Every one of these lines is a header:
      Title: X   *  TITLE: X   - **Title:** X   # Title - X
    Missing them was why a whole file's title, genre and logline went unread. */
@@ -4157,7 +4276,7 @@ async function claudePlan(raw){
     });
   }
 
-  // Nothing came back at all. Say so — do not quietly hand this to the matcher.
+  // Nothing came back at all. Say so, do not quietly hand this to the matcher.
   if (!answered) { const e = new Error("unreadable"); e.code = "unreadable"; throw e; }
 
   /* ---- assemble, with the confidence gate and a hard per-beat ceiling ---- */
@@ -4218,7 +4337,7 @@ function renderReview(){
         const v = k === "format" ? STRUCTURES[st.brief[k]].label : st.brief[k];
         const kept = k !== "format" && cur[k] && cur[k] !== st.brief[k];
         return '<div class="briefrow"><span class="bl">' + LBL[k] + "</span><span class=\"bv\">"
-          + esc(v) + (kept ? ' <i>— you already have one, yours is kept</i>' : "") + "</span></div>";
+          + esc(v) + (kept ? ' <i>(you already have one, yours is kept)</i>' : "") + "</span></div>";
       }).join("");
       const d = document.createElement("div");
       d.className = "brieffound";
@@ -4245,8 +4364,8 @@ function renderReview(){
       const nm = id => (S.slots.find(x => x.id === id) || {name:"Set aside"}).name;
       const dest = n.kind !== "beat" ? "→ " + KINDS[n.kind] + " shelf"
         : n.beat  ? "→ " + nm(n.beat) + "  (" + n.conf + "% sure)"
-        : n.maybe ? "→ Set aside · possibly " + nm(n.maybe) + " — only " + n.conf + "% sure"
-        :           "→ Set aside — an event, but not clearly any one beat";
+        : n.maybe ? "→ Set aside · possibly " + nm(n.maybe) + ", only " + n.conf + "% sure"
+        :           "→ Set aside, an event but not clearly any one beat";
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"
         + '<span class="txt">' + esc(n.text)
@@ -4266,7 +4385,7 @@ function renderReview(){
     ? "These notes look like " + stories + " different stories. The first group goes into the project "
       + "you're in; the rest become their own projects. Rename any of them, or untick anything you "
       + "don't want."
-    : "Only notes that are clearly one specific beat go onto the board — the rest go to your notes "
+    : "Only notes that are clearly one specific beat go onto the board. The rest go to your notes "
       + "or to Set aside. Expect most beats to stay empty: those gaps are the point, and filling "
       + "them with near-misses would hide them. Untick anything you don't want.";
   updateRevCount();
@@ -4291,7 +4410,7 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
     dumpCtl = new AbortController();
     go.disabled = true; go.innerHTML = '<span class="spinner"></span>Reading…'; stop.hidden = false;
     document.getElementById("dumpcount").innerHTML =
-      '<span class="spinner"></span>separating the ideas &mdash; this takes a moment';
+      '<span class="spinner"></span>separating the ideas, this takes a moment';
     try{
       plan = await claudePlan(raw);
     }catch(e){
@@ -4365,11 +4484,11 @@ document.getElementById("revgo").addEventListener("click", () => {
   hideAll();
   setView("board");
   showSettled(firstMoves, added + " notes sorted"
-    + (newProjects ? " — and " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "")
+    + (newProjects ? " and " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "")
     + (firstMoves.length ? ", and some cards moved to fit" : ""));
   if (!firstMoves.length){
     document.getElementById("settledtitle").textContent = added + " notes sorted"
-      + (newProjects ? " — " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "");
+      + (newProjects ? ", " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "");
     document.getElementById("settledlines").innerHTML = "";
     settledBox.hidden = false;
   }
@@ -4379,7 +4498,7 @@ document.getElementById("revgo").addEventListener("click", () => {
 
 
 /* =========================================================================
-   OUTLINE — the board straightened into a document. The beats are locked in
+   OUTLINE: the board straightened into a document. The beats are locked in
    order because by now the spine is decided; what's missing is what actually
    happens. Everything you set aside sits in the rail, ready to be dropped in.
    ========================================================================= */
@@ -4392,7 +4511,7 @@ function renderOutline(){
   const body = document.getElementById("outlinebody");
   body.innerHTML = "";
   document.getElementById("outlinetitle").textContent = proj.name === "Untitled"
-    ? "Outline" : proj.name + " — outline";
+    ? "Outline" : proj.name + " outline";
 
   let words = 0;
   Object.keys(proj.outline).forEach(k => {
@@ -4431,7 +4550,7 @@ function renderOutline(){
       ta.value = proj.outline[slot.id] || "";
       ta.placeholder = cards.length
         ? "What actually happens here?"
-        : "Nothing on this beat yet — write it, or leave it open.";
+        : "Nothing on this beat yet. Write it, or leave it open.";
       ta.addEventListener("input", () => {
         proj.outline[slot.id] = ta.value;
         clearTimeout(ta._t);
@@ -4452,11 +4571,11 @@ function renderOutline(){
         snapshot();
         if (card.slot === "__shelf"){
           // A note is reference material. Dragging it here files it against
-          // this beat — it does NOT become the beat, and it stays a note, so
+          // this beat, it does NOT become the beat, and it stays a note, so
           // clearing the beat can never take it with it.
           card.attachedTo = slot.id;
           showSettled([{text: card.text, from: "Notes",
-                        to: slot.name + " — filed under it as a note, not as the beat itself"}],
+                        to: slot.name + ", filed under it as a note, not as the beat itself"}],
                       "Kept as a note");
         } else {
           // A set-aside card is a beat looking for a home. Putting it here is
@@ -4488,7 +4607,7 @@ function renderOutlineCount(){
 function renderRail(){
   const proj = P();
   const aside = proj.cards.filter(c => c.slot === "__none");
-  // a note filed under a beat is showing there instead — it hasn't left the app
+  // a note filed under a beat is showing there instead, it hasn't left the app
   const shelf = proj.cards.filter(c => c.slot === "__shelf" && !isAttached(c, proj));
 
   const railCard = c => {
@@ -4535,7 +4654,7 @@ document.getElementById("outlinebtn").addEventListener("click", () =>
   setView(state.view === "outline" ? "board" : "outline"));
 
 /* =========================================================================
-   NOTES THAT AREN'T BEATS — kept with the project, off the board. A story
+   NOTES THAT AREN'T BEATS: kept with the project, off the board. A story
    board should show the story; character sketches and stray dialogue crowding
    it out is exactly the mess this app exists to end.
    ========================================================================= */
@@ -4552,11 +4671,11 @@ function renderNotes(){
   body.innerHTML = "";
 
   document.getElementById("noteslede").textContent = all.length
-    ? "Everything from " + proj.name + " that isn't a story event — sorted by what it is. Beatfall "
+    ? "Everything from " + proj.name + " that isn't a story event, sorted by what it is. Beatfall "
       + "made these calls; change any of them, or send a note to the board if it turns out to be a beat."
-    : "Nothing here yet. When you paste in a pile of notes, anything that isn't a story beat — a "
+    : "Nothing here yet. When you paste in a pile of notes, anything that isn't a story beat (a "
       + "character detail, a line you like, a rule you set yourself, a question you haven't answered "
-      + "— lands here instead of being forced onto the board.";
+      + ") lands here instead of being forced onto the board.";
 
   // filter bar: what it found, and how much of each
   const bar = document.createElement("div");
@@ -4602,7 +4721,7 @@ function renderNotes(){
       el.querySelector(".t").textContent = c.text;
       const row = el.querySelector(".r");
 
-      // if it's filed under a beat, say so here too — a note is never in only
+      // if it's filed under a beat, say so here too, a note is never in only
       // one place, and never anywhere you can't find it
       if (isAttached(c, proj)){
         const on = el.querySelector(".on");
@@ -4618,7 +4737,7 @@ function renderNotes(){
       }
 
       const kindSel = document.createElement("select");
-      kindSel.setAttribute("data-tip", "Beatfall guessed this. If it guessed wrong, put it right — "
+      kindSel.setAttribute("data-tip", "Beatfall guessed this. If it guessed wrong, put it right. "
         + "rules in particular are treated as hard constraints it must never break.");
       kindSel.innerHTML = SHELVES.map(k =>
         '<option value="' + k + '"' + (k === kind ? " selected" : "") + ">" + esc(KINDS[k]) + "</option>").join("");
@@ -4664,7 +4783,7 @@ function renderNotes(){
 }
 
 /* =========================================================================
-   THE SLATE — the only screen that can see every project at once, which is
+   THE SLATE: the only screen that can see every project at once, which is
    why the routing box lives here: a note typed from a walk doesn't always
    belong to the script you had open last.
    ========================================================================= */
@@ -4685,7 +4804,7 @@ function setView(v, quiet){
   document.querySelector(".projbar").hidden = v === "slate";
   // The slot after the rule holds the script's name on a board and the tagline
   // on the dashboard. The rule itself only earns its place when one of them is
-  // there — on its own it reads as a dangling stroke after the mark.
+  // there, on its own it reads as a dangling stroke after the mark.
   document.getElementById("tagline").hidden = v !== "slate";
   // The rule is hidden by CSS on the dashboard below 1024px, where the tagline
   // it would be dividing is itself hidden. Doing that here instead would need a
@@ -4715,7 +4834,7 @@ document.getElementById("notesbtn").addEventListener("click", () =>
 document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
 
 /* The standings. Four counts and a chain, and every one of them is something
-   the writer actually did — no points, no badges, no invented currency. The
+   the writer actually did, no points, no badges, no invented currency. The
    gold number is the empty beats, because on this product the hole is the
    thing, and momentum sits beside it because a hole with no movement toward
    it is just a reproach. */
@@ -4729,7 +4848,7 @@ function renderScore(t){
   const ch = chain();
   const pct = total ? Math.round((filled / total) * 100) : 0;
 
-  // The script nearest a full board. Not the one with the most cards — a board
+  // The script nearest a full board. Not the one with the most cards, a board
    // at 80% with three beats left is closer to done than one holding sixty
    // notes and no structure filled. A finished board steps aside for the next
    // one behind it: complete is not "nearly finished", it is finished.
@@ -4769,7 +4888,7 @@ function renderScore(t){
         + '<span class="score-pct">' + lead.c.pct + "%</span>"
         + '<span class="score-left">' + left + " beat" + (left === 1 ? "" : "s") + " to go</span>"
       + "</div>"
-      + (nx ? '<div class="score-note">Next &mdash; <b>' + esc(nx.name) + "</b></div>" : "")
+      + (nx ? '<div class="score-note">Next: <b>' + esc(nx.name) + "</b></div>" : "")
       + "</div>";
   }
 
@@ -4788,7 +4907,7 @@ function renderScore(t){
     /* This slot has been wrong twice. It read "Cards written" and counted every
        card in the project, so a pasted notes file showed up as 171 things the
        writer had supposedly written. Then "This week", which on a quiet week is
-       a zero that scolds. Then "Notes to sort" — honest, but 158 unsorted notes
+       a zero that scolds. Then "Notes to sort", honest, but 158 unsorted notes
        is a wall, not a nudge.
        What belongs here is the one script that is nearly there, named, because
        that is the thing worth an hour tonight. It gets double width: a title is
@@ -4862,7 +4981,7 @@ function renderSlate(){
 
       /* The grade. A writer should be able to read it from across the room and
          not have to divide anything to know where they stand. Zero is a real
-         answer and gets shown as one — greyed, but stated. */
+         answer and gets shown as one, greyed, but stated. */
       + '<div class="grade">'
         + '<div class="gwrap">'
           + '<div class="gnum' + (c.pct ? "" : " none") + '">' + c.pct
@@ -4878,7 +4997,7 @@ function renderSlate(){
       + '<div class="bar"><i style="width:' + c.pct + '%"></i></div>'
 
       /* Next up was a caption. It is the single most useful thing on the card,
-         so it is a control now — press it and you are in the conversation
+         so it is a control now, press it and you are in the conversation
          about that beat. */
       + (nx
           ? '<button class="up"><span class="k">Next up</span>'
@@ -4942,7 +5061,7 @@ document.getElementById("slatedump").addEventListener("click", openImport);
 
 
 /* =========================================================================
-   POPOVERS — the project menu and the account menu. Everything that used to
+   POPOVERS: the project menu and the account menu. Everything that used to
    be a row of buttons across the top now lives behind one of these two.
    ========================================================================= */
 const projMenu = document.getElementById("projmenu");
@@ -4978,7 +5097,7 @@ document.querySelectorAll(".pop .popitem").forEach(b => {
 });
 
 /* =========================================================================
-   MODE — auto follows the daylight where the writer is, and turns over while
+   MODE: auto follows the daylight where the writer is, and turns over while
    they are still sitting there. The logic lives in app.js so every page agrees.
    ========================================================================= */
 const MODE_WORD = {auto: "Auto", light: "Light", dark: "Dark"};
@@ -4996,7 +5115,7 @@ BF.applyMode(BF.readMode());
 paintMode();
 
 /* =========================================================================
-   SETTINGS — a modal over the board. Profile, usage, plan and your data, all
+   SETTINGS: a modal over the board. Profile, usage, plan and your data, all
    without leaving the script you were looking at.
    ========================================================================= */
 const setScrim = document.getElementById("setscrim");
@@ -5028,7 +5147,7 @@ function openSettings(pane){
   setScrim.hidden = false;
   closePops();
   currentPane = pane || "profile";
-  // the account was already fetched at boot — no reason to make anyone wait twice
+  // the account was already fetched at boot, no reason to make anyone wait twice
   if (ME){ revealPane(); showPane(currentPane); return; }
   document.getElementById("setloading").hidden = false;
   setBody.hidden = true;
@@ -5141,7 +5260,7 @@ function paneUsage(){
 
   setBody.innerHTML =
       '<h2 class="pane-h">This month</h2>'
-    + '<p class="pane-sub">Placing a note is free and always will be — that\'s the whole point.</p>'
+    + '<p class="pane-sub">Placing a note is free and always will be. That\'s the whole point.</p>'
     + '<div class="usebig">' + ME.credits_used + '<span style="font-size:16px;color:var(--ink-3)"> of '
       + (ME.unlimited ? "unlimited" : ME.credits_allowance) + " credits</span></div>"
     + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
@@ -5164,18 +5283,18 @@ function panePlan(){
   ];
   let note = "";
   if (ME.unlimited){
-    note = '<div class="note info"><b>Owner account.</b> No plan, no limits, no billing — your '
+    note = '<div class="note info"><b>Owner account.</b> No plan, no limits, no billing. Your '
       + "usage is excluded from the numbers on the admin dashboard so it can't skew where the "
       + "customer allowance should sit.</div>";
   } else if (ME.plan === "trial" && ME.trialing){
     const days = Math.max(0, Math.ceil((new Date(ME.trial_ends_at) - Date.now()) / 86400000));
     const ends = new Date(ME.trial_ends_at).toLocaleDateString(undefined, {month: "long", day: "numeric"});
-    note = '<div class="note info"><b>You\'re on the free trial — ' + days + " day"
+    note = '<div class="note info"><b>You\'re on the free trial, ' + days + " day"
       + (days === 1 ? "" : "s") + " left, through " + ends + ".</b> No card on file. Pick a plan "
       + "whenever you're ready; your boards carry over either way.</div>";
   } else if (ME.plan === "none"){
     note = '<div class="note warn"><b>No active plan.</b> Your projects, boards and notes are all '
-      + "still here and the board works normally — it's the writing help that's switched off.</div>";
+      + "still here and the board works normally. It's the writing help that's switched off.</div>";
   } else {
     const when = ME.current_period_end
       ? new Date(ME.current_period_end).toLocaleDateString(undefined,
@@ -5189,7 +5308,7 @@ function panePlan(){
       note = '<div class="note bad"><b>Your last payment failed.</b> Update your card under '
         + "Manage billing to keep the writing help on. Nothing else is affected.</div>";
     } else {
-      note = '<div class="note info"><b>You\'re subscribed. Thank you — genuinely.</b> '
+      note = '<div class="note info"><b>You\'re subscribed. Thank you, genuinely.</b> '
         + ME.credits_allowance + " credits a month, and everything on the board stays free."
         + (when ? " Renews <b>" + when + "</b>." : "") + "</div>";
     }
@@ -5217,7 +5336,7 @@ function panePlan(){
       + '<div><div class="lab">Manage billing</div><div class="help">Cancelling, changing card and '
       + "switching between monthly and annual all happen on Stripe's own pages.</div></div>"
       + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button>'
-      + '<button class="btn" id="s-topup">Top up 100 credits — $6</button></div></div>';
+      + '<button class="btn" id="s-topup">Top up 100 credits for $6</button></div></div>';
 
   const openStripe = action => async ev => {
     const b = ev.currentTarget, was = b.textContent;
@@ -5277,8 +5396,8 @@ function paintWho(me){
   const name = ME.display_name || (ME.email || "").split("@")[0] || "You";
   document.getElementById("whoname").textContent = name;
   document.getElementById("whoemail").textContent = ME.email || "";
-  document.getElementById("avatar").textContent = (name.trim()[0] || "?").toUpperCase();
-  const plan = ME.unlimited ? "Owner — no limits"
+  document.getElementById("avatarini").textContent = (name.trim()[0] || "?").toUpperCase();
+  const plan = ME.unlimited ? "Owner · no limits"
     : ME.plan === "beatfall" ? "Beatfall · $12 a month"
     : (ME.plan === "trial" && ME.trialing) ? "Free trial"
     : "No plan";
@@ -5289,7 +5408,7 @@ document.getElementById("signout").addEventListener("click", () => BF.signOut())
 document.getElementById("helpbtn").addEventListener("click", () => showFirstRun());
 
 /* =========================================================================
-   HOVER EXPLAINERS — every control says what it does before you press it.
+   HOVER EXPLAINERS: every control says what it does before you press it.
    ========================================================================= */
 const tipEl = document.getElementById("tip");
 let tipTimer = null;
@@ -5329,14 +5448,8 @@ document.addEventListener("focusout", hideTip);
 ["click","scroll","keydown"].forEach(ev => document.addEventListener(ev, hideTip, true));
 
 /* =========================================================================
-   BOOT — sign the person in, load their projects, then run the board.
+   BOOT: sign the person in, load their projects, then run the board.
    ========================================================================= */
-document.getElementById("foot").innerHTML =
-  "Every note is placed instantly by a built-in matcher, then read more closely by Claude. "
-  + "Your projects are saved to your account and follow you between machines — privately: "
-  + "nothing you write trains a model, and no one else can read it. "
-  + '<a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a>';
-
 (async function start(){
   if (!await BF.requireSession()) return;
 
@@ -5353,8 +5466,8 @@ document.getElementById("foot").innerHTML =
   } catch (e) {
     document.body.insertAdjacentHTML("afterbegin",
       '<div style="padding:14px 22px;background:var(--gold-soft);border-bottom:1px solid var(--gold);'
-      + 'font-size:13.5px">Couldn\'t reach your saved projects. Check your connection and reload — '
-      + 'nothing has been lost.</div>');
+      + 'font-size:13.5px">Couldn\'t reach your saved projects. Check your connection and reload. '
+      + 'Nothing has been lost.</div>');
     state = {projects:[blankProject("Untitled","stc")], activeId: 1, view:"slate"};
   }
 
@@ -5374,7 +5487,7 @@ document.getElementById("foot").innerHTML =
     paintWho(me);
     if (!me.unlimited && typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance});
-  } catch (e) { /* not fatal — the board works without it */ }
+  } catch (e) { /* not fatal, the board works without it */ }
 
   // first run: no projects, nothing written
   const bare = hadProjects === 0
