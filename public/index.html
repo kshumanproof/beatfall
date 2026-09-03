@@ -103,7 +103,13 @@ body{
   margin:0;background:var(--ground);color:var(--ink);
   font-family:var(--sans);font-size:14px;line-height:1.55;
   -webkit-font-smoothing:antialiased;
+  /* A column the height of the window, so the footer can be pushed to the
+     floor on a short page instead of floating halfway up it. Fixed and
+     absolutely positioned children (the dock, the account pill, every scrim)
+     are out of flow and unaffected. */
+  display:flex;flex-direction:column;min-height:100dvh;
 }
+main,#outlineview,#notesview,#slate{flex:0 0 auto}
 button{font-family:inherit;color:inherit}
 /* This file does not load theme.css, so without this every plain <a> in the
    app fell through to the browser's own #0000EE. On paper that is merely
@@ -198,6 +204,10 @@ header{
    It says "Account" out loud. A lone circle with an initial in it is a
    convention people who build software know and nobody else does, and the
    question it produces is "how do I get to my profile?" */
+/* Fixed, because it has to be reachable from anywhere. The footer reserves a
+   band at its foot for exactly this, so when a writer scrolls to the bottom
+   the pill lands in a space that was left for it rather than on top of
+   something. */
 .acct{position:fixed;left:22px;bottom:18px;z-index:45}
 .avatar{
   display:flex;align-items:center;gap:9px;cursor:pointer;
@@ -1186,10 +1196,11 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    a rule across the top, the mark and the line, what happens to a writer's
    material, and the three links that belong at the bottom of every site. */
 footer{
-  border-top:1px solid var(--rule);background:var(--surface);margin-top:60px;
+  border-top:1px solid var(--rule);background:var(--surface);
+  margin-top:auto;   /* pushed to the floor; see the body rule */
 }
 .foot-in{
-  max-width:1560px;margin:0 auto;padding:38px 34px 92px;   /* bottom clears .acct */
+  max-width:1560px;margin:0 auto;padding:38px 34px 84px;   /* the band .acct sits in */
   display:grid;grid-template-columns:auto 1fr 1fr auto;gap:32px 64px;align-items:start;
 }
 /* The lockup, then the line under it. A tagline belongs beneath the name it
@@ -1779,14 +1790,14 @@ footer{
 
     <div class="foot-col">
       <div class="foot-k">Your material</div>
-      <p>Nothing you write trains a model. No other person can read it, including us.
-        Export or delete all of it whenever you like.</p>
+      <p>Nothing you write trains a model. Nobody else can read it, including us.
+        Export or delete it whenever you like.</p>
     </div>
 
     <div class="foot-col">
       <div class="foot-k">How placing works</div>
-      <p>A built-in matcher proposes a beat the moment you type. Claude reads it more
-        closely afterwards, and asks rather than guesses.</p>
+      <p>A beat is proposed the moment you type. Beatfall looks again more
+        carefully afterwards, and asks rather than guesses.</p>
     </div>
 
     <nav class="foot-links" aria-label="Site">
@@ -3258,9 +3269,9 @@ async function runLogTurn(){
   }catch(e){
     const partial = (e && e.text) || acc;
     logThread.turns.push({role: "assistant", content: partial || (
-      e && e.code === "not_granted" ? "This needs your permission to ask Claude."
+      e && e.code === "not_granted" ? "This needs your permission first."
       : e && e.code === "cancelled" ? "Stopped."
-      : "Couldn't reach Claude just now.")});
+      : "Couldn't get an answer just now.")});
   }finally{
     drawLog();
     send.disabled = false; stop.hidden = true; logCtl = null;
@@ -3274,7 +3285,7 @@ document.getElementById("loghelp").addEventListener("click", async () => {
   logInput.value = "";
   if (!ai_sample){
     logThread = {turns: [{role:"user",content:"x"}, {role:"assistant", content:
-      "This needs Claude, and it isn't reachable in this view. A logline is one sentence that makes "
+      "This part isn't available in this view. A logline is one sentence that makes "
       + "a stranger want to read the script: the hook, the person it happens to, what they want, "
       + "who's in the way, and what it costs them to lose. Present tense, under about 35 words, no "
       + "names and no plot summary."}]};
@@ -3697,10 +3708,10 @@ async function runTurn(){
     drawThread();
     if (!partial){
       const msg = e && e.code === "not_granted"
-        ? "This needs your permission to ask Claude."
+        ? "This needs your permission first."
         : e && e.code === "cancelled" ? "Stopped."
         : e && e.code === "rate_limited" ? "Too many questions at once. Give it a moment."
-        : "Couldn't reach Claude just now.";
+        : "Couldn't get an answer just now.";
       thread.turns.push({role: "assistant", content: msg});
       drawThread();
     }
@@ -3723,7 +3734,7 @@ async function askAboutNote(text){
 
   if (!ai_sample){
     thread = {slot: null, mode: "note", turns: [{role:"user",content:"x"}, {role:"assistant", content:
-      "This needs Claude, and it isn't reachable in this view. On your own: what happens in this "
+      "This part isn't available in this view. On your own: what happens in this "
       + "moment, who does it happen to, and what is different afterwards? Rewrite it with those in "
       + "and it'll place."}]};
     drawThread();
@@ -3756,7 +3767,7 @@ async function askAbout(hole){
 
   if (!ai_sample){
     thread = {slot: hole, mode: "beat", turns: [{role:"user",content:"x"}, {role:"assistant", content:
-      "This one needs Claude, and it isn't reachable in this view. Inside the Claude app it reads "
+      "This part isn't available in this view. In the app it reads "
       + "the cards on either side of this beat and works through it with you. What this beat has to "
       + "do: " + hole.fn}]};
     drawThread();
@@ -3947,8 +3958,8 @@ async function ideasFor(hole){
   thread = null;
 
   if (!ai_sample){
-    body.innerHTML = '<div class="idea"><div class="txt">This one needs Claude, and it isn\'t '
-      + "reachable in this view.</div></div>";
+    body.innerHTML = '<div class="idea"><div class="txt">This part isn\'t available '
+      + "in this view.</div></div>";
     return;
   }
   body.innerHTML = '<div class="idea"><div class="txt"><span class="spinner"></span>'
@@ -4025,8 +4036,8 @@ async function ideasFor(hole){
     });
   }catch(e){
     body.innerHTML = '<div class="idea"><div class="txt">'
-      + (e && e.code === "not_granted" ? "This needs your permission to ask Claude."
-         : "Couldn't reach Claude just now.") + "</div></div>";
+      + (e && e.code === "not_granted" ? "This needs your permission first."
+         : "Couldn't get an answer just now.") + "</div></div>";
   }
 }
 
@@ -4996,12 +5007,16 @@ function renderScore(t){
 
   el.innerHTML =
       '<div class="score-row">'
+    /* The label has to answer "so many WHAT", and the note under it has to be a
+       sentence rather than a dangling fragment. "25 / STILL EMPTY / Where the
+       work is" managed neither: 25 of what, and where is what work. */
     + cell(filled, " / " + total, "Beats filled", "",
-           total ? "across " + (state.projects.length === 1
-                    ? "your board" : "your " + state.projects.length + " boards")
+           total ? (state.projects.length === 1
+                    ? "On your board."
+                    : "Across your " + state.projects.length + " boards.")
                  : "No structure yet.")
-    + cell(t.empty, "", "Still empty", "gap",
-           t.empty ? "Where the work is." : "Nothing left open.")
+    + cell(t.empty, "", "Beats still empty", "gap",
+           t.empty ? "" : "Every one has a card.")
     /* This slot has been wrong twice. It read "Cards written" and counted every
        card in the project, so a pasted notes file showed up as 171 things the
        writer had supposedly written. Then "This week", which on a quiet week is
@@ -5366,7 +5381,7 @@ function paneUsage(){
      number and a sentence saying they do not expire. */
   setBody.innerHTML =
       '<h2 class="pane-h">This month</h2>'
-    + '<p class="pane-sub">Placing notes is free. Credits are only for the AI.</p>'
+    + '<p class="pane-sub">Placing notes is free. Credits are only for the writing help.</p>'
     + '<div class="usebig">' + usedM + '<span style="font-size:16px;color:var(--ink-3)"> of '
       + (ME.unlimited ? "unlimited" : monthly) + " credits</span></div>"
     + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
@@ -5390,7 +5405,7 @@ function paneUsage(){
     + '<div class="kinds">' + kinds + "</div>"
     + '<p class="muted" style="margin-top:26px;max-width:62ch;line-height:1.65">'
       + "A conversation costs one credit, however many questions it takes. Reading in a notes "
-      + "file costs two. If you run out, everything except the AI keeps working."
+      + "file costs two. If you run out, everything except the writing help keeps working."
       + "</p>";
 
   const top = document.getElementById("u-topup");
@@ -5879,7 +5894,7 @@ function lowStrip(left){
       "<b>" + (left > 0 ? left + " credit" + (left === 1 ? "" : "s") + " left this month."
                         : "That's this month's credits.")
     + "</b> The board, the outline and placing notes keep working. "
-    + "Only the AI needs credits.";
+    + "Only the writing help needs credits.";
 
   const buy = document.createElement("button");
   buy.className = "btn btn-primary"; buy.textContent = "Add credits";

@@ -90,13 +90,13 @@ export default async function handler(req, res) {
         error: 'upstream',
         message: r.status === 429
           ? 'Busy just now. Try that again in a moment.'
-          : "Couldn't reach Claude just now."
+          : "Couldn't get an answer just now."
       });
     }
     reply = await r.json();
   } catch (e) {
     console.error('anthropic fetch failed', e);
-    return send(res, 502, { error: 'upstream', message: "Couldn't reach Claude just now." });
+    return send(res, 502, { error: 'upstream', message: "Couldn't get an answer just now." });
   }
 
   const text = (reply.content || []).filter(c => c.type === 'text').map(c => c.text).join('');

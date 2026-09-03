@@ -520,3 +520,58 @@ A pack can still be bought while a cancellation is scheduled. Kris's call and
 he was right: buying credits was never a way to keep access, access is the
 subscription, and blocking the purchase decides for them. The copy says the
 credits would wait in their account instead.
+
+## How we talk about the AI (2 Sep 2026)
+
+Kris's rule, and it is a product decision rather than a style one: writers and
+filmmakers are broadly against generative AI, many for good reasons, and they
+will still use a tool like this. What they will not forgive is having it waved
+in their face.
+
+Two halves, and both matter:
+
+1. **Never claim we are not using it.** Every statement about what happens to a
+   person's material stays plain, and Privacy still names **Anthropic** as a
+   subprocessor. That is a legal disclosure and being coy there would be the
+   real dishonesty. The Terms and Privacy keep their precise language.
+2. **Everywhere else, drop the proper noun AND the category noun.** Not
+   "Claude", not "the AI", not "the model", not "generative".
+
+The vocabulary that replaced them:
+
+- The product does the thing: **"Beatfall reads it"**, "it asks", "a beat is
+  proposed".
+- The metered capability is **"the writing help"**. Never "the AI features".
+- Failures are **"Couldn't get an answer just now"**, never "couldn't reach
+  Claude".
+
+Code comments are deliberately left alone. They name real infrastructure, no
+writer reads them, and blurring them would make the code harder to work on.
+
+Audit with a comment-stripping grep for `Claude|\bAI\b|the model` across
+`public/*.html` and `public/app.js`; user-facing hits should be zero.
+
+## Footer and the account pill (2 Sep 2026)
+
+`body` is a flex column at `min-height:100dvh` and `footer` takes
+`margin-top:auto`, so on a short page the footer sits on the floor instead of
+floating halfway up. Fixed children (the capture dock, `.acct`, every scrim)
+are out of flow and unaffected.
+
+The account pill stays fixed bottom-left. The footer reserves an 84px band at
+its foot for exactly that, so scrolling to the bottom lands the pill in a space
+left for it rather than on top of the brand.
+
+## Scoreboard cell copy (2 Sep 2026)
+
+Two rules learned the hard way, both from Kris reading it cold:
+
+- **The label has to answer "so many WHAT".** "25 / STILL EMPTY" does not say
+  25 of what. It is "Beats still empty" now.
+- **The note under a cell has to be a sentence, not a dangling fragment.**
+  "across your 2 boards" hanging under "BEATS FILLED" reads as disconnected.
+  It is "Across your 2 boards." with a capital and a full stop, and "On your
+  board." when there is one.
+
+And where the number says it all, say nothing: the empty-beats cell has no note
+unless the count is zero, in which case it says "Every one has a card."

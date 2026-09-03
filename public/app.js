@@ -148,7 +148,7 @@
   BF.explain = function (e) {
     if (!e) return "Something went wrong.";
     if (e.code === 'out_of_credits' || e.code === 'no_plan') return e.message;
-    if (e.status === 502) return "Couldn't reach Claude just now. Try again in a moment.";
+    if (e.status === 502) return "Couldn't get an answer just now. Try again in a moment.";
     return e.message || "Something went wrong.";
   };
 
