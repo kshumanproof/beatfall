@@ -5,7 +5,7 @@
 // Every call: verify the person, check their remaining credits, call Claude,
 // then record exactly what it cost against their account.
 // ============================================================================
-import { requireUser, entitlement, spend, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE } from './_lib/core.js';
+import { requireUser, entitlement, spend, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE, track } from './_lib/core.js';
 
 // A hard ceiling per call, so one runaway request can't cost a fortune.
 const MAX_INPUT_CHARS = 60000;
@@ -46,6 +46,10 @@ export default async function handler(req, res) {
     });
   }
   if (credits > 0 && ent.left < credits) {
+    // Running out is a product event, not just an error. Whether writers hit
+    // this at all, and on which feature, decides whether 150 is the right
+    // number.
+    track(db, user.id, 'credits_exhausted', { credit_bucket: 'all', kind: body.kind });
     return send(res, 402, {
       error: 'out_of_credits',
       message: `That's all ${ent.monthly} of this month's credits. They come back on the 1st, `
@@ -86,6 +90,8 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const detail = await r.text();
       console.error('anthropic error', r.status, detail.slice(0, 400));
+      track(db, user.id, 'ai_request_failed', { operation: body.kind, status: r.status,
+                                                error_code: 'upstream' });
       return send(res, 502, {
         error: 'upstream',
         message: r.status === 429
@@ -96,6 +102,7 @@ export default async function handler(req, res) {
     reply = await r.json();
   } catch (e) {
     console.error('anthropic fetch failed', e);
+    track(db, user.id, 'ai_request_failed', { operation: body.kind, error_code: 'network' });
     return send(res, 502, { error: 'upstream', message: "Couldn't get an answer just now." });
   }
 

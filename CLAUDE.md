@@ -631,6 +631,55 @@ times and recorded four `first_run_choice` events. They bind once now. And
 Escape closes it, which it never did; only clicking the grey area worked, and
 nothing said so.
 
+## Growth and measurement foundation (3 Sep 2026)
+
+Built from an outside beta-infrastructure spec. The reasoning that decided
+scope: everything in that document can be added later except one thing. You can
+ship a share button in October. You cannot go back and watch what the first ten
+writers did in September. So the event stream went in and the public surfaces
+did not.
+
+**The rule that governs the events table**: it holds counts, buckets, enum
+names, booleans and timestamps. Never a card, a note, a logline, a title, a
+filename, a prompt or a response. `cleanProps()` in `core.js` enforces it with
+an allowlist of property names, because the comment above it will not be read
+by whoever adds the next call site. Sizes go in as buckets (`bucket()` in
+index.html): "between 20 and 50 notes" answers every question we have, "47"
+starts to describe a particular person's file.
+
+Three ids, three jobs: `anon_id` identifies a browser from before there was an
+account, `session_id` groups one sitting (30 minutes idle ends it), `event_id`
+makes a retry idempotent via a unique index.
+
+**Attribution survives the magic link.** The referrer does not come back from
+a mail client, so the browser writes what the first visit saw into
+`localStorage` and hands it over on the first authenticated call. First touch
+is written once and never overwritten; last touch may move. Host only, never a
+full referrer URL, because those carry other people's query strings.
+
+**`is_internal`** keeps Kris's own accounts out of every product number while
+leaving them visible in People. With ten writers, two owner accounts would not
+skew the funnel, they would be the funnel.
+
+**Meaningful board** is the provisional activation marker: five real items on
+a non-sample project. `MEANINGFUL_ITEMS` is a named constant because it is a
+guess, it will be wrong, and whoever changes it should be able to find it.
+
+**Where the spec was wrong.** It diagnosed the Untitled card as an abandoned
+draft that inflates metrics, and prescribed draft states and cleanup. The card
+is a client-side placeholder `load()` fabricates when the server returns zero
+rows; it has `id: null` and never reaches the database until the writer types.
+Cancelling the new-project form saves nothing. So there was nothing to clean
+up. The real bug was one sentence: the dashboard said "One project saved" over
+an empty account.
+
+### Not built, and why
+
+Share Progress, public `/share/{token}` pages, OG card generation, the
+anonymous `/demo` route, evergreen SEO pages and lifecycle email hooks. Each is
+a public unauthenticated surface on a product that currently has none, and each
+is a project rather than a change. They need Kris's decisions before code.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

@@ -6,7 +6,7 @@
 // somebody is paying for: the plan is looked up server-side by price id.
 // ============================================================================
 import Stripe from 'stripe';
-import { requireUser, send, readBody, PAID_PLAN, TOPUP_CREDITS } from './_lib/core.js';
+import { requireUser, send, readBody, PAID_PLAN, TOPUP_CREDITS, track } from './_lib/core.js';
 
 const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
 
   // ------------------------------------------------------------ subscribe --
   if (body.action === 'checkout') {
+    track(db, user.id, 'checkout_started', { plan: body.interval === 'year' ? 'year' : 'month' });
     const period = body.period === 'year' ? 'year' : 'month';
     const price = PRICE()[period];
     if (!price) return send(res, 400, { error: 'unknown_plan' });
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
 
   // ------------------------------------------------------------- top up ---
   if (body.action === 'topup') {
+    track(db, user.id, 'checkout_started', { plan: 'topup' });
     const price = PRICE().topup;
     if (!price) return send(res, 400, { error: 'topup_unavailable' });
     const session = await s.checkout.sessions.create({

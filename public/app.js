@@ -89,10 +89,113 @@
     return body;
   };
 
-  BF.track = function (name, props) {
-    BF.api('/api/account', { method: 'POST', body: JSON.stringify({ action: 'event', name, props }) })
-      .catch(() => {});
+  /* ------------------------------------------------------------ analytics --
+     Three ids, and they do different jobs.
+
+       anon  identifies this browser from the very first visit, before there is
+             an account. It is what lets a visit that arrived from a link be
+             joined to the account it later became.
+       sess  groups one sitting, so "came back on day 7" can mean a session
+             rather than a page load. Thirty minutes idle ends it.
+       event a per-call id, so a retry after a dropped response is the same row
+             rather than a second one. The unique index does the work.
+
+     None of these are cookies set for anybody else's benefit and none of them
+     leave first-party storage. They carry no email and no story text; see the
+     allowlist on the server, which is the thing that actually enforces it. */
+  var ANON_KEY = 'beatfall.anon', SESS_KEY = 'beatfall.sess', SESS_MINS = 30;
+
+  function rid() {
+    try {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      var a = new Uint8Array(16); crypto.getRandomValues(a);
+      return Array.from(a, function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+    } catch (e) { return String(Date.now()) + Math.random().toString(16).slice(2); }
+  }
+
+  BF.anonId = function () {
+    try {
+      var v = localStorage.getItem(ANON_KEY);
+      if (!v) { v = rid(); localStorage.setItem(ANON_KEY, v); }
+      return v;
+    } catch (e) { return null; }
   };
+
+  BF.sessionId = function () {
+    try {
+      var now = Date.now();
+      var raw = sessionStorage.getItem(SESS_KEY);
+      var s = raw ? JSON.parse(raw) : null;
+      if (!s || now - s.t > SESS_MINS * 60000) s = { id: rid(), t: now };
+      s.t = now;
+      sessionStorage.setItem(SESS_KEY, JSON.stringify(s));
+      return s.id;
+    } catch (e) { return null; }
+  };
+
+  BF.track = function (name, props) {
+    BF.api('/api/account', { method: 'POST', body: JSON.stringify({
+      action: 'event', name: name, props: props,
+      event_id: rid(), anon_id: BF.anonId(), session_id: BF.sessionId()
+    })}).catch(function () {});
+  };
+
+  /* --------------------------------------------------------- attribution --
+     A magic link leaves the site and comes back, and the referrer does not
+     survive that trip. So whatever the first visit could see is written down
+     here, in this browser, and handed over on the first authenticated call.
+
+     What is kept is deliberately narrow: the five utm fields, a Beatfall ref
+     token, the referring host (host only, never the full URL, which can carry
+     somebody else's query string), and the path they landed on. Never the
+     whole query string, because a stray ?email= would end up in a growth
+     table, and never anything the writer typed. */
+  var TOUCH_KEY = 'beatfall.touch';
+
+  BF.captureTouch = function () {
+    try {
+      var q = new URLSearchParams(location.search);
+      var t = {};
+      ['source', 'medium', 'campaign', 'content', 'term'].forEach(function (k) {
+        var v = q.get('utm_' + k); if (v) t[k] = v.slice(0, 120);
+      });
+      var ref = q.get('ref'); if (ref) t.ref = ref.slice(0, 120);
+      if (document.referrer) {
+        try {
+          var h = new URL(document.referrer).host;
+          if (h && h !== location.host) t.referrer = h;
+        } catch (e) {}
+      }
+      t.landing = location.pathname.slice(0, 120);
+
+      // Nothing but a landing path is not an acquisition context; it would
+      // overwrite a real first touch with "they came back directly".
+      var meaningful = t.source || t.ref || t.referrer;
+      var prev = null;
+      try { prev = JSON.parse(localStorage.getItem(TOUCH_KEY) || 'null'); } catch (e) {}
+      if (!meaningful && prev) return prev;
+      if (!meaningful && !prev) { localStorage.setItem(TOUCH_KEY, JSON.stringify(t)); return t; }
+      localStorage.setItem(TOUCH_KEY, JSON.stringify(t));
+      return t;
+    } catch (e) { return null; }
+  };
+
+  // Sent once per browser per account, after sign-in. The server decides
+  // whether it is a first touch; it will not overwrite one that exists.
+  BF.sendTouch = function () {
+    try {
+      if (localStorage.getItem(TOUCH_KEY + '.sent')) return;
+      var t = JSON.parse(localStorage.getItem(TOUCH_KEY) || 'null');
+      if (!t) return;
+      localStorage.setItem(TOUCH_KEY + '.sent', '1');
+      BF.api('/api/account', { method: 'POST',
+        body: JSON.stringify({ action: 'attribution', touch: t }) }).catch(function () {});
+    } catch (e) {}
+  };
+
+  // Runs on every page load, signed in or not, so a visit to /login.html or a
+  // public page is captured before an account exists.
+  BF.captureTouch();
 
   // ------------------------------------------------------------- projects --
   BF.loadProjects = async function () {

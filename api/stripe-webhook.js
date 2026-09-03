@@ -61,7 +61,8 @@ export default async function handler(req, res) {
               .update({ credits_extra: (profile.credits_extra || 0) + Number(s.metadata.topup) })
               .eq('id', profile.id);
             await db.from('events').insert({
-              user_id: profile.id, name: 'topup', props: { credits: Number(s.metadata.topup) }
+              user_id: profile.id, name: 'credits_purchased',
+              props: { credit_amount: Number(s.metadata.topup) }
             });
           }
         }
@@ -109,6 +110,12 @@ export default async function handler(req, res) {
         const profile = await byCustomer(inv.customer);
         if (profile) {
           await db.from('profiles').update({ subscription_status: 'past_due' }).eq('id', profile.id);
+          // A card that stops working and a person who decides to leave look
+          // identical in a churn number and are completely different problems.
+          await db.from('events').insert({
+            user_id: profile.id, name: 'payment_failed',
+            props: { error_code: String(inv.billing_reason || 'unknown').slice(0, 64) }
+          });
         }
         break;
       }

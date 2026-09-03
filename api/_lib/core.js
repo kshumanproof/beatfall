@@ -75,6 +75,10 @@ export async function requireUser(req) {
     const { data: made } = await db.from('profiles')
       .insert({ id: user.id, email: user.email }).select().single();
     profile = made;
+    // The only place in the system that can tell a new account from a returning
+    // one, because it is the moment the row did not exist. Recorded here rather
+    // than guessed from created_at later.
+    track(db, user.id, 'signup_completed');
   }
 
   // new calendar month → credits reset, topped-up credits carry over
@@ -166,6 +170,54 @@ export async function readBody(req) {
   try { return raw ? JSON.parse(raw) : {}; } catch { return {}; }
 }
 
-export function track(db, userId, name, props = {}) {
-  db.from('events').insert({ user_id: userId, name, props }).then(() => {}, () => {});
+/* ---------------------------------------------------------------- events --
+   One rule decides what may be written here, and it is not a guideline: this
+   table never holds anything a writer wrote. No card text, no note text, no
+   logline, no project title, no filename, no prompt, no model response. It
+   holds counts, buckets, enum names, booleans and durations. If a value could
+   ever be a sentence somebody wrote, it does not go in props.
+
+   SAFE_PROPS is the whole allowed vocabulary, and anything outside it is
+   dropped rather than trusted, because the call sites are spread across the
+   app and a well-meaning `{title: proj.name}` somewhere is exactly how a
+   promise in the Privacy Policy quietly stops being true. Numbers are kept,
+   strings are capped at 64 characters and only allowed for the keys that are
+   enums by nature.
+
+   Writes are fire-and-forget on purpose. Analytics must never be able to fail
+   a request a writer is waiting on. */
+const SAFE_PROPS = {
+  // enum-ish strings
+  choice: 1, kind: 1, plan: 1, source: 1, medium: 1, campaign: 1, method: 1,
+  stage: 1, operation: 1, error_code: 1, export_type: 1, source_type: 1,
+  reason_code: 1, credit_bucket: 1, confidence: 1, structure_changed: 1,
+  path: 1, cta: 1, format: 1, new_or_returning: 1, first_touch_source: 1,
+  // numbers
+  count: 1, item_count: 1, file_count: 1, duration_ms: 1, credit_amount: 1,
+  items_bucket: 1, status: 1,
+  // booleans
+  first_time: 1, sample: 1, authenticated: 1, had_user_content: 1,
+  include_title: 1, unlimited: 1
+};
+
+const ENUM_MAX = 64;
+
+export function cleanProps(props) {
+  const out = {};
+  if (!props || typeof props !== 'object') return out;
+  for (const [k, v] of Object.entries(props)) {
+    if (!SAFE_PROPS[k] || v === null || v === undefined) continue;
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === 'boolean') out[k] = v;
+    else if (typeof v === 'string') out[k] = v.slice(0, ENUM_MAX);
+  }
+  return out;
+}
+
+export function track(db, userId, name, props = {}, meta = {}) {
+  const row = { user_id: userId, name: String(name).slice(0, 60), props: cleanProps(props) };
+  if (meta.event_id)   row.event_id   = String(meta.event_id).slice(0, 64);
+  if (meta.anon_id)    row.anon_id    = String(meta.anon_id).slice(0, 64);
+  if (meta.session_id) row.session_id = String(meta.session_id).slice(0, 64);
+  db.from('events').insert(row).then(() => {}, () => {});
 }

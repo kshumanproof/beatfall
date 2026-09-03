@@ -27,6 +27,24 @@
   .cap b{font-variant-numeric:tabular-nums;font-family:var(--mono)}
   .kindbits{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
 
+  /* The funnel. A bar chart rather than a list of numbers, because the useful
+     thing about a funnel is the shape of the drop, and a column of figures
+     hides that. Widths are relative to the top stage. */
+  .fstage{display:grid;grid-template-columns:180px 1fr 46px 44px;align-items:center;
+    gap:12px;padding:5px 0}
+  .flab{font-size:12.5px;color:var(--ink-2)}
+  .fbar{height:19px;background:var(--rule-soft);border-radius:2px;overflow:hidden}
+  .fbar span{display:block;height:100%;background:var(--blue);min-width:2px;
+    transition:width .3s ease-out}
+  .fnum{font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;
+    font-variant-numeric:tabular-nums}
+  .fpct{font-family:var(--mono);font-size:11px;color:var(--ink-4);text-align:right;
+    font-variant-numeric:tabular-nums}
+  @media (max-width:700px){
+    .fstage{grid-template-columns:120px 1fr 38px 38px;gap:8px}
+    .flab{font-size:11.5px}
+  }
+
   /* ---------------------------------------------------------------------
      The account pill, same control as the board. These rules are a copy of
      the ones in index.html, which cannot share them because index.html does
@@ -117,6 +135,53 @@
         percentile leaves almost everyone unaware there is a limit, which is the point.
       </p>
       <div class="caps" id="caps"></div>
+    </div>
+
+    <div class="panel">
+      <h2>The funnel</h2>
+      <p class="muted" style="margin-top:-6px;max-width:74ch">
+        External accounts only. <span id="internalnote"></span> Each percentage is conversion
+        from the row above it, because that is where people actually fall out.
+      </p>
+      <div id="funnel"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Which opening path produces writers</h2>
+      <p class="muted" style="margin-top:-6px;max-width:74ch">
+        The whole bet is that pasting a mess of existing notes is the strongest way in. This
+        is the first evidence either way.
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>First path</th><th class="num">People</th>
+            <th class="num">Meaningful board</th><th class="num">Back after D1</th>
+            <th class="num">Back after D7</th><th class="num">Paying</th></tr></thead>
+          <tbody id="paths"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Where they came from</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>First touch</th><th class="num">People</th>
+            <th class="num">Activated</th><th class="num">Paying</th>
+            <th class="num">API cost</th></tr></thead>
+          <tbody id="sources"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>What went wrong</h2>
+      <p class="muted" style="margin-top:-6px;max-width:74ch">
+        Churn because Beatfall did not help is a product problem. Churn because the import
+        button broke is a different one, and these are the only numbers that tell them apart.
+      </p>
+      <div class="kindbits" id="failures"></div>
+      <div class="kindbits" id="reasons" style="margin-top:10px"></div>
     </div>
 
     <div class="panel">
@@ -237,6 +302,49 @@ async function load(days) {
   document.getElementById('events').innerHTML = ev.length
     ? ev.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
     : 'No events recorded yet.';
+
+  /* ------------------------------------------------------------- funnel ----
+     A bar per stage, widths relative to the top of the funnel, so the shape
+     is readable at a glance and the drop is where the bar shortens. With ten
+     writers the raw counts matter more than the percentages, so both are
+     printed and the count is the one in the heavier type. */
+  const fn = d.funnel || [];
+  const top = fn.length ? Math.max(1, fn[0].n) : 1;
+  document.getElementById('internalnote').textContent =
+    d.internal_count ? d.internal_count + (d.internal_count === 1
+      ? ' internal account is excluded.' : ' internal accounts are excluded.') : '';
+  document.getElementById('funnel').innerHTML = fn.map(s => `
+    <div class="fstage">
+      <div class="flab">${esc(s.label)}</div>
+      <div class="fbar"><span style="width:${Math.round(s.n / top * 100)}%"></span></div>
+      <div class="fnum">${s.n}</div>
+      <div class="fpct">${s.from_prev === null ? '' : s.from_prev + '%'}</div>
+    </div>`).join('');
+
+  const PATHNAME = { import: 'I have notes already', new_project: "I'm starting something",
+                     sample: 'Show me an example', none: 'Never chose one' };
+  document.getElementById('paths').innerHTML = (d.by_path || []).map(p => `
+    <tr><td>${esc(PATHNAME[p.key] || p.key)}</td>
+      <td class="num">${p.users}</td><td class="num">${p.meaningful}</td>
+      <td class="num">${p.d1}</td><td class="num">${p.d7}</td>
+      <td class="num">${p.paid}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">Nobody has chosen a path yet.</td></tr>';
+
+  document.getElementById('sources').innerHTML = (d.sources || []).map(s => `
+    <tr><td>${esc(s.key)}</td><td class="num">${s.users}</td>
+      <td class="num">${s.activated}</td><td class="num">${s.paid}</td>
+      <td class="num">${BF.money(s.cost_usd)}</td></tr>`).join('')
+    || '<tr><td colspan="5" class="muted">No accounts yet.</td></tr>';
+
+  const fails = (d.failures || []).filter(f => f.n > 0);
+  document.getElementById('failures').innerHTML = fails.length
+    ? fails.map(f => `${esc(f.name)} <b style="color:var(--gold)">${f.n}</b>`).join(' &nbsp;·&nbsp; ')
+    : 'Nothing has failed in this window.';
+
+  const rs = Object.entries(d.cancel_reasons || {}).sort((a,b) => b[1]-a[1]);
+  document.getElementById('reasons').innerHTML = rs.length
+    ? 'Cancelled: ' + rs.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
+    : 'Nobody has cancelled.';
 
   document.getElementById('rows').innerHTML = d.users.map(u => {
     const pill = u.plan === 'none' ? 'off' : u.plan === 'trial' ? 'trial' : 'on';

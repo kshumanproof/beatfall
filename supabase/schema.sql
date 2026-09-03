@@ -151,3 +151,68 @@ update public.projects
 -- Run this once, with your own email, after you have signed in for the first
 -- time. Without it, /admin will refuse you as well as everybody else.
 --   update public.profiles set is_admin = true where email = 'you@example.com';
+
+-- ============================================================================
+-- Growth and product-learning foundation (3 Sep 2026)
+--
+-- Everything below is additive and safe to re-run. It exists because the one
+-- thing you cannot do later is reconstruct how the first writers behaved. The
+-- rule that governs all of it: these tables hold counts, states and timestamps.
+-- No card text, no note text, no loglines, no titles, no filenames. If a
+-- column here could ever hold a sentence a writer wrote, it is the wrong
+-- column.
+-- ============================================================================
+
+-- ------------------------------------------------------- account-level state
+-- Kris's own accounts and any QA account still show in People, but they must
+-- not move the top-line numbers. Ten writers is a small enough sample that two
+-- owner accounts would swamp it.
+alter table public.profiles add column if not exists is_internal boolean not null default false;
+
+-- Onboarding as explicit state rather than something inferred from whether the
+-- dashboard happens to have a card on it.
+alter table public.profiles add column if not exists onboarding_first_seen_at timestamptz;
+alter table public.profiles add column if not exists onboarding_choice        text;  -- import | new_project | sample
+alter table public.profiles add column if not exists onboarding_completed_at  timestamptz;
+
+-- Activation markers. Set once, never rewound, so a cohort query is a column
+-- read rather than a reconstruction.
+alter table public.profiles add column if not exists first_real_project_at     timestamptz;
+alter table public.profiles add column if not exists first_meaningful_board_at timestamptz;
+
+-- Where this account came from. First touch is written once and never
+-- overwritten; last touch may move. Both are small objects of source, medium,
+-- campaign, referrer host and landing path. No email, no story data.
+alter table public.profiles add column if not exists first_touch jsonb;
+alter table public.profiles add column if not exists last_touch  jsonb;
+
+-- Why somebody left. The code is a fixed enum; the optional note is the
+-- writer's own words about the product, kept out of the events table because
+-- it is support correspondence rather than analytics.
+alter table public.profiles add column if not exists cancel_reason      text;
+alter table public.profiles add column if not exists cancel_reason_note text;
+alter table public.profiles add column if not exists cancel_reason_at   timestamptz;
+
+-- ------------------------------------------------------------ project state
+-- The sample has to be fully usable and completely invisible to any number
+-- that is meant to describe real writing.
+alter table public.projects add column if not exists is_sample   boolean not null default false;
+alter table public.projects add column if not exists created_from text;   -- import | new_project | sample | other
+
+-- ------------------------------------------------------------------- events
+-- event_id makes a retry idempotent: the client generates it, so a dropped
+-- response that the browser retries does not become two rows. anon_id ties a
+-- visit to the account it later becomes; session_id groups one sitting.
+alter table public.events add column if not exists event_id   text;
+alter table public.events add column if not exists anon_id    text;
+alter table public.events add column if not exists session_id text;
+create unique index if not exists events_event_id_key on public.events (event_id)
+  where event_id is not null;
+create index if not exists events_name_time_idx on public.events (name, created_at desc);
+create index if not exists events_user_idx      on public.events (user_id, created_at desc);
+create index if not exists events_anon_idx      on public.events (anon_id, created_at desc)
+  where anon_id is not null;
+
+-- Events are written by the server with the service key and read only by
+-- /api/admin, which checks is_admin first. No client ever selects from here.
+alter table public.events enable row level security;

@@ -204,11 +204,14 @@ header{
    It says "Account" out loud. A lone circle with an initial in it is a
    convention people who build software know and nobody else does, and the
    question it produces is "how do I get to my profile?" */
-/* Fixed, because it has to be reachable from anywhere. The footer reserves a
-   band at its foot for exactly this, so when a writer scrolls to the bottom
-   the pill lands in a space that was left for it rather than on top of
-   something. */
-.acct{position:fixed;left:22px;bottom:18px;z-index:45}
+/* Fixed, because it has to be reachable from anywhere. It used to sit in a
+   band the footer reserved at its own foot, which put the pill inside the
+   footer and made it read as part of the small print. It now rides up and
+   parks above the footer's top edge as the footer arrives, so it is always a
+   control sitting on the page rather than a line item in the legal strip.
+   parkAcct() does the lifting; the transition makes it look deliberate. */
+.acct{position:fixed;left:22px;bottom:18px;z-index:45;
+  transition:transform .18s ease-out}
 .avatar{
   display:flex;align-items:center;gap:9px;cursor:pointer;
   height:42px;padding:0 14px 0 5px;border-radius:23px;
@@ -1109,6 +1112,18 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .cxack input{margin-top:2px;flex:0 0 auto;accent-color:var(--blue);width:16px;height:16px}
 .cxack span{font-size:13px;line-height:1.5;color:var(--ink)}
+
+/* The optional exit question. Quiet on purpose: it sits below the thing the
+   writer came here to do and must never look like another hurdle. */
+.cxwhy{margin:14px 0 4px}
+.cxwhy-q{font-size:12.5px;color:var(--ink-2);margin-bottom:7px}
+.cxwhy-q span{color:var(--ink-4)}
+.cxwhy select,.cxwhy textarea{
+  width:100%;font-family:var(--sans);font-size:13px;color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
+  padding:9px 11px;
+}
+.cxwhy textarea{margin-top:8px;resize:vertical;line-height:1.5}
 .cancelsheet .sheet-actions .btn-danger{margin-left:auto}
 
 /* =====================================================================
@@ -1232,7 +1247,7 @@ footer{
 .foot-links a:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
 .foot-legal{
   border-top:1px solid var(--rule-soft);
-  max-width:1560px;margin:0 auto;padding:16px 34px 84px;
+  max-width:1560px;margin:0 auto;padding:16px 34px 22px;
   display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
   font-family:var(--sans);font-size:11.5px;color:var(--ink-4);line-height:1.6;
 }
@@ -1241,7 +1256,7 @@ footer{
 .foot-dot{color:var(--rule)}
 @media (max-width:1023px){
   .foot-in{grid-template-columns:1fr 1fr;gap:28px 40px;padding-bottom:26px}
-  .foot-legal{padding:16px 16px 92px}
+  .foot-legal{padding:16px 16px 22px}
   .foot-brand{grid-column:1 / -1}
 }
 @media (max-width:600px){
@@ -2319,6 +2334,82 @@ const UNDO_DEPTH = 30;
 let uid = 1;
 let pid = 1;
 
+
+/* =========================================================================
+   PRODUCT MEASUREMENT
+
+   Ten writers is a small enough sample that guessing would be worse than
+   useless, and the one thing that cannot be recovered afterwards is how they
+   behaved the first time. So the app records what happened, and only what
+   happened: counts, buckets, enum names, booleans.
+
+   It never records what anybody wrote. Not a card, not a note, not a logline,
+   not a project title, not a filename. Where a size matters, it goes in as a
+   bucket, because "somewhere between 20 and 50 notes" answers every question
+   we actually have and "47" starts to describe a particular person's file.
+   The server keeps an allowlist of property names for the same reason: this
+   comment will not be read by whoever adds the next call site.
+   ========================================================================= */
+function bucket(n){
+  n = Number(n) || 0;
+  return n === 0 ? 0 : n <= 5 ? 5 : n <= 20 ? 20 : n <= 50 ? 50 : n <= 200 ? 200 : 500;
+}
+
+// Activation markers are set once, server-side, and the server refuses to move
+// one that already has a value. Calling this twice is harmless.
+const stagesSent = new Set();
+function markStage(name){
+  if (stagesSent.has(name)) return;
+  stagesSent.add(name);
+  BF.api("/api/account", {method:"POST",
+    body: JSON.stringify({action:"stage", name})}).catch(()=>{});
+}
+
+/* Meaningful board, v1, and the threshold is deliberately a constant rather
+   than a number buried in a condition: it is a guess, it will be wrong, and
+   whoever changes it should be able to find it. Five real items on a
+   non-sample project, plus evidence the writer used the core behaviour. */
+const MEANINGFUL_ITEMS = 5;
+function checkMeaningful(){
+  const p = P();
+  if (!p || p.isSample) return;
+  const real = (p.cards || []).filter(c => c.slot !== "__shelf").length;
+  if (real >= MEANINGFUL_ITEMS) markStage("meaningful_board");
+}
+
+// Did this project's cards come out of the sample? Used to tell a demo that
+// turned into real work apart from a cold start, which is the thing the
+// sample is for.
+let cameFromSample = false;
+let importDropped  = false;
+let fromSample     = false;
+
+/* The end of the sample is the moment to ask for the real thing. It is one
+   line and two buttons under the board, not a modal: the writer is looking at
+   a filled board and the honest next sentence is "now do it with yours". */
+function sampleCTA(){
+  let el = document.getElementById("samplecta");
+  if (!el){
+    el = document.createElement("div");
+    el.id = "samplecta";
+    el.className = "note info";
+    el.style.cssText = "margin:14px 34px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap";
+    el.innerHTML = '<span style="flex:1 1 240px">This is a made-up story, so you can see how '
+      + 'placement behaves. Ready to try your own?</span>'
+      + '<button class="btn" id="ctapaste">Paste your notes</button>'
+      + '<button class="btn btn-primary" id="ctanew">Start a project</button>';
+    boardview.prepend(el);
+    el.querySelector("#ctapaste").addEventListener("click", () => {
+      BF.track("sample_to_import", {}); el.remove(); openImport();
+    });
+    el.querySelector("#ctanew").addEventListener("click", () => {
+      BF.track("sample_to_new_project", {}); fromSample = true;
+      el.remove(); openIntake("new");
+    });
+  }
+  el.hidden = false;
+}
+
 function blankProject(name, structure){
   return {id: null, localId: pid++, name: name || "Untitled",
           structure: structure || "stc", brief: {}, cards: [], outline: {}};
@@ -2338,6 +2429,7 @@ function save(){
   saveTimer = setTimeout(flush, 700);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}   // crash cushion only
   markWorked();
+  checkMeaningful();
 }
 
 /* ------------------------------------------------------------- the chain --
@@ -2392,7 +2484,11 @@ async function flush(){
       const saved = await BF.saveProject({
         id: p.id, name: p.name, structure: p.structure,
         brief: p.brief || {}, cards: p.cards || [], outline: p.outline || {},
-        sort_order: state.projects.indexOf(p)
+        sort_order: state.projects.indexOf(p),
+        // A demo board and a real one look identical in this table, and every
+        // product number that means anything depends on telling them apart.
+        is_sample: !!p.isSample,
+        created_from: p.createdFrom || null
       });
       if (!p.id && saved && saved.id){
         const wasActive = state.activeId === p.localId;
@@ -3021,6 +3117,7 @@ async function propose(){
 
   const options = localProposal(text);
   pending = {text, options};
+  BF.track("placement_suggested", {count: options.length});
   document.getElementById("pnote").textContent = text;
   paintCandidates(options, false);
   proposal.hidden = false;
@@ -3039,6 +3136,10 @@ async function propose(){
 
 function commit(slotId){
   if (!pending) return;
+  // "__none" is Set aside: the writer declined every beat we offered, which is
+  // the single most useful signal we have about whether placement is any good.
+  BF.track(slotId === "__none" ? "placement_rejected" : "placement_accepted",
+           {count: (pending.options || []).length});
   snapshot();
   const proj = P();
   proj.cards.push({id: uid++, text: pending.text, slot: slotId, pinned: false});
@@ -3133,6 +3234,7 @@ Object.keys(STRUCTURES).forEach(k => {
 
 function openIntake(mode){
   intakeMode = mode;
+  if (mode !== "edit") BF.track("new_project_started", {});
   const proj = P();
   const b = (mode === "edit" && proj.brief) || {};
   document.getElementById("newtitle").textContent =
@@ -3182,8 +3284,11 @@ function commitIntake(){
   } else {
     const pr = blankProject(v.name, v.structure);
     pr.brief = v.brief;
+    pr.createdFrom = fromSample ? "sample" : "new_project";
     state.projects.push(pr);
     state.activeId = pr.localId;
+    BF.track("project_created", {format: v.structure, sample: false});
+    markStage("real_project");
   }
   scrim.hidden = true;
   document.getElementById("sheetnew").hidden = true;
@@ -3370,7 +3475,11 @@ document.getElementById("logwrite").addEventListener("click", async () => {
 
 document.getElementById("newproj").addEventListener("click", () => openIntake("new"));
 document.getElementById("renproj").addEventListener("click", () => openIntake("edit"));
-document.getElementById("newcancel").addEventListener("click", () => { scrim.hidden = true; });
+document.getElementById("newcancel").addEventListener("click", () => {
+  scrim.hidden = true;
+  if (intakeMode !== "edit")
+    BF.track("new_project_cancelled", {had_user_content: !!readIntake().name});
+});
 document.getElementById("newgo").addEventListener("click", () => { commitIntake(); input.focus(); });
 document.getElementById("newpaste").addEventListener("click", () => {
   commitIntake();
@@ -3381,6 +3490,7 @@ document.getElementById("newpaste").addEventListener("click", () => {
    PDF EXPORT: the board as index cards, holes included.
    ========================================================================= */
 async function exportPDF(){
+  BF.track("export_used", {export_type: "pdf"});
   const btn = document.getElementById("pdf");
   const say = t => { const l = btn.querySelector(".lbl"); if (l) l.textContent = t; };
   const proj = P();
@@ -3776,6 +3886,7 @@ async function askAboutNote(text){
 
 async function askAbout(hole){
   if (!hole) return;
+  BF.track("ask_missing_used", {items_bucket: bucket((P().cards || []).length)});
   const box = document.getElementById("ask");
   document.getElementById("askbeat").textContent = "Empty beat: " + hole.name;
   box.hidden = false;
@@ -4075,8 +4186,11 @@ const SAMPLE = [
   "Ends with him sitting in the empty grove at dusk, water gone down"
 ];
 document.getElementById("loadsample").addEventListener("click", () => {
+  BF.track("sample_opened", {authenticated: true});
+  cameFromSample = true;
   snapshot();
   const proj = P();
+  proj.isSample = true;
   proj.cards = [];
   SAMPLE.forEach(text => {
     const ranked = score(text, proj.structure, proj);
@@ -4085,6 +4199,7 @@ document.getElementById("loadsample").addEventListener("click", () => {
   settle(proj);
   hideAll();
   setView("board");
+  sampleCTA();
 });
 document.getElementById("clear").addEventListener("click", () => {
   const proj = P();
@@ -4137,6 +4252,7 @@ function splitNotes(raw){
 }
 
 function openImport(){
+  importDropped = false;
   scrim.hidden = false;
   sheetReview.hidden = true;
   sheetPaste.hidden = false;
@@ -4173,6 +4289,7 @@ dumptext.addEventListener("drop", async e => {
   const files = [...(e.dataTransfer.files || [])]
     .filter(f => /\.(txt|md|markdown|text|fountain|csv|rtf)$/i.test(f.name) || f.type.startsWith("text/"));
   if (!files.length) return;
+  importDropped = true;
   const parts = [];
   for (const f of files){
     try{ parts.push((await f.text()).replace(/\{\\[^}]*\}|\\[a-z]+\d* ?/gi, "")); }catch(err){}
@@ -4535,6 +4652,11 @@ function updateRevCount(){
 document.getElementById("dumpgo").addEventListener("click", async () => {
   const raw = dumptext.value.trim();
   if (!raw){ closeImport(); return; }
+  // Length as a bucket, never the text. "how big were the files people paste"
+  // is a real question; "what did they say" is not ours to ask.
+  const importStarted = Date.now();
+  BF.track("import_started", {items_bucket: bucket(raw.split(/\n+/).length),
+                              source_type: importDropped ? "file" : "paste"});
   const go = document.getElementById("dumpgo");
   const stop = document.getElementById("dumpstop");
 
@@ -4547,6 +4669,7 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
       plan = await claudePlan(raw);
     }catch(e){
       plan = null;
+      BF.track("import_failed", {error_code: (e && e.code) || "unknown", stage: "read"});
       if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Read it"; stop.hidden = true; return; }
       // A failed read used to fall through to the built-in matcher without saying
       // so, which looked exactly like a successful one. It says so now.
@@ -4562,6 +4685,7 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
     if (!plan || !plan.length){
       document.getElementById("dumpcount").textContent =
         "Nothing in there read as story material.";
+      BF.track("import_failed", {error_code: "nothing_usable", stage: "read"});
       return;
     }
   } else {
@@ -4615,6 +4739,9 @@ document.getElementById("revgo").addEventListener("click", () => {
   scrim.hidden = true;
   hideAll();
   setView("board");
+  BF.track("import_completed", {item_count: added, count: newProjects});
+  markStage("real_project");
+  if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }
   showSettled(firstMoves, added + " notes sorted"
     + (newProjects ? " and " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "")
     + (firstMoves.length ? ", and some cards moved to fit" : ""));
@@ -4926,6 +5053,10 @@ const notesview = document.getElementById("notesview");
 const outlineview = document.getElementById("outlineview");
 
 function setView(v, quiet){
+  // Which surfaces writers actually reach. Outline and Notes are the two that
+  // exist to be discovered, so a count of zero here would say something.
+  if (v !== state.view && (v === "outline" || v === "notes"))
+    BF.track(v + "_viewed", {});
   state.view = v;
   const onBoard = v === "board";
   slate.hidden       = v !== "slate";
@@ -5088,11 +5219,20 @@ function renderSlate(){
    // a phone, which turned the first thing a writer sees into a paragraph. Both
    // figures count everything they have: all projects, all beats.
   const lede = document.getElementById("slatelede");
-  lede.innerHTML = esc(spell(N)) + " project" + (N === 1 ? "" : "s") + " saved."
-    + (empty
-        ? " <em>" + esc(spell(empty)) + " beat" + (empty === 1 ? "" : "s")
-          + " empty.</em>"
-        : " Every beat has a card.");
+  // A brand-new account has nothing on the server, and load() puts one blank
+  // Untitled in front of the writer so they land on something rather than a
+  // void. That placeholder is not saved and must not be counted: "One project
+  // saved" over an empty account is the dashboard's first sentence and it was
+  // a lie.
+  const unsaved = state.projects.length === 1 && !state.projects[0].id
+    && !state.projects[0].cards.length;
+  lede.innerHTML = unsaved
+    ? "Nothing saved yet. <em>Start where you are.</em>"
+    : esc(spell(N)) + " project" + (N === 1 ? "" : "s") + " saved."
+      + (empty
+          ? " <em>" + esc(spell(empty)) + " beat" + (empty === 1 ? "" : "s")
+            + " empty.</em>"
+          : " Every beat has a card.");
 
   // How far along one script is, and whether it has gone cold, are facts about
   // that script. They belong on its own page, not on the shelf of all of them.
@@ -5218,6 +5358,29 @@ function togglePop(which){
 }
 projBtn.addEventListener("click", e => { e.stopPropagation(); togglePop(projMenu); });
 avatar .addEventListener("click", e => { e.stopPropagation(); togglePop(acctMenu); });
+
+/* The pill floats over the page, but it should never come to rest inside the
+   footer: down there it stops reading as a control and starts reading as part
+   of the small print. So as the footer rises into view the pill rides up and
+   parks just above its top edge. Nothing moves until the footer is actually
+   on screen, so mid-page it is exactly where it always was. */
+const acctEl = document.getElementById("acct");
+const footEl = document.querySelector("footer");
+const ACCT_GAP = 16;
+
+function parkAcct(){
+  if (!acctEl || !footEl) return;
+  const top  = footEl.getBoundingClientRect().top;
+  const rest = window.innerHeight - 18;              // the pill's usual bottom edge
+  const lift = Math.max(0, Math.round(rest - top + ACCT_GAP));
+  acctEl.style.transform = lift ? "translateY(-" + lift + "px)" : "";
+}
+addEventListener("scroll", parkAcct, {passive: true});
+addEventListener("resize", parkAcct);
+// Switching view changes the page height without a scroll or a resize, so watch
+// the document itself rather than trying to remember every caller.
+if (window.ResizeObserver) new ResizeObserver(parkAcct).observe(document.body);
+parkAcct();
 document.addEventListener("click", e => {
   if (e.target.closest(".pop") || e.target.closest("#projbtn") || e.target.closest("#avatar")) return;
   closePops();
@@ -5486,6 +5649,30 @@ function confirmCancel(go){
       <label class="cxack"><input type="checkbox" id="cxbox">
         <span>I understand my boards will close and my work will be deleted after six
           months of not signing in.</span></label>
+
+      <!-- One optional question, on the way out. Asked here rather than after
+           Stripe because this is the last screen we control, and asked as a
+           list rather than a text box because "not using it enough" and "the
+           AI wasn't useful" are different products to fix and a free-text
+           field from eleven people cannot be counted. Skipping it costs
+           nothing and the Cancel button never waits on it. -->
+      <div class="cxwhy">
+        <div class="cxwhy-q">If you don't mind saying, what tipped it? <span>Optional.</span></div>
+        <select id="cxreason">
+          <option value="">Rather not say</option>
+          <option value="not_enough_use">Not using it enough</option>
+          <option value="too_expensive">Too expensive</option>
+          <option value="not_as_expected">Didn't work the way I expected</option>
+          <option value="results_not_useful">The results weren't useful</option>
+          <option value="project_finished">Finished my project</option>
+          <option value="missing_feature">Missing a feature I need</option>
+          <option value="privacy">Privacy concern</option>
+          <option value="other">Something else</option>
+        </select>
+        <textarea id="cxnote" rows="2" hidden
+          placeholder="Anything you want to add. This goes to Kris, not to a form."></textarea>
+      </div>
+
       <div class="sheet-actions">
         <button class="btn" id="cxexport">Download my work first</button>
         <button class="btn" id="cxstay">Never mind</button>
@@ -5500,7 +5687,21 @@ function confirmCancel(go){
   document.getElementById("cxbox").addEventListener("change", e => {
     document.getElementById("cxgo").disabled = !e.target.checked;
   });
-  document.getElementById("cxgo").addEventListener("click", ev => { close(); go(ev); });
+  // A reason opens the note box, because somebody who picked one is the person
+  // most likely to have a sentence worth reading.
+  const reasonEl = document.getElementById("cxreason");
+  const noteEl   = document.getElementById("cxnote");
+  reasonEl.addEventListener("change", () => { noteEl.hidden = !reasonEl.value; });
+
+  document.getElementById("cxgo").addEventListener("click", ev => {
+    // Sent, not awaited. Nobody's exit waits on our analytics.
+    if (reasonEl.value) {
+      BF.api("/api/account", {method: "POST", body: JSON.stringify({
+        action: "cancel_reason", reason: reasonEl.value, note: noteEl.value.trim()
+      })}).catch(() => {});
+    }
+    close(); go(ev);
+  });
 
   document.getElementById("cxexport").addEventListener("click", async ev => {
     const b = ev.currentTarget, was = b.textContent;
@@ -5877,6 +6078,9 @@ let firstRunBound = false;
 
 function showFirstRun(which){
   const fr = document.getElementById("firstrun");
+  BF.track("onboarding_viewed", {first_time: which !== "empty"});
+  BF.api("/api/account", {method:"POST", body: JSON.stringify(
+    {action:"onboarding", seen:true})}).catch(()=>{});
   const [title, note] = FR_COPY[which] || FR_COPY.welcome;
   document.getElementById("frtitle").textContent = title;
   document.getElementById("frnote").textContent  = note;
@@ -5887,7 +6091,11 @@ function showFirstRun(which){
   fr.querySelectorAll(".fr").forEach(b => b.addEventListener("click", () => {
     const go = b.dataset.go;
     fr.hidden = true;
+    const CHOICE = {paste:"import", new:"new_project", sample:"sample"};
     BF.track("first_run_choice", {choice: go});
+    BF.track("onboarding_choice_" + CHOICE[go], {});
+    BF.api("/api/account", {method:"POST", body: JSON.stringify(
+      {action:"onboarding", choice: CHOICE[go]})}).catch(()=>{});
     if (go === "paste")  openImport();
     if (go === "new")    openIntake("edit");
     if (go === "sample"){ document.getElementById("loadsample").click(); }

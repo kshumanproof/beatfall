@@ -29,6 +29,18 @@
   .form h2{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
   .form .sub{font-family:var(--serif);font-style:italic;color:var(--ink-3);font-size:14.5px;margin:0 0 24px}
   .fine{font-size:12.5px;color:var(--ink-4);margin-top:20px;line-height:1.6}
+  /* The trial promise, where the decision is actually made. */
+  .promise{font-size:12.5px;color:var(--ink-3);margin:-6px 0 12px;font-weight:500}
+  /* A sent link is a dead end if the address was wrong or the mail never came.
+     These two are the way out of it. */
+  .sentacts{margin-top:9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-size:12.5px}
+  .sentacts .dot{color:var(--ink-4)}
+  .sentacts .resent{color:var(--sage);font-weight:500}
+  .linky{background:none;border:none;padding:0;cursor:pointer;font:inherit;
+    color:var(--blue);text-decoration:underline;text-underline-offset:2px}
+  .linky:hover{color:var(--ink)}
+  .linky[disabled]{opacity:.5;cursor:default;text-decoration:none}
 </style>
 </head>
 <body>
@@ -73,6 +85,12 @@
       <div id="sent" class="note info" hidden>
         <b>Check your email.</b> We've sent a sign-in link to <span id="sentTo"></span>.
         It works once and lasts an hour. You can close this tab.
+        <div class="sentacts">
+          <button class="linky" id="resend" type="button">Send it again</button>
+          <span class="dot">&middot;</span>
+          <button class="linky" id="another" type="button">Use a different email</button>
+          <span class="resent" id="resent" hidden>Sent.</span>
+        </div>
       </div>
 
       <form id="form">
@@ -80,11 +98,14 @@
           <span>Email</span>
           <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
         </label>
+        <!-- The promise belongs beside the button, not three paragraphs under
+             it. This is the last thing somebody reads before deciding whether
+             to hand over an address. -->
+        <p class="promise">14 days free. No card required.</p>
         <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
       </form>
 
-      <p class="fine">New here? The same box works. We'll make your account when you click the link.
-         Your first 14 days are free and we don't ask for a card to start.</p>
+      <p class="fine">New here? The same box works. We'll make your account when you click the link.</p>
 
       <p class="fine">By signing in you agree to the <a href="/terms.html">Terms</a> and the
          <a href="/privacy.html">Privacy Policy</a>. Your writing stays yours, nothing you write
@@ -104,28 +125,52 @@
   if (BF.unconfigured) return;
   if (session) { location.href = '/'; return; }
 
-  const form = document.getElementById('form');
-  const go   = document.getElementById('go');
-  const err  = document.getElementById('err');
+  const form  = document.getElementById('form');
+  const go    = document.getElementById('go');
+  const err   = document.getElementById('err');
+  const sent  = document.getElementById('sent');
+  const title = document.getElementById('title');
+  const sub   = document.getElementById('sub');
+  const emailEl = document.getElementById('email');
+
+  /* This page cannot use BF.track: nobody is signed in yet, and that endpoint
+     needs a session. It writes what it saw into first-party storage instead,
+     and the app hands it over on the first authenticated call. Two counts,
+     no addresses: how many people asked for a link, and how many arrived. The
+     gap between them is the cost of magic-link auth, and it is a number worth
+     knowing before ten writers hit it. */
+  function note(key) {
+    try {
+      const k = 'beatfall.auth.' + key;
+      localStorage.setItem(k, String((Number(localStorage.getItem(k)) || 0) + 1));
+    } catch (e) {}
+  }
+
+  let lastEmail = '';
+
+  async function sendLink(email) {
+    const { error } = await BF.sb.auth.signInWithOtp({
+      email, options: { emailRedirectTo: location.origin + '/' }
+    });
+    if (error) throw error;
+    note('requested');
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('email').value.trim();
+    const email = emailEl.value.trim();
     if (!email) return;
     err.hidden = true;
     go.disabled = true;
     go.innerHTML = '<span class="spinner"></span>Sending…';
     try {
-      const { error } = await BF.sb.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: location.origin + '/' }
-      });
-      if (error) throw error;
+      await sendLink(email);
+      lastEmail = email;
       document.getElementById('sentTo').textContent = email;
-      document.getElementById('sent').hidden = false;
+      sent.hidden = false;
       form.hidden = true;
-      document.getElementById('title').textContent = 'Link sent';
-      document.getElementById('sub').hidden = true;
+      title.textContent = 'Link sent';
+      sub.hidden = true;
     } catch (e2) {
       err.textContent = (e2 && e2.message) || "Couldn't send that. Check the address and try again.";
       err.hidden = false;
@@ -133,6 +178,34 @@
       go.disabled = false;
       go.textContent = 'Email me a link';
     }
+  });
+
+  // A link that never arrives, or an address typed wrong, used to leave the
+  // page with nothing on it but a reassuring message and no way forward.
+  const resend = document.getElementById('resend');
+  const resent = document.getElementById('resent');
+  resend.addEventListener('click', async () => {
+    if (!lastEmail) return;
+    resend.disabled = true; resent.hidden = true;
+    try {
+      await sendLink(lastEmail);
+      resent.hidden = false;
+      setTimeout(() => { resent.hidden = true; resend.disabled = false; }, 6000);
+    } catch (e3) {
+      err.textContent = (e3 && e3.message) || "Couldn't send that again just now.";
+      err.hidden = false;
+      resend.disabled = false;
+    }
+  });
+
+  document.getElementById('another').addEventListener('click', () => {
+    sent.hidden = true;
+    form.hidden = false;
+    title.textContent = 'Sign in';
+    sub.hidden = false;
+    err.hidden = true;
+    emailEl.value = '';
+    emailEl.focus();
   });
 })();
 </script>

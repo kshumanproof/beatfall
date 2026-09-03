@@ -94,7 +94,75 @@ export default async function handler(req, res) {
     }
 
     if (body.action === 'event' && typeof body.name === 'string') {
-      track(db, user.id, body.name.slice(0, 60), body.props || {});
+      track(db, user.id, body.name, body.props || {}, {
+        event_id: body.event_id, anon_id: body.anon_id, session_id: body.session_id
+      });
+      return send(res, 200, { ok: true });
+    }
+
+    /* ------------------------------------------------------- attribution --
+       The browser holds what it saw on the first visit and hands it over on
+       the first authenticated call, because a magic link leaves the site and
+       comes back and the referrer does not survive that trip.
+
+       First touch is written once and never again: the whole point of it is to
+       answer "where did this writer originally come from", and a later visit
+       through a different link must not overwrite that. Last touch may move.
+       Only source, medium, campaign, referrer host and landing path are kept.
+       Never the email, never a query string wholesale. */
+    if (body.action === 'attribution' && body.touch && typeof body.touch === 'object') {
+      const t = body.touch;
+      const clean = {};
+      for (const k of ['source', 'medium', 'campaign', 'content', 'term', 'ref', 'referrer', 'landing']) {
+        if (typeof t[k] === 'string' && t[k]) clean[k] = t[k].slice(0, 120);
+      }
+      if (!Object.keys(clean).length) return send(res, 200, { ok: true });
+      clean.at = new Date().toISOString();
+
+      const patch = { last_touch: clean };
+      if (!profile.first_touch) patch.first_touch = clean;
+      await db.from('profiles').update(patch).eq('id', user.id);
+      return send(res, 200, { ok: true, first_touch: !profile.first_touch });
+    }
+
+    /* ------------------------------------------------- onboarding + stages --
+       Explicit state, set once. The client says which milestone it reached and
+       the server refuses to move a marker that already has a value, so a
+       reload or a second tab cannot rewrite history. */
+    if (body.action === 'onboarding') {
+      const patch = {};
+      if (body.seen && !profile.onboarding_first_seen_at)
+        patch.onboarding_first_seen_at = new Date().toISOString();
+      if (['import', 'new_project', 'sample'].includes(body.choice)) {
+        patch.onboarding_choice = body.choice;
+        patch.onboarding_completed_at = new Date().toISOString();
+      }
+      if (Object.keys(patch).length)
+        await db.from('profiles').update(patch).eq('id', user.id);
+      return send(res, 200, { ok: true });
+    }
+
+    if (body.action === 'stage' && typeof body.name === 'string') {
+      const COL = { real_project: 'first_real_project_at',
+                    meaningful_board: 'first_meaningful_board_at' }[body.name];
+      if (!COL) return send(res, 400, { error: 'bad_request' });
+      if (profile[COL]) return send(res, 200, { ok: true, already: true });
+      await db.from('profiles').update({ [COL]: new Date().toISOString() }).eq('id', user.id);
+      track(db, user.id, body.name === 'real_project' ? 'first_real_project' : 'meaningful_board');
+      return send(res, 200, { ok: true });
+    }
+
+    /* Why somebody cancelled. Kept on the profile rather than in events: the
+       optional note is the writer talking to Kris, which is support
+       correspondence, and it should not sit in a table whose whole rule is
+       that it holds no prose. */
+    if (body.action === 'cancel_reason' && typeof body.reason === 'string') {
+      await db.from('profiles').update({
+        cancel_reason: body.reason.slice(0, 40),
+        cancel_reason_note: (body.note || '').slice(0, 600) || null,
+        cancel_reason_at: new Date().toISOString()
+      }).eq('id', user.id);
+      track(db, user.id, 'cancel_reason_given', { reason_code: body.reason });
       return send(res, 200, { ok: true });
     }
 

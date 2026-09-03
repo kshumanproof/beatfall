@@ -49,7 +49,13 @@ export default async function handler(req, res) {
       brief:      p.brief   && typeof p.brief   === 'object' ? p.brief   : {},
       cards:      Array.isArray(p.cards) ? p.cards : [],
       outline:    p.outline && typeof p.outline === 'object' ? p.outline : {},
-      sort_order: Number.isFinite(p.sort_order) ? p.sort_order : 0
+      sort_order: Number.isFinite(p.sort_order) ? p.sort_order : 0,
+      // Sample boards stay fully usable and stay out of every product number.
+      // Set once by whoever created the row; a later save cannot un-sample a
+      // demo board, because that is how a demo quietly becomes an activation.
+      is_sample: !!p.is_sample,
+      created_from: ['import', 'new_project', 'sample', 'other'].includes(p.created_from)
+        ? p.created_from : null
     };
 
     if (JSON.stringify(row).length > MAX_BYTES) {
