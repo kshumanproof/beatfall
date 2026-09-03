@@ -949,6 +949,53 @@ Each was real, and each was only visible once the one before it was gone. When a
 user says "you keep getting further away", that is what it looks like from their
 side, and they are not wrong to say it.
 
+### An import renamed a project and merged two films (3 Sep 2026)
+
+The worst one. Kris pasted half-hour comedy notes ("Sidework") into **Paste your
+notes on the dashboard**. NIGHT HAUL came back called BLACK RIVER, with the
+comedy's beats sitting in it next to his own, and Sidework never existed. His
+words: *if someone were to use this, we would have completely
+deleted/overwritten their file they'd worked so hard on.*
+
+Four separate defects lined up:
+
+1. **The dashboard import had no project in front of it** and silently used
+   whichever board was last opened. Nothing on that screen said so. Now
+   `openImport(intoNew)` — true from the dashboard and from the sample board —
+   and group zero makes its own project. `importStructure` carries the settled
+   format to that new project instead of being written onto the open board, and
+   `baseStructure` is read once before the loop so later projects don't inherit
+   it from the one just created.
+2. **An import could rename an existing project.** It cannot now, at all:
+   `namedAlready(proj)` gates it, and only a placeholder name ("Untitled", "New
+   project") is ever filled. The one exception is the writer typing in the name
+   box on the review sheet — `st.typed`. There is no version of an import that
+   may overwrite a name.
+3. **A `TITLE:` line belonging to another film was read as this file's title.**
+   BLACK RIVER was introduced by "Another project I'm working on is called:" and
+   the header reader took it anyway. `localBrief` now drops any header field
+   whose match sits after the first `OTHER_PROJECT` marker — position, not
+   cleverness.
+4. **`claimedTitle` read only the first label.** "…is called: TITLE: BLACK
+   RIVER" arrives here as one sentence, and the name after "called" is the word
+   TITLE. It scans every label now and takes the last one that yields a
+   plausible name, skipping bare label words.
+
+The review sheet also says which title it saw and did not take, because silence
+there reads as the app having missed it.
+
+`/home/claude/vrename.js` holds it down: two runs on
+`_testdata/sidework.txt`, one from the dashboard and one from the board. Night
+Haul keeps its name, its three cards and its structure; Sidework becomes its own
+half-hour project; Black River gets the one line that named it. The board run
+still lands the notes on the board, because that is what pasting into a board
+you are looking at means.
+
+While fixing this, `vproj.js` turned out to have a wrong expectation on the
+books: "New film idea. Call it THE LONG WAY DOWN." was expected to be `null`.
+The writer named it, so it is a project. The code was right and the test was
+wrong, which is worth remembering the next time a test disagrees.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

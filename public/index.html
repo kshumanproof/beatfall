@@ -691,6 +691,9 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   background:var(--card);border:1px solid var(--rule);padding:6px 10px;min-width:200px;
 }
 .revstory-head .tally{font-size:11.5px;color:var(--ink-4);margin-left:auto}
+/* Full width on its own row: the head is a wrapping flex line. */
+.revkept{flex:1 0 100%;font-size:12px;line-height:1.55;color:var(--ink-3)}
+.revkept b{color:var(--ink);font-weight:600}
 .brieffound{padding:13px 15px;background:var(--blue-soft);border-bottom:1px solid var(--rule)}
 .bfh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;color:var(--blue);margin-bottom:9px}
 .briefrow{display:flex;gap:13px;font-size:12.5px;line-height:1.55;margin-bottom:5px}
@@ -2411,7 +2414,7 @@ function sampleCTA(){
       + '<button class="btn btn-primary" id="ctanew">Start a project</button>';
     boardview.prepend(el);
     el.querySelector("#ctapaste").addEventListener("click", () => {
-      BF.track("sample_to_import", {}); el.remove(); openImport();
+      BF.track("sample_to_import", {}); el.remove(); openImport(true);
     });
     el.querySelector("#ctanew").addEventListener("click", () => {
       BF.track("sample_to_new_project", {}); fromSample = true;
@@ -2426,6 +2429,16 @@ function blankProject(name, structure){
           structure: structure || "stc", brief: {}, cards: [], outline: {}};
 }
 function P(){ return state.projects.find(p => (p.id || p.localId) === state.activeId) || state.projects[0]; }
+
+/* Has the writer named this project themselves?
+
+   Everything an import is allowed to do to a project's name hangs off this
+   answer. A placeholder is the app's word, not theirs, and a file's title may
+   fill it. Anything else is theirs and is not up for negotiation. */
+const PLACEHOLDER_NAME = /^\s*(?:untitled(?:\s+project)?|new\s+project|first\s+project|my\s+project|project)\s*$/i;
+function namedAlready(proj){
+  return !!(proj && proj.name && !PLACEHOLDER_NAME.test(proj.name));
+}
 
 /* Projects live in Postgres now. We keep the same in-memory shape the board
    has always used, and push whichever project changed, debounced, so the
@@ -3573,7 +3586,7 @@ document.getElementById("newcancel").addEventListener("click", () => {
 document.getElementById("newgo").addEventListener("click", () => { commitIntake(); input.focus(); });
 document.getElementById("newpaste").addEventListener("click", () => {
   commitIntake();
-  openImport();
+  openImport(false);
 });
 
 /* =========================================================================
@@ -4348,7 +4361,23 @@ function splitNotes(raw){
     .filter(s => s.length > 2);
 }
 
-function openImport(){
+/* Where the first group of notes lands.
+
+   From inside a board, "Paste your notes" plainly means into THIS project. On
+   the dashboard it means nothing of the sort - there is no project in front of
+   you there - and it was quietly using whichever board you happened to open
+   last. Kris pasted a half-hour comedy from the dashboard and it went into
+   Night Haul, on top of months of work, because Night Haul was the last thing
+   he had open. Nothing on that screen said it would.
+
+   So from the dashboard, and from the sample board, the notes make their own
+   project. */
+let importIntoNew = false;
+// The structure a dashboard import settled on, applied to the project it makes.
+let importStructure = null;
+
+function openImport(intoNew){
+  importIntoNew = !!intoNew;
   importDropped = false;
   scrim.hidden = false;
   sheetReview.hidden = true;
@@ -4360,7 +4389,7 @@ function openImport(){
 }
 function closeImport(){ scrim.hidden = true; if (dumpCtl) dumpCtl.abort(); }
 
-document.getElementById("dump").addEventListener("click", openImport);
+document.getElementById("dump").addEventListener("click", () => openImport(false));
 document.getElementById("dumpcancel").addEventListener("click", closeImport);
 document.getElementById("revback").addEventListener("click", () => {
   sheetReview.hidden = true; sheetPaste.hidden = false;
@@ -4437,14 +4466,36 @@ function isHeaderNote(text, brief){
   });
 }
 
+/* Where the writer stops talking about THIS film.
+
+   A notes file for one project can mention another one, and when it does,
+   everything after that sentence belongs to the other film until the writer
+   says otherwise. That includes header lines. Kris pasted a half-hour comedy
+   whose notes said "Another project I'm working on is called:" and then
+   "TITLE: BLACK RIVER" - a one-hour drama, three lines, parked for later. The
+   header reader took BLACK RIVER as the title of the file, and the build
+   renamed the project he was standing in. His Night Haul board came back
+   called Black River with a stranger's notes in it.
+
+   So a header line only counts if it sits BEFORE the first sentence that hands
+   the page to another project. Position, not cleverness. */
+function otherProjectAt(raw){
+  const m = OTHER_PROJECT.exec(String(raw));
+  return m ? m.index : -1;
+}
+
 function localBrief(raw){
   const out = {};
+  const cut = otherProjectAt(raw);
   Object.keys(HEAD).forEach(k => {
     const m = raw.match(HEAD[k]);
-    if (m && m[1]) out[k] = m[1].trim().replace(/\*\*|__/g, "").replace(/\s+/g, " ").slice(0, 500);
+    // A title or logline stated after "another project" is that other
+    // project's, not this one's.
+    if (m && m[1] && !(cut >= 0 && m.index > cut))
+      out[k] = m[1].trim().replace(/\*\*|__/g, "").replace(/\s+/g, " ").slice(0, 500);
   });
   const f = raw.match(head("format", "(.+)$"));
-  if (f){
+  if (f && !(cut >= 0 && f.index > cut)){
     const v = f[1].toLowerCase();
     if (/vertical/.test(v)) out.format = /season|series/.test(v) ? "vertseason" : "vertep";
     else if (/short/.test(v)) out.format = "short";
@@ -4555,13 +4606,25 @@ const TITLE_NAME = /^["“']?([A-Z][A-Z0-9]+(?:[ '’&-]+[A-Z][A-Z0-9]*)*|[A-Z][
 // No label at all: a run of shouted words at the end of the line.
 const TITLE_BARE = /(?:^|[.:;]\s+)([A-Z][A-Z0-9]+(?:\s+[A-Z][A-Z0-9]+){1,4})\s*[.!]?\s*$/;
 
+/* Every label position, not just the first one.
+
+   Writers stack them: "Another project I'm working on is called:" on one line
+   and "TITLE: BLACK RIVER" on the next, which arrive here as one sentence.
+   Reading only the first label put the name right after "called", which is the
+   word TITLE, so the file produced a project named "Title" and the real one
+   was never found. The name is whatever follows the LAST label that yields a
+   plausible one. */
+const TITLE_LABEL_ALL = new RegExp(TITLE_LABEL.source, "gi");
 function claimedTitle(text){
-  const m = TITLE_LABEL.exec(text);
-  if (m){
-    const after = text.slice(m.index + m[0].length);
-    const t = TITLE_NAME.exec(after);
-    if (t) return t[1];
+  let found = null, m;
+  TITLE_LABEL_ALL.lastIndex = 0;
+  while ((m = TITLE_LABEL_ALL.exec(text))){
+    const t = TITLE_NAME.exec(text.slice(m.index + m[0].length));
+    // Skip a capture that is only a label word waiting for the real title.
+    if (t && t[1].length >= 3 && !/^(?:title|working title|name)$/i.test(t[1])) found = t[1];
+    if (TITLE_LABEL_ALL.lastIndex === m.index) TITLE_LABEL_ALL.lastIndex++;
   }
+  if (found) return found;
   const bare = TITLE_BARE.exec(text);
   return bare ? bare[1] : null;
 }
@@ -4695,6 +4758,48 @@ function foldNotes(raw, structureKey){
   return items;
 }
 
+/* When the file reads like a different shape from the one the writer picked.
+
+   It must ask, not switch. Switching on the model's guess is what emptied a
+   board earlier tonight, and switching silently is worse than being wrong: the
+   writer chose Save the Cat in the New Project form on purpose.
+
+   And it has to ask HERE, between reading the file and sorting it. Offering it
+   on the review screen would mean either re-running the sort (another credit)
+   or switching after classification, which is the original bug wearing a hat.
+
+   Pass one is already paid for, so this costs nothing extra. */
+function askStructure(fromKey, toKey){
+  return new Promise(resolve => {
+    // Full name in the sentence, where there is room to explain; short name on
+    // the buttons, where "Switch to Half-Hour Comedy (cold open + 3 acts + tag)"
+    // wraps onto two lines and stops looking like a button.
+    const name  = k => STRUCTURES[k].label.replace(/^[^·]*· /, "");
+    const short = k => name(k).replace(/\s*\(.*$/, "");
+    const box = document.createElement("div");
+    box.className = "scrim cancelscrim";
+    box.innerHTML = `
+      <div class="sheet cancelsheet" role="dialog" aria-modal="true"
+           aria-label="The structure this file suggests">
+        <div class="sheet-title">These notes read like a different shape</div>
+        <p class="sheet-note">You're on <b>${esc(name(fromKey))}</b>, and this file
+          reads like <b>${esc(name(toKey))}</b>. Your choice stands unless you
+          change it here. Nothing has been sorted yet, so switching now costs
+          nothing and sorts everything against the new shape.</p>
+        <div class="sheet-actions">
+          <button class="btn" id="askkeep">Keep ${esc(short(fromKey))}</button>
+          <button class="btn btn-primary" id="askswitch">Switch to ${esc(short(toKey))}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(box);
+    const done = k => { box.remove(); resolve(k); };
+    box.querySelector("#askkeep").addEventListener("click", () => done(fromKey));
+    box.querySelector("#askswitch").addEventListener("click", () => done(toKey));
+    // Dismissing without choosing keeps what the writer already picked.
+    box.addEventListener("click", e => { if (e.target === box) done(fromKey); });
+  });
+}
+
 async function claudePlan(raw){
   const proj = P();
   let S = STRUCTURES[proj.structure];
@@ -4733,7 +4838,13 @@ async function claudePlan(raw){
 
   const groups = (top && Array.isArray(top.stories) && top.stories.length
     ? top.stories : [{name: proj.name, about: ""}]).slice(0, 4);
-  groups[0].name = header.name || (top && top.brief && top.brief.name) || groups[0].name || proj.name;
+  /* Group zero IS the project the writer is standing in. If that project
+     already has a name, it keeps it, and no title found anywhere in the file
+     may replace it. A file's title only fills a blank. */
+  groups[0].name = (!importIntoNew && namedAlready(proj))
+    ? proj.name
+    : (header.name || (top && top.brief && top.brief.name) || groups[0].name
+       || (importIntoNew ? "Untitled" : proj.name));
 
   /* Any project the writer NAMED gets its own group whether the model spotted
      it or not, and the note that named it goes into that group so the new
@@ -4760,18 +4871,34 @@ async function claudePlan(raw){
      AND IT HAPPENS HERE, before the beats list is built, so the notes are
      sorted against the structure they will actually live in.
      ------------------------------------------------------------------------ */
+  let want = null;
+  // A format the writer TYPED is an instruction: take it.
   if (header.format && STRUCTURES[header.format]
-      && header.format !== proj.structure && !proj.cards.length){
-    proj.structure = header.format;
-    S = STRUCTURES[header.format];
-    sel.value = header.format;
+      && header.format !== proj.structure) want = header.format;
+  // A format the model INFERRED is an observation: ask about it.
+  else if (top && top.brief && STRUCTURES[top.brief.format]
+           && top.brief.format !== proj.structure){
+    document.getElementById("dumpcount").textContent = "one question first\u2026";
+    want = await askStructure(proj.structure, top.brief.format);
+    if (want === proj.structure) want = null;
+  }
+  /* A dashboard import is headed for a project that does not exist yet, so the
+     structure it settles on is carried to the build rather than written onto
+     whatever board happens to be open. Writing it here is how a comedy file
+     could have re-cut a feature the writer never opened. */
+  importStructure = null;
+  if (want && (importIntoNew || !proj.cards.length)){
+    S = STRUCTURES[want];
+    BF.track("structure_suggested", {format: want});
+    if (importIntoNew) importStructure = want;
+    else { proj.structure = want; sel.value = want; }
   }
 
   /* Folding happens AFTER the structure is settled, because a heading like
      "MIDPOINT:" declares a beat id, and a beat id only means something inside
      one structure. Folding first left three cards declared against Save the
      Cat while the project had moved to Three-Act. */
-  const items = foldNotes(raw, proj.structure);
+  const items = foldNotes(raw, importStructure || proj.structure);
   const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
   if (!notes.length) return [];
 
@@ -4947,6 +5074,10 @@ async function claudePlan(raw){
   const read = cleanBrief(top && top.brief) || {};
   const brief = Object.assign({}, read, header);
   if (read.log && read.log.length > 25) brief.log = read.log;
+  // Carried only so the review sheet can say which title it saw and did not
+  // take. Nothing reads brief.name when the notes are filed.
+  if (!brief.name && top && top.brief && typeof top.brief.name === "string" && top.brief.name.trim())
+    brief.name = top.brief.name.trim().slice(0, 60);
   return groups.map((g, i) => ({
     name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
@@ -4958,7 +5089,9 @@ async function claudePlan(raw){
 /* ---- the review: nothing lands on the board until the writer says so ---- */
 function renderReview(){
   const proj = P();
-  const S = STRUCTURES[proj.structure];
+  // Beat names have to come from the structure the notes are going INTO, which
+  // for a dashboard import is the one the file settled on, not this board's.
+  const S = STRUCTURES[importStructure || proj.structure];
   const body = document.getElementById("revbody");
   body.innerHTML = "";
 
@@ -4966,7 +5099,7 @@ function renderReview(){
     const wrap = document.createElement("div");
     wrap.className = "revstory";
     if (st.brief && Object.keys(st.brief).length){
-      const cur = si === 0 ? (P().brief || {}) : {};
+      const cur = (si === 0 && !importIntoNew) ? (P().brief || {}) : {};
       const LBL = {log:"Logline", who:"Protagonist", genre:"Genre", like:"Tone / comps",
                    setting:"Setting", format:"Format"};
       const rows = Object.keys(LBL).filter(k => st.brief[k]).map(k => {
@@ -4986,12 +5119,26 @@ function renderReview(){
 
     const head = document.createElement("div");
     head.className = "revstory-head";
-    head.innerHTML = (si === 0
+    head.innerHTML = ((si === 0 && !importIntoNew)
         ? '<span class="slug">Into this project</span>'
         : '<span class="slug">New project</span>')
       + '<input value="' + esc(st.name) + '" data-si="' + si + '">'
-      + '<span class="tally">' + esc(tally) + "</span>";
-    head.querySelector("input").addEventListener("input", e => { st.name = e.target.value; });
+      + '<span class="tally">' + esc(tally) + "</span>"
+      /* The file said one thing, the board says another, and the board wins.
+         Silence here reads as the app having missed the title, so it says
+         plainly which name it kept and where the other one can be used. */
+      + (si === 0 && !importIntoNew && st.brief && st.brief.name && st.brief.name !== st.name
+          ? '<div class="revkept">Your notes mention <b>' + esc(st.brief.name)
+            + '</b>. This project keeps the name it has — change it in the box '
+            + 'above if you want.</div>'
+          : "");
+    /* Typing in this box is the one way an existing project gets renamed by an
+       import, because it is the writer doing it on purpose. `typed` is what
+       separates that from the file merely mentioning a title. */
+    head.querySelector("input").addEventListener("input", e => {
+      st.name = e.target.value;
+      st.typed = true;
+    });
     wrap.appendChild(head);
 
     st.notes.forEach(n => {
@@ -5023,9 +5170,11 @@ function renderReview(){
 
   const stories = plan.length;
   document.getElementById("revnote").textContent = stories > 1
-    ? "These notes look like " + stories + " different stories. The first group goes into the project "
-      + "you're in; the rest become their own projects. Rename any of them, or untick anything you "
-      + "don't want."
+    ? "These notes look like " + stories + " different stories. "
+      + (importIntoNew
+          ? "Each one becomes its own project. Nothing you already have is touched. "
+          : "The first group goes into the project you're in; the rest become their own projects. ")
+      + "Rename any of them, or untick anything you don't want."
     : "Only notes that are clearly one specific beat go onto the board. The rest go to your notes "
       + "or to Set aside. Expect most beats to stay empty: those gaps are the point, and filling "
       + "them with near-misses would hide them. Untick anything you don't want.";
@@ -5101,18 +5250,36 @@ document.getElementById("dumpstop").addEventListener("click", () => dumpCtl && d
 document.getElementById("revgo").addEventListener("click", () => {
   snapshot();
   let firstMoves = [], added = 0, newProjects = 0;
+  /* Read once, before the loop moves anyone. A dashboard import switches the
+     active project to the one it makes, and every project created after that
+     was then inheriting ITS structure rather than the writer's default. */
+  const baseStructure = (importStructure || (P() && P().structure)) || "stc";
 
   plan.forEach((st, si) => {
     const notes = st.notes.filter(n => n.keep);
-    if (!notes.length && si > 0) return;
+    if (!notes.length && (si > 0 || importIntoNew)) return;
     let target;
-    if (si === 0){
+    if (si === 0 && importIntoNew){
+      // Started from the dashboard: there was no project in front of the
+      // writer, so nothing they already have is touched.
+      target = blankProject(st.name, baseStructure);
+      state.projects.push(target);
+      newProjects++;
+      state.activeId = target.id || target.localId;
+    } else if (si === 0){
       target = P();
-      const untitled = /^(untitled|first project|new project|untitled project)$/i.test(target.name);
-      // a Title: line in the file is the writer naming it; a default name never survives one
-      if (st.name && (untitled || (st.brief && st.brief.name))) target.name = st.name;
+      /* An import fills a blank name. It never replaces one.
+
+         This line used to say: rename whenever the file states a title. That
+         is how a paste of half-hour comedy notes renamed NIGHT HAUL to BLACK
+         RIVER - a title belonging to a different film mentioned three lines
+         deep in the same file - and dropped a stranger's beats into a board
+         with months of work on it. There is no version of an import that is
+         allowed to do that. If the writer wants a different name they can type
+         one, in the box directly above this, or on the board. */
+      if (st.name && (st.typed || !namedAlready(target))) target.name = st.name;
     } else {
-      target = blankProject(st.name, P().structure);
+      target = blankProject(st.name, baseStructure);
       state.projects.push(target);
       newProjects++;
     }
@@ -5756,7 +5923,7 @@ function renderSlate(){
 }
 
 document.getElementById("slatenew").addEventListener("click", () => openIntake("new"));
-document.getElementById("slatedump").addEventListener("click", openImport);
+document.getElementById("slatedump").addEventListener("click", () => openImport(true));
 
 
 
@@ -6502,7 +6669,7 @@ function showFirstRun(which){
     BF.track("onboarding_choice_" + CHOICE[go], {});
     BF.api("/api/account", {method:"POST", body: JSON.stringify(
       {action:"onboarding", choice: CHOICE[go]})}).catch(()=>{});
-    if (go === "paste")  openImport();
+    if (go === "paste")  openImport(false);
     if (go === "new")    openIntake("edit");
     if (go === "sample"){ document.getElementById("loadsample").click(); }
   }));
