@@ -4776,6 +4776,8 @@ async function claudePlan(raw){
   if (!notes.length) return [];
 
   const forced = new Map();
+  // Groups this code invented, as opposed to stories the model actually found.
+  const codeMade = new Set();
   const known = () => groups.map(g =>
     String(g.name || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
   notes.forEach((nt, idx) => {
@@ -4787,6 +4789,7 @@ async function claudePlan(raw){
       if (groups.length >= 6) return;              // a notes file, not a slate
       groups.push({name, about: ""});
       at = groups.length - 1;
+      codeMade.add(at);
     }
     forced.set(idx, at);
   });
@@ -4878,8 +4881,21 @@ async function claudePlan(raw){
 
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
-    const si = forced.has(idx) ? forced.get(idx)
+    /* Routing. A group this code invented takes the ONE line that named it and
+       nothing else.
+
+       This is the bug Kris found. Telling the model "story 1 = Dirt Money" and
+       then letting it route freely meant every note that happened to sit BELOW
+       the Dirt Money line in the file went into Dirt Money: the Waffle House
+       scene, the tow truck being destroyed, "he chooses to go back for her" -
+       all Night Haul, all filed under a one-line pitch for a different film,
+       because they came after it on the page.
+
+       The model did not find that story, this code did, from a single sentence.
+       A single sentence is evidence for exactly one note. */
+    let si = forced.has(idx) ? forced.get(idx)
       : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
+    if (!forced.has(idx) && codeMade.has(si)) si = 0;
     let kind = KINDS[r.k] ? r.k : "structural";
     const conf = typeof r.c === "number" ? r.c : 0;
     const named = kind === "beat" && S.slots.some(x => x.id === r.b);

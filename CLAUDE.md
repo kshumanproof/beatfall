@@ -923,6 +923,32 @@ And a bumped declaration used to be filed on a NOTE shelf, because the model
 had called the sentence "structural" — so the writer's own heading disappeared
 into Notes rather than showing up in Set aside. `if (n.declared) kind = "beat"`.
 
+### A code-made group takes ONE note (3 Sep 2026)
+
+Kris found this one from the board. Dirt Money held "He chooses to go back for
+her", "They stop trying to escape", the Waffle House scene, the tow truck being
+destroyed — every one a Night Haul note, and every one sitting BELOW the DIRT
+MONEY line in his file.
+
+Telling the model "story 1 = Dirt Money" and then letting it route freely meant
+everything downstream of that sentence went into Dirt Money, because it came
+after it on the page. The model did not find that story; this code did, from a
+single line. **A single line is evidence for exactly one note.**
+
+`codeMade` records which groups this code invented, and any note the model
+routes into one of them that was not the note that named it goes back to group
+0. Reproduced in `/tmp/vroute.js` with the model routing ~40 notes to group 1:
+Dirt Money still gets 1, Night Haul keeps 82.
+
+**The pattern worth remembering from this whole session.** Five bugs came out in
+sequence, and each fix exposed the next: the structure switched after
+classification (empty board) -> imports never saved the projects they created
+(42 notes lost with an unsaved project) -> declared beats were bumped by model
+guesses (empty Act Three) -> a code-made group swallowed everything after it.
+Each was real, and each was only visible once the one before it was gone. When a
+user says "you keep getting further away", that is what it looks like from their
+side, and they are not wrong to say it.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
