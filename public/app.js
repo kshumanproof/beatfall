@@ -50,6 +50,15 @@
     BF.sb = sb;
     const { data } = await sb.auth.getSession();
     BF.session = data.session || null;
+
+    /* The gate goes here and nowhere earlier. detectSessionInUrl has already
+       run by this point, so a magic link tapped on a phone has been redeemed
+       and the account exists before we tell anybody the screen is too small.
+       Blocking first would burn a single-use link and lose the signup. */
+    if (BF.isSmallScreen()) {
+      BF.showSmallScreenGate(BF.session);
+      return BF.session;
+    }
     return BF.session;
   };
 
@@ -62,6 +71,10 @@
   BF.requireSession = async function () {
     const session = await BF.init();
     if (unconfigured) return null;            // never bounce into a login that can't work
+    // The gate is already up and it is the whole page. Returning null stops
+    // the caller from building a board underneath it, and bouncing a phone to
+    // /login.html would only show the same gate at a different address.
+    if (BF.isSmallScreen()) return null;
     if (!session) { location.href = '/login.html'; return null; }
     return session;
   };
@@ -331,6 +344,170 @@
   BF.cycleMode = function (label) {
     const i = BF.MODES.indexOf(BF.readMode());
     BF.applyMode(BF.MODES[(i + 1) % BF.MODES.length], label);
+  };
+
+  /* =======================================================================
+     THE SMALL-SCREEN GATE
+
+     The web app is a board. A board is a spatial thing you drag cards around
+     on, and there is no honest way to do that in a 390px column. Rather than
+     ship a cramped version and let a writer's first impression be a bad one,
+     a phone gets the app instead.
+
+     Which pages this covers is decided by nothing more than which pages load
+     this file: index, login, settings and admin do; Privacy, Terms and How
+     billing works do not, and must not. Those are documents. They are linked
+     from emails and from the store listings, people open them on phones, and
+     a privacy policy you cannot read on the device you are holding is worse
+     than useless.
+
+     TWO CONDITIONS, both required:
+
+       min(width, height) < 700   Measured on the SMALLER side so a phone that
+                                  gets rotated is still a phone. A pure width
+                                  check lets an iPhone Pro Max through in
+                                  landscape at 932px, which is exactly the
+                                  cramped experience this exists to prevent.
+                                  744 is an iPad Mini's short side, so every
+                                  iPad passes; 600-ish Android tablets do not.
+
+       pointer: coarse            Because a laptop with a short browser window
+                                  has a small viewport and is not a phone.
+                                  Without this, dragging a desktop window to
+                                  half-height would throw up a download prompt,
+                                  which is absurd.
+
+     Sign-in is deliberately NOT blocked. Magic links get opened on phones
+     constantly, the link is single-use, and refusing to process it would burn
+     it and lose the account for good. So the session is established first and
+     the gate is drawn afterwards: tap the link on the sofa, and the laptop is
+     already signed in when you open it.
+     ======================================================================= */
+  BF.GATE_MIN = 700;
+
+  // Set these when the listings exist. Empty means the button still shows,
+  // as Kris asked, but says the app is coming rather than lying about a link.
+  BF.APP_STORE = '';
+  BF.PLAY_STORE = '';
+
+  BF.isSmallScreen = function () {
+    try {
+      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const short  = Math.min(window.innerWidth, window.innerHeight) < BF.GATE_MIN;
+      return !!(coarse && short);
+    } catch (e) { return false; }
+  };
+
+  const MARK = '<svg viewBox="14 8 36 50.5" width="44" height="61" aria-hidden="true">'
+    + '<g stroke="#7B5A13" stroke-width="1.4" stroke-linecap="round">'
+    + '<path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g>'
+    + '<rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="#7B5A13"'
+    + ' transform="rotate(-12 32 26.08)"/>'
+    + '<rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/>'
+    + '<rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/>'
+    + '<rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/></svg>';
+
+  const STORE_ICON = {
+    apple: '<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">'
+      + '<path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8c-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.2 1.2-2.4 1.2-2.5-.1 0-2.4-.9-2.4-3.6zM14.2 5.9c.6-.8 1-1.9.9-3-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-.9 2.9 1 .1 2-.5 2.7-1.3z"/></svg>',
+    play: '<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">'
+      + '<path d="M3.6 2.2c-.3.3-.5.8-.5 1.4v16.8c0 .6.2 1.1.5 1.4l.1.1 9.4-9.4v-.2L3.7 2.1l-.1.1zm12.6 6.3L13.7 6l-.2-.1L15.9 8.3l.3.2zm-2.5 2.6L4.3 2.5l9.4 8.6zm0 2L4.3 21.5l9.4-8.6zm2.5-1.1l2.5-1.4c.7-.4.7-1.1 0-1.5l-2.5-1.4-2.7 2.7 2.7 2.6z"/></svg>'
+  };
+
+  function storeBtn(kind, href, label, sub) {
+    const inner = STORE_ICON[kind]
+      + '<span><small>' + sub + '</small><b>' + label + '</b></span>';
+    return href
+      ? '<a class="bf-store" href="' + href + '">' + inner + '</a>'
+      // No listing yet. It still looks like the control it will be, but it
+      // says so rather than pretending to be a link that goes nowhere.
+      : '<span class="bf-store bf-store-soon" role="note">' + inner + '</span>';
+  }
+
+  BF.showSmallScreenGate = function (session) {
+    if (document.getElementById('bf-gate')) return;
+
+    const soon = !BF.APP_STORE && !BF.PLAY_STORE;
+    const el = document.createElement('div');
+    el.id = 'bf-gate';
+    el.innerHTML =
+        '<div class="bf-gate-in">'
+      +   '<div class="bf-gate-mark">' + MARK + '</div>'
+      +   '<div class="bf-gate-word">Beat<span>fall</span></div>'
+      +   '<p class="bf-gate-tag">Where your story falls into place.</p>'
+
+      +   '<h1>Your notes already know the story. They’re just in the wrong order.</h1>'
+      +   '<p class="bf-gate-body">Beatfall reads a file of scattered notes, works out which '
+      +     'ones are story beats, puts them where they belong in the structure you’re '
+      +     'writing to, and shows you the holes between them. It asks before it guesses, and '
+      +     'it never writes your script.</p>'
+
+      +   '<p class="bf-gate-body"><b>On a phone, Beatfall is for catching ideas.</b> '
+      +     'Get the app and the note you have standing in a car park is waiting on your board '
+      +     'when you sit down.</p>'
+
+      +   '<div class="bf-gate-stores">'
+      +     storeBtn('apple', BF.APP_STORE, 'App Store', soon ? 'Coming to the' : 'Download on the')
+      +     storeBtn('play',  BF.PLAY_STORE, 'Google Play', soon ? 'Coming to' : 'Get it on')
+      +   '</div>'
+
+      +   (session
+            ? '<p class="bf-gate-note">You’re signed in. Your board is ready whenever you '
+              + 'open Beatfall on a larger screen.</p>'
+            : '<p class="bf-gate-note">The full board needs a bigger screen than this one, so '
+              + 'there isn’t a cramped version of it here.</p>')
+
+      +   '<div class="bf-gate-links">'
+      +     '<a href="/privacy.html">Privacy</a><span>&middot;</span>'
+      +     '<a href="/terms.html">Terms</a><span>&middot;</span>'
+      +     '<a href="/billing.html">How billing works</a><span>&middot;</span>'
+      +     '<a href="mailto:contact@beatfall.app">Send feedback</a>'
+      +   '</div>'
+      +   '<p class="bf-gate-legal">&copy; ' + new Date().getFullYear()
+      +     ' Beatfall, LLC. Your writing remains yours.</p>'
+      + '</div>';
+
+    const css = document.createElement('style');
+    css.textContent = [
+      '#bf-gate{position:fixed;inset:0;z-index:9999;overflow-y:auto;',
+      '  background:var(--ground,#F1EEE7);color:var(--ink,#2B2620);',
+      "  font-family:var(--sans,'Instrument Sans',system-ui,sans-serif);",
+      '  -webkit-font-smoothing:antialiased}',
+      '.bf-gate-in{max-width:30rem;margin:0 auto;padding:44px 22px 56px}',
+      '.bf-gate-mark{line-height:0;margin-bottom:10px}',
+      ".bf-gate-word{font-family:var(--serif,Newsreader,Georgia,serif);font-size:34px;",
+      '  font-weight:600;letter-spacing:-.02em;line-height:1}',
+      '.bf-gate-word span{color:var(--blue,#2C5C8F)}',
+      '.bf-gate-tag{font-family:var(--serif,Newsreader,Georgia,serif);font-style:italic;',
+      '  font-size:15px;color:var(--ink-3,#726859);margin:6px 0 30px}',
+      '#bf-gate h1{font-family:var(--serif,Newsreader,Georgia,serif);font-size:27px;',
+      '  font-weight:600;line-height:1.22;letter-spacing:-.017em;margin:0 0 16px}',
+      '.bf-gate-body{font-size:15px;line-height:1.62;color:var(--ink-2,#5C5349);margin:0 0 16px}',
+      '.bf-gate-body b{color:var(--ink,#2B2620);font-weight:600}',
+      '.bf-gate-stores{display:flex;flex-direction:column;gap:10px;margin:26px 0 18px}',
+      '.bf-store{display:flex;align-items:center;gap:11px;text-decoration:none;',
+      '  padding:11px 16px;border-radius:9px;border:1px solid var(--ink,#2B2620);',
+      '  background:var(--ink,#2B2620);color:var(--card,#FDFBF6);min-height:52px}',
+      '.bf-store span{display:flex;flex-direction:column;line-height:1.15;text-align:left}',
+      '.bf-store small{font-size:10.5px;opacity:.72;letter-spacing:.02em}',
+      '.bf-store b{font-size:16px;font-weight:600;letter-spacing:-.01em}',
+      // Not a link yet, so it must not look like one you can press.
+      '.bf-store-soon{background:none;color:var(--ink-3,#726859);',
+      '  border-color:var(--rule,#E0D9CB);cursor:default}',
+      '.bf-gate-note{font-size:13.5px;line-height:1.55;color:var(--ink-3,#726859);margin:0 0 30px}',
+      '.bf-gate-links{display:flex;flex-wrap:wrap;gap:9px;align-items:baseline;',
+      '  font-size:13px;padding-top:20px;border-top:1px solid var(--rule,#E0D9CB)}',
+      '.bf-gate-links a{color:var(--blue,#2C5C8F);text-decoration:underline;',
+      '  text-underline-offset:2px}',
+      '.bf-gate-links span{color:var(--ink-4,#8A8075)}',
+      '.bf-gate-legal{font-size:11.5px;color:var(--ink-4,#8A8075);margin:14px 0 0}'
+    ].join('\n');
+
+    document.head.appendChild(css);
+    document.body.appendChild(el);
+    // Nothing behind it should scroll, and nothing behind it should be
+    // reachable by a stray tab press either.
+    document.documentElement.style.overflow = 'hidden';
   };
 
   BF.money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);

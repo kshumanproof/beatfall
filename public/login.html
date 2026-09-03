@@ -123,6 +123,9 @@
 (async function () {
   const session = await BF.init();
   if (BF.unconfigured) return;
+  // A phone gets the gate instead of the form. init() has already redeemed any
+  // magic link in the URL, so nothing is lost by stopping here.
+  if (BF.isSmallScreen()) return;
   if (session) { location.href = '/'; return; }
 
   const form  = document.getElementById('form');

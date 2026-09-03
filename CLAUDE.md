@@ -600,9 +600,9 @@ which is why it went on saying 100 for $6 after the pack became 50. Nothing on
 that card should be a literal again.
 
 **The account pill is duplicated CSS.** `index.html` does not load `theme.css`,
-so `.acct`, `.avatar` and the `.pop*` rules live inline in both files. Change
-one, change the other. The admin copy drops the Admin row (you are standing on
-it) and the product-tour item, and adds Board.
+so `.acct`, `.avatar` and the `.pop*` rules live inline in index, admin AND
+settings. Change one, change all three. The admin copy drops the Admin row (you
+are standing on it) and the product-tour item, and adds Board.
 
 The owner allowance is `1000000`, a stand-in for infinity. Anywhere it could
 reach a screen it prints as an infinity sign instead.
@@ -679,6 +679,39 @@ Share Progress, public `/share/{token}` pages, OG card generation, the
 anonymous `/demo` route, evergreen SEO pages and lifecycle email hooks. Each is
 a public unauthenticated surface on a product that currently has none, and each
 is a project rather than a change. They need Kris's decisions before code.
+
+## The small-screen gate (3 Sep 2026)
+
+A phone gets the app, not the board. Kris's reasoning: the web app is a spatial
+thing, there is no honest way to drag cards around a 390px column, and a
+writer's first impression should not be a cramped version of the real product.
+
+**Which pages are gated is decided by which pages load `app.js`** — index,
+login, settings and admin do; Privacy, Terms and How billing works do not, and
+must not. They are documents, they are linked from emails and store listings,
+people open them on phones, and a privacy policy you cannot read on the device
+in your hand is worse than useless. Adding `app.js` to a legal page would gate
+it silently, so don't.
+
+**Two conditions, both required.** `min(innerWidth, innerHeight) < 700` measured
+on the SHORTER side, so a rotated phone is still a phone: a width-only check
+lets an iPhone Pro Max through at 932px in landscape, which is the exact
+experience this exists to prevent. And `pointer: coarse`, because a laptop with
+a short browser window has a small viewport and is not a phone — without it,
+dragging a desktop window to half height throws up a download prompt.
+
+744 is an iPad Mini's short side, so every iPad passes and 600-class Android
+tablets do not. Verified against fourteen real device sizes in `vgate.js`.
+
+**Sign-in is deliberately not blocked.** The gate is drawn AFTER `BF.init()`,
+so `detectSessionInUrl` has already redeemed any magic link. Magic links get
+opened on phones constantly and the link is single-use: refusing to process it
+would burn it and lose the account permanently. Tap the link on the sofa and
+the laptop is already signed in.
+
+`BF.APP_STORE` and `BF.PLAY_STORE` in `app.js` are empty. While they are, the
+buttons render in place but read "Coming to the App Store" and are spans, not
+links. Fill them in and they become real buttons with no other change.
 
 ## Footer and the account pill (2 Sep 2026)
 
