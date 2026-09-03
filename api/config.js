@@ -1,6 +1,6 @@
 // ============================================================================
 // The two public values the browser legitimately needs: the Supabase URL and
-// its anon key. Both are safe in a browser by design — row-level security is
+// its anon key. Both are safe in a browser by design: row-level security is
 // what protects the data, not secrecy of this key.
 //
 // Serving them from here rather than hard-coding means the same static files

@@ -1,5 +1,5 @@
 // ============================================================================
-// Stripe webhook — the only thing allowed to change what somebody is paying
+// Stripe webhook: the only thing allowed to change what somebody is paying
 // for. The browser can ask for a checkout session; only Stripe, signed, can
 // tell us it succeeded.
 //

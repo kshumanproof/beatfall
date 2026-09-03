@@ -1,5 +1,5 @@
 // ============================================================================
-// Account — who am I, what plan am I on, what have I used, and the two
+// Account: who am I, what plan am I on, what have I used, and the two
 // destructive things a person is entitled to do: take their data out, and
 // delete the lot.
 // ============================================================================

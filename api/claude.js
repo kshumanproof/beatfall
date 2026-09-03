@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   if (ent.key === 'none') {
     return send(res, 402, {
       error: 'no_plan',
-      message: 'Your trial has ended. Pick a plan to keep using the writing help — '
+      message: 'Your trial has ended. Pick a plan to keep using the writing help. '
              + 'your boards and notes are untouched, and everything except the AI still works.'
     });
   }
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       return send(res, 502, {
         error: 'upstream',
         message: r.status === 429
-          ? 'Busy just now — try that again in a moment.'
+          ? 'Busy just now. Try that again in a moment.'
           : "Couldn't reach Claude just now."
       });
     }

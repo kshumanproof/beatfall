@@ -1,5 +1,5 @@
 // ============================================================================
-// Billing — checkout, the customer portal, and credit top-ups.
+// Billing: checkout, the customer portal, and credit top-ups.
 //
 // Runs against whichever Stripe key is in the environment, so test mode and
 // live mode are the same code. Nothing here trusts the browser about what
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // -------------------------------------------------------------- manage --
-  // Cancelling, changing card, switching tier — all Stripe's own screens, so
+  // Cancelling, changing card, switching tier: all Stripe's own screens, so
   // none of it has to be built or maintained here.
   if (body.action === 'portal') {
     const session = await s.billingPortal.sessions.create({

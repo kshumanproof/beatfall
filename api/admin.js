@@ -1,5 +1,5 @@
 // ============================================================================
-// Admin — what Kris needs to see. Who signed up, whether they came back, what
+// Admin: what Kris needs to see. Who signed up, whether they came back, what
 // they actually did, and what each of them costs in API this month.
 //
 // That last column is the one that sets the tier caps. Everything else is
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       db.from('usage').select('user_id, kind, credits, tokens_in, tokens_out, cost_micros, created_at')
         .gte('created_at', since),
       // Deliberately NOT 'cards'. The operator has no business reading a
-      // stranger's story, and the Terms say so — this is the line that makes
+      // stranger's story, and the Terms say so. This is the line that makes
       // that true rather than a promise. card_count is maintained by a trigger
       // in the database, so counting never requires the text.
       db.from('projects').select('user_id, card_count, updated_at'),

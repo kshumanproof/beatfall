@@ -1,5 +1,5 @@
 // ============================================================================
-// Projects — load everything on sign-in, save one project at a time.
+// Projects: load everything on sign-in, save one project at a time.
 //
 // The board is stored as JSON on a single row per project. The client already
 // holds it that way, so this stays one code path instead of a table per card.
