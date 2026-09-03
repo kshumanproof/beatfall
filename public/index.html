@@ -5292,12 +5292,12 @@ function paneProfile(){
     + esc(s.label) + "</option>").join("");
   setBody.innerHTML =
       '<h2 class="pane-h">Profile</h2>'
-    + '<p class="pane-sub">How you show up, and how the app behaves for you.</p>'
+    + '<p class="pane-sub">Your details, and how the app looks.</p>'
     + '<div id="paneflash" hidden></div>'
-    + row("Name", "What Beatfall calls you.",
+    + row("Name", "What the app calls you.",
         '<input type="text" id="s-name" value="' + esc(ME.display_name || "") + '" placeholder="Your name">'
         + '<button class="btn" id="s-savename">Save</button>')
-    + row("Email", "Where your sign-in link goes. No password to remember.",
+    + row("Email", "Where your sign-in link goes.",
         '<input type="text" value="' + esc(ME.email) + '" disabled>')
     + row("Mode", "Auto follows sunset where you are.",
         '<div class="seg">'
@@ -5305,10 +5305,10 @@ function paneProfile(){
         + '<button data-mode="light">Light</button>'
         + '<button data-mode="dark">Dark</button></div>')
     + row("New projects start on",
-        "The structure a fresh script opens with. Changeable per project at any time.",
+        "The structure a new script opens with. You can change it on any project later.",
         '<select id="s-struct">' + opts + "</select>")
     + '<div class="setrow"><div><div class="lab" style="color:var(--red)">Delete account</div>'
-      + '<div class="help">Removes every project and note, permanently. Download your data first.</div></div>'
+      + '<div class="help">Deletes every project and note. This cannot be undone, so download your work first.</div></div>'
       + '<div class="ctl"><input type="text" id="s-confirm" placeholder="type your email to confirm">'
       + '<button class="btn btn-danger" id="s-del">Delete my account</button></div></div>';
 
@@ -5366,7 +5366,7 @@ function paneUsage(){
      number and a sentence saying they do not expire. */
   setBody.innerHTML =
       '<h2 class="pane-h">This month</h2>'
-    + '<p class="pane-sub">Placing a note is free and always will be. That\'s the whole point.</p>'
+    + '<p class="pane-sub">Placing notes is free. Credits are only for the AI.</p>'
     + '<div class="usebig">' + usedM + '<span style="font-size:16px;color:var(--ink-3)"> of '
       + (ME.unlimited ? "unlimited" : monthly) + " credits</span></div>"
     + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
@@ -5380,8 +5380,8 @@ function paneUsage(){
         + '<div class="bank-n">' + banked + "</div>"
         + '<div class="bank-t"><div class="bank-k">Credits you bought</div>'
           + '<div class="bank-s">' + (banked
-              ? "Used only after this month\'s run out. They never expire."
-              : "None yet. Bought credits never expire and are only used once the month\'s are gone.")
+              ? "Only used after the monthly ones run out. They never expire."
+              : "None yet. Credits you buy never expire, and are only used after the monthly ones run out.")
           + "</div></div>"
         + '<button class="btn" id="u-topup">Add ' + (ME.topup_credits || 50)
           + " credits for $" + (ME.topup_price || 6) + "</button>"
@@ -5389,8 +5389,8 @@ function paneUsage(){
 
     + '<div class="kinds">' + kinds + "</div>"
     + '<p class="muted" style="margin-top:26px;max-width:62ch;line-height:1.65">'
-      + "A whole conversation costs one credit however many questions it takes, and reading in a "
-      + "notes file costs two. If you run out, everything except the writing help keeps working."
+      + "A conversation costs one credit, however many questions it takes. Reading in a notes "
+      + "file costs two. If you run out, everything except the AI keeps working."
       + "</p>";
 
   const top = document.getElementById("u-topup");
@@ -5526,7 +5526,7 @@ function panePlan(){
         + "Manage billing. Until it goes through, the writing help is off.</div>";
     } else {
       note = '<div class="note info"><b>Subscribed.</b> ' + ME.credits_allowance
-        + " credits a month, and the board itself is always free."
+        + " credits a month."
         + (when ? " Next payment " + when + "." : "") + "</div>";
     }
   }
@@ -5550,14 +5550,14 @@ function panePlan(){
               + '">Choose ' + p.label.toLowerCase() + "</button>")
         + "</div>").join("") + "</div>"
     + '<div class="setrow" style="border-top:none;margin-top:22px">'
-      + '<div><div class="lab">Manage billing</div><div class="help">Changing your card and '
-      + "switching between monthly and yearly happen on Stripe's pages. "
+      + '<div><div class="lab">Manage billing</div><div class="help">Change your card or switch '
+      + "between monthly and yearly on Stripe's pages. "
       + '<a href="/billing.html" target="_blank" rel="noopener">How billing works</a>.</div></div>'
       + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button></div></div>'
     + '<div class="setrow">'
       + '<div><div class="lab">Buy more credits</div><div class="help">'
       + (ME.topup_credits || 50) + " credits for $" + (ME.topup_price || 6)
-      + ". Used only after the month's are gone, and they never expire."
+      + ". They never expire, and are only used after your monthly ones run out."
       + (ME.cancel_at_period_end
           ? " Your plan is ending, so these would wait in your account until you subscribe again."
           : "") + "</div></div>"
@@ -5567,7 +5567,7 @@ function panePlan(){
         ? '<div class="setrow">'
           + '<div><div class="lab" style="color:var(--red)">Cancel your plan</div>'
           + '<div class="help">Takes effect at the end of the period you have already paid '
-          + "for. We'll show you what changes before anything happens.</div></div>"
+          + "for. We'll show you what changes first.</div></div>"
           + '<div class="ctl"><button class="btn btn-danger" id="s-cancel">Cancel plan</button>'
           + "</div></div>"
         : "");
@@ -5597,17 +5597,17 @@ function panePlan(){
 function paneData(){
   setBody.innerHTML =
       '<h2 class="pane-h">Your data</h2>'
-    + '<p class="pane-sub">It is yours. No conditions, no export fee, no waiting.</p>'
+    + '<p class="pane-sub">Yours to take, whenever you want it.</p>'
     + '<div id="paneflash" hidden></div>'
     + row("Download everything",
         "Every project, card and note as a single JSON file.",
         '<button class="btn" id="s-export">Download</button>')
     + row("Who can see your writing",
-        "Only you. Your rows are locked to your account by the database itself, and our own "
-        + "admin tools can count your cards but cannot read them. Nothing you write trains a model.",
+        "Only you. The database locks your work to your account, and our own admin tools can "
+        + "count your cards but cannot read them. Nothing you write trains a model.",
         '<a class="btn" href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>')
     + row("The agreement",
-        "What you own, what we may do, and what happens if two people write the same story.",
+        "What you own, what we can do, and what happens if two people write the same story.",
         '<a class="btn" href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>');
 
   document.getElementById("s-export").addEventListener("click", async e => {
@@ -5878,8 +5878,8 @@ function lowStrip(left){
   bar.innerHTML =
       "<b>" + (left > 0 ? left + " credit" + (left === 1 ? "" : "s") + " left this month."
                         : "That's this month's credits.")
-    + "</b> The board, the outline and placing notes all keep working. "
-    + "Only the writing help needs credits.";
+    + "</b> The board, the outline and placing notes keep working. "
+    + "Only the AI needs credits.";
 
   const buy = document.createElement("button");
   buy.className = "btn btn-primary"; buy.textContent = "Add credits";
