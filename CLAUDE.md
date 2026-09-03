@@ -341,11 +341,25 @@ Rebuilt from a table row into a title card.
 
 ## The tagline (2 Sep 2026)
 
-"Where your story falls into place." — Kris's line, in the header after the
-rule, on the DASHBOARD only. On a board that slot holds the script's name;
-one or the other, never both, never empty. Hidden below 1024px, and the rule
-hides with it there (`header[data-view="slate"] .hsep` in the media query, set
-from `setView` via `dataset.view`) so it never leaves a dangling stroke.
+"Where your story falls into place." Kris's line. It lived in the header for
+about an hour and he said it felt out of place. He was right, for two reasons
+worth keeping:
+
+1. It was on the dashboard TWICE, header and footer. Nobody consciously
+   notices a repeat like that; they just feel the page is off.
+2. In the header it sat in the slot that holds the script's NAME on a board,
+   so it read as a label for what you were looking at, which it isn't.
+
+**It lives in the footer only now**, under the lockup, where a tagline goes.
+Do not put it back in the header.
+
+The footer lockup reuses the header's `.brand` markup verbatim, just smaller
+(`.foot-brand .wordmark` 22px, `.mark` 26px). The first version hand-built a
+separate mark beside a separate `.foot-name`, which is exactly how two copies
+of one lockup drift until somebody says the wordmark looks weird. He did.
+
+The masthead went 29px to 34px (mark 34px to 40px) at the same time. The bar
+had the room once the tagline left.
 
 ## Copy rule: no em dashes (2 Sep 2026)
 
