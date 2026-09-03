@@ -27,6 +27,16 @@ export default async function handler(req, res) {
     const { count: projectCount } = await db.from('projects')
       .select('id', { count: 'exact', head: true }).eq('user_id', user.id);
 
+    // Has this account ever done anything, ever, as opposed to this period?
+    // An empty account is not the same as a new one: somebody who deleted their
+    // last project on day sixty should not be welcomed to Beatfall. All-time
+    // usage is the signal, because it needs no new column and no backfill for
+    // the accounts that already exist. A writer who only ever typed cards by
+    // hand and then deleted them reads as new, which is the old behaviour and
+    // is rare enough to live with.
+    const { count: everUsed } = await db.from('usage')
+      .select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+
     return send(res, 200, {
       email: user.email,
       display_name: profile.display_name,
@@ -48,6 +58,7 @@ export default async function handler(req, res) {
       period_start: profile.period_start,
       by_kind: byKind,
       projects: projectCount || 0,
+      has_history: (everUsed || 0) > 0,
       topup_credits: TOPUP_CREDITS,
       topup_price: TOPUP_PRICE,
       plans: PLANS

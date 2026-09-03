@@ -607,6 +607,30 @@ it) and the product-tour item, and adds Board.
 The owner allowance is `1000000`, a stand-in for infinity. Anywhere it could
 reach a screen it prints as an infinity sign instead.
 
+## The welcome sheet (3 Sep 2026)
+
+It opens on an **empty** account, not a **new** one. The test is zero projects,
+or one project with no cards still called Untitled. That means signing out and
+back in without typing anything shows it again, which is deliberate: on an empty
+account it is the only useful thing on the screen.
+
+What is not deliberate is greeting a paying writer who deleted their last
+project. So there are two greetings, chosen by `has_history` from
+`/api/account` (all-time rows in `usage`, no new column, no backfill):
+
+- never used anything -> **"Welcome to Beatfall"**
+- used it before, empty now -> **"Nothing on the shelf"**
+
+"What Beatfall does" in the account menu opens the same sheet and always says
+Welcome, because that is the explainer and the writer asking may have nine
+projects open.
+
+Two bugs fixed at the same time. The handlers used to bind on every open, so the
+fourth visit put four listeners on each button: one click ran the import four
+times and recorded four `first_run_choice` events. They bind once now. And
+Escape closes it, which it never did; only clicking the grey area worked, and
+nothing said so.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

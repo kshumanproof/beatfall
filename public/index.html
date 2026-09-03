@@ -1833,10 +1833,10 @@ footer{
 
 <div class="scrim" id="firstrun" hidden>
   <div class="sheet">
-    <div class="sheet-title">Welcome to Beatfall</div>
-    <p class="sheet-note">Write or paste your notes. Beatfall sorts them into story beats, places
-      them in the structure you're writing to, and shows you what's missing. If it isn't sure, it
-      asks. It never writes your script.</p>
+    <div class="sheet-title" id="frtitle">Welcome to Beatfall</div>
+    <p class="sheet-note" id="frnote">Write or paste your notes. Beatfall sorts them into story
+      beats, places them in the structure you're writing to, and shows you what's missing. If it
+      isn't sure, it asks. It never writes your script.</p>
     <div class="firstrun-choices">
       <button class="fr" data-go="paste">
         <b>I have notes already</b>
@@ -5675,7 +5675,7 @@ function paintWho(me){
 }
 
 document.getElementById("signout").addEventListener("click", () => BF.signOut());
-document.getElementById("helpbtn").addEventListener("click", () => showFirstRun());
+document.getElementById("helpbtn").addEventListener("click", () => showFirstRun("welcome"));
 
 /* =========================================================================
    HOVER EXPLAINERS: every control says what it does before you press it.
@@ -5822,28 +5822,68 @@ function showLocked(){
 
   // Who am I? Shows the credit count straight away rather than only after the
   // first AI call, and reveals the admin link for the one account that has it.
+  let seenBefore = false;
   try {
     const me = await BF.api("/api/account");
     if (me.is_admin){
       document.getElementById("adminlink").hidden = false;
       document.getElementById("ownernav").hidden = false;
     }
+    seenBefore = !!me.has_history;
     paintWho(me);
     if (!me.unlimited && typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance,
                     banked: me.credits_banked || 0});
   } catch (e) { /* not fatal, the board works without it */ }
 
-  // first run: no projects, nothing written
+  // Empty account. Note this is emptiness, not newness: the blank Untitled the
+  // app lands you on counts as empty, which is why signing out and back in
+  // without typing anything shows this again. That part is deliberate, because
+  // on an empty account this sheet is the only useful thing on the screen. What
+  // changes is which of the two greetings it uses.
   const bare = hadProjects === 0
     || (state.projects.length === 1 && !state.projects[0].cards.length
         && state.projects[0].name === "Untitled");
-  if (bare) showFirstRun();
+  if (bare) showFirstRun(seenBefore ? "empty" : "welcome");
 })();
 
-function showFirstRun(){
+/* This sheet opens twice over: once by itself on an empty account, and any
+   number of times from "What Beatfall does" in the account menu. It used to
+   bind its handlers on every open, so the fourth visit put four listeners on
+   each button: one click then ran the import four times and recorded four
+   first_run_choice events. Bind once, on the first open only. */
+/* Two things open this sheet and they are not the same errand.
+
+   Opening it because the account is empty is a greeting, and the greeting has
+   to know whether it has met you. "Welcome to Beatfall" is the right thing to
+   say to a new account and the wrong thing to say to somebody on day sixty who
+   deleted their last project. So an empty account that has history gets told
+   what is true of it instead: there is nothing on the shelf.
+
+   Opening it from "What Beatfall does" is the explainer, and that one always
+   says Welcome, because the writer asked what the thing does and may well be
+   sitting on nine projects while they ask. */
+const FR_COPY = {
+  welcome: ["Welcome to Beatfall",
+    "Write or paste your notes. Beatfall sorts them into story beats, places them in the "
+    + "structure you're writing to, and shows you what's missing. If it isn't sure, it asks. "
+    + "It never writes your script."],
+  empty: ["Nothing on the shelf",
+    "You don't have any projects open. Start a new one, paste in notes, or look at the "
+    + "example again."]
+};
+
+let firstRunBound = false;
+
+function showFirstRun(which){
   const fr = document.getElementById("firstrun");
+  const [title, note] = FR_COPY[which] || FR_COPY.welcome;
+  document.getElementById("frtitle").textContent = title;
+  document.getElementById("frnote").textContent  = note;
   fr.hidden = false;
+  if (firstRunBound) return;
+  firstRunBound = true;
+
   fr.querySelectorAll(".fr").forEach(b => b.addEventListener("click", () => {
     const go = b.dataset.go;
     fr.hidden = true;
@@ -5853,6 +5893,9 @@ function showFirstRun(){
     if (go === "sample"){ document.getElementById("loadsample").click(); }
   }));
   fr.addEventListener("click", e => { if (e.target === fr) fr.hidden = true; });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !fr.hidden) fr.hidden = true;
+  });
 }
 
 /* Running low shouldn't be a surprise, and it shouldn't be a surprise inside a
