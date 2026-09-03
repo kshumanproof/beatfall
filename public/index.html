@@ -33,9 +33,14 @@
   --gold-hair:#D9C08A;     /* hairlines only, never text */
   --gold-ink:#5C420D;      /* the hover of a gold control */
   --on-gold:#FFFFFF;       /* text ON gold, which flips with the theme */
-  --win:#F0DFB0;           /* a finished board. warmer and deeper than paper */
-  --win-2:#E6D096;         /* the low end of its wash */
-  --win-hair:#B99733;      /* its edge, which has to hold against the fill */
+  /* A finished board. Green, not gold and not blue: gold means what's missing
+     and blue means what you can touch, so a gold card fights its own meaning
+     and a blue one reads as selected rather than done. Green is the one hue
+     in this palette that has never meant anything else. */
+  --win:#DCE8DD;
+  --win-2:#CBDECF;         /* the low end of its wash */
+  --win-hair:#5F8A6C;      /* its edge, which has to hold against the fill */
+  --win-ink:#2F5139;       /* its text. 6.4:1 on the wash */
   --sage:#4A7358;
   --sage-soft:#E7EEE9;
   --red:#8C2F2F;
@@ -71,9 +76,10 @@
     --gold-hair:#7E6C3E;
     --gold-ink:#EBD5A2;
     --on-gold:#14181C;
-    --win:#3D3316;
-    --win-2:#302809;
-    --win-hair:#9C8437;
+    --win:#1F2E23;
+    --win-2:#182620;
+    --win-hair:#4E7359;
+    --win-ink:#A8CDB2;
     --sage:#8CB79A;
     --sage-soft:#1E2A22;
     --red:#D98A8A;
@@ -101,9 +107,10 @@
   --gold-hair:#7E6C3E;
   --gold-ink:#EBD5A2;
   --on-gold:#14181C;
-  --win:#3D3316;
-  --win-2:#302809;
-  --win-hair:#9C8437;
+  --win:#1F2E23;
+  --win-2:#182620;
+  --win-hair:#4E7359;
+  --win-ink:#A8CDB2;
   --sage:#8CB79A;
   --sage-soft:#1E2A22;
   --red:#D98A8A;
@@ -892,7 +899,11 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 /* =====================================================================
    DASHBOARD: the scoreboard, as a sentence rather than a row of boxes
    ===================================================================== */
+/* The shelf widens with the column count, so a fourth and fifth column are
+   real cards and not slivers of one. */
 .slate-wrap{max-width:1360px;margin:0 auto;padding:46px 28px 90px}
+@media (min-width:1500px){ .slate-wrap{max-width:1560px} }
+@media (min-width:1860px){ .slate-wrap{max-width:1840px} }
 /* One line, always. It shrinks to fit rather than wrapping, because the
    sentence is a headline and a headline that becomes a paragraph on a laptop
    is no longer a headline. The floor is set so the longest string this can
@@ -1016,7 +1027,16 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .slate-rule{flex:1;height:1px;background:var(--rule);min-width:30px}
 .slate-acts{display:flex;gap:12px;align-items:center}
-.slate-grid{display:flex;flex-wrap:wrap;gap:24px}
+/* THREE ACROSS, ALWAYS, AND MORE WHEN THERE IS ROOM.
+
+   The cards used to be 396px wide and wrapped, which meant a 1280 laptop fit
+   exactly two and the shelf read as a column of pairs with a hole beside it.
+   Column COUNT is the thing being designed here, not card width: the card
+   fills whatever cell it gets, so the shelf is three, four or five even
+   columns at every width instead of a ragged wrap. */
+.slate-grid{display:grid;gap:24px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:1500px){ .slate-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (min-width:1860px){ .slate-grid{grid-template-columns:repeat(5,minmax(0,1fr))} }
 /* ------------------------------------------------- the shelf, in sections --
    Same rule as the "Your scripts" head above, one size quieter, so a section
    inside the shelf reads as a subdivision of it rather than a rival heading. */
@@ -1037,20 +1057,28 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    like a button, the old version hid the two most useful actions inside
    blue text that read as a caption. */
 .pcard{
-  width:396px;max-width:100%;background:var(--card);border:1px solid var(--rule);
+  min-width:0;background:var(--card);border:1px solid var(--rule);
   border-radius:var(--r-panel);
   padding:22px 24px 20px;box-shadow:var(--shadow);
   display:flex;flex-direction:column;gap:14px;transition:box-shadow .14s ease,transform .14s ease;
 }
 .pcard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
-.pcard .ph{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+/* Two lines of headroom, whether the title needs them or not. Titles wrap at
+   three-across ("THE COLLECTION PLATE" does), and a card whose title took two
+   lines used to push its grade, its bar and its buttons a line below every
+   other card's - which is the shelf reading as a pile again. */
+.pcard .ph{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  min-height:calc(19px * 1.22 * 2);
+}
 /* Set in caps whatever the writer typed, the way a title card is set. Done in
    CSS rather than by changing the name, so what they wrote is what is stored,
    what is exported, and what shows everywhere else. */
 .pcard h3{
   font-family:var(--serif);font-size:19px;font-weight:600;
   text-transform:uppercase;letter-spacing:.028em;
-  margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere;
+  margin:0;color:var(--ink);min-width:0;overflow-wrap:anywhere;line-height:1.22;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .pcard .when{font-size:11.5px;color:var(--ink-4);white-space:nowrap}
 /* Three lines, always, whether the logline is four lines long, one line long
@@ -1133,26 +1161,26 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   box-shadow:0 0 0 1px var(--win-hair),var(--shadow-lift);
 }
 .pcard.full:hover{box-shadow:0 0 0 1px var(--win-hair),var(--shadow-lift)}
-.pcard.full h3{color:var(--gold-ink)}
+.pcard.full h3{color:var(--win-ink)}
 /* Contrast, checked against the wash rather than against paper. A faded grey
    that reads fine on #FDFBF6 drops to about 2.6:1 on this fill, which is a
-   card you cannot read as the reward for finishing one. --ink-2 measures 5.5:1
-   here, --ink 10:1, --gold-ink 6.9:1. */
+   card you cannot read as the reward for finishing one. On this wash --ink-2
+   measures 5.7:1, --ink 11:1, --win-ink 6.4:1. */
 .pcard.full .log{color:var(--ink)}
-.pcard.full .gnum{color:var(--gold-ink)}
+.pcard.full .gnum{color:var(--win-ink)}
 .pcard.full .glab,.pcard.full .gline,.pcard.full .gfmt,.pcard.full .when{color:var(--ink-2)}
 .pcard.full .bar{background:rgba(0,0,0,.09)}
-.pcard.full .bar i{background:var(--gold-ink)}
+.pcard.full .bar i{background:var(--win-hair)}
 /* A plaque, not a status strip: it sits on the wash the way a card sits on a
    table, which is the difference between "this is done" and "this is fine". */
 .pcard.full .done{
-  color:var(--gold-ink);background:var(--card);border-color:var(--win-hair);
+  color:var(--win-ink);background:var(--card);border-color:var(--win-hair);
   font-weight:600;justify-content:center;letter-spacing:.01em;
 }
 .pcard.full .acts .btn{background:var(--card);border-color:var(--win-hair)}
-.pcard.full .acts .btn:hover{border-color:var(--gold-ink);color:var(--ink)}
-.pcard.full .acts .btn.go{background:var(--gold-ink);border-color:var(--gold-ink);color:var(--on-gold)}
-.pcard.full .acts .btn.go:hover{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+.pcard.full .acts .btn:hover{border-color:var(--win-ink);color:var(--ink)}
+.pcard.full .acts .btn.go{background:var(--win-ink);border-color:var(--win-ink);color:var(--card)}
+.pcard.full .acts .btn.go:hover{background:var(--win-hair);border-color:var(--win-hair);color:var(--card)}
 .pcard.full .acts .del{color:var(--red);background:var(--card);border-color:#E0C9C9}
 
 .pcard .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:2px}
@@ -1167,6 +1195,33 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .pcard .acts .btn.go:hover{background:var(--blue-ink);border-color:var(--blue-ink);color:var(--on-blue)}
 .pcard .acts .del{margin-left:auto;color:var(--red);border-color:#E0C9C9}
 .pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
+
+/* Three across on a small tablet means a card about 210px wide. Everything on
+   it still has to be legible there, so the card tightens rather than the shelf
+   dropping to two: a writer's shelf reading as a shelf matters more than the
+   grade being 46px tall. */
+@media (max-width:1060px){
+  .slate-grid{gap:16px}
+  .pcard{padding:16px 16px 15px;gap:11px}
+  .pcard h3{font-size:16px}
+  .pcard .ph{min-height:calc(16px * 1.22 * 2)}
+  .pcard .log{font-size:13px;min-height:calc(13px * 1.55 * 3)}
+  .pcard .grade{gap:10px;flex-wrap:wrap}
+  .pcard .gnum{font-size:34px}
+  .pcard .gnum .pc{font-size:18px}
+  .pcard .glab{margin-top:4px}
+  /* Two short lines beat one clipped one: "9 of 15 beats - 6 open" does not
+     fit on 210px and the half that got cut was the open count, which is the
+     number the card exists to show. */
+  .pcard .gline{font-size:11px;white-space:normal;line-height:1.4}
+  .pcard .gfmt{font-size:11px}
+  .pcard .up{padding:8px 10px;gap:8px}
+  .pcard .up .n{font-size:14px}
+  .pcard .up .k{display:none}          /* the arrow already says it is a way in */
+  .pcard .acts{gap:6px}
+  .pcard .acts .btn{padding:0 10px}
+}
+
 
 /* The second bucket. A number and a sentence, not a bar: bought credits have
    no ceiling to fill, so a bar would be inventing one. */

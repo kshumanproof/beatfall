@@ -1078,12 +1078,34 @@ reads the shouted run at the END of the line, and only inside a line that has
 already announced another project. Two words, or one of five letters or more:
 admits SIDEWORK and COLD STORAGE, keeps out the FBI, the DMV and LA.
 
-**A finished card is a reward now.** `--win`, `--win-2`, `--win-hair`: a
-champagne wash with a real gold edge and a ring, a white plaque for "Every beat
-has a card", a deep gold Open. The first version used `--gold-soft`, which is
-two shades off paper and, in Kris's words, barely noticeable. Contrast was
-checked against the wash rather than against paper — a grey that reads fine on
-`#FDFBF6` drops to about 2.6:1 on this fill.
+**A finished card is a reward now, and it is GREEN.** Three passes to get here
+and the middle one is the lesson. `--gold-soft` was invisible; a full champagne
+gold was, in Kris's words, horrific — a whole card of mustard is not a small
+version of a gold hairline. He suggested blue. Blue is wrong for a different
+reason: **blue is what you can touch in this app**, so a blue card reads as
+selected rather than finished, and it fights every Open button sitting on it.
+Gold is what's missing. Green is the only hue in this palette that has never
+meant anything else, and complete-is-green needs no explaining.
+
+`--win` / `--win-2` / `--win-hair` / `--win-ink`: a soft sage wash with a real
+sage edge and ring, a white plaque for "Every beat has a card", a deep sage
+Open. **A hue shift reads at a fraction of the intensity a value shift needs** —
+that is why the light sage is unmissable where a light gold was not. Contrast is
+measured against the wash, not against paper: `--ink-2` 5.7:1, `--ink` 11:1,
+`--win-ink` 6.4:1.
+
+**The shelf is three across at every width.** Cards were a fixed 396px and
+wrapped, so a 1280 laptop fit exactly two and the shelf read as a column of
+pairs with a hole beside it. `.slate-grid` is a grid now and **column count is
+the thing being designed**, not card width: three by default, four at 1500, five
+at 1860, with `.slate-wrap` widening in step so the extra columns are real cards
+and not slivers. Under 1060 the card tightens instead of the shelf dropping to
+two — smaller grade, no NEXT UP label, and `.gline` wraps rather than clipping,
+because the half that got cut at 210px was the open count, which is the number
+the card exists to show. Two side effects worth keeping: `.pcard h3` is clamped
+to two lines and `.ph` reserves two lines whether or not the title needs them,
+so a wrapping title ("THE COLLECTION PLATE") no longer pushes its card's grade,
+bar and buttons a line below every other card's.
 
 `/home/claude/vformat.js` covers all of it against his Witness Tree paste.
 
