@@ -792,6 +792,29 @@ in `/tmp/vdest.js`.
 The fixture lives at `/home/claude/_testdata/nighthaul.txt` (gitignored) and
 `/tmp/vsplit.js` runs the real splitter over it without spending credits.
 
+### The "79 notes" that were never missing
+
+Kris ran the same file after the fold changes and the sheet said **79**. He had
+counted 86 and reasonably concluded notes were being lost, and asked for a
+rollback. Nothing was lost. The file folded to 83 and the model marked four as
+strays, which arrive **unticked** — and `updateRevCount()` only ever counted
+ticked ones. A number that silently means something narrower than it says is
+worse than no number. It now reads "79 of 83 notes ticked", and the sheet says
+which lines were unticked and why.
+
+Same root cause as the missing DIRT MONEY project. A one-line pitch for another
+film is genuinely ambiguous, and the grouping prompt gave two contradictory
+instructions about it: "notes files carry unrelated pitches" and "never list
+stray thoughts". So the same line became its own project on one run and an
+unticked stray on the next. The prompt now states the test: **did the writer
+NAME it.** An idea introduced as another project, or carrying a title or a
+working title, is a distinct story however briefly described. An unnamed
+passing thought is not.
+
+Worth keeping in mind: pass one reads the RAW paste, not the folded notes, so
+folding changes cannot affect story grouping. When grouping shifts between two
+runs of the same file it is the model, and the fix is the prompt.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

@@ -4645,9 +4645,17 @@ async function claudePlan(raw){
       + "Where the writer listed several candidate titles or loglines, choose the one they settled "
       + "on - the one they marked as better or praised - not the first one listed. Leave any field "
       + "blank if the file does not say.\n"
+      /* This question used to answer itself two ways. "Notes files carry
+         unrelated pitches" and "never list stray thoughts" are contradictory
+         instructions for the same line, so a one-sentence pitch for another
+         film became a whole project on one run and an unticked stray on the
+         next. The test is now stated: did the writer NAME it. */
       + "2. Does this file cover more than one distinct STORY? Notes files usually carry one main "
-      + "project plus unrelated pitches, errands and reminders. List only genuinely distinct stories, "
-      + "never errands or stray thoughts. The main project is always first.\n\n"
+      + "project plus unrelated pitches, errands and reminders. The test is whether the writer "
+      + "gave the other idea a NAME: an idea introduced as another project, or carrying a title, "
+      + "or a working title, is a distinct story and belongs in this list even if only one line "
+      + "describes it. An unnamed passing thought, a reminder, a research errand or a shopping "
+      + "note is not a story and must never be listed. The main project is always first.\n\n"
       + "For format, return one of these ids only if the text clearly states a format: " + formats + ".\n\n"
       + "FILE:\n\"\"\"\n" + raw.slice(0, 20000) + "\n\"\"\"\n\n"
       + "Reply with JSON only:\n"
@@ -4846,15 +4854,34 @@ function renderReview(){
     : "Only notes that are clearly one specific beat go onto the board. The rest go to your notes "
       + "or to Set aside. Expect most beats to stay empty: those gaps are the point, and filling "
       + "them with near-misses would hide them. Untick anything you don't want.";
+
+  // If anything arrived unticked, say so. Otherwise the writer has to notice
+  // four grey rows on their own and guess why.
+  const unticked = plan.reduce((n, st) => n + st.notes.filter(x => !x.keep).length, 0);
+  if (unticked) document.getElementById("revnote").textContent += " "
+    + unticked + (unticked === 1
+        ? " line read as a stray rather than part of a story, so it is unticked below."
+        : " lines read as strays rather than part of a story, so they are unticked below.")
+    + " Tick any of them to keep it.";
   updateRevCount();
   sheetPaste.hidden = true;
   sheetReview.hidden = false;
 }
+/* This counter said "79 notes" over a file that had been split into 83, and
+   Kris reasonably concluded four had gone missing. They had not: the model had
+   marked four as strays, they arrived unticked, and the count only ever
+   counted ticked ones. A number that silently means something narrower than
+   it says is worse than no number.
+
+   So it says both figures whenever they differ, and the sheet says why. */
 function updateRevCount(){
-  const kept = plan.reduce((n, st) => n + st.notes.filter(x => x.keep).length, 0);
+  const total = plan.reduce((n, st) => n + st.notes.length, 0);
+  const kept  = plan.reduce((n, st) => n + st.notes.filter(x => x.keep).length, 0);
   const beats = plan.reduce((n, st) => n + st.notes.filter(x => x.keep && x.kind === "beat").length, 0);
   document.getElementById("revcount").textContent =
-    kept + " notes · " + beats + " onto the board";
+    (kept === total ? total + " notes"
+                    : kept + " of " + total + " notes ticked")
+    + " · " + beats + " onto the board";
   document.getElementById("revgo").disabled = kept === 0;
 }
 
