@@ -5375,10 +5375,13 @@ function paneUsage(){
       location.href = url;
     } catch (e) { setFlash("bad", esc(BF.explain(e))); b.disabled = false; b.textContent = was; }
   });
-  // Somebody on the way out should not be sold credits they will lose access to.
+  // Somebody on the way out can still buy credits if they want to; a pack was
+  // never a way to keep access, and blocking the purchase would be deciding
+  // for them. Say what happens instead, so nobody is surprised.
   if (top && ME.cancel_at_period_end) {
-    top.disabled = true;
-    top.setAttribute("data-tip", "Your plan is ending, so there is nothing to spend them on yet.");
+    top.setAttribute("data-tip",
+      "Your plan is ending. Credits you buy stay in your account and are waiting "
+      + "if you subscribe again.");
   }
 }
 
@@ -5453,9 +5456,12 @@ function panePlan(){
     + '<div class="setrow">'
       + '<div><div class="lab">Buy more credits</div><div class="help">'
       + (ME.topup_credits || 50) + " credits for $" + (ME.topup_price || 6)
-      + ". Used only after the month's are gone, and they never expire.</div></div>"
-      + '<div class="ctl"><button class="btn" id="s-topup"' + (ME.cancel_at_period_end ? " disabled" : "")
-      + ">Add " + (ME.topup_credits || 50) + " credits</button></div></div>";
+      + ". Used only after the month's are gone, and they never expire."
+      + (ME.cancel_at_period_end
+          ? " Your plan is ending, so these would wait in your account until you subscribe again."
+          : "") + "</div></div>"
+      + '<div class="ctl"><button class="btn" id="s-topup">Add '
+      + (ME.topup_credits || 50) + " credits</button></div></div>";
 
   const openStripe = action => async ev => {
     const b = ev.currentTarget, was = b.textContent;
