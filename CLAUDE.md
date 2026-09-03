@@ -857,6 +857,41 @@ was deciding on the writer's behalf that a line of his file was worthless.
 shelves are for. Unticking is the writer's call, and the chip on every row
 already says how each line was read.
 
+### Nothing placed: the structure switched after classification (3 Sep 2026)
+
+The screenshot that mattered: **Classic Three-Act, 0 placed, 9 open**, and a
+Set aside shelf full of cards labelled POSSIBLY: FUN / BAD / DARK / DEBATE —
+which are *Save the Cat* beat ids. The notes had been sorted against one
+structure and then dropped into another.
+
+`claudePlan` classified against `proj.structure` (Save the Cat). The build then
+did `target.structure = st.brief.format` and moved the project to Three-Act.
+Every card was left holding a beat id that structure does not have, so
+`settle()` could place none of them.
+
+Four changes, and the order of the first two is the whole fix:
+
+1. **Only a format the writer typed may switch the structure.** `header` comes
+   from `localBrief`, which matches an actual "Format:" line. A format the model
+   inferred from a genre line is a guess and must never move somebody off the
+   structure they chose. That guess is what did it.
+2. **The switch happens before classification**, so notes are sorted against the
+   structure they will live in. The build no longer switches at all.
+3. **Folding happens after the switch too.** A heading like "MIDPOINT:" declares
+   a beat id, and an id only means something inside one structure. Folding first
+   left three cards declared against Save the Cat in a Three-Act project.
+4. **A card can never hold a beat its structure lacks.** Whatever happens
+   upstream, an unknown id becomes Set aside, where the writer can see it,
+   rather than vanishing into a board that cannot render it.
+
+Also: `localBrief` only recognised "vertical" and "short" as formats, so
+"Format: Three-Act" was silently dropped — the writer's own statement ignored
+while the model's guess was allowed to act. Named structures are matched now.
+
+`/tmp/vplace.js` reproduces the exact failure (model returns a different format
+plus stc ids): 0 placed before, 45 after, no dead ids. `/tmp/vfmt.js` covers the
+opposite case, where the file does state a format.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

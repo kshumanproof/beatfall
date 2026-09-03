@@ -4450,6 +4450,12 @@ function localBrief(raw){
     else if (/short/.test(v)) out.format = "short";
     else if (/half.?hour|sitcom/.test(v)) out.format = "halfhour";
     else if (/hour|drama series|streaming/.test(v)) out.format = /broadcast|network/.test(v) ? "broadcast" : "streaming";
+    // Named structures, before the generic feature catch. A writer who types
+    // "Format: Three-Act" meant Three-Act, and used to be ignored because only
+    // "vertical" and "short" were recognised: the format they stated was
+    // dropped, and the model's guess was left to move them instead.
+    else if (/three.?act|3.?act/.test(v)) out.format = "three";
+    else if (/save the cat|beat sheet|15.?beat/.test(v)) out.format = "stc";
     else if (/feature|film|movie/.test(v)) out.format = "stc";
   }
   return Object.keys(out).length ? out : null;
@@ -4691,12 +4697,8 @@ function foldNotes(raw, structureKey){
 
 async function claudePlan(raw){
   const proj = P();
-  const S = STRUCTURES[proj.structure];
+  let S = STRUCTURES[proj.structure];
   const header = localBrief(raw) || {};
-
-  const items = foldNotes(raw, proj.structure);
-  const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
-  if (!notes.length) return [];
 
   const sid = newSid();                       // the whole import bills as one
   const ask = (prompt) => ai_sample.json(prompt, {kind: "import", session: sid, signal: dumpCtl.signal});
@@ -4737,6 +4739,42 @@ async function claudePlan(raw){
      it or not, and the note that named it goes into that group so the new
      project does not arrive empty. `forced` overrides the model's routing for
      exactly those notes. */
+  /* ------------------------------------------------------------------------
+     THE STRUCTURE HAS TO BE SETTLED BEFORE ANYTHING IS CLASSIFIED.
+
+     This is what put nothing on the board. Notes were classified against the
+     project's current structure - Save the Cat, fifteen beats - and then the
+     build switched the project to Classic Three-Act afterwards. Every card was
+     left holding a beat id that does not exist in the structure it landed in,
+     so settle() could place none of them: nine beats open, zero placed, and a
+     shelf of cards labelled with beats from a structure the project was no
+     longer using.
+
+     Two rules now, and both matter:
+
+     ONLY WHAT THE WRITER TYPED MAY SWITCH IT. A format the model inferred from
+     a genre line is a guess, and a guess must never move somebody off the
+     structure they chose. `header` comes from localBrief, which only matches an
+     actual "Format:" line in the file.
+
+     AND IT HAPPENS HERE, before the beats list is built, so the notes are
+     sorted against the structure they will actually live in.
+     ------------------------------------------------------------------------ */
+  if (header.format && STRUCTURES[header.format]
+      && header.format !== proj.structure && !proj.cards.length){
+    proj.structure = header.format;
+    S = STRUCTURES[header.format];
+    sel.value = header.format;
+  }
+
+  /* Folding happens AFTER the structure is settled, because a heading like
+     "MIDPOINT:" declares a beat id, and a beat id only means something inside
+     one structure. Folding first left three cards declared against Save the
+     Cat while the project had moved to Three-Act. */
+  const items = foldNotes(raw, proj.structure);
+  const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
+  if (!notes.length) return [];
+
   const forced = new Map();
   const known = () => groups.map(g =>
     String(g.name || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
@@ -5043,16 +5081,24 @@ document.getElementById("revgo").addEventListener("click", () => {
       ["log","who","genre","like","setting"].forEach(k => {
         if (st.brief[k] && !target.brief[k]) target.brief[k] = st.brief[k];
       });
-      if (st.brief.format && STRUCTURES[st.brief.format] && !target.cards.length
-          && target.structure !== st.brief.format){
-        target.structure = st.brief.format;
-      }
+      /* The structure is settled in claudePlan, before classification. It is
+         deliberately NOT switched here any more: doing it after the notes were
+         sorted is what left every card pointing at a beat that no longer
+         existed. */
     }
+    // Whatever happens upstream, a card never lands holding a beat id this
+    // project's structure does not have. It goes to Set aside instead, where
+    // the writer can see it, rather than vanishing into a board that cannot
+    // render it.
+    const slots = (STRUCTURES[target.structure] || {}).slots || [];
+    const real  = id => id && slots.some(x => x.id === id);
     notes.forEach(n => {
       target.cards.push({
         id: uid++, text: n.text, pinned: false, kind: n.kind,
-        maybe: n.maybe || null, full: n.full || null, declared: !!n.declared,
-        slot: n.kind === "beat" ? (n.beat || "__none") : "__shelf"
+        maybe: real(n.maybe) ? n.maybe : null,
+        full: real(n.full) ? n.full : null,
+        declared: !!n.declared,
+        slot: n.kind === "beat" ? (real(n.beat) ? n.beat : "__none") : "__shelf"
       });
       added++;
     });
