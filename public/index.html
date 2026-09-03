@@ -37,10 +37,17 @@
      and blue means what you can touch, so a gold card fights its own meaning
      and a blue one reads as selected rather than done. Green is the one hue
      in this palette that has never meant anything else. */
-  --win:#DCE8DD;
-  --win-2:#CBDECF;         /* the low end of its wash */
-  --win-hair:#5F8A6C;      /* its edge, which has to hold against the fill */
-  --win-ink:#2F5139;       /* its text. 6.4:1 on the wash */
+  /* A finished board: the card, printed. Ink with a gold rule and gold type.
+     Two light washes were tried first and both were wrong for the same reason
+     - a light card among light cards is a highlight, and a highlight is what
+     you put on something you have not dealt with yet. A DARK card among light
+     ones cannot be misread: it is not selected, it is not a warning, it is
+     bound. Gold on ink is this app's own vocabulary at full strength, and it
+     is the one place gold does not mean "missing", because nothing is. */
+  --win:#33302A; --win-2:#231F1A; --win-hair:#7B5A13; --win-ink:#E8CD8A;
+  --win-body:#EDE7DC; --win-mute:#BCB2A4; --win-chip:rgba(255,255,255,.08);
+  --win-chip-ink:#EDE7DC; --win-track:rgba(255,255,255,.14);
+  --win-go-ink:#211D18; --win-del:#E5A5A5;
   --sage:#4A7358;
   --sage-soft:#E7EEE9;
   --red:#8C2F2F;
@@ -76,10 +83,12 @@
     --gold-hair:#7E6C3E;
     --gold-ink:#EBD5A2;
     --on-gold:#14181C;
-    --win:#1F2E23;
-    --win-2:#182620;
-    --win-hair:#4E7359;
-    --win-ink:#A8CDB2;
+    /* Warmer and a shade lighter than the dark card it sits on, so the
+       finished one still reads as a different object rather than a hole. */
+    --win:#332E24; --win-2:#241F18; --win-hair:#8A7233; --win-ink:#EBD5A2;
+    --win-body:#EFE9DE; --win-mute:#BAAF9E; --win-chip:rgba(255,255,255,.07);
+    --win-chip-ink:#EFE9DE; --win-track:rgba(255,255,255,.13);
+    --win-go-ink:#1E1A14; --win-del:#D98A8A;
     --sage:#8CB79A;
     --sage-soft:#1E2A22;
     --red:#D98A8A;
@@ -107,10 +116,10 @@
   --gold-hair:#7E6C3E;
   --gold-ink:#EBD5A2;
   --on-gold:#14181C;
-  --win:#1F2E23;
-  --win-2:#182620;
-  --win-hair:#4E7359;
-  --win-ink:#A8CDB2;
+  --win:#332E24; --win-2:#241F18; --win-hair:#8A7233; --win-ink:#EBD5A2;
+  --win-body:#EFE9DE; --win-mute:#BAAF9E; --win-chip:rgba(255,255,255,.07);
+  --win-chip-ink:#EFE9DE; --win-track:rgba(255,255,255,.13);
+  --win-go-ink:#1E1A14; --win-del:#D98A8A;
   --sage:#8CB79A;
   --sage-soft:#1E2A22;
   --red:#D98A8A;
@@ -1153,6 +1162,20 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    contradiction from outside the card: a full board has nothing missing on it,
    so there is no gold count to clash with. Inside this card gold means the
    whole of it, which is the same idea from the other end. */
+/* Every colour on a finished card comes from this one set of tokens, so the
+   whole treatment is a palette swap and not a hunt through twelve rules. Light
+   fills and dark fills both work: --win-chip and the ink tokens flip together.
+     --win / --win-2   the wash
+     --win-hair        edge, ring, bar fill
+     --win-ink         the accent: title, the number, the plaque, Open
+     --win-body        the logline
+     --win-mute        the small lines under the number
+     --win-chip        what the plaque and the pale buttons sit on
+     --win-chip-ink    text on those
+     --win-track       the bar's empty half
+     --win-go-ink      text on Open
+     --win-del         the delete button, which stays a warning whatever else
+                       the card happens to be doing                           */
 .pcard.full{
   background:linear-gradient(168deg,var(--win) 0%,var(--win-2) 100%);
   border-color:var(--win-hair);
@@ -1162,26 +1185,31 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 }
 .pcard.full:hover{box-shadow:0 0 0 1px var(--win-hair),var(--shadow-lift)}
 .pcard.full h3{color:var(--win-ink)}
-/* Contrast, checked against the wash rather than against paper. A faded grey
-   that reads fine on #FDFBF6 drops to about 2.6:1 on this fill, which is a
-   card you cannot read as the reward for finishing one. On this wash --ink-2
-   measures 5.7:1, --ink 11:1, --win-ink 6.4:1. */
-.pcard.full .log{color:var(--ink)}
+/* Contrast is measured against the WASH, not against paper. A faded grey that
+   reads fine on #FDFBF6 can drop under 3:1 on a fill, which is a card you
+   cannot read as the reward for finishing one. */
+.pcard.full .log{color:var(--win-body)}
 .pcard.full .gnum{color:var(--win-ink)}
-.pcard.full .glab,.pcard.full .gline,.pcard.full .gfmt,.pcard.full .when{color:var(--ink-2)}
-.pcard.full .bar{background:rgba(0,0,0,.09)}
+.pcard.full .glab,.pcard.full .gline,.pcard.full .gfmt,.pcard.full .when{color:var(--win-mute)}
+.pcard.full .gline b{color:var(--win-ink)}
+.pcard.full .bar{background:var(--win-track)}
 .pcard.full .bar i{background:var(--win-hair)}
 /* A plaque, not a status strip: it sits on the wash the way a card sits on a
    table, which is the difference between "this is done" and "this is fine". */
 .pcard.full .done{
-  color:var(--win-ink);background:var(--card);border-color:var(--win-hair);
+  color:var(--win-ink);background:var(--win-chip);border-color:var(--win-hair);
   font-weight:600;justify-content:center;letter-spacing:.01em;
 }
-.pcard.full .acts .btn{background:var(--card);border-color:var(--win-hair)}
-.pcard.full .acts .btn:hover{border-color:var(--win-ink);color:var(--ink)}
-.pcard.full .acts .btn.go{background:var(--win-ink);border-color:var(--win-ink);color:var(--card)}
-.pcard.full .acts .btn.go:hover{background:var(--win-hair);border-color:var(--win-hair);color:var(--card)}
-.pcard.full .acts .del{color:var(--red);background:var(--card);border-color:#E0C9C9}
+.pcard.full .acts .btn{
+  background:var(--win-chip);border-color:var(--win-hair);color:var(--win-chip-ink);
+}
+.pcard.full .acts .btn:hover{border-color:var(--win-ink);color:var(--win-chip-ink)}
+.pcard.full .acts .btn.go{
+  background:var(--win-ink);border-color:var(--win-ink);color:var(--win-go-ink);
+}
+.pcard.full .acts .btn.go:hover{background:var(--win-hair);border-color:var(--win-hair);color:var(--win-go-ink)}
+.pcard.full .acts .del{color:var(--win-del);background:var(--win-chip);border-color:var(--win-hair)}
+.pcard.full .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
 .pcard .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:2px}
 .pcard .acts .btn{

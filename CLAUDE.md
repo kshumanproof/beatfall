@@ -1078,21 +1078,38 @@ reads the shouted run at the END of the line, and only inside a line that has
 already announced another project. Two words, or one of five letters or more:
 admits SIDEWORK and COLD STORAGE, keeps out the FBI, the DMV and LA.
 
-**A finished card is a reward now, and it is GREEN.** Three passes to get here
-and the middle one is the lesson. `--gold-soft` was invisible; a full champagne
-gold was, in Kris's words, horrific — a whole card of mustard is not a small
-version of a gold hairline. He suggested blue. Blue is wrong for a different
-reason: **blue is what you can touch in this app**, so a blue card reads as
-selected rather than finished, and it fights every Open button sitting on it.
-Gold is what's missing. Green is the only hue in this palette that has never
-meant anything else, and complete-is-green needs no explaining.
+**A finished card is a reward now, and it is INK.** Three rejected passes to
+get here, and the lesson is worth more than the colour.
 
-`--win` / `--win-2` / `--win-hair` / `--win-ink`: a soft sage wash with a real
-sage edge and ring, a white plaque for "Every beat has a card", a deep sage
-Open. **A hue shift reads at a fraction of the intensity a value shift needs** —
-that is why the light sage is unmissable where a light gold was not. Contrast is
-measured against the wash, not against paper: `--ink-2` 5.7:1, `--ink` 11:1,
-`--win-ink` 6.4:1.
+Attempt one was `--gold-soft` — invisible, two shades off paper. Attempt two was
+a full champagne gold — "horrific", and rightly: a whole card of mustard is not
+a bigger version of a gold hairline. Attempt three was sage, which he also
+didn't want. Kris suggested blue.
+
+What all three failures had in common: **they were light cards among light
+cards, which is a highlight, and a highlight is what you put on something you
+have not dealt with yet.** No amount of hue-picking fixes that. A DARK card
+among light ones cannot be misread — it is not selected, it is not a warning,
+it is bound. Ink with a gold rule and gold type, which is this app's own
+vocabulary at full strength, and the one place gold does not mean "missing",
+because on that card nothing is.
+
+Blue specifically stays out: **blue is what you can touch here**, so a blue card
+reads as selected and fights every Open button sitting on it.
+
+The other thing worth keeping from this round: after two rejected guesses, the
+right move was to stop guessing. `/home/claude/vwin.js` renders the real card
+in five palettes side by side, light and dark, from the real stylesheet — one
+screenshot, one question, done. **"Which of these" is a far easier question than
+"is this better than the one you saw ten minutes ago."**
+
+That was only possible because the card was refactored first: every colour on a
+`.pcard.full` now comes from one `--win-*` token set (`--win`, `--win-2`,
+`--win-hair`, `--win-ink`, `--win-body`, `--win-mute`, `--win-chip`,
+`--win-chip-ink`, `--win-track`, `--win-go-ink`, `--win-del`), so a treatment is
+a palette swap and light and dark fills both work. Contrast is measured against
+the WASH, not against paper: on ink, body text 12:1, the small lines 7:1, the
+gold 9.6:1.
 
 **The shelf is three across at every width.** Cards were a fixed 396px and
 wrapped, so a 1280 laptop fit exactly two and the shelf read as a column of
