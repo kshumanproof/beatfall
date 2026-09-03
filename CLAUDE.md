@@ -575,3 +575,23 @@ Two rules learned the hard way, both from Kris reading it cold:
 
 And where the number says it all, say nothing: the empty-beats cell has no note
 unless the count is zero, in which case it says "Every one has a card."
+
+## Email addresses (2 Sep 2026)
+
+- **contact@beatfall.app** is the one address the PRODUCT uses. Footer feedback
+  link, billing page, anywhere a writer is invited to write in.
+- **privacy@** and **legal@** stay in the Privacy Policy and Terms. Those are
+  named channels people expect in a legal document, and a privacy request is a
+  different kind of mail from a bug report.
+
+All three need to exist and forward somewhere Kris reads. A dead mailbox on a
+Terms page is worse than no address.
+
+## Footer copyright (2 Sep 2026)
+
+A strip under the columns: copyright, entity, jurisdiction, and one line saying
+the writing stays theirs, linking to Terms §2. The year is written by
+`new Date().getFullYear()` so it cannot go stale in January.
+
+The account pill's clearance moved to this strip's bottom padding, since it is
+now the last thing in the footer.
