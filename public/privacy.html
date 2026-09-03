@@ -89,16 +89,14 @@
   <div class="plain">
     <div class="h">The short version</div>
     <p><strong>Yes, your projects are saved.</strong> That's the product: your boards follow you
-      between machines. Anyone who tells you a tool like this stores nothing is describing a
-      different tool.</p>
-    <p><strong>They're saved privately.</strong> Every row in our database is locked to one
-      account, by the database itself. No other user can reach your work. Our own admin tools
-      can count your cards but cannot read them.</p>
+      between machines.</p>
+    <p><strong>They're saved privately.</strong> Database-level controls lock each account to
+      its own rows, so no other user can reach your work. Our normal admin tools can count your
+      cards but cannot read them.</p>
     <p><strong>Nothing you write trains a model.</strong> Not ours, not Anthropic's, not anyone's.</p>
-    <p><strong>No ads, no trackers, no data sales.</strong> Beatfall makes money one way: people
-      pay $12 a month for it.</p>
-    <p><strong>You can take it all with you, any time.</strong> One button in Settings, no
-      conditions.</p>
+    <p><strong>No ads, no trackers, no data sales.</strong> Beatfall makes money one way:
+      subscriptions.</p>
+    <p><strong>Export your work any time.</strong> One button in Settings.</p>
   </div>
 
   <h2 id="s1">1</h2>
@@ -121,12 +119,11 @@
     <li><strong>Ordinary server logs</strong> kept by our hosting provider, which include IP
       addresses, as any web server does.</li>
   </ul>
-  <p>We don't ask for your real name, address, phone number or date of birth, and we'd rather you
-    didn't give them to us.</p>
+  <p>We don't ask for your real name, address, phone number or date of birth.</p>
 
   <h2 id="s2">2</h2>
   <h3>Who can actually see your writing</h3>
-  <p><strong>You can.</strong> Every projects, usage and profile row is protected by row-level
+  <p><strong>You can.</strong> Every project, usage and profile row is protected by row-level
     security in Postgres: a signed-in account can read its own rows and is refused every other
     row. That's enforced beneath our application code, not by it, so a bug in the app can't quietly
     hand your work to another user.</p>
@@ -212,8 +209,8 @@
     <li><strong>Your material</strong>: until you delete it, or delete your account, or the
       account goes six months without a sign-in and without a live subscription. At that point
       the account and everything in it is deleted automatically. We email you about a month
-      beforehand, and signing in resets the clock. This is a job that runs, not an intention:
-      we would rather not be holding a stranger's unfinished screenplay indefinitely.</li>
+      beforehand, and signing in resets the clock. The deletion runs automatically on this
+      schedule.</li>
     <li><strong>Usage and billing records</strong>: kept while your account exists and for as long
       afterwards as tax and accounting rules require. They contain no story text.</li>
     <li><strong>Server logs</strong>: on our host's ordinary retention schedule.</li>
@@ -223,7 +220,7 @@
 
   <h2 id="s7">7</h2>
   <h3>What you can do about all of this</h3>
-  <p>Two of these are buttons rather than requests, which we think is the right way round:</p>
+  <p>You can export or delete your data directly from Settings:</p>
   <ul>
     <li><strong>Take it with you.</strong> Settings → Your data → Download everything. Every
       project, card, note and outline in one file. No conditions and no waiting on us.</li>
@@ -231,13 +228,13 @@
       account from Settings → Profile. Account deletion removes your profile, projects, usage and
       events from the live database immediately and cannot be undone. Export first.</li>
     <li><strong>Correct it, or ask what we hold.</strong> Email
-      <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a>. The export button will
-      generally answer the question faster than we can.</li>
+      <a href="mailto:privacy@beatfall.app">privacy@beatfall.app</a>. You can also use the export
+      tool in Settings to download your data.</li>
   </ul>
   <p>Depending on where you live (the EEA and UK, California, and a growing number of US states)
     you may have statutory rights of access, correction, deletion, portability and objection, and a
-    right not to be discriminated against for exercising them. We honour these requests from
-    everyone, wherever you are, rather than checking your postcode first. For EEA and UK users, our
+    right not to be discriminated against for exercising them. We honor these requests for all
+    users, regardless of location. For EEA and UK users, our
     lawful bases are performance of our contract with you (running the Service), our legitimate
     interests (keeping it secure and working out what it costs), and legal obligation (tax
     records). You may complain to your local supervisory authority.</p>
@@ -248,7 +245,7 @@
     link, so there is no password of yours for us to lose. Access to production systems is limited
     to the one person who runs Beatfall and protected by multi-factor authentication.</p>
   <p>No service is perfectly secure. If a breach affects your material, we'll tell you what
-    happened, what was affected and what to do about it, without waiting to be forced to.</p>
+    happened, what was affected and what you should do next.</p>
 
   <h2 id="s9">9</h2>
   <h3>Children</h3>

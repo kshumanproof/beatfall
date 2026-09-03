@@ -28,6 +28,9 @@ beat costs nothing; a wrong one costs trust. AI placements gate on confidence â€
 - **Never run git in `C:\Users\KrisShuman\beatfall`.** A `git status` there once
   left a `.git/index.lock` that blocked his commits. Read `.git/logs/HEAD`
   directly if I need repo state. He runs every git command himself.
+- **He runs commands in the VS Code terminal, which is Windows PowerShell.**
+  `&&` is a parse error there. Chain with `;` instead, and give the whole
+  command on one line ready to paste.
 - **Never ask for or handle an API key, secret, or service_role key.** Keys go
   from the source site straight into Vercel's env box. Never screenshot one.
 - I don't create his accounts, enter payment details, or deploy for him.
@@ -539,8 +542,8 @@ Two halves, and both matter:
 
 The vocabulary that replaced them:
 
-- The product does the thing: **"Beatfall reads it"**, "it asks", "a beat is
-  proposed".
+- The product does the thing: **"Beatfall reads it"**, "Beatfall suggests where
+  it belongs", "it asks".
 - The metered capability is **"the writing help"**. Never "the AI features".
 - Failures are **"Couldn't get an answer just now"**, never "couldn't reach
   Claude".
@@ -550,6 +553,42 @@ writer reads them, and blurring them would make the code harder to work on.
 
 Audit with a comment-stripping grep for `Claude|\bAI\b|the model` across
 `public/*.html` and `public/app.js`; user-facing hits should be zero.
+
+## Copy standard (3 Sep 2026)
+
+From an outside UX-writing brief Kris commissioned, adopted as the house rule:
+**the brand may be evocative, the product must be plain.** Brand copy earns
+emotion, UI copy earns understanding.
+
+What that means line by line:
+
+- Say what happens, not what the system is doing internally. "Beatfall suggests
+  where it belongs", never "the board re-settled" or "it looks again".
+- One idea per sentence. If a line explains the action, the reasoning behind it
+  and the future benefit, cut the reasoning.
+- Verbs over concepts. "You can move the card later" beats "every card follows
+  you across".
+- Never make the writer decode a metaphor to use a control.
+- Delete lines whose only job is showing personality. Good sentence, no product
+  job, no place in the UI.
+- Absolutes are accuracy claims. **forever, nobody, nowhere, never, only,
+  always, exactly** each need checking against Privacy, Terms and Billing before
+  they ship. Three shipped absolutes were false and were removed: "free
+  forever", "nobody else can read it, including us", "goes to your account and
+  nowhere else".
+- Screenwriting vocabulary is fine and often clearer, because the audience is
+  writers: beat, logline, structure, outline, comps, card. Beatfall-only jargon
+  is not.
+
+The test: if a line reads faster after the edit with no loss of meaning, trust
+or Beatfall identity, keep the edit. If the rewrite is merely nicer, leave the
+original alone.
+
+Where I declined the brief: it proposed **"AI-assisted features"** as the house
+term, which would undo the naming rule above. Accuracy fixes taken, term not.
+It also proposed weakening the independent-development disclosure in Terms
+("similar ideas can arise independently") and pluralising "the person who runs
+Beatfall"; both are inaccurate, so the disclosure kept its original force.
 
 ## Footer and the account pill (2 Sep 2026)
 

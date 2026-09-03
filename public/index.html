@@ -1469,12 +1469,11 @@ footer{
 
   <div class="sheet" id="sheetpaste">
     <div class="sheet-title">Paste in your notes</div>
-    <p class="sheet-note">Paste the whole mess, or drop the text files straight in. It doesn't need
-      to be tidy, one-per-line, or even about one story. Beatfall reads it, separates the ideas,
-      works out which are beats and which are character, voice or dialogue notes, and builds the
-      board. Your wording is kept exactly as you wrote it.</p>
-    <p class="sheet-note" style="margin-top:-8px">It goes to your account and nowhere else. It is
-      never used to train a model, and no other person can read it.
+    <p class="sheet-note">Paste the whole mess, or drop in your text files. It doesn't need to be
+      organized or even limited to one story. Beatfall separates the ideas, identifies story beats
+      and other notes, and builds your board without changing your words.</p>
+    <p class="sheet-note" style="margin-top:-8px">Your notes stay private and are never used to
+      train a model.
       <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
     <textarea id="dumptext" spellcheck="false" placeholder="drag .txt or .md files here, or paste&#10;&#10;he never tells her about the money, maybe that's the whole thing?&#10;the dog knows before anyone else does&#10;GRANDMOTHER: &quot;We don't say that name at this table.&quot;&#10;ends at the same kitchen table, different chair"></textarea>
     <div class="sheet-actions">
@@ -1487,8 +1486,8 @@ footer{
 
   <div class="sheet" id="sheetnew" hidden>
     <div class="sheet-title" id="newtitle">A new project</div>
-    <p class="sheet-note">Everything here is optional except the format, but the more it knows, the
-      better its questions get, and the better it places a note you type six weeks from now.</p>
+    <p class="sheet-note">Only the format is required. Add more detail for better questions and
+      more accurate beat placement.</p>
 
     <div class="field">
       <label for="f-name">Title</label>
@@ -1498,7 +1497,7 @@ footer{
     <div class="field">
       <label for="f-format">Format and structure</label>
       <select id="f-format"></select>
-      <div class="hint">Changeable on the board at any time, and every card follows you across.</div>
+      <div class="hint">You can change this later without losing any cards.</div>
     </div>
 
     <div class="field">
@@ -1567,9 +1566,8 @@ footer{
       <input id="f-set" type="text" autocomplete="off" placeholder="Present-day North Carolina dirt-track country">
       </div>
       <div>
-      <label for="f-like">What it's like</label>
+      <label for="f-like">Comps</label>
       <input id="f-like" type="text" autocomplete="off" placeholder="Winter's Bone meets Mud: the comparison you'd say out loud in a room">
-      <div class="hint">Tone travels better than genre.</div>
       </div>
     </div>
 
@@ -1604,7 +1602,7 @@ footer{
         <button class="btn btn-ghost" id="unplace" data-tip="Keeps the note without deciding where it goes. It waits in Set aside until you drag it somewhere.">Set it aside for now</button>
         <button class="btn btn-ghost" id="cancel">Cancel</button>
         <span class="sharpen" id="sharpen"></span>
-        <span class="proposal-hint">Pick a beat. You can drag the card anywhere afterwards.</span>
+        <span class="proposal-hint">Pick a beat. You can move the card later.</span>
       </div>
     </div>
   </div>
@@ -1612,7 +1610,7 @@ footer{
   <div class="settled" id="settled" hidden>
     <div class="settled-inner">
       <div class="settled-list">
-        <div class="settled-title" id="settledtitle">The board re-settled</div>
+        <div class="settled-title" id="settledtitle">Board updated</div>
         <div id="settledlines"></div>
       </div>
       <button class="btn" id="undo" data-tip="Puts the board back exactly as it was before the last thing that changed it.">Undo</button>
@@ -1639,7 +1637,7 @@ footer{
       </div>
 
       <div id="askdraft" hidden>
-        <div class="draft-label" id="draftlabel">The card: everything you said, in one beat. Edit it before it lands.</div>
+        <div class="draft-label" id="draftlabel">Here's the beat Beatfall built from your answers. Edit it before adding it to the board.</div>
         <textarea id="drafttext" rows="3"></textarea>
         <div class="ask-actions">
           <button class="btn btn-primary" id="draftgo" data-tip="Adds this as the card for that beat, pinned so the board won't move it later.">Put it on the board</button>
@@ -1661,8 +1659,8 @@ footer{
         <h2 class="slate-h" id="outlinetitle">Outline</h2>
         <div class="slate-acts"><span class="sheet-count" id="outlinecount"></span></div>
       </div>
-      <p class="figlede">The beats are locked in order. Write what actually happens under each one,
-        and drag anything from the right into the beat where it belongs.</p>
+      <p class="figlede">The beat order follows your chosen structure. Add what happens under each
+        beat, or drag notes in from the right.</p>
       <div id="outlinebody"></div>
     </div>
     <aside class="outline-rail">
@@ -1800,14 +1798,14 @@ footer{
 
     <div class="foot-col">
       <div class="foot-k">Your material</div>
-      <p>Nothing you write trains a model. Nobody else can read it, including us.
-        Export or delete it whenever you like.</p>
+      <p>Your work stays private. It isn't used to train a model, and other users
+        can't reach it. Export or delete it anytime.</p>
     </div>
 
     <div class="foot-col">
       <div class="foot-k">How placing works</div>
-      <p>A beat is proposed the moment you type. Beatfall looks again more
-        carefully afterwards, and asks rather than guesses.</p>
+      <p>Type a note and Beatfall suggests where it belongs. If it isn't
+        sure, it asks you.</p>
     </div>
 
     <nav class="foot-links" aria-label="Site">
@@ -1836,25 +1834,23 @@ footer{
 <div class="scrim" id="firstrun" hidden>
   <div class="sheet">
     <div class="sheet-title">Welcome to Beatfall</div>
-    <p class="sheet-note">You write notes. Beatfall works out which of them are story beats, puts
-      them where they belong in the structure you're writing to, and shows you the holes between
-      them. It asks before it guesses, and it never writes your script.</p>
+    <p class="sheet-note">Write or paste your notes. Beatfall sorts them into story beats, places
+      them in the structure you're writing to, and shows you what's missing. If it isn't sure, it
+      asks. It never writes your script.</p>
     <div class="firstrun-choices">
       <button class="fr" data-go="paste">
         <b>I have notes already</b>
-        <span>Paste in a file. Three months of scraps is ideal. It sorts the whole thing and
-          builds the board.</span>
+        <span>Paste or drop in your notes. Beatfall sorts them and builds your board.</span>
         <i>The fastest way to see what this does</i>
       </button>
       <button class="fr" data-go="new">
         <b>I'm starting something</b>
-        <span>Tell it the title, format and logline, then type ideas one at a time as they come.</span>
+        <span>Add your title, format and logline, then type ideas as they come.</span>
         <i></i>
       </button>
       <button class="fr" data-go="sample">
-        <b>Show me an example first</b>
-        <span>Loads a made-up crime story so you can see a filled board and its gaps before
-          using your own material.</span>
+        <b>Show me an example</b>
+        <span>See a sample project and how Beatfall finds the gaps.</span>
         <i></i>
       </button>
     </div>
@@ -3836,8 +3832,8 @@ document.getElementById("askcard").addEventListener("click", async () => {
 
   convo.hidden = true; draft.hidden = false;
   document.getElementById("draftlabel").textContent = thread.mode === "note"
-    ? "The note, filled in. Edit it, then it'll find its beat"
-    : "The card: everything you said, in one beat. Edit it before it lands.";
+    ? "Here's your note, filled in. Edit it before placing it."
+    : "Here's the beat Beatfall built from your answers. Edit it before adding it to the board.";
   document.getElementById("draftgo").textContent = thread.mode === "note"
     ? "Place it" : "Put it on the board";
 
@@ -5641,8 +5637,8 @@ function paneData(){
         "Every project, card and note as a single JSON file.",
         '<button class="btn" id="s-export">Download</button>')
     + row("Who can see your writing",
-        "Only you. The database locks your work to your account, and our own admin tools can "
-        + "count your cards but cannot read them. Nothing you write trains a model.",
+        "The database locks your work to your account, and our normal admin tools can count "
+        + "your cards but cannot read them. Nothing you write trains a model.",
         '<a class="btn" href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>')
     + row("The agreement",
         "What you own, what we can do, and what happens if two people write the same story.",
