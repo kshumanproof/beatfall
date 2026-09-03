@@ -37,17 +37,27 @@
      and blue means what you can touch, so a gold card fights its own meaning
      and a blue one reads as selected rather than done. Green is the one hue
      in this palette that has never meant anything else. */
-  /* A finished board: the card, printed. Ink with a gold rule and gold type.
-     Two light washes were tried first and both were wrong for the same reason
-     - a light card among light cards is a highlight, and a highlight is what
-     you put on something you have not dealt with yet. A DARK card among light
-     ones cannot be misread: it is not selected, it is not a warning, it is
-     bound. Gold on ink is this app's own vocabulary at full strength, and it
-     is the one place gold does not mean "missing", because nothing is. */
-  --win:#33302A; --win-2:#231F1A; --win-hair:#7B5A13; --win-ink:#E8CD8A;
-  --win-body:#EDE7DC; --win-mute:#BCB2A4; --win-chip:rgba(255,255,255,.08);
-  --win-chip-ink:#EDE7DC; --win-track:rgba(255,255,255,.14);
-  --win-go-ink:#211D18; --win-del:#E5A5A5;
+  /* A finished board: bound in navy, lettered in gold.
+
+     Four treatments were tried and three failed the same test. A light wash
+     (gold, sage) is a HIGHLIGHT among light cards, and a highlight is what you
+     put on something you have not dealt with yet. Ink solved that in daylight
+     and vanished in dark mode, where a near-black card among near-black cards
+     is a hole rather than an object.
+
+     What has to be true in BOTH modes is the same thing: the card is a
+     SATURATED FILL. Navy holds against cream and against near-black, because
+     it is not trying to be lighter or darker than its neighbours, it is trying
+     to be a different colour from them, and that reads at any brightness.
+
+     The one thing to watch: blue is what you can touch in this app. It does
+     not read as "selected" here because it is the whole card at full strength
+     rather than a tint, and because the action on it goes GOLD - the card is
+     blue, the button is not. Do not make Open blue on this card. */
+  --win:#2A5686; --win-2:#1E4269; --win-hair:#14355A; --win-ink:#F2E3BD;
+  --win-body:#E8EFF7; --win-mute:#B7CCE3; --win-chip:rgba(255,255,255,.10);
+  --win-chip-ink:#F1F5FA; --win-track:rgba(255,255,255,.18);
+  --win-go-ink:#15304D; --win-del:#F2B8B8;
   --sage:#4A7358;
   --sage-soft:#E7EEE9;
   --red:#8C2F2F;
@@ -83,12 +93,12 @@
     --gold-hair:#7E6C3E;
     --gold-ink:#EBD5A2;
     --on-gold:#14181C;
-    /* Warmer and a shade lighter than the dark card it sits on, so the
-       finished one still reads as a different object rather than a hole. */
-    --win:#332E24; --win-2:#241F18; --win-hair:#8A7233; --win-ink:#EBD5A2;
-    --win-body:#EFE9DE; --win-mute:#BAAF9E; --win-chip:rgba(255,255,255,.07);
-    --win-chip-ink:#EFE9DE; --win-track:rgba(255,255,255,.13);
-    --win-go-ink:#1E1A14; --win-del:#D98A8A;
+    /* Kept saturated rather than darkened. A dark-mode "dark blue" slides into
+       the neutral card it sits beside; this one stays blue. */
+    --win:#1E4470; --win-2:#17345A; --win-hair:#4F82BA; --win-ink:#EBD5A2;
+    --win-body:#DFEAF5; --win-mute:#A8C1DA; --win-chip:rgba(255,255,255,.08);
+    --win-chip-ink:#E6EEF7; --win-track:rgba(255,255,255,.15);
+    --win-go-ink:#142639; --win-del:#E0A0A0;
     --sage:#8CB79A;
     --sage-soft:#1E2A22;
     --red:#D98A8A;
@@ -116,10 +126,10 @@
   --gold-hair:#7E6C3E;
   --gold-ink:#EBD5A2;
   --on-gold:#14181C;
-  --win:#332E24; --win-2:#241F18; --win-hair:#8A7233; --win-ink:#EBD5A2;
-  --win-body:#EFE9DE; --win-mute:#BAAF9E; --win-chip:rgba(255,255,255,.07);
-  --win-chip-ink:#EFE9DE; --win-track:rgba(255,255,255,.13);
-  --win-go-ink:#1E1A14; --win-del:#D98A8A;
+  --win:#1E4470; --win-2:#17345A; --win-hair:#4F82BA; --win-ink:#EBD5A2;
+  --win-body:#DFEAF5; --win-mute:#A8C1DA; --win-chip:rgba(255,255,255,.08);
+  --win-chip-ink:#E6EEF7; --win-track:rgba(255,255,255,.15);
+  --win-go-ink:#142639; --win-del:#E0A0A0;
   --sage:#8CB79A;
   --sage-soft:#1E2A22;
   --red:#D98A8A;
