@@ -414,3 +414,82 @@ and asserts the offsets match.
 A clipped logline keeps its full text in a `title` attribute and is whole
 everywhere else. A logline is meant to be one sentence; three lines is already
 generous.
+
+## Credits, access and deletion (2 Sep 2026)
+
+Decided by Kris this morning and built the same day. The whole model in one
+place, because it is spread across six files.
+
+### Two buckets
+
+- **Monthly** = plan.credits (150). Resets on the 1st. Whatever is left of it
+  evaporates. It is what `credits_used` counts against.
+- **Banked** = `credits_extra`. Bought. Never renews, never expires, and is
+  only touched once the month's allowance is gone.
+
+`spend(profile, ent, n)` in `api/_lib/core.js` is the only thing that moves
+either number, and the order is not negotiable: monthly first. Spending banked
+first looks protective but burns what somebody paid for while their free
+allowance expires unused.
+
+**The bug this replaced.** `allowance` was `plan.credits + credits_extra` and
+the monthly reset only zeroed `credits_used`. So one $6 top-up raised that
+account's allowance by 100 credits EVERY MONTH, forever. Kris found it by
+asking a question about rollover. Verified fixed by `/home/claude/credits.js`,
+which walks the spillover and asserts a new month still reads 150.
+
+### Pricing
+
+Pack is **50 credits for $6**, down from 100. Not a cost decision: measured
+cost is about a penny a credit, so 100/$6 was still 80% margin. It is an
+anchoring decision. The plan is 150 for $12 (8c a credit); a pack at 100/$6
+was 6c, ie CHEAPER than subscribing, which taught people to skip the plan.
+50/$6 is 12c, so the plan is plainly the better deal.
+
+Measured with `/home/claude/cost.js` and `cost2.js`, which drive the real
+flows with a fake `ai_sample` and size the actual payloads: a 3-turn
+conversation is $0.0064, a 200-note import is $0.0333.
+
+### Warnings
+
+Counted DOWN in credits, never up in percent. "Eight left" is actionable;
+"95% used" is not. Kris proposed 95%; that is 8 credits, one evening, too late
+to be a warning.
+
+- **30 left** a gold count rides on the Account pill. No interruption.
+- **10 left** one strip above the dock, dismissible, once per credit period
+  (`beatfall.lowseen` in localStorage, keyed to `period_start`).
+- **0** the message comes from the server where the writer is standing.
+
+### Access when a plan ends
+
+Kris's call, and he overruled me on it: this is SaaS, the subscription buys
+access, when it lapses you lose access. `api/projects.js` returns 402 for
+`ent.key === 'none'`, and the client shows `showLocked()`.
+
+The one door left open is **export**, which lives on `api/account.js` and is
+NOT gated. That is deliberate: closing the boards is a business decision,
+holding a writer's notes hostage is a different thing. The locked screen leads
+with Choose a plan and Download everything.
+
+Banked credits survive a lapse untouched. They are unusable while there is no
+subscription, because the door is shut, but they are still there on return.
+
+### Six-month deletion
+
+`api/cleanup.js`, on Vercel's daily cron (`vercel.json`, 04:00 UTC). Six
+months with no sign-in and no live subscription and the auth user is deleted,
+which cascades to profile, projects, usage and events. A warning email goes at
+five months, once, recorded as a `deletion_warned` event so a second pass will
+not repeat it.
+
+**Kris's actions before this does anything:** set `CRON_SECRET` in Vercel (the
+endpoint refuses without it), and `RESEND_API_KEY` + `MAIL_FROM` or the
+warning email goes nowhere while deletion still happens on time. Test with
+`/api/cleanup?dry=1` and the secret, which reports what it WOULD do.
+
+### Legal
+
+Terms §8 now states the two-credit model plainly, §8b covers what happens when
+a subscription ends and the six-month rule. Privacy's retention list says the
+same thing. Both still carry the not-reviewed-by-a-lawyer notice.

@@ -5,7 +5,7 @@
 // Every call: verify the person, check their remaining credits, call Claude,
 // then record exactly what it cost against their account.
 // ============================================================================
-import { requireUser, entitlement, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros } from './_lib/core.js';
+import { requireUser, entitlement, spend, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE } from './_lib/core.js';
 
 // A hard ceiling per call, so one runaway request can't cost a fortune.
 const MAX_INPUT_CHARS = 60000;
@@ -41,16 +41,17 @@ export default async function handler(req, res) {
   if (ent.key === 'none') {
     return send(res, 402, {
       error: 'no_plan',
-      message: 'Your trial has ended. Pick a plan to keep using the writing help. '
-             + 'your boards and notes are untouched, and everything except the AI still works.'
+      message: 'Your trial has ended. Pick a plan to keep going. Your boards and '
+             + 'notes are untouched.'
     });
   }
   if (credits > 0 && ent.left < credits) {
     return send(res, 402, {
       error: 'out_of_credits',
-      message: `You've used all ${ent.allowance} of this month's credits. They reset on the 1st, `
-             + `or you can top up. Everything except the AI keeps working in the meantime.`,
-      used: ent.used, allowance: ent.allowance
+      message: `That's all ${ent.monthly} of this month's credits. They come back on the 1st, `
+             + `or ${TOPUP_CREDITS} more is $${TOPUP_PRICE} and those never expire. `
+             + `Everything except the writing help keeps working.`,
+      used: ent.used, allowance: ent.monthly, banked: ent.banked
     });
   }
 
@@ -107,15 +108,22 @@ export default async function handler(req, res) {
     user_id: user.id, kind, credits, model: MODEL, session_id: session,
     tokens_in: tin, tokens_out: tout, cost_micros: costMicros(tin, tout)
   });
+  // This month's first, then the ones they bought. See spend() for why the
+  // order is not negotiable.
   if (credits > 0) {
-    await db.from('profiles')
-      .update({ credits_used: (profile.credits_used || 0) + credits })
-      .eq('id', user.id);
+    const patch = spend(profile, ent, credits);
+    if (patch && Object.keys(patch).length) {
+      await db.from('profiles').update(patch).eq('id', user.id);
+    }
   }
 
+  const monthlyLeft = Math.max(0, ent.monthlyLeft - Math.min(credits, ent.monthlyLeft));
+  const banked      = Math.max(0, ent.banked - Math.max(0, credits - ent.monthlyLeft));
   return send(res, 200, {
     text,
-    credits_left: Math.max(0, ent.left - credits),
-    allowance: ent.allowance
+    credits_left: monthlyLeft + banked,
+    monthly_left: monthlyLeft,
+    banked,
+    allowance: ent.monthly
   });
 }

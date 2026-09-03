@@ -3,7 +3,7 @@
 // destructive things a person is entitled to do: take their data out, and
 // delete the lot.
 // ============================================================================
-import { requireUser, entitlement, send, readBody, PLANS, track } from './_lib/core.js';
+import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE, track } from './_lib/core.js';
 
 export default async function handler(req, res) {
   const auth = await requireUser(req);
@@ -41,11 +41,15 @@ export default async function handler(req, res) {
       trialing: ent.trialing,
       trial_ends_at: ent.trialEndsAt,
       credits_used: ent.used,
-      credits_allowance: ent.allowance,
-      credits_left: ent.left,
+      credits_allowance: ent.allowance,     // this month's ceiling, not the total
+      credits_left: ent.left,               // monthly remaining plus banked
+      credits_monthly_left: ent.monthlyLeft,
+      credits_banked: ent.banked,           // bought, never expires, spent last
       period_start: profile.period_start,
       by_kind: byKind,
       projects: projectCount || 0,
+      topup_credits: TOPUP_CREDITS,
+      topup_price: TOPUP_PRICE,
       plans: PLANS
     });
   }

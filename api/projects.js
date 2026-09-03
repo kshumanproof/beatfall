@@ -4,7 +4,7 @@
 // The board is stored as JSON on a single row per project. The client already
 // holds it that way, so this stays one code path instead of a table per card.
 // ============================================================================
-import { requireUser, send, readBody } from './_lib/core.js';
+import { requireUser, entitlement, send, readBody } from './_lib/core.js';
 
 const MAX_PROJECTS = 60;
 const MAX_BYTES    = 400_000;   // a very large board is ~40kb; this is generous
@@ -12,7 +12,21 @@ const MAX_BYTES    = 400_000;   // a very large board is ~40kb; this is generous
 export default async function handler(req, res) {
   const auth = await requireUser(req);
   if (auth.error) return send(res, auth.status, { error: auth.error });
-  const { db, user } = auth;
+  const { db, user, profile } = auth;
+
+  // A subscription is what buys access to the boards. When it lapses the work
+  // is not deleted and it is not held hostage: /api/account export still
+  // answers, so a person can always take everything with them. What stops is
+  // opening and editing.
+  const ent = entitlement(profile);
+  if (ent.key === 'none') {
+    return send(res, 402, {
+      error: 'no_plan',
+      message: 'Your plan has ended, so the boards are closed. Nothing has been '
+             + 'deleted, you can download all of it, and picking a plan opens '
+             + 'everything again exactly as you left it.'
+    });
+  }
 
   // ---------------------------------------------------------------- read --
   if (req.method === 'GET') {

@@ -30,7 +30,11 @@ export const PLANS = {
 export const PAID_PLAN   = 'beatfall';
 export const PRICE_MONTH = 12;
 export const PRICE_YEAR  = 99;
-export const TOPUP_CREDITS = 100;
+// A top-up is priced ABOVE the subscription rate on purpose. The plan is
+// 150 for $12, eight cents a credit; a pack is 50 for $6, twelve cents. Selling
+// packs cheaper than the plan teaches people to skip the plan and makes the
+// $12 look like the worse deal, which is what 100 for $6 was doing.
+export const TOPUP_CREDITS = 50;
 export const TOPUP_PRICE   = 6;
 
 // A credit is one piece of work, not one message. A conversation costs the
@@ -97,7 +101,8 @@ export function entitlement(profile) {
     const used = profile.credits_used || 0;
     return {
       key: 'owner', plan: PLANS.owner, trialing: false, unlimited: true,
-      allowance: OWNER_ALLOWANCE, used, left: OWNER_ALLOWANCE - used,
+      monthly: OWNER_ALLOWANCE, used, monthlyLeft: OWNER_ALLOWANCE - used, banked: 0,
+      allowance: OWNER_ALLOWANCE, left: OWNER_ALLOWANCE - used,
       trialEndsAt: null
     };
   }
@@ -107,13 +112,45 @@ export function entitlement(profile) {
   const paid = ['active', 'trialing', 'past_due'].includes(profile.subscription_status || '');
   const key = paid && PLANS[profile.plan] ? profile.plan : (trialing ? 'trial' : 'none');
   const plan = PLANS[key];
-  const allowance = plan.credits + (profile.credits_extra || 0);
+
+  // Two buckets, and they behave differently on purpose.
+  //
+  // `monthly` comes with the subscription, resets on the 1st, and whatever is
+  // left of it evaporates. `banked` is what they bought: it never renews and
+  // it never expires, and it is only touched once the month's is gone.
+  //
+  // This used to be one number. `allowance` was plan.credits + credits_extra
+  // and the reset only zeroed credits_used, so a single $6 top-up quietly
+  // raised that account's allowance by 100 credits EVERY MONTH, forever.
+  const monthly     = plan.credits;
+  const used        = Math.max(0, profile.credits_used || 0);
+  const monthlyLeft = Math.max(0, monthly - used);
+  const banked      = Math.max(0, profile.credits_extra || 0);
+
   return {
-    key, plan, trialing, allowance,
-    used: profile.credits_used || 0,
-    left: Math.max(0, allowance - (profile.credits_used || 0)),
+    key, plan, trialing,
+    monthly, used, monthlyLeft, banked,
+    allowance: monthly,               // the ceiling the monthly bar fills to
+    left: monthlyLeft + banked,       // everything they can actually spend
     trialEndsAt: profile.trial_ends_at
   };
+}
+
+// Spend n credits: this month's first, then the ones they paid for. Returns the
+// patch to apply to the profile, or null when there isn't enough. Keeping the
+// order fixed here is the whole point — spending banked credits first would
+// burn what somebody paid for while their free allowance expired unused.
+export function spend(profile, ent, n) {
+  if (!n || n <= 0) return {};
+  if (ent.unlimited) return { credits_used: (profile.credits_used || 0) + n };
+  if (ent.left < n) return null;
+
+  const fromMonthly = Math.min(n, ent.monthlyLeft);
+  const fromBanked  = n - fromMonthly;
+  const patch = {};
+  if (fromMonthly) patch.credits_used  = (profile.credits_used  || 0) + fromMonthly;
+  if (fromBanked)  patch.credits_extra = (profile.credits_extra || 0) - fromBanked;
+  return patch;
 }
 
 export function send(res, status, body) {

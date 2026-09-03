@@ -15,7 +15,7 @@ const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 const PRICE = () => ({
   month: process.env.STRIPE_PRICE_MONTHLY,       // $12 / month
   year:  process.env.STRIPE_PRICE_ANNUAL,        // $99 / year
-  topup: process.env.STRIPE_PRICE_TOPUP          // 100 credits, one-off
+  topup: process.env.STRIPE_PRICE_TOPUP          // one-off pack, TOPUP_CREDITS
 });
 
 export default async function handler(req, res) {

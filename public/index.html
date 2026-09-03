@@ -1017,6 +1017,68 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .pcard .acts .del{margin-left:auto;color:var(--red);border-color:#E0C9C9}
 .pcard .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
+/* The second bucket. A number and a sentence, not a bar: bought credits have
+   no ceiling to fill, so a bar would be inventing one. */
+.bank{
+  display:flex;align-items:center;gap:16px;margin-top:22px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-panel);
+  padding:16px 18px;
+}
+.bank.empty{background:none;border-style:dashed}
+.bank-n{
+  font-family:var(--serif);font-size:32px;font-weight:600;line-height:1;
+  color:var(--ink);font-variant-numeric:tabular-nums;min-width:1.3em;
+}
+.bank.empty .bank-n{color:var(--ink-4)}
+.bank-t{flex:1;min-width:0}
+.bank-k{
+  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--ink-4);
+}
+.bank-s{font-size:12.5px;color:var(--ink-3);margin-top:4px;line-height:1.5}
+.bank .btn{flex:0 0 auto}
+
+/* the count that rides on the account pill when the month is nearly gone */
+.lowchip{
+  min-width:20px;height:20px;padding:0 6px;border-radius:10px;
+  background:var(--gold-soft);border:1px solid var(--gold-hair);color:var(--gold);
+  font-family:var(--sans);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.avatar.out .ini{background:var(--gold);color:var(--card)}
+
+/* said once, where the writer is, and dismissible */
+.lowstrip{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:14px 28px;background:var(--gold-soft);
+  border-top:1px solid var(--gold-hair);
+  font-family:var(--sans);font-size:13px;color:var(--ink);
+  box-shadow:0 -8px 24px -18px rgba(58,48,36,.6);
+}
+.lowstrip b{font-weight:600}
+.lowstrip .btn{margin-left:auto}
+.lowstrip .btn + .btn{margin-left:0}
+@media (max-width:760px){ .lowstrip{padding:12px 16px} .lowstrip .btn{margin-left:0} }
+
+/* the closed door */
+.locked{position:fixed;inset:0;z-index:80;background:var(--ground);overflow:auto;
+  display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.locked-in{max-width:52ch}
+.locked-in .brand{margin-bottom:34px}
+.locked-in h1{
+  font-family:var(--serif);font-size:34px;font-weight:600;letter-spacing:-.016em;
+  line-height:1.2;margin:0 0 16px;color:var(--ink);
+}
+.locked-in p{font-size:14.5px;line-height:1.7;color:var(--ink-2);margin:0 0 14px;max-width:46ch}
+.locked-in .warnline{
+  color:var(--gold);background:var(--gold-soft);border:1px solid var(--gold-hair);
+  border-radius:var(--r-card);padding:12px 15px;font-size:13px;
+}
+.locked-acts{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 20px}
+.lk-out{font-size:12.5px;color:var(--ink-3);text-decoration:none}
+.lk-out:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+
 /* =====================================================================
    SETTINGS: a modal over the board, never a page you navigate away to
    ===================================================================== */
@@ -5260,67 +5322,109 @@ function paneProfile(){
 function paneUsage(){
   const LABEL = {conversation: "conversations", import: "notes files read", ideas: "idea sets",
                  logline: "logline sessions", place: "notes placed", route: "notes routed"};
-  const pct = ME.unlimited ? 0
-    : (ME.credits_allowance ? Math.min(100, Math.round(ME.credits_used / ME.credits_allowance * 100)) : 0);
+  const monthly = ME.credits_allowance || 0;
+  const usedM   = Math.min(ME.credits_used || 0, monthly);
+  const leftM   = ME.credits_monthly_left != null ? ME.credits_monthly_left : Math.max(0, monthly - usedM);
+  const banked  = ME.credits_banked || 0;
+  const pct = ME.unlimited ? 0 : (monthly ? Math.min(100, Math.round(usedM / monthly * 100)) : 0);
   const next = new Date(ME.period_start); next.setUTCMonth(next.getUTCMonth() + 1);
   const kinds = Object.keys(ME.by_kind || {}).length
     ? Object.entries(ME.by_kind).map(([k, v]) =>
         '<div class="kind"><b>' + v.count + "</b>" + esc(LABEL[k] || k) + "</div>").join("")
     : '<div class="kind" style="color:var(--ink-4)">Nothing used yet this month</div>';
 
+  /* Two rows, because the two kinds of credit behave differently and a writer
+     needs to see which one is about to run out. The monthly one has a ceiling,
+     so it gets a bar. Bought credits have no ceiling to fill, so they get a
+     number and a sentence saying they do not expire. */
   setBody.innerHTML =
       '<h2 class="pane-h">This month</h2>'
     + '<p class="pane-sub">Placing a note is free and always will be. That\'s the whole point.</p>'
-    + '<div class="usebig">' + ME.credits_used + '<span style="font-size:16px;color:var(--ink-3)"> of '
-      + (ME.unlimited ? "unlimited" : ME.credits_allowance) + " credits</span></div>"
+    + '<div class="usebig">' + usedM + '<span style="font-size:16px;color:var(--ink-3)"> of '
+      + (ME.unlimited ? "unlimited" : monthly) + " credits</span></div>"
     + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
       + '" style="width:' + pct + '%"></i></div>'
-    + '<div class="muted">Resets ' + next.toLocaleDateString(undefined, {month: "long", day: "numeric"})
-      + ".</div>"
+    + '<div class="muted">' + (leftM === 0 && !ME.unlimited
+        ? "All used. Comes back " : (leftM + " left. Comes back "))
+      + next.toLocaleDateString(undefined, {month: "long", day: "numeric"}) + ".</div>"
+
+    + (ME.unlimited ? "" :
+        '<div class="bank' + (banked ? "" : " empty") + '">'
+        + '<div class="bank-n">' + banked + "</div>"
+        + '<div class="bank-t"><div class="bank-k">Credits you bought</div>'
+          + '<div class="bank-s">' + (banked
+              ? "Used only after this month\'s run out. They never expire."
+              : "None yet. Bought credits never expire and are only used once the month\'s are gone.")
+          + "</div></div>"
+        + '<button class="btn" id="u-topup">Add ' + (ME.topup_credits || 50)
+          + " credits for $" + (ME.topup_price || 6) + "</button>"
+        + "</div>")
+
     + '<div class="kinds">' + kinds + "</div>"
     + '<p class="muted" style="margin-top:26px;max-width:62ch;line-height:1.65">'
       + "A whole conversation costs one credit however many questions it takes, and reading in a "
       + "notes file costs two. If you run out, everything except the writing help keeps working."
       + "</p>";
+
+  const top = document.getElementById("u-topup");
+  if (top) top.addEventListener("click", async ev => {
+    const b = ev.currentTarget, was = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening\u2026';
+    try {
+      const {url} = await BF.api("/api/billing", {method: "POST", body: JSON.stringify({action: "topup"})});
+      location.href = url;
+    } catch (e) { setFlash("bad", esc(BF.explain(e))); b.disabled = false; b.textContent = was; }
+  });
+  // Somebody on the way out should not be sold credits they will lose access to.
+  if (top && ME.cancel_at_period_end) {
+    top.disabled = true;
+    top.setAttribute("data-tip", "Your plan is ending, so there is nothing to spend them on yet.");
+  }
 }
 
 function panePlan(){
+  /* Plain statements of fact. The old copy thanked people for subscribing and
+     described the annual plan as "two and a half months free, paid once",
+     which is a riddle: what a buyer wants to know is what it costs and what
+     they save. Say the number. */
   const PERIODS = [
     {key: "month", label: "Monthly", price: "$12", per: "a month",
-     note: "Cancel any time, from your own billing page."},
+     note: "Billed every month. Cancel whenever you like."},
     {key: "year",  label: "Annual",  price: "$99", per: "a year",
-     note: "Two and a half months free, paid once."}
+     note: "Billed once a year. Saves $45 against paying monthly."}
   ];
   let note = "";
   if (ME.unlimited){
     note = '<div class="note info"><b>Owner account.</b> No plan, no limits, no billing. Your '
-      + "usage is excluded from the numbers on the admin dashboard so it can't skew where the "
-      + "customer allowance should sit.</div>";
+      + "usage is left out of the admin dashboard so it can't skew where the customer "
+      + "allowance should sit.</div>";
   } else if (ME.plan === "trial" && ME.trialing){
     const days = Math.max(0, Math.ceil((new Date(ME.trial_ends_at) - Date.now()) / 86400000));
     const ends = new Date(ME.trial_ends_at).toLocaleDateString(undefined, {month: "long", day: "numeric"});
-    note = '<div class="note info"><b>You\'re on the free trial, ' + days + " day"
-      + (days === 1 ? "" : "s") + " left, through " + ends + ".</b> No card on file. Pick a plan "
-      + "whenever you're ready; your boards carry over either way.</div>";
+    note = '<div class="note info"><b>Free trial: ' + days + " day"
+      + (days === 1 ? "" : "s") + " left, ending " + ends + ".</b> No card on file. "
+      + "Your boards carry over whichever plan you pick.</div>";
   } else if (ME.plan === "none"){
-    note = '<div class="note warn"><b>No active plan.</b> Your projects, boards and notes are all '
-      + "still here and the board works normally. It's the writing help that's switched off.</div>";
+    note = '<div class="note warn"><b>No active plan.</b> The boards are closed until you pick '
+      + "one. Nothing has been deleted, and you can download everything from Your data.</div>";
   } else {
     const when = ME.current_period_end
       ? new Date(ME.current_period_end).toLocaleDateString(undefined,
           {month: "long", day: "numeric", year: "numeric"}) : null;
     if (ME.cancel_at_period_end){
-      note = '<div class="note warn"><b>Cancelled.</b> You keep everything you\'ve paid for '
-        + (when ? "until <b>" + when + "</b>" : "until the end of this billing period")
-        + ", then the writing help switches off. Your projects, boards and notes stay exactly "
-        + "where they are. Changed your mind? Resubscribe under Manage billing.</div>";
+      note = '<div class="note warn"><b>Your plan ends '
+        + (when ? "on " + when : "at the end of this billing period")
+        + ".</b> After that the boards are closed until you subscribe again. Nothing is deleted "
+        + "when it ends, but an account left untouched for six months is. "
+        + "<b>Download your work before then</b> from Your data. To stay, resubscribe under "
+        + "Manage billing.</div>";
     } else if (ME.subscription_status === "past_due"){
       note = '<div class="note bad"><b>Your last payment failed.</b> Update your card under '
-        + "Manage billing to keep the writing help on. Nothing else is affected.</div>";
+        + "Manage billing. Until it goes through, the writing help is off.</div>";
     } else {
-      note = '<div class="note info"><b>You\'re subscribed. Thank you, genuinely.</b> '
-        + ME.credits_allowance + " credits a month, and everything on the board stays free."
-        + (when ? " Renews <b>" + when + "</b>." : "") + "</div>";
+      note = '<div class="note info"><b>Subscribed.</b> ' + ME.credits_allowance
+        + " credits a month, and the board itself is always free."
+        + (when ? " Next payment " + when + "." : "") + "</div>";
     }
   }
 
@@ -5329,28 +5433,33 @@ function panePlan(){
 
   setBody.innerHTML =
       '<h2 class="pane-h">Plan &amp; billing</h2>'
-    + '<p class="pane-sub">One plan, two ways to pay for it.</p>'
+    + '<p class="pane-sub">One plan. Pay monthly or yearly.</p>'
     + '<div id="paneflash" hidden></div>'
     + note
     + '<div class="plans">' + PERIODS.map((p, i) =>
         '<div class="plan' + (subscribed ? "" : (i === 1 ? " current" : "")) + '">'
         + "<h3>" + p.label + "</h3>"
-        + '<div class="price">' + p.price + " " + p.per + " · " + paid.credits + " credits a month</div>"
+        + '<div class="price">' + p.price + " " + p.per + " \u00b7 " + paid.credits + " credits a month</div>"
         + '<div class="what">' + p.note + "</div>"
         + (subscribed
-            ? '<button class="btn" disabled>Manage below</button>'
+            ? '<button class="btn" disabled>Change this below</button>'
             : '<button class="btn' + (i === 1 ? " btn-primary" : "") + '" data-period="' + p.key
               + '">Choose ' + p.label.toLowerCase() + "</button>")
         + "</div>").join("") + "</div>"
     + '<div class="setrow" style="border-top:none;margin-top:22px">'
-      + '<div><div class="lab">Manage billing</div><div class="help">Cancelling, changing card and '
-      + "switching between monthly and annual all happen on Stripe's own pages.</div></div>"
-      + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button>'
-      + '<button class="btn" id="s-topup">Top up 100 credits for $6</button></div></div>';
+      + '<div><div class="lab">Manage billing</div><div class="help">Cancelling, changing your card '
+      + "and switching between monthly and yearly all happen on Stripe's pages.</div></div>"
+      + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button></div></div>'
+    + '<div class="setrow">'
+      + '<div><div class="lab">Buy more credits</div><div class="help">'
+      + (ME.topup_credits || 50) + " credits for $" + (ME.topup_price || 6)
+      + ". Used only after the month's are gone, and they never expire.</div></div>"
+      + '<div class="ctl"><button class="btn" id="s-topup"' + (ME.cancel_at_period_end ? " disabled" : "")
+      + ">Add " + (ME.topup_credits || 50) + " credits</button></div></div>";
 
   const openStripe = action => async ev => {
     const b = ev.currentTarget, was = b.textContent;
-    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening\u2026';
     try {
       const {url} = await BF.api("/api/billing", {method: "POST", body: JSON.stringify({action})});
       location.href = url;
@@ -5359,7 +5468,7 @@ function panePlan(){
   document.getElementById("s-portal").addEventListener("click", openStripe("portal"));
   document.getElementById("s-topup") .addEventListener("click", openStripe("topup"));
   setBody.querySelectorAll("[data-period]").forEach(b => b.addEventListener("click", async () => {
-    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening\u2026';
     try {
       const {url} = await BF.api("/api/billing", {method: "POST",
         body: JSON.stringify({action: "checkout", period: b.dataset.period})});
@@ -5460,6 +5569,72 @@ document.addEventListener("focusout", hideTip);
 /* =========================================================================
    BOOT: sign the person in, load their projects, then run the board.
    ========================================================================= */
+/* The plan ended. Two things on the screen and nothing else: get your work,
+   or come back. No board behind it teasing what is switched off. */
+function showLocked(){
+  document.querySelectorAll("header, main, footer, .capture, .trays, #slate, .acct")
+    .forEach(el => el && (el.hidden = true));
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="locked">
+      <div class="locked-in">
+        <a class="brand" href="/" title="Beatfall">
+          <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
+            <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
+              <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
+            </g>
+            <rect x="15" y="22.6" width="32.8" height="6.95" rx="1.6"
+                  fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
+            <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+            <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+            <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
+          </svg>
+          <span class="wordmark">Beat<span>fall</span></span>
+        </a>
+        <h1>Your plan has ended.</h1>
+        <p>The boards are closed, but nothing has been deleted. Everything you wrote
+          is still here, and you can download all of it right now whether or not you
+          come back.</p>
+        <p class="warnline">An account nobody signs into for six months is deleted
+          along with everything in it. Take a copy if you are not sure.</p>
+        <div class="locked-acts">
+          <button class="bigbtn solid" id="lk-plan">Choose a plan</button>
+          <button class="bigbtn" id="lk-export">Download everything</button>
+        </div>
+        <a class="lk-out" href="#" id="lk-signout">Sign out</a>
+      </div>
+    </div>`);
+
+  document.getElementById("lk-plan").addEventListener("click", async ev => {
+    const b = ev.currentTarget; b.disabled = true;
+    b.innerHTML = '<span class="spinner"></span>Opening\u2026';
+    try {
+      const {url} = await BF.api("/api/billing", {method: "POST",
+        body: JSON.stringify({action: "checkout", period: "year"})});
+      location.href = url;
+    } catch (e) { b.disabled = false; b.textContent = "Choose a plan"; }
+  });
+
+  document.getElementById("lk-export").addEventListener("click", async ev => {
+    const b = ev.currentTarget, was = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span>Getting it\u2026';
+    try {
+      const data = await BF.api("/api/account", {method: "POST",
+        body: JSON.stringify({action: "export"})});
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)],
+        {type: "application/json"}));
+      const a = document.createElement("a");
+      a.href = url; a.download = "beatfall-export.json"; a.click();
+      URL.revokeObjectURL(url);
+      b.textContent = "Downloaded";
+    } catch (e) { b.textContent = "Couldn\u2019t download, try again"; }
+    setTimeout(() => { b.disabled = false; b.textContent = was; }, 2600);
+  });
+
+  document.getElementById("lk-signout").addEventListener("click", ev => {
+    ev.preventDefault(); BF.signOut();
+  });
+}
+
 (async function start(){
   if (!await BF.requireSession()) return;
 
@@ -5474,6 +5649,11 @@ document.addEventListener("focusout", hideTip);
   try {
     hadProjects = await load();
   } catch (e) {
+    // A lapsed plan closes the boards. The work is not gone and it is not
+    // held: export answers whether or not there is a subscription, so the one
+    // door that stays open is the one that lets somebody leave with their
+    // material. Anything else would be holding a writer's notes to ransom.
+    if (e && e.status === 402) return showLocked();
     document.body.insertAdjacentHTML("afterbegin",
       '<div style="padding:14px 22px;background:var(--gold-soft);border-bottom:1px solid var(--gold);'
       + 'font-size:13.5px">Couldn\'t reach your saved projects. Check your connection and reload. '
@@ -5496,7 +5676,8 @@ document.addEventListener("focusout", hideTip);
     }
     paintWho(me);
     if (!me.unlimited && typeof BF.onCredits === "function")
-      BF.onCredits({left: me.credits_left, allowance: me.credits_allowance});
+      BF.onCredits({left: me.credits_left, allowance: me.credits_allowance,
+                    banked: me.credits_banked || 0});
   } catch (e) { /* not fatal, the board works without it */ }
 
   // first run: no projects, nothing written
@@ -5520,16 +5701,89 @@ function showFirstRun(){
   fr.addEventListener("click", e => { if (e.target === fr) fr.hidden = true; });
 }
 
-/* Running low on credits shouldn't be a surprise. */
+/* Running low shouldn't be a surprise, and it shouldn't be a surprise inside a
+   closed popover either, which is where the only warning used to live.
+
+   Three moments, counted DOWN in credits rather than up in percent, because
+   "eight left" is a thing a writer can act on and "95% used" is not:
+
+     30 left  the account pill carries a quiet gold count. No interruption.
+     10 left  one strip above the dock, dismissible, once per period.
+      0 left  the message arrives where they are standing, when they reach for
+              it. That one comes from the server, in api/claude.js.
+
+   Bought credits are included in the count, so somebody with a pack in hand is
+   not warned about a month they are not relying on. */
+const LOW_NOTICE = 30, LAST_NOTICE = 10;
+
 BF.onCredits = function (c) {
   if (!c || !c.allowance) return;
+  const left = c.left;
+
   const el = document.getElementById("credits");
-  if (!el) return;
-  el.textContent = c.left + " of " + c.allowance + " credits left";
-  el.className = c.left <= 0 ? "creditcount cr out"
-               : c.left <= c.allowance * .2 ? "creditcount cr low" : "creditcount cr";
-  el.hidden = false;
+  if (el){
+    el.textContent = left + " of " + c.allowance + " credits left"
+      + (c.banked ? " (" + c.banked + " bought)" : "");
+    el.className = left <= 0 ? "creditcount cr out"
+                 : left <= LOW_NOTICE ? "creditcount cr low" : "creditcount cr";
+    el.hidden = false;
+  }
+
+  // the pill in the corner is the only credit signal that is always on screen
+  const pill = document.getElementById("avatar");
+  if (pill){
+    let chip = document.getElementById("avatarlow");
+    if (left <= LOW_NOTICE && left > 0){
+      if (!chip){
+        chip = document.createElement("span");
+        chip.className = "lowchip"; chip.id = "avatarlow";
+        pill.appendChild(chip);
+      }
+      chip.textContent = left;
+      chip.setAttribute("data-tip", left + " credits left. The board stays free either way.");
+    } else if (chip) chip.remove();
+    pill.classList.toggle("out", left <= 0);
+  }
+
+  if (left <= LAST_NOTICE) lowStrip(left);
 };
+
+/* One strip, once per credit period, dismissible. A person who has decided to
+   ride it out should not be asked again every time they open a project. */
+function lowStrip(left){
+  const period = (ME && ME.period_start) || "now";
+  let seen = null;
+  try { seen = localStorage.getItem("beatfall.lowseen"); } catch (e) {}
+  if (seen === period || document.getElementById("lowstrip")) return;
+
+  const bar = document.createElement("div");
+  bar.className = "lowstrip"; bar.id = "lowstrip";
+  bar.innerHTML =
+      "<b>" + (left > 0 ? left + " credit" + (left === 1 ? "" : "s") + " left this month."
+                        : "That's this month's credits.")
+    + "</b> The board, the outline and placing notes all keep working. "
+    + "Only the writing help needs credits.";
+
+  const buy = document.createElement("button");
+  buy.className = "btn btn-primary"; buy.textContent = "Add credits";
+  buy.addEventListener("click", async () => {
+    buy.disabled = true; buy.innerHTML = '<span class="spinner"></span>Opening\u2026';
+    try {
+      const {url} = await BF.api("/api/billing", {method: "POST", body: JSON.stringify({action: "topup"})});
+      location.href = url;
+    } catch (e) { buy.disabled = false; buy.textContent = "Add credits"; }
+  });
+
+  const no = document.createElement("button");
+  no.className = "btn"; no.textContent = "Not now";
+  no.addEventListener("click", () => {
+    try { localStorage.setItem("beatfall.lowseen", period); } catch (e) {}
+    bar.remove();
+  });
+
+  bar.appendChild(buy); bar.appendChild(no);
+  document.body.appendChild(bar);
+}
 </script>
 
 </body>

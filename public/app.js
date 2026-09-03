@@ -128,7 +128,8 @@
       const res = await BF.api('/api/claude', {
         method: 'POST', body: JSON.stringify(body), signal: opts.signal
       });
-      BF.credits = { left: res.credits_left, allowance: res.allowance };
+      BF.credits = { left: res.credits_left, allowance: res.allowance,
+                     banked: res.banked || 0 };
       if (typeof BF.onCredits === 'function') BF.onCredits(BF.credits);
       if (typeof opts.onText === 'function') opts.onText({ text: res.text, delta: res.text });
       return { text: res.text, truncated: false };
