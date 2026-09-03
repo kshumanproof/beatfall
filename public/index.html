@@ -4858,26 +4858,51 @@ async function claudePlan(raw){
   /* ---- assemble, with the confidence gate and a hard per-beat ceiling ---- */
   const perBeat = {};
   const buckets = groups.map(() => []);
+
+  /* TWO PASSES, and the order is the point.
+
+     A beat the writer declared with a heading claims its slot BEFORE any beat
+     the model guessed at. One pass in note order meant three confident guesses
+     could fill a beat and bump the line the writer had personally put under
+     "BREAK INTO THREE:", which is the wrong way round: their heading is the
+     best evidence in the file, not the weakest.
+
+     `own` records who ended up with each beat, so the second pass can see a
+     slot is already spoken for. */
+  const own = new Array(notes.length).fill(null);
+  notes.forEach((n, idx) => {
+    if (!n.beat) return;
+    perBeat[n.beat] = (perBeat[n.beat] || 0) + 1;
+    if (perBeat[n.beat] <= MAX_PER_BEAT) own[idx] = n.beat;
+  });
+
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
     const si = forced.has(idx) ? forced.get(idx)
       : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
-    const kind = KINDS[r.k] ? r.k : "structural";
+    let kind = KINDS[r.k] ? r.k : "structural";
     const conf = typeof r.c === "number" ? r.c : 0;
     const named = kind === "beat" && S.slots.some(x => x.id === r.b);
-    let beat = n.beat || ((named && conf >= 75) ? r.b : null);
+    /* A line the writer put under a beat heading is a beat, whatever the model
+       made of the sentence. Without this it could be classed "structural" and
+       filed on a note shelf, so a bumped declaration disappeared into Notes
+       instead of showing up in Set aside where it can be seen. */
+    if (n.declared) kind = "beat";
+    let beat = own[idx] || (n.beat ? null : ((named && conf >= 75) ? r.b : null));
     /* The ceiling and the confidence gate are different reasons to hold a note
        back, and the review screen has to say which one applied. It used to
        report both as confidence, so a note the model was 91% sure about was
        set aside "only 91% sure", which reads as a bug because it is one. */
     let full = null;
-    if (beat){
+    if (beat && !own[idx]){                 // declared beats already counted
       perBeat[beat] = (perBeat[beat] || 0) + 1;
       if (perBeat[beat] > MAX_PER_BEAT){                  // the board is not a bin
         full = beat;
         beat = null;
       }
     }
+    // A declaration that lost its slot to earlier declarations of the same beat
+    if (!beat && n.beat && !own[idx]) full = n.beat;
     buckets[si].push({
       text: n.text,
       kind: beat ? "beat" : kind,
@@ -5102,6 +5127,19 @@ document.getElementById("revgo").addEventListener("click", () => {
       });
       added++;
     });
+    /* Mark it dirty here, by hand.
+
+       save() only ever marks P(), the project you are looking at. That is
+       right for typing on a board and wrong for an import, which can touch
+       several projects at once and create new ones. The new project existed in
+       memory, drew its card, and was never sent to the server: "1 new project
+       created" was true, and it was gone on the next load.
+
+       flush() is scheduled by the save() that setView("board") triggers below,
+       and it drains everything in `dirty`, so adding to the set here is all
+       that is needed. */
+    dirty.add(target);
+
     const moves = settle(target);
     if (si === 0) firstMoves = moves;
   });
@@ -5109,6 +5147,7 @@ document.getElementById("revgo").addEventListener("click", () => {
   scrim.hidden = true;
   hideAll();
   setView("board");
+  save();                       // schedules the flush that persists all of them
   BF.track("import_completed", {item_count: added, count: newProjects});
   markStage("real_project");
   if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }

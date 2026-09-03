@@ -892,6 +892,37 @@ while the model's guess was allowed to act. Named structures are matched now.
 plus stc ids): 0 placed before, 45 after, no dead ids. `/tmp/vfmt.js` covers the
 opposite case, where the file does state a format.
 
+### The import never saved the projects it created (3 Sep 2026)
+
+Kris's numbers gave it away: Night Haul held 7 placed + 4 set aside + 29 shelf
+= **40 cards**, from an import that read **83 notes**, and the dialog said "1
+new project created" over a dashboard with no new card. The other ~42 notes went
+into that second project, and the second project was never written to the
+server, so they vanished with it.
+
+`save()` only ever marks `P()`, the project you are looking at. That is right
+for typing on a board and wrong for an import, which touches several projects at
+once. The build pushed new projects into `state.projects`, drew their cards, and
+never added them to `dirty`. `dirty.add(target)` in the build loop fixes it.
+
+**This bug is old, not new.** It only fires when an import creates a project,
+which used to depend on the model deciding a stray was a story — rare and
+unpredictable. Making named projects deterministic in code turned an occasional
+silent loss into one that happened every run. Worth remembering: a fix that
+makes something happen reliably will expose every bug downstream of it.
+
+### Declared beats now claim their slot first
+
+A line the writer put under "BREAK INTO THREE:" could be bumped by three
+confident model guesses at the same beat, because placement ran in note order
+and `MAX_PER_BEAT` is first-come. Their heading is the best evidence in the
+file, not the weakest. Placement is two passes now: declarations claim their
+slots, then guesses fill what is left.
+
+And a bumped declaration used to be filed on a NOTE shelf, because the model
+had called the sentence "structural" — so the writer's own heading disappeared
+into Notes rather than showing up in Set aside. `if (n.declared) kind = "beat"`.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
