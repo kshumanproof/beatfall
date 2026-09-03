@@ -815,6 +815,48 @@ Worth keeping in mind: pass one reads the RAW paste, not the folded notes, so
 folding changes cannot affect story grouping. When grouping shifts between two
 runs of the same file it is the model, and the fix is the prompt.
 
+### Named projects are matched in code, not asked about (3 Sep 2026)
+
+DIRT MONEY became its own project on one run and an unticked stray on the next,
+from the same file. Two facts settled it:
+
+- **Deleting a project has no effect on a later import.** `DELETE /api/projects`
+  is a hard delete with no tombstone. That was Kris's first theory and it is
+  not the cause.
+- **The parser never dropped the note.** It survives folding intact, and pass
+  one reads the RAW paste anyway, so folding cannot affect grouping.
+
+It was the model, asked to judge "story or passing thought", answering
+differently on different days. A writer cannot work with a product that decides
+differently each time, so `namedProject()` decides it in code, on the one thing
+actually present in the text: **did the writer name it.**
+
+    "Another project: dirt-track racers ... Title maybe DIRT MONEY."  -> project
+    "Unrelated horror idea: a motel pool fills with seawater ..."     -> note
+    "Another stray: comedy about a substitute teacher ..."            -> note
+
+A named project is added to `groups` whether the model listed it or not, and the
+note that named it is routed into it via `forced`, so it never arrives empty.
+Verified in `/tmp/vdirt.js` with the model stubbed to call it a stray: the
+project appears anyway.
+
+One regex lesson: the label is matched case-insensitively and the NAME captured
+case-sensitively, in two steps. Doing both in one pattern needs the `i` flag,
+which makes `[A-Z]` match lower case and the name capture meaningless — which
+is exactly how "Title maybe DIRT MONEY", the only case this exists for, failed
+the first time.
+
+### Nothing arrives unticked any more
+
+Errands used to come in with `keep: false`, and the counter only counted ticked
+notes: Kris pasted 86, was shown 83, and drew the only conclusion that number
+allowed. Two things were wrong, not one — the count was misleading AND the app
+was deciding on the writer's behalf that a line of his file was worthless.
+
+`keep: true` for everything now. A stray goes to a shelf, and a shelf is what
+shelves are for. Unticking is the writer's call, and the chip on every row
+already says how each line was read.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

@@ -4510,6 +4510,72 @@ const IMPORT_BATCH = 40;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
 
 /* =========================================================================
+   OTHER PROJECTS THE WRITER NAMED
+
+   A notes file for one film usually carries one-line pitches for others. Two
+   runs of the same file disagreed about DIRT MONEY: once it became its own
+   project, once it was unticked as a stray. Asking a model to judge "is this
+   a story or a passing thought" gives a different answer on a different day,
+   and a writer cannot work with a product that decides differently each time.
+
+   So this is decided in code, and the test is the one thing that is actually
+   in the text: DID THE WRITER NAME IT. A line that introduces another project
+   AND carries a title becomes its own project, every time. A line that floats
+   an idea without naming it stays a note, every time.
+
+   "Another project: dirt-track racers ... Title maybe DIRT MONEY."  -> project
+   "Unrelated horror idea: a motel pool fills with seawater ..."     -> note
+   "Another stray: comedy about a substitute teacher ..."            -> note
+
+   That is the right split. The first has a title, so the writer has started
+   something. The other two are thoughts he had in the car.
+   ========================================================================= */
+const OTHER_PROJECT = /\b(?:another|other|separate|different|unrelated|second|new)\s+(?:project|script|film|movie|feature|show|series|screenplay|idea for a (?:film|movie|script))\b/i;
+
+/* Two steps rather than one clever regex. The LABEL is matched
+   case-insensitively, because a writer types "Title maybe", "title:" and
+   "TITLE" on three different lines of the same file; the NAME is then captured
+   case-sensitively from what follows, because capitalisation is the only
+   signal that a run of words is a title at all.
+
+   Doing both in one pattern needs a case-insensitive flag, which then makes
+   [A-Z] match lower case and the name capture meaningless. That is how the
+   one case this exists for, "Title maybe DIRT MONEY", failed. */
+const TITLE_LABEL = /\b(?:working\s+title|title|titled|called|call\s+it|name\s+it)\b\s*(?:maybe|might\s+be|could\s+be|would\s+be|is|:)?\s*/i;
+
+// After the label: SHOUTED WORDS, or Title Case Words, or a quoted phrase.
+const TITLE_NAME = /^["“']?([A-Z][A-Z0-9]+(?:[ '’&-]+[A-Z][A-Z0-9]*)*|[A-Z][\w'’&-]*(?:\s+[A-Z][\w'’&-]*){0,4})/;
+
+// No label at all: a run of shouted words at the end of the line.
+const TITLE_BARE = /(?:^|[.:;]\s+)([A-Z][A-Z0-9]+(?:\s+[A-Z][A-Z0-9]+){1,4})\s*[.!]?\s*$/;
+
+function claimedTitle(text){
+  const m = TITLE_LABEL.exec(text);
+  if (m){
+    const after = text.slice(m.index + m[0].length);
+    const t = TITLE_NAME.exec(after);
+    if (t) return t[1];
+  }
+  const bare = TITLE_BARE.exec(text);
+  return bare ? bare[1] : null;
+}
+
+function namedProject(text, mainName){
+  const t = String(text);
+  if (!OTHER_PROJECT.test(t)) return null;
+  const main = String(mainName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const raw = claimedTitle(t);
+  if (!raw) return null;
+  const name = raw.trim().replace(/\s+/g, " ").replace(/[.,;:]+$/, "");
+  if (name.length < 3 || name.length > 40) return null;
+  // The main project's own title is not another project.
+  if (name.toLowerCase().replace(/[^a-z0-9]/g, "") === main) return null;
+  // Title Case it, because a shelf of SHOUTED names is unreadable.
+  return name.replace(/\S+/g, w =>
+    w.length > 2 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toUpperCase());
+}
+
+/* =========================================================================
    FOLDING: turning pasted lines into notes.
 
    Pulled out of claudePlan so it can be exercised on a real file without
@@ -4667,6 +4733,26 @@ async function claudePlan(raw){
     ? top.stories : [{name: proj.name, about: ""}]).slice(0, 4);
   groups[0].name = header.name || (top && top.brief && top.brief.name) || groups[0].name || proj.name;
 
+  /* Any project the writer NAMED gets its own group whether the model spotted
+     it or not, and the note that named it goes into that group so the new
+     project does not arrive empty. `forced` overrides the model's routing for
+     exactly those notes. */
+  const forced = new Map();
+  const known = () => groups.map(g =>
+    String(g.name || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
+  notes.forEach((nt, idx) => {
+    const name = namedProject(nt.text, groups[0].name);
+    if (!name) return;
+    const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    let at = known().indexOf(key);
+    if (at === -1){
+      if (groups.length >= 6) return;              // a notes file, not a slate
+      groups.push({name, about: ""});
+      at = groups.length - 1;
+    }
+    forced.set(idx, at);
+  });
+
   /* ---- pass two onward: classify, in batches, by number ---- */
   const beats = S.slots.map(x => "- " + x.id + " | " + x.name + ": " + (x.req || x.fn)).join("\n");
   const storyList = groups.map((g, i) => i + " = " + g.name + (g.about ? "  (" + g.about + ")" : "")).join("\n");
@@ -4736,7 +4822,8 @@ async function claudePlan(raw){
   const buckets = groups.map(() => []);
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
-    const si = Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
+    const si = forced.has(idx) ? forced.get(idx)
+      : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
     const kind = KINDS[r.k] ? r.k : "structural";
     const conf = typeof r.c === "number" ? r.c : 0;
     const named = kind === "beat" && S.slots.some(x => x.id === r.b);
@@ -4761,7 +4848,16 @@ async function claudePlan(raw){
       full,
       conf,
       declared: !!(n.declared || r.d),
-      keep: r.s !== -1                                     // errands arrive unticked
+      /* Everything arrives ticked. Errands used to come in unticked, and that
+         was the app deciding on the writer's behalf that a line of their file
+         was worthless — while the counter quietly showed a smaller number than
+         the file contained. Kris paste 86 notes and was told 83, and drew the
+         only conclusion that number allowed.
+
+         A stray is not a problem to solve: it goes to a shelf, and a shelf is
+         exactly what shelves are for. Unticking is the writer's call, and the
+         chip on every row already says what each line was read as. */
+      keep: true
     });
   });
 
@@ -4855,14 +4951,6 @@ function renderReview(){
       + "or to Set aside. Expect most beats to stay empty: those gaps are the point, and filling "
       + "them with near-misses would hide them. Untick anything you don't want.";
 
-  // If anything arrived unticked, say so. Otherwise the writer has to notice
-  // four grey rows on their own and guess why.
-  const unticked = plan.reduce((n, st) => n + st.notes.filter(x => !x.keep).length, 0);
-  if (unticked) document.getElementById("revnote").textContent += " "
-    + unticked + (unticked === 1
-        ? " line read as a stray rather than part of a story, so it is unticked below."
-        : " lines read as strays rather than part of a story, so they are unticked below.")
-    + " Tick any of them to keep it.";
   updateRevCount();
   sheetPaste.hidden = true;
   sheetReview.hidden = false;
