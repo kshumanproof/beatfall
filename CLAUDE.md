@@ -748,8 +748,37 @@ as `NIGHT HAUL**` because the list-marker stripper (`^\s*[-*…]+`) treats a
 leading `*` as a bullet and ate the opening pair. Emphasis now comes off
 BEFORE the bullet strip. Order, not regex.
 
-Result: 114 -> **96**. Not 86, and I would not chase 86 — over-folding
-destroys real notes, and ChatGPT's count is not ground truth either.
+**Writers' asides fold too.** "Keep that line for now", "Maybe too cute,
+leave it in notes", "Could just be a character note" are about the NOTE, not
+the story; on their own card they are gibberish. So do short continuations:
+"He keeps driving.", "Dale just stares.", "He calls the broker." — a sentence
+under ~52 characters whose subject is already in the note above finishes that
+moment rather than starting a new one.
+
+**A heading plus fragments is a LIST, and a list is one note.** Five candidate
+titles are one decision the writer is making. As five cards they clutter the
+shelf and each says nothing.
+
+Result: 114 -> **83**. ChatGPT said 86 for the same file; that is a judgment,
+not a spec, and every fold here is inspectable in `vsplit.js`.
+
+### The testing mistake, which mattered more than any of it
+
+The first round of this reported 96 and I believed it. The test harness kept
+its own copy of the fold loop, so it was measuring a duplicate while the
+shipped code went unexercised: new rules landed in `index.html`, the test still
+ran the old logic, and the number did not move. Kris caught it by knowing his
+own file.
+
+The fold now lives in `foldNotes(raw, structureKey)`, extracted from
+`claudePlan` for exactly this reason, and `vsplit.js` calls it. **A parse that
+cannot be run on its own does not get checked, so it does not stay correct.**
+Never re-implement logic inside a test to observe it.
+
+Two ordering bugs came out of the same round, both mine: emphasis stripping ran
+after the bullet stripper (so `**NIGHT HAUL**` lost half its markers), and
+`flushList()` ran immediately after setting `listing` (so the list collapse
+silently never fired at all).
 
 ### The bug that was not a counting problem
 

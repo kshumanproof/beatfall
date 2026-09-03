@@ -2991,6 +2991,31 @@ function beatFromHeading(label, key){
   return hit ? hit.id : null;
 }
 
+/* Writers talk about their own notes in the margin. "Keep that line for now",
+   "Maybe too cute, leave it in notes", "Could just be a character note" are
+   about the NOTE, not about the story, and on their own card they are gibberish.
+   They belong on the back of the note they are arguing with. */
+const ASIDE = /\b(?:keep (?:that|this)|leave (?:it|that|this)|too cute|for now|just a|might be too|probably (?:it|best)|work(?:s|ed)? better|placeholder|not sure about (?:it|this)|in notes)\b/i;
+function isAside(text){
+  const t = String(text).trim();
+  return t.length <= 70 && ASIDE.test(t);
+}
+
+/* A very short sentence that carries the previous one forward: "He keeps
+   driving.", "Dale just stares.", "Broker says they never sent him that
+   assignment." Alone each is a card nobody can use; attached, it finishes the
+   moment above it. The subject has to already be in the previous note, so an
+   unrelated short line does not get swept up. */
+function continuesPrevious(text, prevText){
+  const t = String(text).trim();
+  if (t.length > 52 || /[?!:]$/.test(t)) return false;
+  if ((t.match(/\./g) || []).length > 1) return false;     // two sentences is a note
+  const first = (t.match(/^([A-Z][a-z]+|He|She|They|It)\b/) || [])[1];
+  if (!first) return false;
+  if (/^(?:He|She|They|It)$/.test(first)) return true;      // a pronoun has to point back
+  return new RegExp("\\b" + first + "\\b", "i").test(prevText);
+}
+
 /* A short quoted line is a piece of the scene above it, not a note about the
    story. Also catches the screenplay habit of writing the speaker first:
    `Dale: "Mine's brass."` and `Mara: "How do you know?"` */
@@ -4484,11 +4509,19 @@ function localPlan(raw){
 const IMPORT_BATCH = 40;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
 
-async function claudePlan(raw){
-  const proj = P();
-  const S = STRUCTURES[proj.structure];
-  const header = localBrief(raw) || {};
+/* =========================================================================
+   FOLDING: turning pasted lines into notes.
 
+   Pulled out of claudePlan so it can be exercised on a real file without
+   spending a credit. It used to live inline, and the test that checked it
+   kept a copy of this loop, which meant the test passed while the shipped
+   code was untouched. A parse that cannot be run on its own does not get
+   checked, so it does not stay correct.
+
+   Given raw text and a structure key, returns the notes with the writer's
+   own asides, dialogue, headings and lists folded into the right places.
+   ========================================================================= */
+function foldNotes(raw, structureKey){
   /* Fold the writer's own second thoughts, dialogue and headings back into the
      notes they belong to.
 
@@ -4501,12 +4534,36 @@ async function claudePlan(raw){
      that looks like anything else is still a heading. */
   const items = [];
   const shortQ = t => t.length <= 70 && /\?\s*$/.test(t);
-  let section = null, pendingLead = null;
+  let section = null, pendingLead = null, listing = null;
+
+  const flushList = () => {
+    if (!listing) return;
+    if (listing.parts.length > 1)
+      items.push({ text: listing.label + ": " + listing.parts.join(" · "),
+                   beat: null, declared: false });
+    else if (listing.parts.length === 1)
+      items.push({ text: listing.parts[0], beat: null, declared: false });
+    listing = null;
+  };
+
+  const isFragment = t => t.length <= 34 && !/[.?!]$/.test(t.trim());
 
   splitNotes(raw).forEach(text => {
     const head = headerLine(text);
     if (head){
       if (head.kind === "attribution"){ pendingLead = head.label; return; }
+      // Close the previous list BEFORE opening a new one, or the flush wipes
+      // the thing it was meant to protect. (It did, for one round: the list
+      // collapse silently never fired.)
+      flushList();
+
+      /* A heading followed by a run of fragments is a LIST, and a list is one
+         note. Five candidate titles are one decision the writer is making, not
+         five ideas; as five cards they clutter the shelf and say nothing each.
+         `listing` collects them until a real sentence turns up. */
+      listing = /ideas?|options?|possib|alternativ|titles?|names?/i.test(head.label)
+        ? { label: head.label, parts: [] } : null;
+
       // A section heading: never a note. If it names a beat it declares the
       // note directly under it, and ONLY that one.
       //
@@ -4515,9 +4572,15 @@ async function claudePlan(raw){
       // including three notes for other films entirely. A writer who types
       // MIDPOINT: and then a line has told us about that line. Everything
       // after it is just notes that happen to sit nearby.
-      section = beatFromHeading(head.label, proj.structure);
+      section = beatFromHeading(head.label, structureKey);
       pendingLead = null;
       return;
+    }
+
+    // Still inside a list of fragments? Collect and move on.
+    if (listing){
+      if (isFragment(text)){ listing.parts.push(text.trim()); return; }
+      flushList();
     }
 
     // "Rusk calls Dale:" then the quote. One exchange, one note.
@@ -4528,7 +4591,7 @@ async function claudePlan(raw){
 
     const prev = items[items.length - 1];
     if (prev){
-      const to = refersToPrevious(text, proj.structure);
+      const to = refersToPrevious(text, structureKey);
       if (to){ prev.beat = to; prev.declared = true; return; }
       if (refersSoftly(text)){ prev.text += "  " + text; return; }
       // Writers argue with themselves in the margin: "Which one?" / "His father's."
@@ -4542,6 +4605,12 @@ async function claudePlan(raw){
       if (isQuoteFragment(text) && prev.text.length < 600){
         prev.text += "  " + text.trim(); return;
       }
+      if (isAside(text) && prev.text.length < 600){
+        prev.text += "  " + text.trim(); return;
+      }
+      if (continuesPrevious(text, prev.text) && prev.text.length < 600){
+        prev.text += " " + text.trim(); return;
+      }
     }
 
     // Take the heading's beat, then spend it. One heading, one declaration.
@@ -4550,6 +4619,16 @@ async function claudePlan(raw){
     items.push({text, beat: section, declared: !!section});
     section = null;
   });
+  flushList();
+  return items;
+}
+
+async function claudePlan(raw){
+  const proj = P();
+  const S = STRUCTURES[proj.structure];
+  const header = localBrief(raw) || {};
+
+  const items = foldNotes(raw, proj.structure);
   const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
   if (!notes.length) return [];
 
