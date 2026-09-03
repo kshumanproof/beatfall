@@ -5,7 +5,8 @@
 // That last column is the one that sets the tier caps. Everything else is
 // context for it.
 // ============================================================================
-import { requireUser, send, PLANS, entitlement } from './_lib/core.js';
+import { requireUser, send, PLANS, entitlement,
+         PRICE_MONTH, PRICE_YEAR, TOPUP_CREDITS, TOPUP_PRICE } from './_lib/core.js';
 
 export default async function handler(req, res) {
   const auth = await requireUser(req);
@@ -102,6 +103,13 @@ export default async function handler(req, res) {
     },
     events: eventCounts,
     plans: PLANS,
+    // Every number on the admin plan card comes from here. It used to hardcode
+    // the top-up in the template, which is how it went on saying 100 for $6
+    // for a day after the pack became 50.
+    pricing: {
+      month: PRICE_MONTH, year: PRICE_YEAR,
+      topup_credits: TOPUP_CREDITS, topup_price: TOPUP_PRICE
+    },
     users: rows
   });
 }

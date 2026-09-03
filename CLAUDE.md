@@ -590,6 +590,23 @@ It also proposed weakening the independent-development disclosure in Terms
 ("similar ideas can arise independently") and pluralising "the person who runs
 Beatfall"; both are inaccurate, so the disclosure kept its original force.
 
+## The admin page (3 Sep 2026)
+
+Two things to know before editing it.
+
+**Every number on the plan card comes from `/api/admin`**, in the `pricing`
+object built from `core.js`. The top-up used to be hardcoded in the template,
+which is why it went on saying 100 for $6 after the pack became 50. Nothing on
+that card should be a literal again.
+
+**The account pill is duplicated CSS.** `index.html` does not load `theme.css`,
+so `.acct`, `.avatar` and the `.pop*` rules live inline in both files. Change
+one, change the other. The admin copy drops the Admin row (you are standing on
+it) and the product-tour item, and adds Board.
+
+The owner allowance is `1000000`, a stand-in for infinity. Anywhere it could
+reach a screen it prints as an infinity sign instead.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

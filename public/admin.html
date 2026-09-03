@@ -26,6 +26,53 @@
   .cap div{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
   .cap b{font-variant-numeric:tabular-nums;font-family:var(--mono)}
   .kindbits{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+
+  /* ---------------------------------------------------------------------
+     The account pill, same control as the board. These rules are a copy of
+     the ones in index.html, which cannot share them because index.html does
+     not load theme.css. If the pill changes there, change it here too.
+     --------------------------------------------------------------------- */
+  .acct{position:fixed;left:22px;bottom:18px;z-index:45}
+  .avatar{display:flex;align-items:center;gap:9px;cursor:pointer;
+    height:42px;padding:0 14px 0 5px;border-radius:23px;
+    border:1px solid var(--rule);background:var(--card);color:var(--ink-2);
+    font-family:var(--sans);font-size:13px;font-weight:600;box-shadow:var(--shadow);
+    transition:border-color var(--settle),box-shadow var(--settle),color var(--settle)}
+  .avatar .ini{width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+    background:var(--blue);color:var(--on-blue);font-size:13px;font-weight:600;
+    letter-spacing:.02em;display:flex;align-items:center;justify-content:center}
+  .avatar .cv{color:var(--ink-4);transition:transform var(--settle)}
+  .avatar:hover{border-color:var(--ink-4);color:var(--ink);box-shadow:var(--shadow-lift)}
+  .avatar.open{border-color:var(--blue);color:var(--ink)}
+  .avatar.open .cv{transform:rotate(180deg)}
+  .pop{position:absolute;top:auto;bottom:calc(100% + 9px);left:-8px;z-index:70;width:266px;
+    background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+    box-shadow:var(--shadow-lift);padding:7px 0;overflow:hidden}
+  .popsep{height:1px;background:var(--rule-soft);margin:6px 0}
+  .popitem{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    border:none;background:none;cursor:pointer;padding:8px 15px;
+    font-family:var(--sans);font-size:13px;color:var(--ink);text-decoration:none}
+  .popitem:hover{background:var(--rule-soft)}
+  .popitem.on{background:var(--blue-soft);color:var(--blue-ink)}
+  .popitem .aside{margin-left:auto;font-size:12px;color:var(--ink-4)}
+  .popitem .tag{margin-left:auto;font-size:9.5px;font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-4)}
+  .popwho{padding:9px 15px 4px}
+  .popwho .n{font-size:13px;font-weight:600;color:var(--ink)}
+  .popwho .e{font-size:11.5px;color:var(--ink-4);word-break:break-all}
+  .popplan{padding:2px 15px 10px;display:flex;flex-direction:column;
+    align-items:flex-start;gap:2px}
+  .popplan span{font-size:11.5px;color:var(--ink-2)}
+  /* The table is wide and scrolls; leave the pill somewhere to sit. */
+  .wrap{padding-bottom:84px}
+  @media (max-width:760px){
+    .acct{left:14px;bottom:16px}
+    .avatar{padding:0;height:38px;width:38px;justify-content:center;border-radius:50%}
+    .avatar .lbl,.avatar .cv{display:none}
+    .avatar .ini{width:36px;height:36px}
+    .pop{width:min(300px,calc(100vw - 32px))}
+    .popitem{min-height:40px}
+  }
 </style>
 </head>
 <body>
@@ -94,6 +141,47 @@
   </div>
 </div>
 
+<div class="acct" id="acct">
+  <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false">
+    <span class="ini" id="avatarini">K</span>
+    <span class="lbl">Account</span>
+    <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none"
+      stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+      stroke-linejoin="round" aria-hidden="true"><path d="M2 6.5l3-3 3 3"/></svg>
+  </button>
+
+  <div class="pop" id="acctmenu" hidden>
+    <div class="popwho">
+      <div class="n" id="whoname">Your account</div>
+      <div class="e" id="whoemail"></div>
+    </div>
+    <div class="popplan">
+      <span id="whoplan"></span>
+      <span id="acctcredits" hidden></span>
+    </div>
+
+    <div class="popsep"></div>
+
+    <a class="popitem" href="/settings.html">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"/></svg>
+      Settings</a>
+
+    <a class="popitem" href="/">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><rect x="2.4" y="3.2" width="11.2" height="9.6" rx="1.2"/><path d="M2.4 6.4h11.2"/></svg>
+      Board</a>
+
+    <button class="popitem" id="mode">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2"/></svg>
+      Mode <span class="aside" id="modelabel">Auto</span></button>
+
+    <div class="popsep"></div>
+
+    <button class="popitem" id="signout">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M6.2 13.4H3.4V2.6h2.8M9.6 11l2.9-3-2.9-3M12.5 8H6.6"/></svg>
+      Sign out</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
 <script>
@@ -125,6 +213,9 @@ async function load(days) {
   ].map(([c,n,l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
 
   const c = d.credits_per_active_user, m = d.cost_per_active_user_usd;
+  // Falls back to the current figures only so an older deployed API doesn't
+  // blank the card. The server is the source of truth.
+  const pr = d.pricing || { month: 12, year: 99, topup_credits: 50, topup_price: 6 };
   document.getElementById('caps').innerHTML = `
     <div class="cap"><h3>Credits per active user</h3>
       <div><span>Median</span><b>${c.median}</b></div>
@@ -137,9 +228,9 @@ async function load(days) {
       <div><span>Heaviest</span><b>${BF.money(m.max)}</b></div></div>
     <div class="cap"><h3>Current plan</h3>
       <div><span>Trial · 14 days, no card</span><b>${d.plans.trial.credits}</b></div>
-      <div><span>Beatfall · $12 a month</span><b>${d.plans.beatfall.credits}</b></div>
-      <div><span>Beatfall · $99 a year</span><b>${d.plans.beatfall.credits}</b></div>
-      <div><span>Top-up · $6 one-off</span><b>100</b></div>
+      <div><span>Beatfall · $${pr.month} a month</span><b>${d.plans.beatfall.credits}</b></div>
+      <div><span>Beatfall · $${pr.year} a year</span><b>${d.plans.beatfall.credits}</b></div>
+      <div><span>Top-up · $${pr.topup_price} one-off</span><b>${pr.topup_credits}</b></div>
     </div>`;
 
   const ev = Object.entries(d.events || {}).sort((a,b) => b[1]-a[1]);
@@ -158,15 +249,70 @@ async function load(days) {
       <td class="num">${u.projects}</td>
       <td class="num">${u.cards}</td>
       <td class="num">${u.calls}</td>
-      <td class="num">${u.credits}<span class="muted"> / ${u.allowance}</span></td>
+      <td class="num">${u.credits}<span class="muted"> / ${
+        u.allowance >= 1000000 ? '&infin;' : u.allowance}</span></td>
       <td class="num">${BF.money(u.cost_usd)}</td>
       <td class="kindbits">${kinds || '·'}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" class="muted">Nobody yet.</td></tr>';
 }
 
+/* ---------------------------------------------------------------------------
+   The account pill. Same control, same place, same behaviour as the board, so
+   being on Admin never costs you the way to Settings, the mode switch or the
+   way out. No "Admin" row in it, because you are standing on it.
+   --------------------------------------------------------------------------- */
+const avatar  = document.getElementById('avatar');
+const acctpop = document.getElementById('acctmenu');
+
+function closeAcct(){
+  acctpop.hidden = true;
+  avatar.classList.remove('open');
+  avatar.setAttribute('aria-expanded', 'false');
+}
+avatar.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = acctpop.hidden;
+  acctpop.hidden = !open;
+  avatar.classList.toggle('open', open);
+  avatar.setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', e => {
+  if (!acctpop.hidden && !acctpop.contains(e.target)) closeAcct();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAcct(); });
+
+const modeItem = document.getElementById('mode');
+modeItem.addEventListener('click', e => {
+  e.stopPropagation();
+  BF.cycleMode(document.getElementById('modelabel'));
+});
+document.getElementById('signout').addEventListener('click', () => BF.signOut());
+
+async function paintWho(){
+  let me;
+  try { me = await BF.api('/api/account'); } catch (e) { return; }
+  const name = me.display_name || (me.email || '').split('@')[0] || 'You';
+  document.getElementById('whoname').textContent  = name;
+  document.getElementById('whoemail').textContent = me.email || '';
+  document.getElementById('avatarini').textContent = (name.trim()[0] || '?').toUpperCase();
+  document.getElementById('whoplan').textContent =
+      me.unlimited            ? 'Owner · no limits'
+    : me.plan === 'beatfall'  ? 'Beatfall · $12 a month'
+    : (me.plan === 'trial' && me.trialing) ? 'Free trial'
+    : 'No plan';
+  // The owner allowance is a stand-in for infinity, so don't print it.
+  if (!me.unlimited) {
+    const cr = document.getElementById('acctcredits');
+    cr.textContent = me.credits_left + ' of ' + me.credits_allowance + ' credits left';
+    cr.hidden = false;
+  }
+}
+
 (async function () {
   if (!await BF.requireSession()) return;
+  BF.applyMode(BF.readMode(), document.getElementById('modelabel'));
+  paintWho();
   await load(30);
   document.getElementById('days').addEventListener('change', e => load(e.target.value));
 })();
