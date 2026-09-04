@@ -173,6 +173,7 @@ point, which is why they're on it.
 | `public/index.html` | The public homepage. |
 | `public/app.html` | The board. Everything you've been testing. |
 | `public/login.html` | Magic-link sign-in. |
+| `public/help.html` | Searchable help, shortcuts and problem reporting. |
 | `public/settings.html` | Plan, usage, data export, account deletion. |
 | `public/admin.html` | Yours only. Who signed up, what they did, what they cost. |
 | `public/app.js` | The layer between the board and the server. |

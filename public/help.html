@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help & shortcuts · Beatfall</title>
+<meta name="description" content="Quick answers for using Beatfall: adding notes, placing cards, working on gaps, changing structure, exporting, credits, and undo.">
+<link rel="canonical" href="https://beatfall.app/help">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  .help{max-width:940px;margin:0 auto;padding:62px 28px 110px}
+  .topbar .btn{min-height:44px;display:inline-flex;align-items:center}
+  .intro{max-width:700px;margin-bottom:34px}
+  .eyebrow{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin:0 0 12px}
+  h1{font-family:var(--serif);font-size:clamp(39px,6vw,58px);font-weight:600;line-height:1.02;letter-spacing:-.025em;margin:0 0 13px}
+  .lede{font-family:var(--serif);font-size:18px;line-height:1.55;color:var(--ink-2);margin:0}
+  .searchbox{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);box-shadow:var(--shadow);padding:0 16px;margin-bottom:42px}
+  .searchbox:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+  .searchbox svg{flex:0 0 auto;color:var(--ink-4)}
+  .searchbox input{width:100%;border:0;background:transparent;color:var(--ink);padding:15px 0;font-family:var(--sans);font-size:15px;outline:none}
+  .searchbox input::placeholder{color:var(--ink-4)}
+  .searchbox button{border:0;background:none;color:var(--blue);font-size:12px;font-weight:600;padding:8px 0;min-height:44px;cursor:pointer}
+  .search-status{font-size:12px;color:var(--ink-4);margin:-29px 0 28px;min-height:19px}
+  .group{margin:0 0 42px}.group h2{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-4);margin:0 0 13px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .answer{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);padding:20px 21px;box-shadow:var(--shadow)}
+  .answer h3{font-family:var(--serif);font-size:21px;line-height:1.2;margin:0 0 8px}.answer p{font-size:13.5px;line-height:1.65;color:var(--ink-2);margin:0}.answer strong{color:var(--ink);font-weight:600}.answer a{text-underline-offset:2px}
+  .answer[hidden],.group[hidden]{display:none}
+  .keys{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);border-radius:var(--r-panel);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+  .key{padding:18px}.key+.key{border-left:1px solid var(--rule)}.key kbd{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:3px 7px;margin-bottom:8px}.key b{display:block;font-family:var(--serif);font-size:17px;margin-bottom:3px}.key span{display:block;font-size:12px;line-height:1.45;color:var(--ink-3)}
+  .support{display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center;background:var(--blue);color:var(--on-blue);border-radius:var(--r-panel);padding:28px 30px;margin-top:46px}.support h2{font-family:var(--serif);font-size:27px;line-height:1.1;margin:0 0 7px}.support p{font-size:13.5px;line-height:1.55;margin:0;opacity:.84}.support .btn{background:var(--card);color:var(--blue);border-color:var(--card);text-decoration:none;min-height:42px;display:inline-flex;align-items:center}.support .btn:hover{background:var(--surface)}
+  .footlinks{display:flex;gap:18px;flex-wrap:wrap;margin-top:25px;font-size:12.5px}.footlinks a{color:var(--ink-3)}
+  .no-results{background:var(--gold-soft);border:1px solid var(--gold-hair);padding:18px 20px;border-radius:var(--r-panel);color:var(--ink-2);margin-bottom:42px}
+  @media(max-width:700px){.topbar-in{height:auto;min-height:60px;padding:10px 18px;gap:12px}.slug{display:none}.topbar-in .right{margin-left:auto}.help{padding:44px 20px 80px}.answers{grid-template-columns:1fr}.keys{grid-template-columns:1fr 1fr}.key:nth-child(3){border-left:0;border-top:1px solid var(--rule)}.key:nth-child(4){border-top:1px solid var(--rule)}.support{grid-template-columns:1fr;gap:19px;padding:25px 22px}.support .btn{justify-self:start}}
+  @media(max-width:430px){.topbar-in .brand .wordmark{font-size:22px}.topbar-in .right .btn{padding:8px 12px}.keys{grid-template-columns:1fr}.key+.key{border-left:0;border-top:1px solid var(--rule)}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <a href="/" class="brand" aria-label="Beatfall home">
+    <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"><path d="M27.3 14v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g><rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="var(--gold)" transform="rotate(-12 32 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/></svg>
+    <span class="wordmark">Beat<span>fall</span></span>
+  </a>
+  <span class="slug">Help & shortcuts</span>
+  <div class="right"><a class="btn btn-primary" href="/app">Back to the board</a></div>
+</div></header>
+
+<main class="help">
+  <div class="intro"><p class="eyebrow">Help & shortcuts</p><h1>What do you want to do?</h1><p class="lede">Search for a task or scan the short answers below.</p></div>
+
+  <div class="searchbox">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7.7" cy="7.7" r="4.9"/><path d="m11.4 11.4 3.8 3.8"/></svg>
+    <input id="helpsearch" type="search" placeholder="Search help" aria-label="Search help" autocomplete="off">
+    <button id="clearsearch" type="button" hidden>Clear</button>
+  </div>
+  <div class="search-status" id="searchstatus" role="status" aria-live="polite"></div>
+  <div class="no-results" id="noresults" hidden>No matching answer. Try a simpler word, or report the problem below.</div>
+
+  <section class="group" data-group>
+    <h2>Getting notes into Beatfall</h2>
+    <div class="answers">
+      <article class="answer" data-answer data-search="start import paste file notes text md sort new project"><h3>Start from a notes file</h3><p>Open the project menu beside its title and choose <strong>Paste in your notes</strong>. Paste text or drop in a .txt or .md file. Beatfall shows you the results before adding anything to the board.</p></article>
+      <article class="answer" data-answer data-search="add write type note place capture bar enter"><h3>Add one note</h3><p>Type the note in the bar below the header, then choose <strong>Place it</strong>. Beatfall suggests where it belongs. You make the final choice.</p></article>
+    </div>
+  </section>
+
+  <section class="group" data-group>
+    <h2>Working on the board</h2>
+    <div class="answers">
+      <article class="answer" data-answer data-search="uncertain unsure review placement choose beat set aside wrong suggestion"><h3>Review an uncertain placement</h3><p>Choose the suggested beat that fits. If none fits, choose <strong>Set it aside for now</strong>. The note stays with the project until you decide.</p></article>
+      <article class="answer" data-answer data-search="move drag card pin settle lock placement circle"><h3>Move or settle a card</h3><p>Drag a card to another beat, or use its move control. Choose the circle on a card to mark that placement as settled so Beatfall will not move it later.</p></article>
+      <article class="answer" data-answer data-search="gap missing empty beat what goes here questions conversation ideas"><h3>Work on an empty beat</h3><p>Choose <strong>What goes here?</strong> under the empty beat. Beatfall asks about that specific gap and builds a card from your answers only after you approve it.</p></article>
+      <article class="answer" data-answer data-search="change switch story structure save the cat hero journey feature television half hour"><h3>Change the story structure</h3><p>Open the project menu and choose a structure from the list. Beatfall places every board card into the new structure and shows you what moved. Notes you set aside stay set aside.</p></article>
+    </div>
+  </section>
+
+  <section class="group" data-group>
+    <h2>Your account and work</h2>
+    <div class="answers">
+      <article class="answer" data-answer data-search="export backup download everything json data save copy"><h3>Download everything</h3><p>Open <strong>Account → Settings → Your data</strong>, then choose <strong>Download</strong>. The file contains every project, card, and note in your account.</p></article>
+      <article class="answer" data-answer data-search="credits cost monthly allowance reset conversation import notes file ideas billing"><h3>Understand credits</h3><p>Adding, moving, and organizing notes is free. Conversations and idea sets use one credit. Reading a notes file uses two. See <a href="/billing.html">How billing works</a> for the full rules.</p></article>
+      <article class="answer" data-answer data-search="undo recover mistake restore refresh control z command z delete clear change"><h3>Recover from a mistake</h3><p>Choose <strong>Undo</strong> in the confirmation bar, or press <strong>Ctrl+Z</strong> on Windows and <strong>Command+Z</strong> on Mac. Undo is available until you refresh or close the page.</p></article>
+    </div>
+  </section>
+
+  <section class="group" data-group>
+    <h2>Keyboard shortcuts</h2>
+    <div class="keys" data-answer data-search="keyboard shortcuts keys undo enter line break close escape">
+      <div class="key"><kbd>Ctrl/⌘ + Z</kbd><b>Undo</b><span>Reverse the most recent board change.</span></div>
+      <div class="key"><kbd>Enter</kbd><b>Continue</b><span>Place a note or send an answer.</span></div>
+      <div class="key"><kbd>Shift + Enter</kbd><b>New line</b><span>Add a line without sending.</span></div>
+      <div class="key"><kbd>Esc</kbd><b>Close</b><span>Close the current menu, sheet, or conversation.</span></div>
+    </div>
+  </section>
+
+  <section class="support">
+    <div><h2>Still stuck?</h2><p>Tell us what you were trying to do, what happened, and which page you were on.</p></div>
+    <a class="btn" href="mailto:contact@beatfall.app?subject=Beatfall%20problem">Report a problem</a>
+  </section>
+  <nav class="footlinks" aria-label="More information"><a href="/billing.html">How billing works</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav>
+</main>
+
+<script src="/app.js"></script>
+<script>
+  BF.applyMode(BF.readMode());
+  const input = document.getElementById('helpsearch');
+  const clear = document.getElementById('clearsearch');
+  const status = document.getElementById('searchstatus');
+  const noResults = document.getElementById('noresults');
+  const answers = [...document.querySelectorAll('[data-answer]')];
+  const groups = [...document.querySelectorAll('[data-group]')];
+
+  function filterHelp(){
+    const query = input.value.trim().toLowerCase();
+    let visible = 0;
+    answers.forEach(answer => {
+      const matches = !query || (answer.dataset.search + ' ' + answer.textContent).toLowerCase().includes(query);
+      answer.hidden = !matches;
+      if (matches) visible++;
+    });
+    groups.forEach(group => { group.hidden = ![...group.querySelectorAll('[data-answer]')].some(answer => !answer.hidden); });
+    clear.hidden = !query;
+    noResults.hidden = visible !== 0;
+    status.textContent = query && visible ? visible + (visible === 1 ? ' answer' : ' answers') : '';
+  }
+
+  input.addEventListener('input', filterHelp);
+  clear.addEventListener('click', () => { input.value = ''; filterHelp(); input.focus(); });
+</script>
+</body>
+</html>

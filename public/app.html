@@ -1866,13 +1866,13 @@ footer{
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2"/></svg>
               Mode <span class="aside" id="modelabel">Auto</span></button>
 
-            <a class="popitem" id="feedback" href="mailto:contact@beatfall.app?subject=Beatfall%20feedback">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.6 3.6h10.8v8H2.6z"/><path d="M2.6 3.6L8 8.4l5.4-4.8"/></svg>
-              Give feedback</a>
+            <a class="popitem" href="/help.html">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M3 2.5h7.4A2.6 2.6 0 0 1 13 5.1v8.4H5.6A2.6 2.6 0 0 1 3 10.9z"/><path d="M3 10.9a2.6 2.6 0 0 1 2.6-2.6H13M6 5.4h4"/></svg>
+              Help &amp; shortcuts</a>
 
             <button class="popitem" id="helpbtn">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.8"/><path d="M6.4 6.2c.2-1 1-1.5 1.8-1.4.9 0 1.6.6 1.6 1.4 0 1.3-1.6 1.3-1.7 2.5M8.1 11.1v.05"/></svg>
-              What Beatfall does</button>
+              How Beatfall works</button>
 
             <div class="popsep"></div>
 
@@ -7877,7 +7877,7 @@ function showLocked(){
 })();
 
 /* This sheet opens twice over: once by itself on an empty account, and any
-   number of times from "What Beatfall does" in the account menu. It used to
+   number of times from "How Beatfall works" in the account menu. It used to
    bind its handlers on every open, so the fourth visit put four listeners on
    each button: one click then ran the import four times and recorded four
    first_run_choice events. Bind once, on the first open only. */
@@ -7889,7 +7889,7 @@ function showLocked(){
    deleted their last project. So an empty account that has history gets told
    what is true of it instead: there is nothing on the shelf.
 
-   Opening it from "What Beatfall does" is the explainer, and that one always
+   Opening it from "How Beatfall works" is the explainer, and that one always
    says Welcome, because the writer asked what the thing does and may well be
    sitting on nine projects while they ask. */
 const FR_COPY = {

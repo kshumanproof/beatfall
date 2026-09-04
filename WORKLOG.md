@@ -126,3 +126,39 @@ Shorten the homepage, replace invented product illustrations with genuine Beatfa
 - The approved hero headline, functional description, authorship promise, pricing, and founder statement remain unchanged.
 - The source screenshots were not retouched or regenerated. Only cropping, resizing, and WebP compression were applied.
 - No authenticated app mechanics, mobile files, or mobile-app marketing were added.
+
+## 4 September 2026: Help page and Account menu
+
+### Requested
+
+Complete the second item from the product audit: add a concise, searchable Help page and put it under Account.
+
+### Changes
+
+- Added `public/help.html` with short answers for importing notes, adding one note, uncertain placements, moving and settling cards, empty beats, structure changes, exporting, credits, and undo.
+- Added live in-page search with a result count, a clear action, and a useful no-results state.
+- Added the existing keyboard shortcuts for undo, submit, a new line, and close.
+- Added a direct “Report a problem” email action with guidance on what information to include.
+- Added “Help & shortcuts” to the Account menus in the board, Settings, and Admin.
+- Removed the direct “Give feedback” item from the board menu because feedback and problem reporting now have a clearer home on the Help page.
+- Renamed “What Beatfall does” to “How Beatfall works.” It still opens the existing product explainer and remains separate from task help.
+- Added Help to the public sitemap and the setup file map.
+- Used the official icon-plus-wordmark lockup on the new page.
+
+### Testing
+
+- Visually inspected Help at 1440-pixel desktop, 768-pixel tablet, and 390-pixel phone widths, plus forced dark mode.
+- Saved full-page review captures as `Claude outputs/help-desktop.png`, `help-tablet.png`, `help-mobile.png`, and `help-dark.png`.
+- Confirmed no horizontal overflow at any tested width.
+- Confirmed search returns only the matching answer for “export,” shows the no-results state for an unknown term, and restores all ten answer areas after clearing.
+- Confirmed the board return link, billing link, and problem-report email use the intended destinations.
+- Confirmed the Help link appears exactly once in each Account menu.
+- Confirmed the official lockup, one H1, and 44-pixel navigation target at every tested width.
+- Confirmed the saved light, dark, and auto mode choice carries onto the Help page.
+- Confirmed no browser errors occurred during the responsive and search checks.
+
+### Intentionally unchanged
+
+- No board, import, placement, saving, billing, or account-data mechanics were changed.
+- The existing product explainer remains available as “How Beatfall works.”
+- No mobile-app files or mobile-app marketing were added.
