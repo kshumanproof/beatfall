@@ -55,6 +55,7 @@
      rather than a tint, and because the action on it goes GOLD - the card is
      blue, the button is not. Do not make Open blue on this card. */
   --win:#2A5686; --win-2:#1E4269; --win-hair:#14355A; --win-ink:#F2E3BD;
+  --win-go:#F1F5FA;
   --win-body:#E8EFF7; --win-mute:#B7CCE3; --win-chip:rgba(255,255,255,.10);
   --win-chip-ink:#F1F5FA; --win-track:rgba(255,255,255,.18);
   --win-go-ink:#15304D; --win-del:#F2B8B8;
@@ -96,6 +97,7 @@
     /* Kept saturated rather than darkened. A dark-mode "dark blue" slides into
        the neutral card it sits beside; this one stays blue. */
     --win:#1E4470; --win-2:#17345A; --win-hair:#4F82BA; --win-ink:#EBD5A2;
+    --win-go:#DCE7F4;
     --win-body:#DFEAF5; --win-mute:#A8C1DA; --win-chip:rgba(255,255,255,.08);
     --win-chip-ink:#E6EEF7; --win-track:rgba(255,255,255,.15);
     --win-go-ink:#142639; --win-del:#E0A0A0;
@@ -127,6 +129,7 @@
   --gold-ink:#EBD5A2;
   --on-gold:#14181C;
   --win:#1E4470; --win-2:#17345A; --win-hair:#4F82BA; --win-ink:#EBD5A2;
+  --win-go:#DCE7F4;
   --win-body:#DFEAF5; --win-mute:#A8C1DA; --win-chip:rgba(255,255,255,.08);
   --win-chip-ink:#E6EEF7; --win-track:rgba(255,255,255,.15);
   --win-go-ink:#142639; --win-del:#E0A0A0;
@@ -238,13 +241,6 @@ header{
 }
 .navlink:hover{color:var(--ink)}
 .navlink.on{color:var(--blue);font-weight:500}
-/* Bottom-left corner, always reachable, never in the way. It sits at the same
-   height as the middle of the capture dock, so on a board it reads as part of
-   that rail rather than as something floating over it.
-
-   It says "Account" out loud. A lone circle with an initial in it is a
-   convention people who build software know and nobody else does, and the
-   question it produces is "how do I get to my profile?" */
 /* Last in the header, hard right. It lived in the bottom-left corner for a
    while and the corner was the wrong place twice over: a control that floats
    over the page reads as an overlay rather than as part of the app, and at the
@@ -373,13 +369,20 @@ select:focus{border-color:var(--blue);outline:none}
   text-decoration:underline;text-underline-offset:3px;
 }
 .linky:hover{color:var(--blue-ink)}
+/* Spends a credit, so it is gold like every other paid control. */
+#loghelp{color:var(--gold)}
+#loghelp:hover{color:var(--gold-ink)}
 
 /* =====================================================================
-   THE DOCK: capture, out of the way at the bottom of the room
+   THE CAPTURE BAR: the note box, stuck to the top of the board
+
+   It lived on the floor of the window for months, which is the wrong place for
+   the thing a writer touches most. It is directly under the header now and
+   sticks there, so typing a note never means scrolling back to find the box.
    ===================================================================== */
 .capture{
-  position:fixed;left:0;right:0;bottom:0;z-index:35;height:68px;
-  border-top:1px solid var(--rule);background:var(--surface);
+  position:sticky;top:76px;z-index:35;height:68px;
+  border-bottom:1px solid var(--rule);background:var(--surface);
   display:flex;align-items:center;gap:14px;padding:0 28px;
 }
 .capture-lede{display:none}
@@ -396,7 +399,7 @@ select:focus{border-color:var(--blue);outline:none}
 /* =====================================================================
    THE WALL: acts are horizontal bands, so nothing runs off the screen
    ===================================================================== */
-main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
+main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .board{display:flex;flex-direction:column;gap:34px}
 .band{display:flex;flex-direction:column;gap:15px}
 .acthead{display:flex;align-items:center;gap:14px}
@@ -445,6 +448,28 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .askbtn:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
 
 /* ------------------------------------------------- what a control costs --
+
+   GOLD MEANS IT SPENDS A CREDIT. Blue means you can touch it and it is free.
+
+   That does not fight gold's other job in this app - marking what's missing -
+   because the two are the same idea seen from opposite ends. Gold TEXT and
+   gold RULES say "there is a gap here": the open count, the empty beat's name,
+   the dashed line under it. Gold CONTROLS say "this is the door out of that
+   gap, and it costs one credit". Every paid control in Beatfall is a way of
+   working on a hole; there is no third meaning to confuse.
+
+   Two rules keep it from becoming noise, both learned the hard way:
+     1. FILLED gold is for a standalone action - Ask what's missing, Sort them
+        out. GOLD TEXT is for the inline ones that repeat down a page. Fifteen
+        empty beats means thirty of those; thirty filled gold buttons would be
+        a fairground.
+     2. The price stays written even though the colour says it too. A colour
+        that means money has to be TAUGHT before it can be relied on, and the
+        words are what teach it.
+
+   The corollary, which matters more than the rule: NOTHING FREE MAY BE GOLD.
+   One free gold control and the whole signal is worthless. That is why Open on
+   a finished card is a pale chip and not the gold it started as.
    Nobody should find out that a button spent their credits by watching the
    number in the header go down. Every control that costs something says so on
    itself, before it is pressed, in the same shape everywhere: a small figure
@@ -454,7 +479,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
    The figures come from CREDIT in one place, which is copied from the server's
    COST table, so a price change cannot leave a lying label behind. */
 .costtag{
-  font-family:var(--sans);font-size:10.5px;font-weight:400;color:var(--ink-4);
+  font-family:var(--sans);font-size:10.5px;font-weight:500;color:var(--gold);
   white-space:nowrap;flex:0 0 auto;margin-left:7px;
 }
 /* On a filled button the label is already light; a second grey would vanish. */
@@ -469,7 +494,11 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 /* Fifteen empty beats means fifteen of these rows. One figure per row, at
    hairline weight: a price you can check, not a price shouted thirty times on
    the way down the page. */
-.gapacts .costtag{font-size:10px;opacity:.75;margin-left:3px}
+.gapacts .costtag{font-size:10px;opacity:.8;margin-left:3px}
+/* The two links under an empty beat spend, so they are gold, not blue. Blue on
+   this page now means free. */
+.askbtn{color:var(--gold)}
+.askbtn:hover{color:var(--gold-ink)}
 /* The one spend big enough to say in a sentence rather than a chip. */
 .costline{color:var(--ink-3)}
 .costline b{color:var(--ink-2);font-weight:600}
@@ -691,10 +720,21 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
 .idea .from{font-size:11.5px;color:var(--gold);line-height:1.5;margin-bottom:5px}
 .idea .does{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);line-height:1.5;margin-bottom:11px}
 .idea .btn{font-size:11.5px;padding:6px 12px}
-.logpane-inner{
-  margin-top:12px;background:var(--surface);border:1px solid var(--rule);padding:15px 17px;
+/* A window that does not grow. The thread takes whatever height is left and
+   scrolls inside it, so the compose box and the two buttons are in the same
+   place at question one and at question five. */
+.logsheet{
+  display:flex;flex-direction:column;
+  height:min(600px, calc(100vh - 48px));
 }
-#logthread{max-height:30vh}
+.logsheet .thread{flex:1;min-height:0;max-height:none;margin-bottom:2px}
+/* One question should not sit at the top of a half-empty window. `margin-top:
+   auto` on the first turn pushes a short conversation down to meet the box you
+   answer in, the way a chat does. Done this way rather than with
+   justify-content:flex-end, which on a scrolling flex column makes the top of
+   a long thread unreachable. */
+.logsheet .thread > .turn:first-child{margin-top:auto}
+.logsheet .compose,.logsheet .ask-actions{flex:0 0 auto}
 
 /* =====================================================================
    SHEETS: paste, intake, review, welcome
@@ -1214,10 +1254,13 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 130px}
   background:var(--win-chip);border-color:var(--win-hair);color:var(--win-chip-ink);
 }
 .pcard.full .acts .btn:hover{border-color:var(--win-ink);color:var(--win-chip-ink)}
+/* Pale, not gold. Opening a board is free, and one free gold control would
+   make gold-means-credits worthless everywhere else. */
 .pcard.full .acts .btn.go{
-  background:var(--win-ink);border-color:var(--win-ink);color:var(--win-go-ink);
+  background:var(--win-go);border-color:var(--win-go);color:var(--win-go-ink);
+  font-weight:600;
 }
-.pcard.full .acts .btn.go:hover{background:var(--win-hair);border-color:var(--win-hair);color:var(--win-go-ink)}
+.pcard.full .acts .btn.go:hover{background:var(--card);border-color:var(--card);color:var(--win-go-ink)}
 .pcard.full .acts .del{color:var(--win-del);background:var(--win-chip);border-color:var(--win-hair)}
 .pcard.full .acts .del:hover{background:var(--red);border-color:var(--red);color:var(--card)}
 
@@ -1540,8 +1583,9 @@ footer{
      matched pair by sharing the row equally instead of by a fixed width. */
   .slate-acts{width:100%;gap:10px}
   .bigbtn{min-width:0;flex:1 1 0;padding:0 12px}
-  .capture{padding:0 16px 0 16px;height:64px}
-  .capture .btn-ghost{display:none}
+  /* The header wraps to two rows down here, so the bar cannot be pinned to a
+     fixed offset under it. It scrolls with the page instead. */
+  .capture{padding:0 16px 0 16px;height:64px;position:static}
   /* No room for the word at this width; the circle carries it alone. The
      spacer is display:none down here, so the pill claims the gap itself,
      otherwise it sits mid-bar and its right-anchored menu opens off-screen. */
@@ -1725,7 +1769,34 @@ footer{
       <span class="sheet-count" id="dumpcount">nothing yet</span>
       <button class="btn" id="dumpcancel">Cancel</button>
       <button class="btn" id="dumpstop" hidden>Stop</button>
-      <button class="btn btn-primary" id="dumpgo" data-tip="Splits your text into separate notes, decides what kind each one is, and shows you the plan before anything reaches the board.">Sort them out</button>
+      <button class="btn btn-gold" id="dumpgo" data-tip="Splits your text into separate notes, decides what kind each one is, and shows you the plan before anything reaches the board.">Sort them out</button>
+    </div>
+  </div>
+
+  <!-- The logline coach, on its own sheet.
+
+       It used to unfold inside the project sheet, which pushed Who it's about
+       and Genre down the page and made the sheet grow with every answer, so by
+       question four the writer was scrolling past a form to reach the box they
+       were typing in. It is its own sheet now, a FIXED height: the conversation
+       scrolls inside a window that never changes size, the way a conversation
+       does everywhere else. The project sheet is still there underneath with
+       everything typed into it, and closing this returns to it. -->
+  <div class="sheet logsheet" id="sheetlog" hidden>
+    <div class="sheet-title">Working out the logline</div>
+    <p class="sheet-note" style="margin-bottom:14px">One sentence that makes a stranger want to
+      read the script. Answer as roughly as you like — the point is the material, not the
+      wording.</p>
+    <div class="thread" id="logthread"></div>
+    <div class="compose">
+      <textarea id="loginput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
+      <button class="btn btn-primary" id="logsend">Send</button>
+    </div>
+    <div class="ask-actions">
+      <button class="btn btn-primary" id="logwrite" disabled data-tip="Turns your answers into one sentence and drops it in the box on the project sheet, where you can edit it.">Write the logline</button>
+      <button class="btn" id="logstop" hidden>Stop</button>
+      <button class="btn btn-ghost" id="logclose">Back to the project</button>
+      <span class="limitnote" id="loglimit"></span>
     </div>
   </div>
 
@@ -1749,23 +1820,6 @@ footer{
       <label for="f-log">Logline</label>
       <textarea id="f-log" rows="2" placeholder="Who wants what, and what's in the way. A rough sentence beats a polished one."></textarea>
       <button class="linky" id="loghelp" data-tip="Opens a short conversation that explains what a logline has to do, asks about your story, and writes one from your answers.">Need help with your logline?</button>
-
-      <div id="logpane" hidden>
-        <div class="logpane-inner">
-          <div class="ask-beat">Working out the logline</div>
-          <div class="thread" id="logthread"></div>
-          <div class="compose">
-            <textarea id="loginput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
-            <button class="btn btn-primary" id="logsend">Send</button>
-          </div>
-          <div class="ask-actions">
-            <button class="btn" id="logwrite" disabled data-tip="Turns your answers into one sentence and drops it in the box above, where you can edit it.">Write the logline</button>
-            <button class="btn" id="logstop" hidden>Stop</button>
-            <button class="btn btn-ghost" id="logclose">Close</button>
-            <span class="limitnote" id="loglimit"></span>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="field two">
@@ -1895,6 +1949,24 @@ footer{
 
 </div>
 
+<!-- Capture, at the top of the board and stuck there.
+
+     It used to be docked at the floor, which put the one thing a writer does
+     most - type the thing they just thought of - furthest from the beat they
+     were reading. It sits under the header now and stays there as the board
+     scrolls, so the note box is in the same place whether you are looking at
+     Opening Image or Final Image. -->
+<div class="capture">
+  <div class="capture-row">
+    <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
+    <input id="note" type="text" autocomplete="off" spellcheck="true"
+      placeholder="He finds out his brother knew the whole time&hellip;"
+      aria-label="Type a note">
+    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
+    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
+  </div>
+</div>
+
 <main id="boardview"><div class="board" id="board"></div></main>
 
 <section id="outlineview" hidden>
@@ -1946,18 +2018,6 @@ footer{
     <div class="slate-grid" id="slategrid"></div>
   </div>
 </section>
-
-<!-- Capture, docked out of the way at the bottom of the room -->
-<div class="capture">
-  <div class="capture-row">
-    <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
-    <input id="note" type="text" autocomplete="off" spellcheck="true"
-      placeholder="He finds out his brother knew the whole time&hellip;"
-      aria-label="Type a note">
-    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
-    <button class="btn btn-ghost" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
-  </div>
-</div>
 
 <!-- Settings: a modal over the board, never a page you navigate away to -->
 <div class="scrim" id="setscrim" hidden>
@@ -3667,10 +3727,11 @@ function openIntake(mode){
   F.genre.value  = b.genre || "";
   F.like.value   = b.like || "";
   F.setting.value= b.setting || "";
-  document.getElementById("logpane").hidden = true;
+  document.getElementById("sheetlog").hidden = true;
   logThread = null;
   scrim.hidden = false;
   sheetPaste.hidden = true; sheetReview.hidden = true;
+  document.getElementById("sheetlog").hidden = true;
   document.getElementById("sheetnew").hidden = false;
   F.name.focus();
 }
@@ -3708,6 +3769,7 @@ function commitIntake(){
   }
   scrim.hidden = true;
   document.getElementById("sheetnew").hidden = true;
+  document.getElementById("sheetlog").hidden = true;
   hideAll();
   setView("board");
 }
@@ -3749,7 +3811,6 @@ function drawLog(streaming){
   const spent = asked >= LOG_LIMIT;
   const w = document.getElementById("logwrite");
   w.disabled = answered < 1;
-  w.classList.toggle("btn-primary", spent);
   logInput.disabled = spent;
   document.getElementById("logsend").disabled = spent;
   document.getElementById("loglimit").textContent = spent
@@ -3819,9 +3880,22 @@ async function runLogTurn(){
   }
 }
 
+/* Two sheets, one at a time, over the same scrim. The project sheet keeps
+   everything typed into it while it is hidden - it is the same DOM - so coming
+   back is not a re-open, it is just becoming visible again. */
+function openLogline(){
+  document.getElementById("sheetnew").hidden = true;
+  document.getElementById("sheetlog").hidden = false;
+  logInput.focus();
+}
+function closeLogline(){
+  if (logCtl) logCtl.abort();
+  document.getElementById("sheetlog").hidden = true;
+  document.getElementById("sheetnew").hidden = false;
+}
+
 document.getElementById("loghelp").addEventListener("click", async () => {
-  const pane = document.getElementById("logpane");
-  pane.hidden = false;
+  openLogline();
   logInput.value = "";
   if (!ai_sample){
     logThread = {turns: [{role:"user",content:"x"}, {role:"assistant", content:
@@ -3849,8 +3923,7 @@ logInput.addEventListener("keydown", e => {
 });
 document.getElementById("logstop").addEventListener("click", () => logCtl && logCtl.abort());
 document.getElementById("logclose").addEventListener("click", () => {
-  if (logCtl) logCtl.abort();
-  document.getElementById("logpane").hidden = true;
+  closeLogline();
   logThread = null;
 });
 
@@ -3860,7 +3933,7 @@ document.getElementById("logwrite").addEventListener("click", async () => {
   if (!ai_sample){
     F.log.value = logThread.turns.filter((t,i) => t.role === "user" && i > 0)
                                  .map(t => t.content).join(" ");
-    document.getElementById("logpane").hidden = true;
+    closeLogline();
     return;
   }
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Writing…';
@@ -3877,7 +3950,7 @@ document.getElementById("logwrite").addEventListener("click", async () => {
     const {text} = await ai_sample(turns, {kind: "logline",
       session: logThread && logThread.sid, signal: logCtl.signal});
     F.log.value = text.trim().replace(/^["']|["']$/g, "");
-    document.getElementById("logpane").hidden = true;
+    closeLogline();
     F.log.focus();
   }catch(e){
     btn.textContent = "Couldn't write it";
@@ -4707,7 +4780,11 @@ document.getElementById("dumpcancel").addEventListener("click", closeImport);
 document.getElementById("revback").addEventListener("click", () => {
   sheetReview.hidden = true; sheetPaste.hidden = false;
 });
-scrim.addEventListener("click", e => { if (e.target === scrim) closeImport(); });
+scrim.addEventListener("click", e => {
+  if (e.target !== scrim) return;
+  if (!document.getElementById("sheetlog").hidden){ closeLogline(); return; }
+  closeImport();
+});
 
 /* The controls that live in the markup rather than being built each render.
    Marked once, here, from the same CREDIT table, so there is nowhere in the app

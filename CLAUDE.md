@@ -1135,6 +1135,54 @@ bar and buttons a line below every other card's.
 
 `/home/claude/vformat.js` covers all of it against his Witness Tree paste.
 
+### The board page: capture at the top, and gold means it costs (3 Sep 2026)
+
+**The note box moved to the top.** It was docked at the floor of the window,
+which put the thing a writer touches most — typing the idea they just had —
+furthest from the beat they were reading. It is sticky under the header now, so
+the box is in the same place whether you are looking at Opening Image or Final
+Image. Below 760 the header wraps to two rows and the offset cannot be fixed, so
+the bar goes static there.
+
+**GOLD MEANS IT SPENDS A CREDIT. Blue means you can touch it and it is free.**
+Kris's idea, and it is a good one. It does not fight gold's other job — marking
+what's missing — because the two are the same idea from opposite ends: gold
+TEXT and RULES say "there is a gap here" (the open count, an empty beat's name,
+the dashed line); gold CONTROLS say "this is the door out of that gap, and it
+costs a credit". Every paid control in Beatfall is a way of working on a hole,
+so there is no third meaning to confuse.
+
+Three rules hold it together:
+
+1. **FILLED gold for a standalone action** (Ask what's missing, Sort them out,
+   Start from my notes); **gold TEXT for the inline ones that repeat** (What
+   goes here?, Ideas, Need help with your logline?). Fifteen empty beats means
+   thirty of those, and thirty filled gold buttons is a fairground.
+2. **The price stays written even though the colour says it too.** A colour that
+   means money has to be taught before it can be relied on, and the words are
+   what teach it. `.costtag` is gold now, which is the cheapest way to spread
+   the convention without repainting every control.
+3. **NOTHING FREE MAY BE GOLD.** One free gold control and the signal is worth
+   nothing. Two things changed for this: Open on a finished card went from gold
+   to a pale chip (`--win-go`), and "Write the logline" is blue, not gold —
+   the whole coach bills once on one session id, so the write is already paid
+   for. Only the entry point charges, so only the entry point is gold.
+
+**The logline coach is its own sheet.** It used to unfold inside the project
+sheet, pushing Who it's about and Genre down the page and growing the sheet with
+every answer, so by question four the writer was scrolling past a form to reach
+the box they were typing in. `#sheetlog` is a FIXED height (`min(600px, 100vh -
+48px)`) with the thread scrolling inside it — the compose box and the buttons
+are in the same place at question one and question five. The project sheet is
+the same DOM underneath, just hidden, so everything typed into it survives and
+"Back to the project" is not a re-open. A short conversation is pushed down to
+meet the answer box with `margin-top:auto` on the first turn, **not** with
+`justify-content:flex-end`, which on a scrolling flex column makes the top of a
+long thread unreachable. A scrim click steps back to the project rather than
+throwing away both the conversation and a half-filled form.
+
+Held down by `/home/claude/vlog.js`.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
