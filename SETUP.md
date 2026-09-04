@@ -38,8 +38,8 @@ works.
 3. **Authentication → Providers →** make sure **Email** is on, and turn
    **Confirm email** ON. That is what makes the magic link work.
 4. **Authentication → URL Configuration →** set *Site URL* to
-   `https://beatfall.app` and add the same as a redirect URL. Add
-   `http://localhost:3000` too if you want to run it locally.
+   `https://beatfall.app` and add `https://beatfall.app/app` as a redirect URL.
+   Add `http://localhost:3000/app` too if you want to run it locally.
 5. **Project Settings → API →** copy three values for later:
    - Project URL → `SUPABASE_URL`
    - `anon` `public` key → `SUPABASE_ANON_KEY`
@@ -170,7 +170,8 @@ point, which is why they're on it.
 
 | Where | What it does |
 |---|---|
-| `public/index.html` | The board. Everything you've been testing. |
+| `public/index.html` | The public homepage. |
+| `public/app.html` | The board. Everything you've been testing. |
 | `public/login.html` | Magic-link sign-in. |
 | `public/settings.html` | Plan, usage, data export, account deletion. |
 | `public/admin.html` | Yours only. Who signed up, what they did, what they cost. |
