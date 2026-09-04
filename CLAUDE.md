@@ -1163,10 +1163,14 @@ Three rules hold it together:
    Start from my notes); **gold TEXT for the inline ones that repeat** (What
    goes here?, Ideas, Need help with your logline?). Fifteen empty beats means
    thirty of those, and thirty filled gold buttons is a fairground.
-2. **The price stays written even though the colour says it too.** A colour that
-   means money has to be taught before it can be relied on, and the words are
-   what teach it. `.costtag` is gold now, which is the cheapest way to spread
-   the convention without repainting every control.
+2. **The price is written on every STANDALONE paid control, and nowhere that
+   repeats.** A colour that means money has to be taught before it can be
+   relied on, and the words are what teach it: What's missing?, the logline
+   link, the menu item, Next up on a project card, and a whole sentence on the
+   import sheet. That is five places, which is enough. On the board the two gap
+   controls carry it in their tooltips only. It started as a chip on every row,
+   which on a board with fifteen empty beats is a figure printed fifteen times,
+   and a figure printed fifteen times stops being information.
 3. **NOTHING FREE MAY BE GOLD.** One free gold control and the signal is worth
    nothing. Two things changed for this: Open on a finished card went from gold
    to a pale chip (`--win-go`), and "Write the logline" is blue, not gold —

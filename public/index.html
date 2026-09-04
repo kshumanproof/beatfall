@@ -515,10 +515,6 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;
   color:var(--gold);opacity:.85;
 }
-/* Fifteen empty beats means fifteen of these rows. One figure per row, at
-   hairline weight: a price you can check, not a price shouted thirty times on
-   the way down the page. */
-.gapacts .costtag{font-size:10px;opacity:.8;margin-left:3px}
 /* The two links under an empty beat spend, so they are gold, not blue. Blue on
    this page now means free. */
 .askbtn{color:var(--gold)}
@@ -3292,16 +3288,19 @@ function render(justPlaced){
           + "you already wrote. No questions.");
         ideas.addEventListener("click", e => { e.stopPropagation(); ideasFor(s); });
         acts.appendChild(ideas);
-        /* Both of these cost the same, so the row says it once. The tooltips
-           carry it per button for anyone who wants it spelled out. */
+        /* The price lives in the tooltips here and nowhere else on this page.
+
+           A board with fifteen empty beats repeats this row fifteen times, and
+           a figure printed fifteen times stops being information. The colour
+           already says these two spend, and every standalone paid control in
+           the app still prints its price in words: What's missing?, the
+           logline link, the menu, Next up on a project card, and a whole
+           sentence on the import sheet. The convention gets taught in five
+           places; it does not need teaching in thirty. */
         ask.setAttribute("data-tip", ask.getAttribute("data-tip")
           + " Costs " + costWords("conversation") + ".");
         ideas.setAttribute("data-tip", ideas.getAttribute("data-tip")
           + " Costs " + costWords("ideas") + ".");
-        const price = document.createElement("span");
-        price.className = "costtag";
-        price.textContent = costWords("conversation") + " each";
-        acts.appendChild(price);
         el.appendChild(gap);
       }
 
