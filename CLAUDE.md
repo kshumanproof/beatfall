@@ -1192,6 +1192,16 @@ throwing away both the conversation and a half-filled form.
 
 Held down by `/home/claude/vlog.js`.
 
+**The note box wraps, it does not scroll sideways.** It was an `<input>`, so a
+long beat pushed its own beginning off the left edge and the only way back to a
+word you wanted to change was to select through it. It is a `<textarea>` that
+grows one line at a time (`growNote`), stops at five and scrolls after that,
+and shrinks again when text is deleted. The bar has `min-height` rather than
+`height`, and `.capture-row` is top-aligned so the pencil and the two buttons
+stay on the first line while the box grows downward under them. Enter still
+places it; Shift+Enter is a new line, the same bargain every other box in the
+app makes.
+
 **The capture bar never moves.** Everything that used to open above it — the
 two-candidate picker, "board updated", and the note conversation — shoved the
 note box down the screen, and the conversation moved it again with every answer.

@@ -398,19 +398,34 @@ select:focus{border-color:var(--blue);outline:none}
    sticks there, so typing a note never means scrolling back to find the box.
    ===================================================================== */
 .capture{
-  position:sticky;top:76px;z-index:35;height:68px;
+  position:sticky;top:76px;z-index:35;
+  /* No fixed height: the bar is as tall as what is in it, which is one line
+     until the writer types past the end of one. min-height keeps a short note
+     from making the bar shorter than the buttons. */
+  min-height:68px;padding:13px 28px;
   border-bottom:1px solid var(--rule);background:var(--surface);
-  display:flex;align-items:center;gap:14px;padding:0 28px;
+  display:flex;align-items:center;gap:14px;
 }
 .capture-lede{display:none}
-.capture-row{display:flex;align-items:center;gap:14px;flex:1;max-width:1560px;margin:0 auto;width:100%}
+/* Top-aligned, so the pencil and the two buttons stay on the first line while
+   the box grows downward under them. Centring them would have the buttons
+   drift down the bar as the note gets longer. */
+.capture-row{
+  display:flex;align-items:flex-start;gap:14px;flex:1;
+  max-width:1560px;margin:0 auto;width:100%;
+}
+.capture .quill{margin-top:12px}
+.capture-row .btn{margin-top:2px}
 .capture .quill{flex:0 0 auto;opacity:.75}
-.capture input{
+.capture textarea{
   flex:1;min-width:0;background:transparent;color:var(--ink);
   border:none;padding:10px 0;font-family:var(--mono);font-size:14px;
+  line-height:1.5;resize:none;overflow-y:hidden;
+  /* One line until there is a second one. growNote() sets the height. */
+  height:41px;
 }
-.capture input::placeholder{color:var(--ink-4)}
-.capture input:focus{outline:none}
+.capture textarea::placeholder{color:var(--ink-4)}
+.capture textarea:focus{outline:none}
 /* A matched pair, the way the two buttons on the dashboard are: same height,
    same width, so the choice between them is about what they do and not about
    which one looks more important. The wider one sets the width, and the gold
@@ -1692,7 +1707,7 @@ footer{
   .bigbtn{min-width:0;flex:1 1 0;padding:0 12px}
   /* The header wraps to two rows down here, so the bar cannot be pinned to a
      fixed offset under it. It scrolls with the page instead. */
-  .capture{padding:0 16px 0 16px;height:64px;position:static}
+  .capture{padding:11px 16px;min-height:64px;position:static}
   /* No room for the word at this width; the circle carries it alone. The
      spacer is display:none down here, so the pill claims the gap itself,
      otherwise it sits mid-bar and its right-anchored menu opens off-screen. */
@@ -2061,9 +2076,13 @@ footer{
 <div class="capture">
   <div class="capture-row">
     <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
-    <input id="note" type="text" autocomplete="off" spellcheck="true"
+<!-- A textarea, not an input. A one-line input scrolls sideways, so a long
+         beat pushes its own beginning off the left edge and the only way back
+         to a word you want to change is to select through it. This wraps and
+         grows a line at a time. -->
+    <textarea id="note" rows="1" autocomplete="off" spellcheck="true"
       placeholder="He finds out his brother knew the whole time&hellip;"
-      aria-label="Type a note">
+      aria-label="Type a note"></textarea>
     <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
     <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">What&rsquo;s missing?</button>
   </div>
@@ -3826,7 +3845,7 @@ function commit(slotId){
   proj.cards.push({id: uid++, text: pending.text, slot: slotId, pinned: false});
   pending = null;
   proposal.hidden = true;
-  input.value = "";
+  input.value = ""; growNote();
   input.focus();
 
   const moves = slotId === "__none" ? [] : settle(proj);
@@ -3839,7 +3858,24 @@ function commit(slotId){
 }
 
 placeBtn.addEventListener("click", propose);
-input.addEventListener("keydown", e => { if (e.key === "Enter") propose(); });
+/* One line at a time, and never more than five: past that it scrolls, because
+   a capture bar that eats half the board is no longer a capture bar. Setting
+   height to auto first is what lets it shrink again when text is deleted. */
+const NOTE_MAX_LINES = 5;
+function growNote(){
+  const line = 21;                       // 14px mono at 1.5
+  const pad = 20;
+  input.style.height = "auto";
+  const want = Math.min(input.scrollHeight, line * NOTE_MAX_LINES + pad);
+  input.style.height = Math.max(line + pad, want) + "px";
+  input.style.overflowY = input.scrollHeight > want + 1 ? "auto" : "hidden";
+}
+input.addEventListener("input", growNote);
+/* Enter still places it. Shift+Enter is a new line, which is the same bargain
+   every other box in this app makes. */
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); propose(); }
+});
 document.getElementById("unplace").addEventListener("click", () => commit("__none"));
 document.getElementById("cancel").addEventListener("click", () => {
   pending = null; proposal.hidden = true; input.focus();
@@ -4785,7 +4821,7 @@ document.getElementById("draftgo").addEventListener("click", () => {
   if (thread.mode === "note"){          // it's a beat now, so let it find its own home
     thread = null;
     closeAsk();
-    input.value = text;
+    input.value = text; growNote();
     propose();
     return;
   }
