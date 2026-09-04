@@ -333,7 +333,7 @@ header{
 .tab{
   border:none;background:none;text-align:left;cursor:pointer;
   padding:7px 15px;font-family:var(--sans);font-size:13px;color:var(--ink-2);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;
 }
 .tab:hover{background:var(--rule-soft);color:var(--ink)}
 .tab.on{background:var(--blue-soft);color:var(--blue-ink);font-weight:500}
@@ -1487,6 +1487,25 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .locked-acts{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 20px}
 .lk-out{font-size:12.5px;color:var(--ink-3);text-decoration:none}
 .lk-out:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+
+/* If the project shelf cannot be read, there is no substitute board. The
+   page stops here so an empty local state can never look like the writer's
+   account or get saved over it. */
+.loadfail{flex:1;display:flex;align-items:center;justify-content:center;padding:70px 24px 110px}
+.loadfail-in{width:100%;max-width:590px}
+.loadfail .slug{display:block;color:var(--gold);margin-bottom:13px}
+.loadfail h1{
+  font-family:var(--serif);font-size:clamp(36px,6vw,54px);font-weight:600;
+  letter-spacing:-.025em;line-height:1.04;margin:0 0 16px;color:var(--ink);
+}
+.loadfail p{font-size:15px;line-height:1.7;color:var(--ink-2);margin:0;max-width:52ch}
+.loadfail-acts{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 20px}
+@media (max-width:520px){
+  .loadfail{align-items:flex-start;padding:54px 20px 80px}
+  .loadfail-acts{flex-direction:column}
+  .loadfail .bigbtn{width:100%;flex:0 0 42px}
+  body.load-error .topline{min-height:68px}
+}
 
 /* the acknowledgement before cancelling */
 .cancelscrim{display:flex}
@@ -7366,7 +7385,7 @@ function paneProfile(){
       await BF.api("/api/account", {method: "POST",
         body: JSON.stringify({action: "delete_account", confirm: typed})});
       await BF.sb.auth.signOut();
-      location.href = "/login.html";
+      location.href = "/";
     } catch (e) { setFlash("bad", esc(BF.explain(e))); }
   });
 }
@@ -7818,6 +7837,35 @@ function showLocked(){
   });
 }
 
+function showLoadFailure(){
+  document.title = "Couldn\u2019t load \u00b7 Beatfall";
+  document.body.classList.add("load-error");
+
+  // Keep the universal masthead and its route home. Everything that assumes
+  // project data exists stays out of sight and, more importantly, never runs.
+  document.querySelectorAll("header .topline > :not(.lead), header .lead > :not(.brand), main, footer, .capture, .trays, #slate, #outlineview, #notesview")
+    .forEach(el => el && (el.hidden = true));
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <main class="loadfail" role="alert">
+      <div class="loadfail-in">
+        <span class="slug">Couldn\u2019t connect</span>
+        <h1>Beatfall couldn\u2019t load your projects.</h1>
+        <p>Your saved projects have not been changed. Beatfall could not reach them, so the board stayed closed.</p>
+        <div class="loadfail-acts">
+          <button class="bigbtn solid" id="load-retry">Try again</button>
+          <a class="bigbtn" href="/help.html">Help &amp; shortcuts</a>
+        </div>
+        <a class="lk-out" href="#" id="load-signout">Sign out</a>
+      </div>
+    </main>`);
+
+  document.getElementById("load-retry").addEventListener("click", () => location.reload());
+  document.getElementById("load-signout").addEventListener("click", ev => {
+    ev.preventDefault(); BF.signOut();
+  });
+}
+
 (async function start(){
   if (!await BF.requireSession()) return;
 
@@ -7837,11 +7885,8 @@ function showLocked(){
     // door that stays open is the one that lets somebody leave with their
     // material. Anything else would be holding a writer's notes to ransom.
     if (e && e.status === 402) return showLocked();
-    document.body.insertAdjacentHTML("afterbegin",
-      '<div style="padding:14px 22px;background:var(--gold-soft);border-bottom:1px solid var(--gold);'
-      + 'font-size:13.5px">Couldn\'t reach your saved projects. Check your connection and reload. '
-      + 'Nothing has been lost.</div>');
-    state = {projects:[blankProject("Untitled","stc")], activeId: 1, view:"slate"};
+    showLoadFailure();
+    return;
   }
 
   // Always open on the slate. A writer arriving cold wants to see the whole

@@ -64,7 +64,7 @@
 
   BF.signOut = async function () {
     await sb.auth.signOut();
-    location.href = '/login.html';
+    location.href = '/';
   };
 
   // Every protected page starts with this. No session, no page.
@@ -72,10 +72,10 @@
     const session = await BF.init();
     if (unconfigured) return null;            // never bounce into a login that can't work
     // The gate is already up and it is the whole page. Returning null stops
-    // the caller from building a board underneath it, and bouncing a phone to
-    // /login.html would only show the same gate at a different address.
+    // the caller from building a board underneath it. The public homepage is
+    // the signed-out destination and carries the same small-screen gate.
     if (BF.isSmallScreen()) return null;
-    if (!session) { location.href = '/login.html'; return null; }
+    if (!session) { location.href = '/'; return null; }
     return session;
   };
 
@@ -96,7 +96,7 @@
     });
     let body = null;
     try { body = await r.json(); } catch (e) { body = {}; }
-    if (r.status === 401) { location.href = '/login.html'; throw new Error('signed out'); }
+    if (r.status === 401) { location.href = '/'; throw new Error('signed out'); }
     if (!r.ok) { const err = new Error(body.message || body.error || 'request failed');
                  err.code = body.error; err.status = r.status; err.body = body; throw err; }
     return body;

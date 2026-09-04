@@ -419,7 +419,7 @@ const PERIODS = [
       await BF.api('/api/account', { method:'POST',
         body: JSON.stringify({ action:'delete_account', confirm: typed }) });
       await BF.sb.auth.signOut();
-      location.href = '/login.html';
+      location.href = '/';
     } catch (e) { flash('bad', BF.explain(e)); }
   });
 })();

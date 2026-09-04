@@ -196,3 +196,39 @@ Make the `/app` dashboard header the universal page header, make every logo link
 - The projects dashboard remains the first view loaded by `/app`.
 - The public homepage content remains unchanged for signed-out visitors.
 - No project, account, billing, or mobile-app mechanics were changed.
+
+## 4 September 2026: Project-title display, safe error states, and signed-out routing
+
+### Requested
+
+Display every project title in the project switcher in uppercase, complete the third product-audit item for missing and failed pages, and send people to the homepage after they sign out.
+
+### Changes
+
+- Made project titles display in uppercase throughout the project switcher, matching the dashboard cards.
+- Kept the writer's original capitalization in saved project data; the uppercase treatment is visual only.
+- Added `public/404.html` as the site's polished not-found page with the universal header, the official lockup, and clear routes to Projects and Help.
+- Replaced the board's unsafe load-failure fallback. Beatfall no longer creates and displays a temporary Untitled project when the saved project shelf cannot be reached.
+- Added a dedicated “Beatfall couldn’t load your projects” state that stops the board from opening, confirms that saved projects were not changed, and offers Try again, Help, and Sign out.
+- Changed every explicit sign-out and post-account-deletion destination from Sign in to the public homepage.
+- Changed signed-out and expired-session redirects from protected pages to the public homepage. The Sign in page is now reached only through the homepage's Sign in and trial actions.
+- Added the not-found page to the setup file map.
+
+### Testing
+
+- Simulated a project API failure and confirmed the dedicated failure state appears with no temporary or editable board visible.
+- Confirmed the failure state has no browser errors or horizontal overflow at 1440 and 390 pixels wide.
+- Confirmed its universal header measures 77 pixels on desktop and 69 pixels on phone, matching the site's one-pixel borders.
+- Confirmed its phone actions fill the available width and retain their intended 42-pixel height.
+- Confirmed a mixed-case project title keeps its original text value while its switcher display computes to uppercase.
+- Confirmed Sign out lands on `/`, while choosing Sign in on the homepage still lands on `/login.html`.
+- Confirmed no code path outside the homepage links people directly to `/login.html`.
+- Visually inspected the 404 page in desktop light mode and phone dark mode.
+- Confirmed the 404 page uses the official `/app` lockup link, has no browser errors or overflow, and matches the universal desktop and phone header dimensions.
+- Saved review captures as `Claude outputs/error-load-desktop.png`, `error-load-mobile.png`, `error-404-desktop.png`, and `error-404-mobile.png`.
+
+### Intentionally unchanged
+
+- Project names are not rewritten in the database, exports, or edit fields.
+- The login page and its copy remain available when a signed-out visitor deliberately chooses Sign in or a trial action.
+- No project content, database schema, billing behavior, or mobile-app files were changed.

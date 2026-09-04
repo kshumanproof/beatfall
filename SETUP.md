@@ -171,6 +171,7 @@ point, which is why they're on it.
 | Where | What it does |
 |---|---|
 | `public/index.html` | The public homepage. |
+| `public/404.html` | The not-found page, with a safe route back to projects. |
 | `public/app.html` | The board. Everything you've been testing. |
 | `public/login.html` | Magic-link sign-in. |
 | `public/help.html` | Searchable help, shortcuts and problem reporting. |
