@@ -411,7 +411,14 @@ select:focus{border-color:var(--blue);outline:none}
 }
 .capture input::placeholder{color:var(--ink-4)}
 .capture input:focus{outline:none}
-.capture .btn-primary{padding:10px 20px}
+/* A matched pair, the way the two buttons on the dashboard are: same height,
+   same width, so the choice between them is about what they do and not about
+   which one looks more important. The wider one sets the width, and the gold
+   one is wider because it carries its price. */
+.capture .btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:186px;padding:10px 18px;
+}
 
 /* =====================================================================
    THE WALL: acts are horizontal bands, so nothing runs off the screen
@@ -795,7 +802,24 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .ccard .cmeta{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--ink-4)}
 .ccard .cmeta b{color:var(--gold);font-weight:600}
 
-.castsheet{max-height:calc(100vh - 48px)}
+/* Three fixed bands and a scrolling middle: what this is, the way out of a
+   blank page, then ten fields that scroll, then Save. Letting the whole sheet
+   scroll put both the help button and Save below the fold, which is the two
+   most useful controls hidden behind ten text boxes. */
+.castsheet{
+  display:flex;flex-direction:column;overflow:hidden;
+  max-height:calc(100vh - 48px);
+}
+.castsheet .sheet-title,.castsheet .sheet-note,.castsheet .charhead,
+.castsheet .sheet-actions{flex:0 0 auto}
+.castsheet #charfields{
+  flex:1;min-height:0;overflow-y:auto;padding-right:4px;margin-right:-4px;
+}
+.charhead{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding-bottom:15px;margin-bottom:16px;border-bottom:1px solid var(--rule);
+}
+.charhead .sheet-count{margin-right:0}
 .cfield{margin-bottom:14px}
 .cfield label{
   display:block;font-size:10px;font-weight:600;text-transform:uppercase;
@@ -1876,12 +1900,17 @@ footer{
        interview for two credits. -->
   <div class="sheet castsheet" id="sheetchar" hidden>
     <div class="sheet-title" id="chartitle">A character</div>
-    <p class="sheet-note" style="margin-bottom:16px">Fill in what you know. Blanks are fine —
+    <p class="sheet-note" style="margin-bottom:14px">Fill in what you know. Blanks are fine —
       they are what the interview asks about, and they are what the board notices is missing.</p>
-    <div id="charfields"></div>
-    <div class="sheet-actions">
+    <!-- The way out of a blank sheet, at the top where it can be seen. Ten
+         fields is a long scroll, and the writer who most needs this button is
+         the one looking at ten empty boxes wondering where to start. -->
+    <div class="charhead">
       <button class="btn btn-gold" id="charask" data-tip="Up to ten questions about this person, skipping anything you have already filled in. It writes the blanks from your answers and you can edit every one.">Help me build this character</button>
       <span class="sheet-count" id="charcount"></span>
+    </div>
+    <div id="charfields"></div>
+    <div class="sheet-actions">
       <button class="btn del" id="chardel">Delete</button>
       <button class="btn" id="charcancel">Cancel</button>
       <button class="btn btn-primary" id="charsave">Save</button>
@@ -2039,7 +2068,7 @@ footer{
       placeholder="He finds out his brother knew the whole time&hellip;"
       aria-label="Type a note">
     <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
-    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
+    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">What&rsquo;s missing?</button>
   </div>
 </div>
 

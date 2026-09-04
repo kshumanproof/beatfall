@@ -1266,6 +1266,17 @@ Up to ten questions and the write-up all ride one session id, so it bills once.
 Typing the sheet in by hand is free and stays free — the charge is for the
 questions, not for the feature.
 
+The character sheet is three fixed bands with a scrolling middle: what this is,
+the way out of a blank page, then the ten fields, then Save. Letting the whole
+sheet scroll put both the help button and Save below the fold, which hides the
+two most useful controls behind ten text boxes — and the writer who most needs
+that button is the one staring at ten empty ones wondering where to start.
+
+On the board, Place it and What's missing? are a matched pair at 186px, like the
+two buttons on the dashboard: the choice between them should be about what they
+do, not about which looks more important. The gold one sets the width because it
+carries its price.
+
 Held down by `/home/claude/vcast.js` and `/home/claude/vpeople.js`.
 
 ### Two things Kris caught in the copy
