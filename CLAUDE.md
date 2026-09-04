@@ -369,6 +369,11 @@ had the room once the tagline left.
 Kris asked for none anywhere, and there are none: every page, `app.js` and
 `theme.css` are at zero, comments included. Do not reintroduce them.
 
+**I reintroduced seven of them on 3 Sep and Kris caught it.** They crept in
+through new copy written in a conversational register, which is exactly how a
+rule like this dies. Check with `grep -c "—"` on every file touched before
+delivering: the pages, `app.js` and `theme.css` must all read 0.
+
 They were not swapped for one substitute, because the em dash was doing three
 different jobs in this copy and one character gets two of them wrong every
 time: introducing a list (now a colon), holding an aside (commas or brackets),
@@ -1265,6 +1270,15 @@ Cost: `character: 2`, in `CREDIT` client-side and `COST` in `api/_lib/core.js`.
 Up to ten questions and the write-up all ride one session id, so it bills once.
 Typing the sheet in by hand is free and stays free — the charge is for the
 questions, not for the feature.
+
+**The copy in that sheet was doing too much.** "Fill in what you know. Blanks
+are fine, they are what the interview asks about, and they are what the board
+notices is missing" was three ideas in one sentence, and every field help line
+had the same shape: a fact plus a little aphorism about craft. They are all one
+short sentence now ("A placeholder is fine.", "Where they sit in the story.",
+"The thing they are chasing."). **The explanation belongs in the field's
+existence, not in a caption under it** - a writer looking at a box labelled WHAT
+THEY WANT does not need to be told why wants matter.
 
 The character sheet is three fixed bands with a scrolling middle: what this is,
 the way out of a blank page, then the ten fields, then Save. Letting the whole

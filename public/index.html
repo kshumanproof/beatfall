@@ -1900,8 +1900,7 @@ footer{
        interview for two credits. -->
   <div class="sheet castsheet" id="sheetchar" hidden>
     <div class="sheet-title" id="chartitle">A character</div>
-    <p class="sheet-note" style="margin-bottom:14px">Fill in what you know. Blanks are fine —
-      they are what the interview asks about, and they are what the board notices is missing.</p>
+    <p class="sheet-note" style="margin-bottom:14px">Fill in what you know. Blanks are fine.</p>
     <!-- The way out of a blank sheet, at the top where it can be seen. Ten
          fields is a long scroll, and the writer who most needs this button is
          the one looking at ten empty boxes wondering where to start. -->
@@ -1921,8 +1920,8 @@ footer{
        thread scrolling inside it. -->
   <div class="sheet logsheet" id="sheetcast" hidden>
     <div class="sheet-title" id="casttitle">Building the character</div>
-    <p class="sheet-note" style="margin-bottom:14px">It asks about what is still blank and stops
-      when there is nothing useful left to ask. Answer roughly — the point is the material.</p>
+    <p class="sheet-note" style="margin-bottom:14px">It only asks about the blanks. Rough
+      answers are fine.</p>
     <div class="thread" id="castthread"></div>
     <div class="compose">
       <textarea id="castinput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
@@ -1948,8 +1947,7 @@ footer{
   <div class="sheet logsheet" id="sheetlog" hidden>
     <div class="sheet-title">Working out the logline</div>
     <p class="sheet-note" style="margin-bottom:14px">One sentence that makes a stranger want to
-      read the script. Answer as roughly as you like — the point is the material, not the
-      wording.</p>
+      read the script. Rough answers are fine.</p>
     <div class="thread" id="logthread"></div>
     <div class="compose">
       <textarea id="loginput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
@@ -5728,7 +5726,7 @@ async function claudePlan(raw){
       declared: !!(n.declared || r.d),
       /* Everything arrives ticked. Errands used to come in unticked, and that
          was the app deciding on the writer's behalf that a line of their file
-         was worthless — while the counter quietly showed a smaller number than
+         was worthless, while the counter quietly showed a smaller number than
          the file contained. Kris paste 86 notes and was told 83, and drew the
          only conclusion that number allowed.
 
@@ -5820,7 +5818,7 @@ function renderReview(){
          plainly which name it kept and where the other one can be used. */
       + (si === 0 && !importIntoNew && st.brief && st.brief.name && st.brief.name !== st.name
           ? '<div class="revkept">Your notes mention <b>' + esc(st.brief.name)
-            + '</b>. This project keeps the name it has — change it in the box '
+            + '</b>. This project keeps the name it has. Change it in the box '
             + 'above if you want.</div>'
           : "");
     /* Typing in this box is the one way an existing project gets renamed by an
@@ -6238,36 +6236,36 @@ let noteSearch = "";
    ========================================================================= */
 const CFIELDS = [
   {k:"name",  label:"Name",  weight:0, kind:"text",
-   help:"What you call them. A placeholder is fine.",
+   help:"A placeholder is fine.",
    ask:"what they are called"},
   {k:"role",  label:"Part they play", weight:1, kind:"select",
-   help:"Where they sit in the story, not how likeable they are.",
+   help:"Where they sit in the story.",
    ask:"what part they play in the story",
    options:["","Protagonist","Antagonist","Deuteragonist","Love interest","Mentor",
             "Foil","Ally","Rival","Ensemble","Secondary","Minor"]},
   {k:"who",   label:"Who they are", weight:1, kind:"area", rows:2,
-   help:"Age, work, where they stand in the world when the story opens.",
+   help:"Age, work, where they are when the story opens.",
    ask:"who they are when the story opens - age, work, and where they stand"},
   {k:"want",  label:"What they want", weight:2, kind:"area", rows:2,
-   help:"The thing they are chasing, that an audience can watch them chase.",
+   help:"The thing they are chasing.",
    ask:"what they are actively chasing that an audience can watch"},
   {k:"need",  label:"What they need", weight:2, kind:"area", rows:2,
-   help:"What would actually make them whole. Usually not the same thing.",
+   help:"What they actually need. Usually not the same thing.",
    ask:"what they actually need, which is usually not what they want"},
   {k:"wound", label:"The wound", weight:2, kind:"area", rows:2,
-   help:"What happened before page one that made them like this.",
+   help:"What happened to them before page one.",
    ask:"what happened to them before the story starts that made them this way"},
   {k:"lie",   label:"The lie they believe", weight:2, kind:"area", rows:2,
-   help:"The false thing the wound taught them, and the story tests.",
+   help:"The false thing the wound taught them.",
    ask:"the false belief the wound left them with, which the story will test"},
   {k:"wall",  label:"What's in the way", weight:2, kind:"area", rows:2,
-   help:"Outside them and inside them. The inside one usually matters more.",
+   help:"Outside them, and inside them.",
    ask:"what stands in their way, outside them and inside them"},
   {k:"arc",   label:"How they change", weight:2, kind:"area", rows:2,
-   help:"Or how they refuse to. Refusing is an arc.",
+   help:"Or how they refuse to.",
    ask:"how they change by the end, or how they refuse to"},
   {k:"voice", label:"How they talk", weight:1, kind:"area", rows:2,
-   help:"Rhythm, vocabulary, and the thing they would never say out loud.",
+   help:"How they sound. What they would never say.",
    ask:"how they talk, and the one thing they would never say out loud"}
 ];
 const CWEIGHT = CFIELDS.reduce((n, f) => n + f.weight, 0);
@@ -6311,10 +6309,8 @@ function renderCast(){
   const list = cast(proj);
   grid.innerHTML = "";
   document.getElementById("castlede").textContent = list.length
-    ? "Everything here goes into the board's questions. The more a character has, "
-      + "the more specific the questions about their beats become."
-    : "Nobody in here yet. Add the protagonist first — it is the one the board asks "
-      + "about most.";
+    ? "The board uses all of this when it asks about your beats."
+    : "Nobody here yet. Start with your protagonist.";
 
   list.forEach(c => {
     const pct = charDone(c);
@@ -6496,7 +6492,7 @@ function drawCast(streaming){
   castInput.disabled = spent;
   document.getElementById("castsend").disabled = spent;
   document.getElementById("castlimit").textContent = spent
-    ? "that's all of them — fill in the blanks"
+    ? "that's all of them. fill in the blanks"
     : "question " + Math.min(asked, limit) + " of " + limit;
 }
 
