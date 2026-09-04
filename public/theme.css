@@ -71,10 +71,23 @@ button{font-family:inherit;color:inherit}
 .slug{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--ink-4)}
 
-.topbar{background:var(--surface);border-bottom:1px solid var(--rule)}
-.topbar-in{max-width:1100px;margin:0 auto;padding:0 24px;height:60px;
+.topbar{background:var(--surface);border-bottom:1px solid var(--rule);
+  position:sticky;top:0;z-index:40}
+.topbar-in{max-width:1560px;margin:0 auto;padding:0 28px;height:76px;
   display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .topbar-in .right{margin-left:auto;display:flex;gap:18px;align-items:center}
+.topbar-in>.brand{gap:8px}
+.topbar-in>.brand .mark{height:29px}
+.topbar-in>.brand .wordmark{font-size:34px;letter-spacing:-.018em}
+
+@media(max-width:760px){
+  .topbar-in{height:auto;min-height:68px;padding:10px 16px;gap:12px;flex-wrap:nowrap}
+  .topbar-in>.brand .mark{height:31px}
+  .topbar-in>.brand .wordmark{font-size:26px}
+  .topbar-in>.slug{display:none}
+  .topbar-in .right{gap:8px}
+  .topbar-in .right .btn:not(.btn-primary){display:none}
+}
 
 .btn{
   border:1px solid var(--rule);background:var(--card);border-radius:var(--r-ctl);

@@ -162,3 +162,37 @@ Complete the second item from the product audit: add a concise, searchable Help 
 - No board, import, placement, saving, billing, or account-data mechanics were changed.
 - The existing product explainer remains available as “How Beatfall works.”
 - No mobile-app files or mobile-app marketing were added.
+
+## 4 September 2026: Universal header and signed-in homepage routing
+
+### Requested
+
+Make the `/app` dashboard header the universal page header, make every logo link return to `/app`, and ensure the public homepage is only shown to people who are not signed in.
+
+### Changes
+
+- Standardized the shared page header to the dashboard's 76-pixel height, 29-pixel mark, 34-pixel wordmark, spacing, width, border, and sticky behavior.
+- Applied the same header to Help, Billing, Privacy, Terms, Sign in, Settings, Admin, and the public homepage.
+- Added the universal header to Sign in and removed the smaller duplicate logo from its marketing panel.
+- Changed every linked Beatfall lockup in the site to `/app`, including page headers, the homepage footer, the app footer, Settings, and the ended-plan screen.
+- Added an early session check at `/`. A valid persisted Supabase session is sent directly to `/app`; only signed-out visitors see the public homepage.
+- Kept the homepage hidden while the session check runs so signed-in writers do not see a flash of marketing content before the redirect.
+- Kept the homepage available if the account service cannot be reached, rather than leaving signed-out visitors on a blank page.
+- Simplified narrow headers by keeping the universal lockup and primary board action while hiding secondary legal-page buttons that do not fit.
+
+### Testing
+
+- Measured the homepage, app, Help, Billing, Privacy, Terms, Sign in, Settings, and Admin headers at 1440 pixels wide.
+- Confirmed every desktop header is 76 pixels high with a 29-pixel mark and 34-pixel wordmark.
+- Confirmed every linked Beatfall lockup points to `/app`; no lockup points to `/`.
+- Confirmed all nine pages have no horizontal overflow at 1440 and 390 pixels wide.
+- Confirmed narrow shared pages use the same responsive lockup sizes as the app: a 31-pixel mark and 26-pixel wordmark.
+- Simulated a signed-out Supabase session and confirmed `/` remains visible.
+- Simulated a persisted signed-in Supabase session and confirmed `/` redirects to `/app` before revealing the homepage.
+- Visually inspected the updated Help, Sign in, and Privacy headers at desktop and phone widths.
+
+### Intentionally unchanged
+
+- The projects dashboard remains the first view loaded by `/app`.
+- The public homepage content remains unchanged for signed-out visitors.
+- No project, account, billing, or mobile-app mechanics were changed.
