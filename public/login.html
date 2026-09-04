@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="description" content="Beatfall turns a pile of scattered notes into a beat board that shows you where your story has holes.">
+<meta name="description" content="Turn scattered story notes into a structured beat board. Beatfall finds the beats, places what it can, and shows you what is still missing.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
@@ -18,6 +18,8 @@
   .side{display:flex;align-items:center;justify-content:center;padding:40px 30px}
   .pitch{background:var(--surface);border-right:1px solid var(--rule)}
   .pitch-in{max-width:420px}
+  .pitch .kicker{font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--gold);margin:0 0 13px}
   .pitch h1{font-family:var(--serif);font-size:36px;font-weight:600;line-height:1.24;
     letter-spacing:-.014em;margin:0 0 18px;text-wrap:balance}
   .pitch p{font-family:var(--serif);color:var(--ink-2);font-size:16px;line-height:1.65;
@@ -62,10 +64,10 @@
 
   <div class="side pitch">
     <div class="pitch-in">
+      <p class="kicker">Paste the whole mess.</p>
       <h1>Your notes already know the story. They're just in the wrong order.</h1>
-      <p>Paste in three months of scattered notes, the ones in the file you never open, and
-         Beatfall works out which are story beats, puts them where they belong in the structure
-         you're writing to, and shows you the holes between them.</p>
+      <p>Turn scattered story notes into a structured beat board. Beatfall finds the beats,
+         places what it can, and shows you what is still missing.</p>
       <p>It asks before it guesses. It never writes your script.</p>
       <div class="demo">
         <div>OPENING IMAGE &nbsp;&nbsp;washing blood off at a gas station bucket</div>

@@ -270,3 +270,41 @@ Make controls and tooltips explain their immediate result in basic language, red
 - Story-beat descriptions and the writer-facing editorial voice inside the board remain intact; they explain story function rather than a button click.
 - Privacy promises, destructive-action warnings, subscription consequences, and data-safety error messages remain explicit.
 - No project placement, import, saving, billing, account, database, or mobile-app mechanics were changed.
+
+## 4 September 2026: Marketing-copy and credit-cost display pass
+
+### Requested
+
+Make the marketing explain Beatfall through the transformation from scattered notes to a structured board, preserve its strongest lines, shorten the Sign in pitch, and move action-specific credit costs out of the normal interface and into hover explainers.
+
+### Changes
+
+- Replaced the homepage hero description with the approved direct summary: Beatfall finds the beats, places what it can, and shows what is still missing.
+- Aligned the homepage description used by search results and social previews with the same transformation.
+- Shortened the Sign in pitch to the same direct explanation.
+- Restored “Paste the whole mess.” as the Sign in pitch's lead-in.
+- Preserved “Your notes already know the story. They're just in the wrong order.”, “It asks before it guesses. It never writes your script.”, and “Where your story falls into place.”
+- Kept the real Night Haul board and projects dashboard as the proof of transformation instead of adding another feature list.
+- Removed printed credit costs from paid action buttons, links, dashboard project cards, the project menu, and the notes-import sheet.
+- Kept each action's exact one- or two-credit cost in its hover and keyboard-focus explainer, before the action runs.
+- Updated the real product proof images so the homepage no longer shows stale inline credit costs from an earlier interface.
+
+### Testing
+
+- Visually inspected the complete homepage at 1440-pixel desktop and 390-pixel phone widths.
+- Visually inspected the Sign in page in desktop light and dark modes.
+- Confirmed the four approved marketing lines are present in their intended locations.
+- Confirmed the homepage and Sign in page have no horizontal overflow at the tested widths.
+- Loaded an authenticated dashboard with a real project-card flow and confirmed no paid action prints its credit cost.
+- Confirmed the dashboard's Next up action, project-menu notes importer, import action, logline help, character questions, and What's missing action all state their exact cost in the hover/focus explainer.
+- Confirmed the import sheet no longer repeats its cost as visible body copy.
+- Confirmed the homepage's real board and dashboard proof images contain no visible inline credit costs.
+- Confirmed no browser errors occurred during the marketing, responsive, dark-mode, and authenticated interaction checks.
+- Saved review captures as `Claude outputs/marketing-homepage-desktop.png`, `marketing-homepage-mobile.png`, `marketing-login-desktop.png`, `marketing-login-dark.png`, and `credit-cost-hover.png`.
+
+### Intentionally unchanged
+
+- The approved homepage structure, pricing, founder statement, trust copy, and real product visuals remain in place.
+- Credit balances, plan allowances, and the detailed Billing and Usage explanations remain visible because they are account information, not costs attached to action labels.
+- Gold still identifies writing-help actions that spend credits; the explainer now carries the number.
+- No project placement, import, saving, billing, account, database, or mobile-app mechanics were changed.

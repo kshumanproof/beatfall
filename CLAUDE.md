@@ -1356,6 +1356,39 @@ an empty beat at 5. Defensible â€” a fragment is a smaller problem than a hole â
 but on screen it is the same panel counting to two different numbers, and a
 writer reads that as a bug rather than as a judgement. Both are `ASK_LIMIT`.
 
+## The outline: passages, and a Save that means something (3 Sep 2026)
+
+Kris typed into an outline box and went looking for a way to save it. It WAS
+saving, 400ms after every keystroke, and never said so. `setSaved()` shows
+nothing on success by design, which is right on the board (you drag a card, the
+card moves, the board is its own receipt) and wrong in a box of prose, where
+nothing changes on screen and silence reads as failure.
+
+His fix was better than a confirmation message: **Save, and a fresh box.** A
+beat is rarely one paragraph. So `outline[slotId]` is a LIST of passages now,
+each with its own box, plus an empty one at the bottom. Save closes a passage
+and opens the next, with the cursor already in it.
+
+**Old projects hold a string, and nothing was migrated.** Every read goes
+through `outlineList` / `outlineText` / `setOutlineList`, and a string is simply
+a list of one. Nothing in the database changed and nothing written before today
+is lost. If you add a reader of `proj.outline`, use those three and never index
+it directly: the word count and the PDF export both had to be moved.
+
+**The keystroke autosave is gone, on purpose.** A button that saves something
+already saved is a lie. A box commits when you leave it, when you leave the
+outline (`setView`), and when you leave the page (`beforeunload` and
+`visibilitychange`, the last being the only one a phone reliably fires). Save is
+the one thing none of those do. `commitOutlineBoxes()` walks the DOM rather than
+tracking state, because while the outline is on screen the boxes ARE the state.
+
+The Save button is absent until there is something uncommitted, because one that
+is always there and usually pointless teaches a writer to ignore it. A written
+passage sits on card stock with a solid hairline; the empty one keeps the dashed
+border, which is what unwritten looks like everywhere else in this app.
+
+Held down by `/home/claude/voutline2.js`.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
