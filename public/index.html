@@ -31,56 +31,34 @@
   .signin{color:var(--blue);font-size:14px;font-weight:600;text-decoration:none;padding:9px 8px}
   .signin:hover{text-decoration:underline;text-underline-offset:4px}
   main{overflow:hidden}
-  .hero{max-width:1180px;margin:0 auto;padding:92px 28px 84px;display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,.94fr);gap:76px;align-items:center}
   .eyebrow,.section-k{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0 0 18px}
-  h1,h2,h3{font-family:var(--serif);color:var(--ink)}
-  h1{font-size:clamp(46px,5.4vw,74px);line-height:.99;letter-spacing:-.035em;margin:0 0 28px;text-wrap:balance}
-  .hero-copy>p{font-family:var(--serif);font-size:20px;line-height:1.55;color:var(--ink-2);max-width:620px;margin:0 0 30px}
-  .hero-copy .promise{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--ink);margin:18px 0 0}
-  .hero-acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .hero-acts .btn{font-size:15px;padding:13px 22px;text-decoration:none}
-  .trial{font-size:13px;color:var(--ink-3)}
-  .mess{position:relative;min-height:490px}
-  .note-pile{position:absolute;inset:14px 48px 82px 0;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);box-shadow:var(--shadow-lift);padding:30px 32px;transform:rotate(-1.2deg)}
-  .note-pile:before,.note-pile:after{content:"";position:absolute;inset:0;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);z-index:-1}
-  .note-pile:before{transform:rotate(3deg) translate(15px,-7px)}.note-pile:after{transform:rotate(-2deg) translate(-10px,11px)}
-  .note-pile p{font-family:var(--mono);font-size:13px;line-height:1.55;margin:0 0 17px;color:var(--ink-2)}
-  .note-pile .scribble{color:var(--ink-4);text-decoration:line-through}
-  .fall-card{position:absolute;right:0;bottom:0;width:280px;background:var(--blue);color:var(--on-blue);border-radius:var(--r-card);padding:22px 24px;box-shadow:var(--shadow-lift);transform:rotate(1.7deg)}
-  .fall-card .beat{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-ink);font-weight:700;margin-bottom:10px}
-  .fall-card p{font-family:var(--serif);font-size:18px;line-height:1.35;margin:0;color:var(--on-blue)}
-  .openbeat{position:absolute;left:42px;bottom:14px;width:210px;border:1px dashed var(--gold);background:var(--gold-soft);padding:15px 18px;color:var(--gold-ink);font-size:11px;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-1deg)}
-  .proof{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--surface)}
-  .proof-in{max-width:1180px;margin:0 auto;padding:80px 28px}
-  .section-head{display:grid;grid-template-columns:.75fr 1.25fr;gap:70px;align-items:end;margin-bottom:42px}
-  .section-head h2{font-size:clamp(36px,4vw,52px);line-height:1.05;letter-spacing:-.025em;margin:0;text-wrap:balance}
-  .section-head p{font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink-2);margin:0;max-width:650px}
-  .transform{display:grid;grid-template-columns:1fr 52px 1.12fr;gap:20px;align-items:stretch}
-  .example{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);padding:28px;box-shadow:var(--shadow)}
-  .example-k{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);margin-bottom:20px}
-  .raw p{font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--ink-2);margin:0 0 14px}
-  .arrow{display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:var(--serif);font-size:34px}
-  .board-row{display:grid;grid-template-columns:126px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--rule-soft);align-items:start}
-  .board-row:last-child{border:0}.board-row b{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-weight:400;text-transform:uppercase}.board-row span{font-family:var(--serif);font-size:16px;line-height:1.35}
-  .board-row.open span,.board-row.open b{color:var(--gold)}.board-row.open span{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
-  .kept{margin-top:20px;padding:17px 18px;background:var(--surface);border-left:2px solid var(--blue)}
-  .kept-k{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);margin-bottom:9px}
-  .kept p{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);margin:5px 0}
-  .steps,.trust,.price{max-width:1180px;margin:0 auto;padding:92px 28px}
-  .steps h2,.trust h2,.price h2{font-size:clamp(36px,4vw,52px);line-height:1.08;letter-spacing:-.025em;margin:0 0 46px;max-width:760px}
-  .step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:step}
-  .step{counter-increment:step;border-top:2px solid var(--blue);padding:24px 4px 0}.step:before{content:"0" counter(step);display:block;font-family:var(--mono);font-size:12px;color:var(--gold);margin-bottom:42px}.step h3{font-size:25px;margin:0 0 10px}.step p{color:var(--ink-2);font-size:15px;line-height:1.65;margin:0;max-width:32ch}
-  .trust{display:grid;grid-template-columns:1fr 1fr;gap:76px;align-items:center;border-top:1px solid var(--rule)}
-  .trust h2{margin-bottom:20px}.trust>div>p{font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink-2);max-width:600px}
-  .trust-list{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);padding:10px 28px;box-shadow:var(--shadow)}
-  .trust-item{display:grid;grid-template-columns:18px 1fr;gap:14px;padding:20px 0;border-bottom:1px solid var(--rule-soft);align-items:start}.trust-item:last-child{border:0}.trust-item i{width:10px;height:10px;margin-top:7px;background:var(--blue);border-radius:2px}.trust-item b{display:block;font-size:15px;margin-bottom:3px}.trust-item span{font-size:14px;color:var(--ink-3)}
+  h1,h2{font-family:var(--serif);color:var(--ink)}
+  .hero{max-width:1180px;margin:0 auto;padding:86px 28px 88px}
+  .hero-copy{max-width:920px;margin-bottom:50px}
+  h1{font-size:clamp(48px,6.2vw,78px);line-height:.99;letter-spacing:-.036em;margin:0 0 26px;text-wrap:balance}
+  .hero-copy>p:not(.eyebrow):not(.promise){font-family:var(--serif);font-size:20px;line-height:1.5;color:var(--ink-2);max-width:700px;margin:0 0 28px}
+  .hero-acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.hero-acts .btn{font-size:15px;padding:13px 22px;text-decoration:none}.trial{font-size:13px;color:var(--ink-3)}
+  .hero-copy .promise{font-size:14px;font-weight:600;color:var(--ink);margin:17px 0 0}
+  .product-shot{margin:0;border:1px solid var(--rule);border-radius:var(--r-panel);overflow:hidden;background:var(--surface);box-shadow:0 28px 70px rgba(41,35,29,.15),var(--shadow)}
+  .product-shot img{display:block;width:100%;height:auto}
+  .dashboard-proof{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--surface)}
+  .dashboard-in{max-width:1180px;margin:0 auto;padding:80px 28px}
+  .section-copy{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px;align-items:end;margin-bottom:34px}
+  .section-copy h2{font-size:clamp(36px,4vw,50px);line-height:1.05;letter-spacing:-.025em;margin:0;text-wrap:balance}
+  .section-copy>p{font-family:var(--serif);font-size:19px;line-height:1.5;color:var(--ink-2);margin:0;max-width:590px}
+  .dashboard-proof .product-shot{box-shadow:var(--shadow-lift)}
+  .trust{max-width:1180px;margin:0 auto;padding:74px 28px}
+  .trust-head{display:flex;align-items:baseline;gap:22px;margin-bottom:30px}.trust-head .section-k{margin:0}.trust-head h2{font-size:30px;line-height:1.15;margin:0}
+  .trust-list{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .trust-item{padding:25px 28px 25px 0}.trust-item+.trust-item{border-left:1px solid var(--rule);padding-left:28px}.trust-item b{display:block;font-family:var(--serif);font-size:20px;margin-bottom:6px}.trust-item span{display:block;font-size:14px;line-height:1.55;color:var(--ink-3)}
   .price-wrap{background:var(--blue);color:var(--on-blue)}
-  .price{display:grid;grid-template-columns:1fr 1fr;gap:76px;align-items:center}.price h2{color:var(--on-blue);margin-bottom:16px}.price-copy p{font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--on-blue);opacity:.86;max-width:560px}.price-card{background:var(--card);color:var(--ink);border-radius:var(--r-panel);padding:32px;box-shadow:var(--shadow-lift)}
-  .price-n{font-family:var(--serif);font-size:54px;line-height:1;margin-bottom:8px}.price-n span{font-family:var(--sans);font-size:14px;color:var(--ink-3)}.price-card p{font-size:14px;color:var(--ink-2);line-height:1.6;margin:14px 0 22px}.price-card .btn{display:block;text-align:center;text-decoration:none;font-size:14px;padding:12px}
-  .founder{max-width:850px;margin:0 auto;padding:104px 28px;text-align:center}.founder blockquote{font-family:var(--serif);font-size:clamp(29px,3.5vw,42px);line-height:1.25;letter-spacing:-.018em;margin:0 0 24px;color:var(--ink)}.founder p{color:var(--ink-3);font-size:14px;margin:0}
-  footer{border-top:1px solid var(--rule);background:var(--surface)}.foot-in{max-width:1180px;margin:0 auto;padding:36px 28px;display:flex;align-items:center;gap:22px}.foot-in .brand{gap:5px}.foot-in .mark{height:25px}.foot-links{margin-left:auto;display:flex;gap:20px;flex-wrap:wrap}.foot-links a{font-size:13px;color:var(--ink-3);text-decoration:none}.foot-links a:hover{color:var(--blue)}
-  @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:66px}.mess{min-height:430px;max-width:580px}.section-head,.trust,.price{grid-template-columns:1fr;gap:30px}.step-grid{grid-template-columns:1fr}.step:before{margin-bottom:18px}.step{padding-bottom:22px}.transform{grid-template-columns:1fr}.arrow{transform:rotate(90deg);height:38px}.price{gap:28px}}
-  @media(max-width:600px){.homebar-in{height:64px;padding:0 18px}.homebar .mark{height:27px}.homebar .wordmark{font-size:26px}.home-actions .signin{display:none}.home-actions .btn{padding:10px 14px;font-size:13px;min-height:44px}.hero,.proof-in,.steps,.trust,.price{padding-left:20px;padding-right:20px}.hero{padding-top:46px;gap:38px}.hero h1{font-size:clamp(41px,12.4vw,52px)}.hero-copy>p{font-size:18px}.hero-acts .btn{min-height:46px}.mess{min-height:350px}.note-pile{inset:0 18px 68px 0;padding:22px 20px}.note-pile p{font-size:11.5px;margin-bottom:13px}.fall-card{width:235px;padding:17px 19px}.openbeat{left:10px;width:174px}.board-row{grid-template-columns:105px 1fr}.foot-in{align-items:flex-start;flex-direction:column;padding:28px 20px}.foot-links{margin-left:0;gap:14px}.foot-links a{padding:5px 0}}
+  .price{max-width:1180px;margin:0 auto;padding:54px 28px;display:grid;grid-template-columns:1fr auto;gap:50px;align-items:center}
+  .price h2{color:var(--on-blue);font-size:clamp(33px,4vw,48px);line-height:1.05;margin:0 0 9px}.price p{font-family:var(--serif);font-size:18px;line-height:1.5;margin:0;color:var(--on-blue);opacity:.85}.price strong{color:var(--gold-soft)}
+  .price .btn{background:var(--card);color:var(--blue);border-color:var(--card);min-width:190px;padding:13px 22px;text-align:center;text-decoration:none}.price .btn:hover{background:var(--surface)}
+  .founder{max-width:820px;margin:0 auto;padding:78px 28px;text-align:center}.founder blockquote{font-family:var(--serif);font-size:clamp(25px,3vw,34px);line-height:1.3;letter-spacing:-.015em;margin:0 0 19px;color:var(--ink)}.founder p{color:var(--ink-3);font-size:14px;margin:0}
+  footer{border-top:1px solid var(--rule);background:var(--surface)}.foot-in{max-width:1180px;margin:0 auto;padding:34px 28px;display:flex;align-items:center;gap:24px}.foot-brand{display:flex;flex-direction:column;align-items:flex-start;gap:7px}.foot-in .brand{gap:5px}.foot-in .mark{height:25px}.tagline{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--ink-3);margin:0}.foot-links{margin-left:auto;display:flex;gap:20px;flex-wrap:wrap}.foot-links a{font-size:13px;color:var(--ink-3);text-decoration:none}.foot-links a:hover{color:var(--blue)}
+  @media(max-width:800px){.hero{padding-top:66px}.section-copy{grid-template-columns:1fr;gap:18px}.trust-head{display:block}.trust-head .section-k{margin-bottom:12px}.trust-list{grid-template-columns:1fr}.trust-item{padding:21px 0}.trust-item+.trust-item{border-left:0;border-top:1px solid var(--rule);padding-left:0}.price{grid-template-columns:1fr;gap:26px}.price .btn{justify-self:start}}
+  @media(max-width:600px){.homebar-in{height:64px;padding:0 18px}.homebar .mark{height:27px}.homebar .wordmark{font-size:26px}.home-actions .signin{display:none}.home-actions .btn{padding:10px 14px;font-size:13px;min-height:44px}.hero{padding:46px 20px 58px}.hero-copy{margin-bottom:34px}.hero h1{font-size:clamp(41px,12.4vw,52px)}.hero-copy>p:not(.eyebrow):not(.promise){font-size:18px}.hero-acts .btn{min-height:46px}.product-shot{border-radius:8px;box-shadow:0 18px 45px rgba(41,35,29,.14),var(--shadow)}.dashboard-proof{display:none}.trust{padding:54px 20px}.trust-head h2{font-size:27px}.trust-item b{font-size:19px}.price{padding:44px 20px;gap:22px}.price h2{font-size:35px}.price p{font-size:17px}.price .btn{min-height:46px}.founder{padding:58px 20px}.founder blockquote{font-size:27px}.foot-in{align-items:flex-start;flex-direction:column;padding:28px 20px}.foot-links{margin-left:0;gap:14px}.foot-links a{padding:5px 0}}
 </style>
 </head>
 <body>
@@ -90,10 +68,7 @@
       <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"><path d="M27.3 14v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g><rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="var(--gold)" transform="rotate(-12 32 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/></svg>
       <span class="wordmark">Beat<span>fall</span></span>
     </a>
-    <nav class="home-actions" aria-label="Account">
-      <a class="signin" href="/login.html">Sign in</a>
-      <a class="btn btn-primary" href="/login.html">Start free</a>
-    </nav>
+    <nav class="home-actions" aria-label="Account"><a class="signin" href="/login.html">Sign in</a><a class="btn btn-primary" href="/login.html">Start free</a></nav>
   </div>
 </header>
 
@@ -103,63 +78,32 @@
       <p class="eyebrow">A beat board for screenwriters</p>
       <h1>Your notes already know the story. They’re just in the wrong order.</h1>
       <p>Turn scattered story notes into a structured beat board. Beatfall finds the beats, keeps everything else, and shows you what is still missing.</p>
-      <div class="hero-acts">
-        <a class="btn btn-primary" href="/login.html">Start 14 days free</a>
-        <span class="trial">No card required.</span>
-      </div>
+      <div class="hero-acts"><a class="btn btn-primary" href="/login.html">Start 14 days free</a><span class="trial">No card required.</span></div>
       <p class="promise">It asks before it guesses. It never writes your script.</p>
     </div>
-    <div class="mess" aria-label="Scattered notes becoming a beat board">
-      <div class="note-pile">
-        <p>body caught in the spillway, maybe catalyst?</p>
-        <p>she washes the blood off at a gas station</p>
-        <p class="scribble">dog disappears here???</p>
-        <p>ending at the empty grove at dusk</p>
-        <p>brother knew the whole time</p>
-      </div>
-      <div class="openbeat">Midpoint · still open</div>
-      <div class="fall-card"><div class="beat">Catalyst</div><p>A body is caught in the spillway.</p></div>
-    </div>
+    <figure class="product-shot">
+      <picture><source media="(max-width:600px)" srcset="/media/night-haul-board-mobile.webp"><img src="/media/night-haul-board.webp" width="1400" height="760" alt="Night Haul beat board with story cards placed beside beats that are still open"></picture>
+    </figure>
   </section>
 
-  <section class="proof">
-    <div class="proof-in">
-      <div class="section-head">
-        <div><p class="section-k">Paste the whole mess</p><h2>See the story you already have.</h2></div>
-        <p>Paste your notes, fragments, dialogue, questions, and alternate ideas. They don’t need to be organized first.</p>
-      </div>
-      <div class="transform">
-        <div class="example raw"><div class="example-k">Before</div><p>body caught in the spillway, maybe catalyst?</p><p>she washes the blood off at a gas station</p><p>dog disappears here???</p><p>ending at the empty grove at dusk</p><p>brother knew the whole time</p><p>“you don't bury the truth, you plant it”</p></div>
-        <div class="arrow" aria-hidden="true">→</div>
-        <div class="example"><div class="example-k">After</div><div class="board-row"><b>Opening image</b><span>She washes the blood off at a gas station.</span></div><div class="board-row open"><b>Theme stated</b><span>Open</span></div><div class="board-row"><b>Catalyst</b><span>A body is caught in the spillway.</span></div><div class="board-row open"><b>Midpoint</b><span>Open</span></div><div class="board-row"><b>Final image</b><span>The empty grove at dusk.</span></div><div class="kept"><div class="kept-k">Kept in Notes</div><p>brother knew the whole time</p><p>“you don't bury the truth, you plant it”</p><p>dog disappears here???</p></div></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="steps">
-    <p class="section-k">How it works</p>
-    <h2>From loose notes to a story you can see.</h2>
-    <div class="step-grid">
-      <div class="step"><h3>Add your notes</h3><p>Type one thought at a time or paste in the whole file. Nothing needs to be organized first.</p></div>
-      <div class="step"><h3>Beatfall sorts them</h3><p>Story beats go to the board. Character, dialogue, research, and other material stays in Notes.</p></div>
-      <div class="step"><h3>Work on the gaps</h3><p>Empty beats stay visible. When you want help, Beatfall asks questions instead of inventing your story.</p></div>
+  <section class="dashboard-proof">
+    <div class="dashboard-in">
+      <div class="section-copy"><div><p class="section-k">Every story in view</p><h2>Know exactly where each project stands.</h2></div><p>See what is complete, what is still open, and which story needs you next.</p></div>
+      <figure class="product-shot"><img src="/media/beatfall-dashboard.webp" width="1400" height="745" loading="lazy" alt="Beatfall project dashboard showing completion, open beats, and the next beat for each screenplay"></figure>
     </div>
   </section>
 
   <section class="trust">
-    <div><p class="section-k">Your work stays yours</p><h2>Help seeing your story, not software writing it.</h2><p>Beatfall is built for writers who want structure without handing over authorship.</p></div>
+    <div class="trust-head"><p class="section-k">Built for authorship</p><h2>Your story stays yours.</h2></div>
     <div class="trust-list">
-      <div class="trust-item"><i></i><div><b>Your words remain your words.</b><span>Beatfall organizes your material. It does not rewrite your screenplay.</span></div></div>
-      <div class="trust-item"><i></i><div><b>Uncertainty stays visible.</b><span>If a placement is not clear, Beatfall asks or leaves the note aside.</span></div></div>
-      <div class="trust-item"><i></i><div><b>Your writing isn’t used to train AI.</b><span>Your projects are private to your account and can be exported or deleted.</span></div></div>
+      <div class="trust-item"><b>Your words stay your words.</b><span>Beatfall organizes your material. It does not rewrite your screenplay.</span></div>
+      <div class="trust-item"><b>Uncertainty stays visible.</b><span>If a placement is not clear, Beatfall asks or leaves the note aside.</span></div>
+      <div class="trust-item"><b>Your writing isn’t used to train AI.</b><span>Your projects are private to your account and can be exported or deleted.</span></div>
     </div>
   </section>
 
   <section class="price-wrap">
-    <div class="price">
-      <div class="price-copy"><p class="section-k">Simple pricing</p><h2>Try it on a real project.</h2><p>Fourteen days free with no card. Adding and organizing notes does not use credits.</p></div>
-      <div class="price-card"><div class="price-n">$12 <span>a month</span></div><div>or $99 a year</div><p>Includes 150 credits each month for conversations, idea sets, and reading notes files.</p><a class="btn btn-primary" href="/login.html">Start 14 days free</a></div>
-    </div>
+    <div class="price"><div><h2>Try it on a real project.</h2><p><strong>14 days free.</strong> Then $12 a month or $99 a year. No card required to start.</p></div><a class="btn" href="/login.html">Start 14 days free</a></div>
   </section>
 
   <section class="founder">
@@ -170,10 +114,13 @@
 
 <footer>
   <div class="foot-in">
-    <a class="brand" href="/" aria-label="Beatfall home">
-      <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"><path d="M27.3 14v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g><rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="var(--gold)" transform="rotate(-12 32 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/></svg>
-      <span class="wordmark">Beat<span>fall</span></span>
-    </a>
+    <div class="foot-brand">
+      <a class="brand" href="/" aria-label="Beatfall home">
+        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"><path d="M27.3 14v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g><rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="var(--gold)" transform="rotate(-12 32 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/></svg>
+        <span class="wordmark">Beat<span>fall</span></span>
+      </a>
+      <p class="tagline">Where your story falls into place.</p>
+    </div>
     <nav class="foot-links" aria-label="Site"><a href="/billing.html">How billing works</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="mailto:contact@beatfall.app?subject=Beatfall%20feedback">Contact</a></nav>
   </div>
 </footer>

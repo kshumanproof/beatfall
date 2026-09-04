@@ -90,3 +90,39 @@ Preserve the approved homepage direction while correcting the before-and-after d
 - The hero wording, visual concept, section order, palette, typography, pricing, founder statement, and footer destinations remain unchanged.
 - No testimonials, badges, animation, feature grid, extra tiers, or generic AI marketing were added.
 - No social preview image was invented. Text sharing metadata is ready, but the image should be an approved Beatfall asset rather than an unrelated generated graphic.
+
+## 4 September 2026: Homepage simplification and real product visuals
+
+### Requested
+
+Shorten the homepage, replace invented product illustrations with genuine Beatfall screens, keep the current web product truthful on phones, and restore the Beatfall tagline.
+
+### Changes
+
+- Replaced the invented note stack and sample board with a deterministic crop of the real Night Haul beat board.
+- Added a separate, narrower Night Haul crop for phone screens so the project identity, a placed card, and open beats remain visible.
+- Added a real dashboard crop showing project completion, open beats, and the next beat to work on.
+- Removed the entire Before and After demonstration and the three-step How It Works section.
+- Reduced the trust section to three direct promises.
+- Compressed pricing into one line with one call to action.
+- Reduced the founder section while preserving the approved founder statement.
+- Added the official tagline, “Where your story falls into place.”, directly below the official footer lockup.
+- Kept the dashboard proof off phone layouts so the mobile homepage represents the current web product without implying that a companion app exists.
+
+### Testing
+
+- Visually inspected the complete homepage at 1440-pixel desktop, 768-pixel tablet, and 390-pixel phone widths.
+- Updated the full-page review captures in `Claude outputs/` and added a tablet capture.
+- Confirmed no horizontal overflow at any tested width.
+- Confirmed the phone hero loads the focused mobile board crop while desktop and tablet load the wide board crop.
+- Confirmed the dashboard is visible on desktop and tablet and omitted on phones.
+- Confirmed exactly one H1 and three H2s.
+- Confirmed the primary call to action is 51 pixels high at every tested width.
+- Confirmed the tagline is visible at every tested width.
+- Confirmed no browser errors occurred during the responsive visual checks.
+
+### Intentionally unchanged
+
+- The approved hero headline, functional description, authorship promise, pricing, and founder statement remain unchanged.
+- The source screenshots were not retouched or regenerated. Only cropping, resizing, and WebP compression were applied.
+- No authenticated app mechanics, mobile files, or mobile-app marketing were added.
