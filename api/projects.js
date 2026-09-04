@@ -49,6 +49,7 @@ export default async function handler(req, res) {
       brief:      p.brief   && typeof p.brief   === 'object' ? p.brief   : {},
       cards:      Array.isArray(p.cards) ? p.cards : [],
       outline:    p.outline && typeof p.outline === 'object' ? p.outline : {},
+      characters: Array.isArray(p.characters) ? p.characters : [],
       sort_order: Number.isFinite(p.sort_order) ? p.sort_order : 0,
       // Sample boards stay fully usable and stay out of every product number.
       // Set once by whoever created the row; a later save cannot un-sample a

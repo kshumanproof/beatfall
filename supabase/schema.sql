@@ -216,3 +216,10 @@ create index if not exists events_anon_idx      on public.events (anon_id, creat
 -- Events are written by the server with the service key and read only by
 -- /api/admin, which checks is_admin first. No client ever selects from here.
 alter table public.events enable row level security;
+
+-- ---------------------------------------------------------------- the cast --
+-- Characters are their own column rather than a corner of `brief`, because
+-- `brief` is rebuilt wholesale from the project-details form every time it is
+-- saved: anything else living in there would be silently wiped the first time
+-- a writer edited their logline.
+alter table public.projects add column if not exists characters jsonb not null default '[]'::jsonb;

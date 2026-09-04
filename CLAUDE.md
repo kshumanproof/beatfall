@@ -1205,6 +1205,81 @@ steps back to the project rather than discarding it.
 Held down by `/home/claude/vask2.js`, which measures the bar's top edge through
 every one of those states.
 
+## Characters, and the top bar (3 Sep 2026)
+
+**THE SCHEMA NEEDS ONE RUN.** `alter table public.projects add column if not
+exists characters jsonb not null default '[]'::jsonb;` — it is at the bottom of
+`supabase/schema.sql`. Characters are their own column and NOT a corner of
+`brief`, because `commitIntake` rebuilds `brief` wholesale from the project
+form: anything else living in there is silently wiped the first time a writer
+edits their logline.
+
+### The bar
+
+It looked accidental because it was measured to a different page than
+everything under it — `.topline` was 1680/34 while `main`, `.trays` and the
+capture row are all 1560/28. Same box now, so the wordmark's left edge and the
+account pill's right edge land on the board's margins. Then three groups with
+rules between them, because they answer three different questions: **where am I
+in this script** (the counts) · **where can I go** (the nav) · **who am I** (the
+account). It was one undifferentiated run of six items 18px apart, which is what
+makes a header full of useful things read like a pile of them. Dashboard is a
+house icon and comes first in the nav, because the shelf of scripts is a place
+rather than a view of this script.
+
+### Characters
+
+Ten fields in `CFIELDS`, and **they are also the ten questions**. Each carries
+`ask` (what the interview is trying to find out), `help` (what the writer reads
+under the label) and `weight` (how much of "this character exists" it is worth —
+a name and a role are not a character and the card must not claim they are).
+
+Three decisions worth keeping:
+
+1. **It feeds the board, or it is a second app bolted on.** `castBriefing()` goes
+   into `briefBlock()`, which every beat conversation, Ideas call and placement
+   already uses. That is the whole justification for characters living in
+   Beatfall: "what goes here?" can ask about what is unresolved for THIS
+   protagonist instead of about a Midpoint in the abstract. If that wiring is
+   ever removed, the feature stops belonging here.
+2. **Up to ten, not ten.** `castQuestions()` counts the blanks and that is the
+   limit; the brief lists the filled fields as known and names only the blanks
+   as targets. Filling the form yourself makes the interview shorter, which is
+   the incentive running the right way. "Fill in the blanks" is live from the
+   first answer, so bailing at question three still buys three fields — a writer
+   who quits early must not have spent 2 credits for nothing.
+3. **Blanks only, checked twice.** The write-up asks only for blank fields AND
+   re-checks each one at merge time, because the writer may have typed into a
+   field while the answer was in flight. Same rule on the import merge.
+
+Import autofill rides pass one — the call the 2-credit import already pays for,
+so it costs nothing extra. `cleanPeople()` holds the same line as
+`namedProject`: **a name is not a character.** An entry with nothing said about
+it is dropped, because a sheet reading only "Ronnie" is worse than no sheet — it
+looks answered and it is not. Unrecognised roles are blanked rather than
+invented. The review sheet lists who it found before the build, because a writer
+who discovers four character sheets they did not make has been surprised by
+their own app even when the sheets are right.
+
+Cost: `character: 2`, in `CREDIT` client-side and `COST` in `api/_lib/core.js`.
+Up to ten questions and the write-up all ride one session id, so it bills once.
+Typing the sheet in by hand is free and stays free — the charge is for the
+questions, not for the feature.
+
+Held down by `/home/claude/vcast.js` and `/home/claude/vpeople.js`.
+
+### Two things Kris caught in the copy
+
+**Three names for one door.** The same conversation was "Ask me about it",
+"Tell it more" and "Flesh it out first" depending on which proposal state you
+came from. That is what makes an app look assembled rather than designed. It is
+**"Flesh it out"** everywhere now; the sentence above it carries the context.
+
+**Two numbers for one panel.** A note conversation was capped at 3 questions and
+an empty beat at 5. Defensible — a fragment is a smaller problem than a hole —
+but on screen it is the same panel counting to two different numbers, and a
+writer reads that as a bug rather than as a judgement. Both are `ASK_LIMIT`.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes

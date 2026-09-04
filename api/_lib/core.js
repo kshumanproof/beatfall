@@ -44,6 +44,10 @@ export const TOPUP_PRICE   = 6;
 export const COST = {           // credits per action
   place: 0, route: 0,
   conversation: 1, ideas: 1, logline: 1,
+  // A character interview is up to ten questions and one write-up, all on one
+  // session id, so it bills once at two. Typing the sheet in yourself is free
+  // and stays free - the charge is for the questions, not for the feature.
+  character: 2,
   import: 2
 };
 

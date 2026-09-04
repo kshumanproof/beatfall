@@ -177,9 +177,13 @@ header{
   background:var(--surface);border-bottom:1px solid var(--rule);
   position:sticky;top:0;z-index:40;
 }
+/* 1560/28 is not a taste: it is the SAME box as main, .trays and the capture
+   row, so the wordmark's left edge and the account pill's right edge land on
+   the board's margins instead of 20px outside them. The bar looked accidental
+   because it was measured to a different page than everything under it. */
 .topline{
-  max-width:1680px;margin:0 auto;height:76px;padding:0 34px;
-  display:flex;align-items:center;gap:20px;
+  max-width:1560px;margin:0 auto;height:76px;padding:0 28px;
+  display:flex;align-items:center;gap:18px;
 }
 /* The name of the thing, at the size a masthead is set. Everything else in
    this bar is a control; this is the only object. */
@@ -230,17 +234,30 @@ header{
   border-radius:var(--r-ctl);padding:4px 9px;
 }
 
+/* Three groups with rules between them, because they answer three different
+   questions: where am I in this script, where do I want to go, and who am I.
+   They used to be one undifferentiated run of six items 20px apart, which is
+   what made a header full of useful things read like a pile of them. */
+.hgroup{display:flex;align-items:center;gap:16px;white-space:nowrap}
+.hrule{width:1px;height:22px;background:var(--rule);flex:0 0 auto}
 .tally{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
 .tally b{font-weight:400;font-size:12.5px;color:var(--ink-2)}
 .tally i{font-style:normal;font-size:12.5px;font-weight:600;color:var(--gold)}
 .tally .dot{color:var(--rule)}
 
 .navlink{
-  border:none;background:none;cursor:pointer;padding:7px 2px;
+  display:flex;align-items:center;gap:7px;
+  border:none;background:none;cursor:pointer;padding:7px 3px;
   font-size:12.5px;color:var(--ink-2);white-space:nowrap;text-decoration:none;
 }
 .navlink:hover{color:var(--ink)}
 .navlink.on{color:var(--blue);font-weight:500}
+.navlink svg{flex:0 0 auto}
+/* The way home. An icon, because "Dashboard" is a word for a thing every other
+   app draws as a house, and because the shelf of scripts is a place rather
+   than a view of this one. */
+.homelink{padding:7px 6px;border-radius:var(--r-ctl);color:var(--ink-3)}
+.homelink:hover{background:var(--blue-soft);color:var(--blue)}
 /* Last in the header, hard right. It lived in the bottom-left corner for a
    while and the corner was the wrong place twice over: a control that floats
    over the page reads as an overlay rather than as part of the app, and at the
@@ -742,6 +759,67 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
    a long thread unreachable. */
 .logsheet .thread > .turn:first-child{margin-top:auto}
 .logsheet .compose,.logsheet .ask-actions{flex:0 0 auto}
+
+/* ------------------------------------------------------------ the cast --
+   Same card discipline as the shelf of projects: a grid whose COLUMN COUNT is
+   designed, three across at any width, so a cast of four does not read as a
+   ragged wrap. */
+.cast-grid{display:grid;gap:20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:1500px){ .cast-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:1060px){ .cast-grid{gap:14px} }
+.ccard{
+  min-width:0;background:var(--card);border:1px solid var(--rule);
+  border-radius:var(--r-panel);padding:18px 20px 16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:11px;cursor:pointer;text-align:left;
+  transition:box-shadow .14s ease,transform .14s ease,border-color .14s ease;
+}
+.ccard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px);border-color:var(--ink-4)}
+.ccard .cn{
+  font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
+  letter-spacing:-.008em;overflow-wrap:anywhere;
+}
+.ccard .cr{
+  font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--blue);
+}
+.ccard .cw{
+  font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--ink-2);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:calc(14px * 1.55 * 3);
+}
+.ccard .cw.none{color:var(--ink-4);font-style:italic}
+/* How much of this person exists yet. Gold because it is the same question the
+   board asks about beats: what is still missing. */
+.ccard .cbar{height:3px;background:var(--rule-soft);border-radius:3px;overflow:hidden;margin-top:auto}
+.ccard .cbar i{display:block;height:100%;background:var(--blue)}
+.ccard .cmeta{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--ink-4)}
+.ccard .cmeta b{color:var(--gold);font-weight:600}
+
+.castsheet{max-height:calc(100vh - 48px)}
+.cfield{margin-bottom:14px}
+.cfield label{
+  display:block;font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.13em;color:var(--ink-4);margin-bottom:6px;
+}
+.cfield .chelp{
+  font-family:var(--serif);font-size:12.5px;font-style:italic;color:var(--ink-4);
+  margin:-2px 0 6px;
+}
+.cfield input,.cfield textarea,.cfield select{
+  width:100%;background:var(--card);color:var(--ink);border-radius:var(--r-card);
+  border:1px solid var(--rule);padding:9px 12px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.55;
+}
+.cfield select{font-family:var(--sans);font-weight:500;font-size:13px;cursor:pointer}
+.cfield textarea{resize:vertical}
+.cfield input:focus,.cfield textarea:focus,.cfield select:focus{border-color:var(--blue);outline:none}
+/* A field the interview just wrote. It fades, because the point is to say "this
+   one is not yours yet, read it" and then get out of the way. */
+.cfield.filled input,.cfield.filled textarea{
+  background:var(--gold-soft);border-color:var(--gold-hair);
+  animation:justfilled 2.4s ease forwards;
+}
+@keyframes justfilled{ 70%{background:var(--gold-soft)} 100%{background:var(--card);border-color:var(--rule)} }
 
 /* =====================================================================
    SHEETS: paste, intake, review, welcome
@@ -1691,14 +1769,28 @@ footer{
     <span id="savestate" hidden role="status" aria-live="polite"></span>
     <div class="grow"></div>
 
+    <!-- Where you are in this script. -->
     <span class="tally" id="tally" hidden
       data-tip="How many beats have a card, and how many are still bare.">
       <b id="tplaced"></b><span class="dot">&middot;</span><i id="topen"></i>
     </span>
+    <div class="hrule" id="hrule1" hidden></div>
 
-    <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
-    <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat: character, voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
-    <button class="navlink" id="viewtoggle" data-tip="Every project at once: how far along each one is, and where you left off.">Dashboard</button>
+    <!-- Where you can go in it. Home first, because it is a place and not a
+         view of this script; then the three ways of looking at the script. -->
+    <div class="hgroup" id="hnav">
+      <button class="navlink homelink" id="viewtoggle" aria-label="Dashboard"
+        data-tip="Every project at once: how far along each one is, and where you left off.">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2.6 7.9L9 2.8l6.4 5.1V15a.6.6 0 0 1-.6.6h-3.4v-4.4H7.6v4.4H4.2a.6.6 0 0 1-.6-.6z"/>
+        </svg>
+      </button>
+      <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
+      <button class="navlink" id="castbtn" data-tip="Everyone in the script: what each of them wants, what they actually need, and what is in the way. The board's questions get sharper once it knows.">Characters</button>
+      <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat: voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
+    </div>
+    <div class="hrule"></div>
 
     <!-- The account, last in the bar and hard right. It has nothing to do with
          the story on screen, so it sits after everything that does, with a rule
@@ -1777,6 +1869,41 @@ footer{
       <button class="btn" id="dumpcancel">Cancel</button>
       <button class="btn" id="dumpstop" hidden>Stop</button>
       <button class="btn btn-gold" id="dumpgo" data-tip="Splits your text into separate notes, decides what kind each one is, and shows you the plan before anything reaches the board.">Sort them out</button>
+    </div>
+  </div>
+
+  <!-- One character. Ten fields, filled by hand for nothing, or by the
+       interview for two credits. -->
+  <div class="sheet castsheet" id="sheetchar" hidden>
+    <div class="sheet-title" id="chartitle">A character</div>
+    <p class="sheet-note" style="margin-bottom:16px">Fill in what you know. Blanks are fine —
+      they are what the interview asks about, and they are what the board notices is missing.</p>
+    <div id="charfields"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-gold" id="charask" data-tip="Up to ten questions about this person, skipping anything you have already filled in. It writes the blanks from your answers and you can edit every one.">Help me build this character</button>
+      <span class="sheet-count" id="charcount"></span>
+      <button class="btn del" id="chardel">Delete</button>
+      <button class="btn" id="charcancel">Cancel</button>
+      <button class="btn btn-primary" id="charsave">Save</button>
+    </div>
+  </div>
+
+  <!-- The interview. Same discipline as the logline coach: a fixed window, the
+       thread scrolling inside it. -->
+  <div class="sheet logsheet" id="sheetcast" hidden>
+    <div class="sheet-title" id="casttitle">Building the character</div>
+    <p class="sheet-note" style="margin-bottom:14px">It asks about what is still blank and stops
+      when there is nothing useful left to ask. Answer roughly — the point is the material.</p>
+    <div class="thread" id="castthread"></div>
+    <div class="compose">
+      <textarea id="castinput" rows="2" placeholder="Answer here (Enter to send)"></textarea>
+      <button class="btn btn-primary" id="castsend">Send</button>
+    </div>
+    <div class="ask-actions">
+      <button class="btn btn-primary" id="castwrite" disabled data-tip="Fills every blank field from what you have said. Nothing you typed yourself is touched, and you can edit all of it.">Fill in the blanks</button>
+      <button class="btn" id="caststop" hidden>Stop</button>
+      <button class="btn btn-ghost" id="castclose">Back to the character</button>
+      <span class="limitnote" id="castlimit"></span>
     </div>
   </div>
 
@@ -1968,6 +2095,34 @@ footer{
       <div class="railfilter" id="railfilter"></div>
       <div class="railbox" id="railnotes"></div>
     </aside>
+  </div>
+</section>
+
+<!-- ===================================================================
+     THE CAST. Ten fields, and they are the ten questions.
+
+     A character sheet is not a form for its own sake: every field here is
+     something the beat conversation will use. Want and Need are what a
+     midpoint turns on, the Lie is what an All Is Lost breaks, and Voice is the
+     difference between a card that sounds like the writer and one that sounds
+     like the character. The board reads all of it - see castBriefing().
+
+     Typing them yourself is free and always will be. The interview is for the
+     ones you cannot answer yet.
+     =================================================================== -->
+<section id="castview" hidden>
+  <div class="slate-wrap">
+    <div class="slate-head" style="margin-bottom:6px">
+      <h2 class="slate-h">Characters</h2>
+      <div class="slate-rule"></div>
+      <div class="slate-acts">
+        <button class="bigbtn solid" id="castnew">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 3.4v9.2M3.4 8h9.2"/></svg>
+          Add a character</button>
+      </div>
+    </div>
+    <p class="figlede" id="castlede"></p>
+    <div class="cast-grid" id="castgrid"></div>
   </div>
 </section>
 
@@ -2540,6 +2695,13 @@ function briefBlock(){
   const opens = P().cards.filter(c => c.slot === "__shelf" && c.kind === "question").map(c => c.text);
   if (opens.length) bits.push("THINGS THEY ARE STILL DECIDING:\n"
     + opens.slice(0, 8).map(q => "- " + q).join("\n"));
+  /* The cast, in every prompt that uses this block: the beat conversation,
+     Ideas, and placement. This is what makes a character sheet part of
+     Beatfall rather than a form that stores text - "what goes here?" can ask
+     about the thing that is actually unresolved for THIS protagonist instead
+     of about a Midpoint in the abstract. */
+  const who = castBriefing();
+  if (who) bits.push(who.trim());
   return genreLens() + (bits.length ? bits.join("\n") + "\n\n" : "");
 }
 
@@ -2551,7 +2713,8 @@ function briefBlock(){
    decides what is actually charged, and this decides what the writer is told,
    and a gap between them is the kind of thing that ends up on a support email.
    place and route are free, and free things say nothing. */
-const CREDIT = {conversation: 1, ideas: 1, logline: 1, import: 2, place: 0, route: 0};
+const CREDIT = {conversation: 1, ideas: 1, logline: 1, character: 2, import: 2,
+                place: 0, route: 0};
 
 function costWords(kind){
   const n = CREDIT[kind] || 0;
@@ -2771,7 +2934,8 @@ function sampleCTA(){
 
 function blankProject(name, structure){
   return {id: null, localId: pid++, name: name || "Untitled",
-          structure: structure || "stc", brief: {}, cards: [], outline: {}};
+          structure: structure || "stc", brief: {}, cards: [], outline: {},
+          characters: []};
 }
 function P(){ return state.projects.find(p => (p.id || p.localId) === state.activeId) || state.projects[0]; }
 
@@ -2910,6 +3074,7 @@ async function load(){
   const projects = rows.map(r => ({
     id: r.id, localId: pid++, name: r.name, structure: knownStructure(r.structure),
     brief: r.brief || {}, cards: r.cards || [], outline: r.outline || {},
+    characters: Array.isArray(r.characters) ? r.characters : [],
     touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
   }));
   if (!projects.length) projects.push(blankProject("Untitled", "stc"));
@@ -3500,8 +3665,13 @@ function paintCandidates(options, sharpened){
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn btn-primary";
-    more.textContent = "Ask me about it";
-    more.setAttribute("data-tip", "Two or three questions about what actually happens, then it places itself.");
+    /* ONE NAME FOR ONE DOOR. This button was "Ask me about it" here, "Tell it
+       more" a few lines down and "Flesh it out first" below that - three names
+       for the same conversation, which makes an app look like it was assembled
+       rather than designed. The sentence above each one carries the context;
+       the button says what happens. */
+    more.textContent = "Flesh it out";
+    more.setAttribute("data-tip", "A few questions about what actually happens here, then it places itself.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
@@ -3523,8 +3693,8 @@ function paintCandidates(options, sharpened){
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn btn-primary";
-    more.textContent = "Tell it more";
-    more.setAttribute("data-tip", "Opens a short conversation: a couple of questions to turn this "
+    more.textContent = "Flesh it out";
+    more.setAttribute("data-tip", "Opens a short conversation: a few questions to turn this "
       + "fragment into something that actually happens, then it goes on the board.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
@@ -3556,9 +3726,9 @@ function paintCandidates(options, sharpened){
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn";
-    more.textContent = "Flesh it out first";
+    more.textContent = "Flesh it out";
     more.setAttribute("data-tip", "Confident about where it goes, but if the note itself is thin, "
-      + "a couple of questions will make it a card worth having.");
+      + "a few questions will make it a card worth having.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
@@ -4177,6 +4347,12 @@ document.getElementById("pdf").addEventListener("click", exportPDF);
    the cards on either side of the hole and asks; the writer answers in the
    box; the answer can become the card. Claude never writes the beat.
    ========================================================================= */
+/* ONE limit for both conversations. A note used to get 3 questions and an
+   empty beat 5, which is defensible - a fragment is a smaller problem than a
+   hole - but on screen it is the same panel counting to two different numbers,
+   and a writer reads that as a bug rather than as a judgement. Both are 5, both
+   stop early when there is nothing useful left to ask, and Write the card is
+   live from the first answer either way. */
 const ASK_LIMIT = 5;
 let askCtl = null;
 /* One conversation costs one credit however many questions it takes. Every
@@ -4240,7 +4416,7 @@ function drawThread(streaming){
   // five questions, then it's time to write the card
   const asked = thread.turns.filter(t => t.role === "assistant").length;
   const answered = thread.turns.filter(t => t.role === "user").length - 1;
-  const limit = thread.mode === "note" ? 3 : ASK_LIMIT;
+  const limit = ASK_LIMIT;
   const spent = asked >= limit;
   const card = document.getElementById("askcard");
   card.disabled = answered < 1;
@@ -4329,7 +4505,7 @@ async function runTurn(){
   drawThread("");
   let acc = "";
   try{
-    const {text} = await ai_sample(withPacing(thread.turns, thread.mode === "note" ? 3 : ASK_LIMIT), {
+    const {text} = await ai_sample(withPacing(thread.turns, ASK_LIMIT), {
       kind: "conversation",
       session: thread.sid,
       signal: askCtl.signal,
@@ -4816,6 +4992,7 @@ scrim.addEventListener("click", e => {
    Marked once, here, from the same CREDIT table, so there is nowhere in the app
    a writer can spend without having been told the price first. */
 marksCost(document.getElementById("loghelp"), "logline");
+marksCost(document.getElementById("charask"), "character");
 marksCost(document.getElementById("whatsmissing"), "conversation");
 marksCost(document.getElementById("dump"), "import");
 /* Reading a file is the one spend worth a whole sentence: it is the most
@@ -4868,6 +5045,42 @@ function cleanBrief(b){
   });
   if (typeof b.format === "string" && STRUCTURES[b.format]) out.format = b.format;
   return Object.keys(out).length ? out : null;
+}
+
+/* The people a notes file actually described.
+
+   Held to the same line as namedProject: a name is not a character. Anything
+   with nothing but a name attached is dropped, because a sheet that says only
+   "Ronnie" is worse than no sheet - it looks answered and it is not. Roles are
+   matched against the list rather than trusted, so "Main Guy" becomes blank
+   rather than becoming a role nobody else in the app understands. */
+function cleanPeople(list){
+  if (!Array.isArray(list)) return [];
+  const roles = CFIELDS[1].options.filter(Boolean);
+  const keys = CFIELDS.map(f => f.k);
+  const out = [];
+  const seen = new Set();
+  list.forEach(raw => {
+    if (!raw || typeof raw !== "object") return;
+    const c = {};
+    keys.forEach(k => {
+      const v = typeof raw[k] === "string" ? raw[k].trim() : "";
+      if (v && v.length < 600) c[k] = v;
+    });
+    if (!c.name) return;
+    const key = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!key || seen.has(key)) return;
+    // A name with nothing said about it is a mention, not a character.
+    const said = keys.filter(k => k !== "name" && c[k]).length;
+    if (!said) return;
+    if (c.role){
+      const hit = roles.find(r => r.toLowerCase() === c.role.toLowerCase());
+      if (hit) c.role = hit; else delete c.role;
+    }
+    seen.add(key);
+    out.push(c);
+  });
+  return out.slice(0, 8);
 }
 
 /* The offline reading of a header block, no model needed for "Genre: ..." */
@@ -5246,10 +5459,23 @@ async function claudePlan(raw){
       + "describes it. An unnamed passing thought, a reminder, a research errand or a shopping "
       + "note is not a story and must never be listed. The main project is always first.\n\n"
       + "For format, return one of these ids only if the text clearly states a format: " + formats + ".\n\n"
+      /* 3. The people, on the call that was already paid for. A notes file names
+            a dozen people and most of them are a waiter with one line, so the
+            test is the same one that decides whether a title is a project: did
+            the writer actually SAY something about them. Fields left blank stay
+            blank; the character sheet is honest about what is still missing and
+            a guess would rob the writer of that. */
+      + "3. Who are the CHARACTERS in the main story? Only people the writer said something "
+      + "substantive about - a want, a role in the plot, a history, a way of being. A name "
+      + "mentioned once in passing is not a character and must not be listed. Fill only the "
+      + "fields the file actually answers and leave every other one as an empty string. Invent "
+      + "nothing. For part, use exactly one of: " + CFIELDS[1].options.filter(Boolean).join(", ")
+      + ".\n\n"
       + "FILE:\n\"\"\"\n" + raw.slice(0, 20000) + "\n\"\"\"\n\n"
       + "Reply with JSON only:\n"
       + "{\"brief\":{\"name\":\"\",\"log\":\"\",\"who\":\"\",\"genre\":\"\",\"like\":\"\",\"setting\":\"\",\"format\":\"\"},"
-      + "\"stories\":[{\"name\":\"short name in the writer's own words\",\"about\":\"one line\"}]}");
+      + "\"stories\":[{\"name\":\"short name in the writer's own words\",\"about\":\"one line\"}],"
+      + "\"people\":[{\"name\":\"\",\"role\":\"\",\"who\":\"\",\"want\":\"\",\"need\":\"\",\"wound\":\"\",\"lie\":\"\",\"wall\":\"\",\"arc\":\"\",\"voice\":\"\"}]}");
   } catch (e) { if (e && e.code === "cancelled") throw e; }
 
   const groups = (top && Array.isArray(top.stories) && top.stories.length
@@ -5499,6 +5725,9 @@ async function claudePlan(raw){
     name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
     brief: i === 0 ? brief : {},
+    // Only the main story gets them. A one-line pitch for another film has no
+    // cast worth the name, and guessing one would fill a sheet with nothing.
+    people: i === 0 ? cleanPeople(top && top.people) : [],
     notes: buckets[i]
   })).filter(st => st.notes.length);
 }
@@ -5528,6 +5757,22 @@ function renderReview(){
       const d = document.createElement("div");
       d.className = "brieffound";
       d.innerHTML = '<div class="bfh">Project details found in your notes</div>' + rows;
+      wrap.appendChild(d);
+    }
+    /* The cast, said out loud before it appears. A writer who finds four
+       character sheets they did not make has been surprised by their own app,
+       even when the sheets are right. */
+    if (si === 0 && st.people && st.people.length){
+      const d = document.createElement("div");
+      d.className = "brieffound";
+      d.innerHTML = '<div class="bfh">People your notes describe</div>'
+        + st.people.map(pc => '<div class="briefrow"><span class="bl">'
+            + esc(pc.role || "Character") + '</span><span class="bv">' + esc(pc.name)
+            + (pc.want ? ' <i>wants ' + esc(pc.want.slice(0, 90)) + "</i>" : "")
+            + "</span></div>").join("")
+        + '<div class="briefrow"><span class="bl"></span><span class="bv"><i>'
+        + "They become character sheets under Characters. Anything you have already "
+        + "written there is kept.</i></span></div>";
       wrap.appendChild(d);
     }
     const counts = {};
@@ -5699,6 +5944,23 @@ document.getElementById("revgo").addEventListener("click", () => {
       target = blankProject(st.name, baseStructure);
       state.projects.push(target);
       newProjects++;
+    }
+    /* The cast the file described. Blanks only, in both directions: a
+       character the writer already has keeps every field they typed and only
+       gains the ones they hadn't. Matched by name, because that is how a
+       writer thinks of them and there is no id in a text file. */
+    if (st.people && st.people.length){
+      target.characters = target.characters || [];
+      const key = n => String(n || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      st.people.forEach(pc => {
+        const have = target.characters.find(c => key(c.name) === key(pc.name));
+        if (have){
+          Object.keys(pc).forEach(k => { if (!String(have[k] || "").trim()) have[k] = pc[k]; });
+        } else {
+          target.characters.push(Object.assign(blankChar(), pc, {createdFrom: "import"}));
+        }
+      });
+      BF.track("characters_imported", {count: st.people.length});
     }
     // details the writer stated in the file fill anything still blank; nothing they set is overwritten
     if (st.brief){
@@ -5932,6 +6194,402 @@ const shelfKind = c => SHELVES.indexOf(c.kind) >= 0 ? c.kind : "research";
 let noteFilter = "all";
 let noteSearch = "";
 
+/* =========================================================================
+   CHARACTERS
+
+   Ten fields. They are also the ten questions, which is the point: the
+   interview asks about whatever is still blank and skips the rest, so filling
+   the form yourself makes the conversation shorter. A writer who answers three
+   and stops has three fields written and seven still theirs to fill.
+
+   `ask` is what the interview is told to find out. `help` is what the writer
+   reads under the label. `weight` is how much of "this character exists" the
+   field is worth, because a name and a role are not a character and the card
+   should not claim they are.
+   ========================================================================= */
+const CFIELDS = [
+  {k:"name",  label:"Name",  weight:0, kind:"text",
+   help:"What you call them. A placeholder is fine.",
+   ask:"what they are called"},
+  {k:"role",  label:"Part they play", weight:1, kind:"select",
+   help:"Where they sit in the story, not how likeable they are.",
+   ask:"what part they play in the story",
+   options:["","Protagonist","Antagonist","Deuteragonist","Love interest","Mentor",
+            "Foil","Ally","Rival","Ensemble","Secondary","Minor"]},
+  {k:"who",   label:"Who they are", weight:1, kind:"area", rows:2,
+   help:"Age, work, where they stand in the world when the story opens.",
+   ask:"who they are when the story opens - age, work, and where they stand"},
+  {k:"want",  label:"What they want", weight:2, kind:"area", rows:2,
+   help:"The thing they are chasing, that an audience can watch them chase.",
+   ask:"what they are actively chasing that an audience can watch"},
+  {k:"need",  label:"What they need", weight:2, kind:"area", rows:2,
+   help:"What would actually make them whole. Usually not the same thing.",
+   ask:"what they actually need, which is usually not what they want"},
+  {k:"wound", label:"The wound", weight:2, kind:"area", rows:2,
+   help:"What happened before page one that made them like this.",
+   ask:"what happened to them before the story starts that made them this way"},
+  {k:"lie",   label:"The lie they believe", weight:2, kind:"area", rows:2,
+   help:"The false thing the wound taught them, and the story tests.",
+   ask:"the false belief the wound left them with, which the story will test"},
+  {k:"wall",  label:"What's in the way", weight:2, kind:"area", rows:2,
+   help:"Outside them and inside them. The inside one usually matters more.",
+   ask:"what stands in their way, outside them and inside them"},
+  {k:"arc",   label:"How they change", weight:2, kind:"area", rows:2,
+   help:"Or how they refuse to. Refusing is an arc.",
+   ask:"how they change by the end, or how they refuse to"},
+  {k:"voice", label:"How they talk", weight:1, kind:"area", rows:2,
+   help:"Rhythm, vocabulary, and the thing they would never say out loud.",
+   ask:"how they talk, and the one thing they would never say out loud"}
+];
+const CWEIGHT = CFIELDS.reduce((n, f) => n + f.weight, 0);
+
+function cast(proj){ return (proj || P()).characters || []; }
+function charDone(c){
+  const got = CFIELDS.reduce((n, f) => n + (String(c[f.k] || "").trim() ? f.weight : 0), 0);
+  return Math.round((got / CWEIGHT) * 100);
+}
+function charBlanks(c){ return CFIELDS.filter(f => !String(c[f.k] || "").trim()); }
+function blankChar(){ return {id: "c" + (uid++) + "-" + Date.now().toString(36)}; }
+
+/* What the BOARD is told about the people in it.
+
+   This is the reason characters live in Beatfall rather than in a notes app.
+   Every beat conversation and every placement gets this, so "what goes here?"
+   can ask about the thing that is actually unresolved for this protagonist
+   instead of about a beat in the abstract. Trimmed hard: a prompt with six
+   full sheets in it stops being a prompt. */
+function castBriefing(proj){
+  const list = cast(proj);
+  if (!list.length) return "";
+  const bits = list.slice(0, 6).map(c => {
+    const p = [];
+    if (c.role)  p.push(c.role);
+    if (c.who)   p.push(c.who);
+    if (c.want)  p.push("wants " + c.want);
+    if (c.need)  p.push("needs " + c.need);
+    if (c.lie)   p.push("believes " + c.lie);
+    if (c.wall)  p.push("in the way: " + c.wall);
+    if (!p.length) return null;
+    return "- " + (c.name || "unnamed") + ": " + p.join("; ").slice(0, 320);
+  }).filter(Boolean);
+  return bits.length ? "\nWHO IS IN THIS STORY:\n" + bits.join("\n") + "\n" : "";
+}
+
+/* ---- the shelf of characters ---- */
+function renderCast(){
+  const proj = P();
+  const grid = document.getElementById("castgrid");
+  const list = cast(proj);
+  grid.innerHTML = "";
+  document.getElementById("castlede").textContent = list.length
+    ? "Everything here goes into the board's questions. The more a character has, "
+      + "the more specific the questions about their beats become."
+    : "Nobody in here yet. Add the protagonist first — it is the one the board asks "
+      + "about most.";
+
+  list.forEach(c => {
+    const pct = charDone(c);
+    const blanks = charBlanks(c).length;
+    const el = document.createElement("button");
+    el.className = "ccard";
+    el.innerHTML =
+        '<div class="cr">' + esc(c.role || "Part not set") + "</div>"
+      + '<div class="cn">' + esc(c.name || "Unnamed") + "</div>"
+      + '<div class="cw' + (c.want ? "" : " none") + '">'
+      + esc(c.want || "What they want isn't written down yet.") + "</div>"
+      + '<div class="cbar"><i style="width:' + pct + '%"></i></div>'
+      + '<div class="cmeta">' + pct + "% filled in"
+      + (blanks ? '<b>' + blanks + " blank" + (blanks === 1 ? "" : "s") + "</b>" : "")
+      + "</div>";
+    el.addEventListener("click", () => openChar(c.id));
+    grid.appendChild(el);
+  });
+}
+
+/* ---- one character ---- */
+let charId = null;
+function charById(id){ return cast().find(c => c.id === id) || null; }
+
+function openChar(id){
+  const c = id ? charById(id) : null;
+  charId = c ? c.id : null;
+  document.getElementById("chartitle").textContent =
+    c ? (c.name || "A character") : "A new character";
+  document.getElementById("chardel").hidden = !c;
+  const body = document.getElementById("charfields");
+  body.innerHTML = "";
+  CFIELDS.forEach(f => {
+    const wrap = document.createElement("div");
+    wrap.className = "cfield";
+    const v = esc((c && c[f.k]) || "");
+    const control = f.kind === "select"
+      ? '<select id="cf-' + f.k + '">' + f.options.map(o =>
+          '<option value="' + esc(o) + '"' + (c && c[f.k] === o ? " selected" : "") + ">"
+          + esc(o || "Not set yet") + "</option>").join("") + "</select>"
+      : f.kind === "area"
+        ? '<textarea id="cf-' + f.k + '" rows="' + (f.rows || 2) + '">' + v + "</textarea>"
+        : '<input id="cf-' + f.k + '" type="text" autocomplete="off" value="' + v + '">';
+    wrap.innerHTML = '<label for="cf-' + f.k + '">' + esc(f.label) + "</label>"
+      + '<div class="chelp">' + esc(f.help) + "</div>" + control;
+    body.appendChild(wrap);
+  });
+  updateCharCount();
+  body.querySelectorAll("input,textarea,select").forEach(el => {
+    el.addEventListener("input", updateCharCount);
+    el.addEventListener("change", updateCharCount);
+  });
+  scrim.hidden = false;
+  sheetPaste.hidden = true; sheetReview.hidden = true;
+  document.getElementById("sheetnew").hidden = true;
+  document.getElementById("sheetlog").hidden = true;
+  document.getElementById("sheetcast").hidden = true;
+  document.getElementById("sheetchar").hidden = false;
+  document.getElementById("cf-name").focus();
+}
+
+function readChar(){
+  const out = {};
+  CFIELDS.forEach(f => {
+    const el = document.getElementById("cf-" + f.k);
+    out[f.k] = el ? String(el.value || "").trim() : "";
+  });
+  return out;
+}
+function updateCharCount(){
+  const c = readChar();
+  const blanks = charBlanks(c).length;
+  document.getElementById("charcount").textContent =
+    charDone(c) + "% filled in" + (blanks ? " · " + blanks + " left" : "");
+}
+
+document.getElementById("castnew").addEventListener("click", () => openChar(null));
+document.getElementById("charcancel").addEventListener("click", () => {
+  scrim.hidden = true;
+  document.getElementById("sheetchar").hidden = true;
+  document.getElementById("sheetnew").hidden = false;   // back to the sheet default
+});
+document.getElementById("charsave").addEventListener("click", () => {
+  const proj = P();
+  const v = readChar();
+  if (!Object.values(v).some(x => x)){ document.getElementById("charcancel").click(); return; }
+  proj.characters = proj.characters || [];
+  const at = proj.characters.findIndex(c => c.id === charId);
+  if (at >= 0) Object.assign(proj.characters[at], v);
+  else proj.characters.push(Object.assign(blankChar(), v));
+  BF.track(at >= 0 ? "character_updated" : "character_created",
+           {first_time: at < 0, count: proj.characters.length});
+  document.getElementById("charcancel").click();
+  save();
+  renderCast();
+});
+document.getElementById("chardel").addEventListener("click", () => {
+  const proj = P();
+  snapshot();
+  proj.characters = cast(proj).filter(c => c.id !== charId);
+  document.getElementById("charcancel").click();
+  save();
+  renderCast();
+});
+
+/* ---- the interview ----
+   Up to ten questions, and it is told exactly which ones are still open. A
+   writer who filled six fields gets four questions, which is the incentive
+   working the right way round. */
+const CAST_LIMIT = 10;
+let castThread = null, castCtl = null;
+const castInput = document.getElementById("castinput");
+
+function castQuestions(){
+  const blanks = charBlanks(readChar()).filter(f => f.k !== "name");
+  return Math.max(1, Math.min(CAST_LIMIT, blanks.length));
+}
+
+function castBrief(){
+  const v = readChar();
+  const known = CFIELDS.filter(f => v[f.k]).map(f => f.label.toUpperCase() + ": " + v[f.k]);
+  const blanks = charBlanks(v).filter(f => f.k !== "name");
+  const proj = P();
+  const b = proj.brief || {};
+  const ctx = [];
+  if (proj.name && proj.name !== "Untitled") ctx.push("PROJECT: " + proj.name);
+  ctx.push("FORMAT: " + STRUCTURES[proj.structure].label);
+  if (b.genre) ctx.push("GENRE: " + b.genre);
+  if (b.log)   ctx.push("LOGLINE: " + b.log);
+  if (b.setting) ctx.push("SETTING: " + b.setting);
+
+  return "You are helping a screenwriter work out one character in detail. Ask questions. "
+    + "Do not invent this person for them.\n\n"
+    + ctx.join("\n") + "\n\n"
+    + (known.length ? "WHAT THEY HAVE ALREADY SAID ABOUT THIS CHARACTER:\n"
+        + known.join("\n") + "\n\n" : "")
+    + "STILL BLANK, AND THE ONLY THINGS YOU ARE TRYING TO FIND OUT:\n"
+    + blanks.map(f => "- " + f.ask).join("\n") + "\n\n"
+    + "HOW TO DO THIS:\n"
+    + "- ONE question at a time, in plain language, about ONE of the blanks above.\n"
+    + "- Never ask about something they have already told you. If everything above is "
+    + "answered, say so and tell them to press Fill in the blanks.\n"
+    + "- Ask in the order listed: what they want and what they need are the two that matter "
+    + "most, and everything else is easier once those exist.\n"
+    + "- Push back once when an answer is a generic. \"He wants revenge\" is a genre, not a "
+    + "want; ask what revenge would actually look like for this person on a Tuesday.\n"
+    + "- Two or three sentences per turn, maximum. You are interviewing, not lecturing.\n"
+    + "- Never write the character's fields yourself. That happens at the end, from their "
+    + "answers, and only when they ask for it.\n\n"
+    + "Your first reply: one sentence on why the blank you are starting with matters, then the "
+    + "question.";
+}
+
+function drawCast(streaming){
+  const el = document.getElementById("castthread");
+  el.innerHTML = "";
+  castThread.turns.forEach((t, i) => {
+    if (i === 0) return;
+    const row = document.createElement("div");
+    row.className = "turn " + (t.role === "user" ? "me" : "them");
+    row.innerHTML = '<div class="who">' + (t.role === "user" ? "You" : "Beatfall") + "</div>"
+      + '<div class="said">' + fmt(t.content) + "</div>";
+    el.appendChild(row);
+  });
+  if (streaming !== undefined){
+    const row = document.createElement("div");
+    row.className = "turn them";
+    row.innerHTML = '<div class="who">Beatfall</div><div class="said" id="caststream">'
+      + (streaming ? fmt(streaming) : '<span class="spinner"></span><em>Thinking&hellip;</em>') + "</div>";
+    el.appendChild(row);
+  }
+  el.scrollTop = el.scrollHeight;
+
+  const asked = castThread.turns.filter(t => t.role === "assistant").length;
+  const answered = castThread.turns.filter(t => t.role === "user").length - 1;
+  const limit = castThread.limit || CAST_LIMIT;
+  const spent = asked >= limit;
+  document.getElementById("castwrite").disabled = answered < 1;
+  castInput.disabled = spent;
+  document.getElementById("castsend").disabled = spent;
+  document.getElementById("castlimit").textContent = spent
+    ? "that's all of them — fill in the blanks"
+    : "question " + Math.min(asked, limit) + " of " + limit;
+}
+
+async function runCastTurn(){
+  const send = document.getElementById("castsend");
+  const stop = document.getElementById("caststop");
+  castCtl = new AbortController();
+  castThread.sid = castThread.sid || newSid();
+  send.disabled = true; stop.hidden = false;
+  drawCast("");
+  let acc = "";
+  try{
+    const {text} = await ai_sample(withPacing(castThread.turns, castThread.limit), {
+      kind: "character", session: castThread.sid, signal: castCtl.signal,
+      onText: ({text}) => { acc = text; const el = document.getElementById("caststream");
+                            if (el) el.innerHTML = fmt(text); }
+    });
+    castThread.turns.push({role: "assistant", content: text});
+    drawCast();
+  }catch(e){
+    const partial = (e && e.text) || acc;
+    castThread.turns.push({role: "assistant", content: partial || (
+      e && e.code === "cancelled" ? "Stopped."
+      : e && e.code === "out_of_credits" ? "You're out of credits this month."
+      : "Couldn't get an answer just now.")});
+    drawCast();
+  }finally{
+    send.disabled = false; stop.hidden = true; castCtl = null;
+    castInput.focus();
+  }
+}
+
+function openCastAsk(){
+  document.getElementById("sheetchar").hidden = true;
+  document.getElementById("sheetcast").hidden = false;
+  castInput.focus();
+}
+function closeCastAsk(){
+  if (castCtl) castCtl.abort();
+  document.getElementById("sheetcast").hidden = true;
+  document.getElementById("sheetchar").hidden = false;
+}
+
+document.getElementById("charask").addEventListener("click", async () => {
+  const v = readChar();
+  document.getElementById("casttitle").textContent =
+    v.name ? "Building " + v.name : "Building the character";
+  openCastAsk();
+  castInput.value = "";
+  if (!ai_sample){
+    castThread = {limit: CAST_LIMIT, turns: [{role:"user",content:"x"}, {role:"assistant", content:
+      "This part isn't available in this view. On your own: what does this person want that an "
+      + "audience can watch them chase, what do they actually need, and what happened to them "
+      + "before page one that put those two at odds?"}]};
+    drawCast();
+    return;
+  }
+  castThread = {limit: castQuestions(), turns: [{role: "user", content: castBrief()}]};
+  BF.track("character_interview_started", {count: castThread.limit});
+  await runCastTurn();
+});
+document.getElementById("castsend").addEventListener("click", async () => {
+  const v = castInput.value.trim();
+  if (!v || !castThread || !ai_sample) return;
+  castThread.turns.push({role: "user", content: v});
+  castInput.value = "";
+  drawCast();
+  await runCastTurn();
+});
+castInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); document.getElementById("castsend").click(); }
+});
+document.getElementById("caststop").addEventListener("click", () => castCtl && castCtl.abort());
+document.getElementById("castclose").addEventListener("click", () => { closeCastAsk(); castThread = null; });
+
+/* Blanks only, always. Nothing the writer typed is ever overwritten by this,
+   which is why the request names the blanks and the merge checks again. */
+document.getElementById("castwrite").addEventListener("click", async () => {
+  if (!castThread) return;
+  const btn = document.getElementById("castwrite");
+  const before = readChar();
+  const blanks = charBlanks(before);
+  if (!blanks.length){ closeCastAsk(); return; }
+  if (!ai_sample){ closeCastAsk(); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Writing…';
+  castCtl = new AbortController();
+  const turns = castThread.turns.concat([{role: "user", content:
+      "Now write ONLY these fields, from what I told you and nothing else:\n"
+    + blanks.map(f => "- " + f.k + ": " + f.ask).join("\n") + "\n\n"
+    + "Rules: use my words and my specifics wherever I gave them. Invent nothing I did not say "
+    + "- if I never told you enough for a field, return an empty string for it. One or two "
+    + "sentences each, no headings, no quote marks. For role, use exactly one of: "
+    + CFIELDS[1].options.filter(Boolean).join(", ") + ".\n\n"
+    + "JSON only: {" + blanks.map(f => '"' + f.k + '":""').join(",") + "}"}]);
+  try{
+    const data = await ai_sample.json(turns, {kind: "character",
+      session: castThread.sid, signal: castCtl.signal});
+    let wrote = 0;
+    blanks.forEach(f => {
+      const v = data && typeof data[f.k] === "string" ? data[f.k].trim() : "";
+      const el = document.getElementById("cf-" + f.k);
+      // Checked again here rather than trusted: the writer may have typed into
+      // a field while the answer was in flight.
+      if (!v || !el || String(el.value).trim()) return;
+      el.value = v;
+      el.closest(".cfield").classList.add("filled");
+      wrote++;
+    });
+    BF.track("character_filled", {count: wrote});
+    updateCharCount();
+    closeCastAsk();
+    castThread = null;
+  }catch(e){
+    btn.textContent = "Couldn't write it";
+    setTimeout(() => { btn.textContent = "Fill in the blanks"; }, 2000);
+  }finally{
+    btn.disabled = false;
+    if (btn.textContent === "Writing…") btn.textContent = "Fill in the blanks";
+    castCtl = null;
+  }
+});
+
 function renderNotes(){
   const proj = P();
   const body = document.getElementById("notesbody");
@@ -6060,17 +6718,19 @@ const boardview = document.getElementById("boardview");
 
 const notesview = document.getElementById("notesview");
 const outlineview = document.getElementById("outlineview");
+const castview = document.getElementById("castview");
 
 function setView(v, quiet){
   // Which surfaces writers actually reach. Outline and Notes are the two that
   // exist to be discovered, so a count of zero here would say something.
-  if (v !== state.view && (v === "outline" || v === "notes"))
+  if (v !== state.view && (v === "outline" || v === "notes" || v === "cast"))
     BF.track(v + "_viewed", {});
   state.view = v;
   const onBoard = v === "board";
   slate.hidden       = v !== "slate";
   notesview.hidden   = v !== "notes";
   outlineview.hidden = v !== "outline";
+  castview.hidden    = v !== "cast";
   boardview.hidden   = !onBoard;
   document.querySelector(".capture").hidden = !onBoard;
   document.querySelector(".projbar").hidden = v === "slate";
@@ -6081,7 +6741,11 @@ function setView(v, quiet){
   document.getElementById("tally").hidden   = v === "slate";
   // Outline and Notes belong to a script, not to the shelf of them
   document.getElementById("outlinebtn").hidden = v === "slate";
+  document.getElementById("castbtn").hidden    = v === "slate";
   document.getElementById("notesbtn").hidden   = v === "slate";
+  // The rule before the nav divides the counts from it, and there are no
+  // counts on the dashboard.
+  document.getElementById("hrule1").hidden = v === "slate";
   // "Empty this board" acts on one board; it has no meaning on the slate.
   document.getElementById("clear").hidden = v === "slate";
   // A one-way door. You leave the dashboard by opening a script, not by a
@@ -6090,16 +6754,20 @@ function setView(v, quiet){
   closePops();
   // the header says where you are
   document.getElementById("outlinebtn").classList.toggle("on", v === "outline");
+  document.getElementById("castbtn").classList.toggle("on", v === "cast");
   document.getElementById("notesbtn").classList.toggle("on", v === "notes");
   if (v === "slate"){ hideAll(); renderSlate(); }
   else if (v === "notes"){ hideAll(); render(); renderNotes(); }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
+  else if (v === "cast"){ hideAll(); render(); renderCast(); }
   else { render(); try{ input.focus(); }catch(e){} }
   if (!quiet) save();
 }
 document.getElementById("notesbtn").addEventListener("click", () =>
   setView(state.view === "notes" ? "board" : "notes"));
 document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
+document.getElementById("castbtn").addEventListener("click", () =>
+  setView(state.view === "cast" ? "board" : "cast"));
 
 /* The standings. Four counts and a chain, and every one of them is something
    the writer actually did, no points, no badges, no invented currency. The
