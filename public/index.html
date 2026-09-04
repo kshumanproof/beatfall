@@ -1808,6 +1808,7 @@ footer{
           <path d="M2.6 7.9L9 2.8l6.4 5.1V15a.6.6 0 0 1-.6.6h-3.4v-4.4H7.6v4.4H4.2a.6.6 0 0 1-.6-.6z"/>
         </svg>
       </button>
+      <button class="navlink" id="boardbtn" data-tip="The index cards, laid out in the shape you are writing to. Empty beats show as gaps.">Board</button>
       <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
       <button class="navlink" id="castbtn" data-tip="Everyone in the script: what each of them wants, what they actually need, and what is in the way. The board's questions get sharper once it knows.">Characters</button>
       <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat: voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
@@ -6273,8 +6274,22 @@ function renderRail(){
   else items.forEach(c => nbox.appendChild(railCard(c)));
 }
 
-document.getElementById("outlinebtn").addEventListener("click", () =>
-  setView(state.view === "outline" ? "board" : "outline"));
+/* FOUR DESTINATIONS, NOT THREE TOGGLES.
+
+   Outline, Characters and Notes used to be switches: you left them by pressing
+   the same button again. Nothing said so, so a writer who opened Notes had no
+   visible way back to their board.
+
+   Kris suggested renaming the item you are standing on to "Beat board". That
+   works, but it makes the nav change shape as you move through it, and the item
+   you are on disappears from the bar. This file already rejected that pattern
+   once, for the dashboard: "you leave the dashboard by opening a script, not by
+   a button that changes its own name depending on where you happen to be."
+
+   So Board is a real item instead. The bar never moves, every view is one click
+   from every other, and the blue one tells you where you are. */
+document.getElementById("boardbtn").addEventListener("click", () => setView("board"));
+document.getElementById("outlinebtn").addEventListener("click", () => setView("outline"));
 
 /* =========================================================================
    NOTES THAT AREN'T BEATS: kept with the project, off the board. A story
@@ -6831,6 +6846,7 @@ function setView(v, quiet){
   document.querySelector(".hsep").hidden = v === "slate";
   document.getElementById("tally").hidden   = v === "slate";
   // Outline and Notes belong to a script, not to the shelf of them
+  document.getElementById("boardbtn").hidden   = v === "slate";
   document.getElementById("outlinebtn").hidden = v === "slate";
   document.getElementById("castbtn").hidden    = v === "slate";
   document.getElementById("notesbtn").hidden   = v === "slate";
@@ -6844,6 +6860,7 @@ function setView(v, quiet){
   document.getElementById("viewtoggle").hidden = v === "slate";
   closePops();
   // the header says where you are
+  document.getElementById("boardbtn").classList.toggle("on", v === "board");
   document.getElementById("outlinebtn").classList.toggle("on", v === "outline");
   document.getElementById("castbtn").classList.toggle("on", v === "cast");
   document.getElementById("notesbtn").classList.toggle("on", v === "notes");
@@ -6854,11 +6871,9 @@ function setView(v, quiet){
   else { render(); try{ input.focus(); }catch(e){} }
   if (!quiet) save();
 }
-document.getElementById("notesbtn").addEventListener("click", () =>
-  setView(state.view === "notes" ? "board" : "notes"));
+document.getElementById("notesbtn").addEventListener("click", () => setView("notes"));
 document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
-document.getElementById("castbtn").addEventListener("click", () =>
-  setView(state.view === "cast" ? "board" : "cast"));
+document.getElementById("castbtn").addEventListener("click", () => setView("cast"));
 
 /* The standings. Four counts and a chain, and every one of them is something
    the writer actually did, no points, no badges, no invented currency. The

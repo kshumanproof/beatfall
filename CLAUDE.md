@@ -1236,6 +1236,22 @@ makes a header full of useful things read like a pile of them. Dashboard is a
 house icon and comes first in the nav, because the shelf of scripts is a place
 rather than a view of this script.
 
+### Four destinations, not three toggles (3 Sep 2026)
+
+Outline, Characters and Notes were switches: you left them by pressing the same
+button again. Nothing on screen said so, so a writer who opened Notes had no
+visible way back to their board.
+
+Kris suggested renaming the item you are standing on to "Beat board". That
+works, but it makes the nav change shape as you move through it and the item you
+are on vanishes from the bar, and **this file had already rejected that pattern
+once**, for the dashboard: *"you leave the dashboard by opening a script, not by
+a button that changes its own name depending on where you happen to be."*
+
+So **Board** is a real nav item instead. The bar never moves, every view is one
+click from every other, and the blue one says where you are. `vnav.js` walks the
+whole four-by-four grid.
+
 ### Characters
 
 Ten fields in `CFIELDS`, and **they are also the ten questions**. Each carries
