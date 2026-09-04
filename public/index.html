@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beatfall · Turn scattered story notes into a beat board</title>
 <meta name="description" content="Beatfall organizes your story notes into a structured beat board, keeps everything else, and shows you what is still missing. It never writes your script.">
+<link rel="canonical" href="https://beatfall.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Beatfall">
+<meta property="og:title" content="Beatfall · Turn scattered story notes into a beat board">
+<meta property="og:description" content="Beatfall finds the story beats in your notes, keeps everything else, and shows you what is still missing. It never writes your script.">
+<meta property="og:url" content="https://beatfall.app/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Beatfall · Turn scattered story notes into a beat board">
+<meta name="twitter:description" content="Beatfall finds the story beats in your notes, keeps everything else, and shows you what is still missing. It never writes your script.">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
@@ -46,7 +55,7 @@
   .section-head{display:grid;grid-template-columns:.75fr 1.25fr;gap:70px;align-items:end;margin-bottom:42px}
   .section-head h2{font-size:clamp(36px,4vw,52px);line-height:1.05;letter-spacing:-.025em;margin:0;text-wrap:balance}
   .section-head p{font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink-2);margin:0;max-width:650px}
-  .transform{display:grid;grid-template-columns:1fr 52px 1fr;gap:20px;align-items:stretch}
+  .transform{display:grid;grid-template-columns:1fr 52px 1.12fr;gap:20px;align-items:stretch}
   .example{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);padding:28px;box-shadow:var(--shadow)}
   .example-k{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);margin-bottom:20px}
   .raw p{font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--ink-2);margin:0 0 14px}
@@ -54,6 +63,9 @@
   .board-row{display:grid;grid-template-columns:126px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--rule-soft);align-items:start}
   .board-row:last-child{border:0}.board-row b{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-weight:400;text-transform:uppercase}.board-row span{font-family:var(--serif);font-size:16px;line-height:1.35}
   .board-row.open span,.board-row.open b{color:var(--gold)}.board-row.open span{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  .kept{margin-top:20px;padding:17px 18px;background:var(--surface);border-left:2px solid var(--blue)}
+  .kept-k{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);margin-bottom:9px}
+  .kept p{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);margin:5px 0}
   .steps,.trust,.price{max-width:1180px;margin:0 auto;padding:92px 28px}
   .steps h2,.trust h2,.price h2{font-size:clamp(36px,4vw,52px);line-height:1.08;letter-spacing:-.025em;margin:0 0 46px;max-width:760px}
   .step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:step}
@@ -68,7 +80,7 @@
   .founder{max-width:850px;margin:0 auto;padding:104px 28px;text-align:center}.founder blockquote{font-family:var(--serif);font-size:clamp(29px,3.5vw,42px);line-height:1.25;letter-spacing:-.018em;margin:0 0 24px;color:var(--ink)}.founder p{color:var(--ink-3);font-size:14px;margin:0}
   footer{border-top:1px solid var(--rule);background:var(--surface)}.foot-in{max-width:1180px;margin:0 auto;padding:36px 28px;display:flex;align-items:center;gap:22px}.foot-in .brand{gap:5px}.foot-in .mark{height:25px}.foot-links{margin-left:auto;display:flex;gap:20px;flex-wrap:wrap}.foot-links a{font-size:13px;color:var(--ink-3);text-decoration:none}.foot-links a:hover{color:var(--blue)}
   @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:66px}.mess{min-height:430px;max-width:580px}.section-head,.trust,.price{grid-template-columns:1fr;gap:30px}.step-grid{grid-template-columns:1fr}.step:before{margin-bottom:18px}.step{padding-bottom:22px}.transform{grid-template-columns:1fr}.arrow{transform:rotate(90deg);height:38px}.price{gap:28px}}
-  @media(max-width:600px){.homebar-in{height:64px;padding:0 18px}.homebar .mark{height:27px}.homebar .wordmark{font-size:26px}.home-actions .signin{display:none}.home-actions .btn{padding:9px 13px;font-size:13px}.hero,.proof-in,.steps,.trust,.price{padding-left:20px;padding-right:20px}.hero{padding-top:52px;gap:44px}.hero-copy>p{font-size:18px}.mess{min-height:390px}.note-pile{inset:0 18px 75px 0;padding:24px 22px}.note-pile p{font-size:12px}.fall-card{width:245px;padding:18px 20px}.openbeat{left:12px;width:180px}.board-row{grid-template-columns:105px 1fr}.foot-in{align-items:flex-start;flex-direction:column;padding:28px 20px}.foot-links{margin-left:0;gap:14px}}
+  @media(max-width:600px){.homebar-in{height:64px;padding:0 18px}.homebar .mark{height:27px}.homebar .wordmark{font-size:26px}.home-actions .signin{display:none}.home-actions .btn{padding:10px 14px;font-size:13px;min-height:44px}.hero,.proof-in,.steps,.trust,.price{padding-left:20px;padding-right:20px}.hero{padding-top:46px;gap:38px}.hero h1{font-size:clamp(41px,12.4vw,52px)}.hero-copy>p{font-size:18px}.hero-acts .btn{min-height:46px}.mess{min-height:350px}.note-pile{inset:0 18px 68px 0;padding:22px 20px}.note-pile p{font-size:11.5px;margin-bottom:13px}.fall-card{width:235px;padding:17px 19px}.openbeat{left:10px;width:174px}.board-row{grid-template-columns:105px 1fr}.foot-in{align-items:flex-start;flex-direction:column;padding:28px 20px}.foot-links{margin-left:0;gap:14px}.foot-links a{padding:5px 0}}
 </style>
 </head>
 <body>
@@ -114,12 +126,12 @@
     <div class="proof-in">
       <div class="section-head">
         <div><p class="section-k">Paste the whole mess</p><h2>See the story you already have.</h2></div>
-        <p>Keep writing the way you write. Give Beatfall the notes, fragments, dialogue, questions, and alternate ideas you already have.</p>
+        <p>Paste your notes, fragments, dialogue, questions, and alternate ideas. They don’t need to be organized first.</p>
       </div>
       <div class="transform">
-        <div class="example raw"><div class="example-k">Before</div><p>protagonist's brother maybe knows?</p><p>funeral scene</p><p>ending maybe lake</p><p>“you don't bury the truth, you plant it”</p><p>midpoint, body found?</p></div>
+        <div class="example raw"><div class="example-k">Before</div><p>body caught in the spillway, maybe catalyst?</p><p>she washes the blood off at a gas station</p><p>dog disappears here???</p><p>ending at the empty grove at dusk</p><p>brother knew the whole time</p><p>“you don't bury the truth, you plant it”</p></div>
         <div class="arrow" aria-hidden="true">→</div>
-        <div class="example"><div class="example-k">After</div><div class="board-row"><b>Opening image</b><span>Washing blood off at a gas station.</span></div><div class="board-row open"><b>Theme stated</b><span>Open</span></div><div class="board-row"><b>Catalyst</b><span>A body is caught in the spillway.</span></div><div class="board-row open"><b>Midpoint</b><span>Open</span></div><div class="board-row"><b>Final image</b><span>The empty grove at dusk.</span></div></div>
+        <div class="example"><div class="example-k">After</div><div class="board-row"><b>Opening image</b><span>She washes the blood off at a gas station.</span></div><div class="board-row open"><b>Theme stated</b><span>Open</span></div><div class="board-row"><b>Catalyst</b><span>A body is caught in the spillway.</span></div><div class="board-row open"><b>Midpoint</b><span>Open</span></div><div class="board-row"><b>Final image</b><span>The empty grove at dusk.</span></div><div class="kept"><div class="kept-k">Kept in Notes</div><p>brother knew the whole time</p><p>“you don't bury the truth, you plant it”</p><p>dog disappears here???</p></div></div>
       </div>
     </div>
   </section>
@@ -129,7 +141,7 @@
     <h2>From loose notes to a story you can see.</h2>
     <div class="step-grid">
       <div class="step"><h3>Add your notes</h3><p>Type one thought at a time or paste in the whole file. Nothing needs to be organized first.</p></div>
-      <div class="step"><h3>Review the board</h3><p>Beatfall places what it understands and keeps character, dialogue, research, and other notes nearby.</p></div>
+      <div class="step"><h3>Beatfall sorts them</h3><p>Story beats go to the board. Character, dialogue, research, and other material stays in Notes.</p></div>
       <div class="step"><h3>Work on the gaps</h3><p>Empty beats stay visible. When you want help, Beatfall asks questions instead of inventing your story.</p></div>
     </div>
   </section>
@@ -139,14 +151,14 @@
     <div class="trust-list">
       <div class="trust-item"><i></i><div><b>Your words remain your words.</b><span>Beatfall organizes your material. It does not rewrite your screenplay.</span></div></div>
       <div class="trust-item"><i></i><div><b>Uncertainty stays visible.</b><span>If a placement is not clear, Beatfall asks or leaves the note aside.</span></div></div>
-      <div class="trust-item"><i></i><div><b>Your writing is not used for training.</b><span>Your projects are private to your account and can be exported or deleted.</span></div></div>
+      <div class="trust-item"><i></i><div><b>Your writing isn’t used to train AI.</b><span>Your projects are private to your account and can be exported or deleted.</span></div></div>
     </div>
   </section>
 
   <section class="price-wrap">
     <div class="price">
       <div class="price-copy"><p class="section-k">Simple pricing</p><h2>Try it on a real project.</h2><p>Fourteen days free with no card. Adding and organizing notes does not use credits.</p></div>
-      <div class="price-card"><div class="price-n">$12 <span>a month</span></div><div>or $99 a year</div><p>Includes 150 credits each month for conversations, idea sets, and reading notes files.</p><a class="btn btn-primary" href="/login.html">Start free</a></div>
+      <div class="price-card"><div class="price-n">$12 <span>a month</span></div><div>or $99 a year</div><p>Includes 150 credits each month for conversations, idea sets, and reading notes files.</p><a class="btn btn-primary" href="/login.html">Start 14 days free</a></div>
     </div>
   </section>
 

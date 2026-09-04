@@ -53,3 +53,40 @@ Add a real public homepage at `/`. Move the signed-in web application to `/app` 
 - No authenticated product mechanics were redesigned.
 - No mobile files were changed.
 - No new product features were added.
+
+## 4 September 2026: Homepage polish and conversion pass
+
+### Requested
+
+Preserve the approved homepage direction while correcting the before-and-after demonstration, tightening functional copy, polishing responsive behavior, and completing basic search and sharing metadata.
+
+### Changes
+
+- Rebuilt the demonstration so every After item comes from the visible Before notes.
+- Added a visible “Kept in Notes” area for material that is not placed as a beat.
+- Kept Theme Stated and Midpoint open to demonstrate deliberate uncertainty.
+- Shortened the “Paste the whole mess” explanation.
+- Changed the second step from “Review the board” to “Beatfall sorts them” and clarified where each kind of material goes.
+- Changed the trust statement to the clearer “Your writing isn’t used to train AI.”
+- Standardized the lower pricing call to action as “Start 14 days free.”
+- Added canonical, Open Graph, and Twitter metadata.
+- Added `robots.txt` and a sitemap covering the public homepage, billing, privacy, and terms pages.
+- Tightened the phone hero and ensured primary phone actions meet a 44-pixel minimum target height.
+
+### Testing
+
+- Visually inspected the complete page at 1440-pixel desktop, 768-pixel tablet, and 390-pixel phone widths.
+- Saved full-page review captures as `Claude outputs/homepage-desktop.png` and `Claude outputs/homepage-mobile.png`.
+- Confirmed no horizontal overflow at tablet or phone widths.
+- Confirmed the primary phone call to action is 51 pixels high.
+- Confirmed exactly one H1, followed by four H2s and three H3s.
+- Confirmed canonical, Open Graph, and Twitter text metadata are present.
+- Confirmed `robots.txt` and `sitemap.xml` are served successfully.
+- Confirmed all conversion buttons use “Start 14 days free,” except the deliberately shorter header button.
+- Confirmed no em dashes or stale wordmark-only links were introduced.
+
+### Intentionally unchanged
+
+- The hero wording, visual concept, section order, palette, typography, pricing, founder statement, and footer destinations remain unchanged.
+- No testimonials, badges, animation, feature grid, extra tiers, or generic AI marketing were added.
+- No social preview image was invented. Text sharing metadata is ready, but the image should be an approved Beatfall asset rather than an unrelated generated graphic.
