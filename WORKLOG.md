@@ -232,3 +232,41 @@ Display every project title in the project switcher in uppercase, complete the t
 - Project names are not rewritten in the database, exports, or edit fields.
 - The login page and its copy remain available when a signed-out visitor deliberately chooses Sign in or a trial action.
 - No project content, database schema, billing behavior, or mobile-app files were changed.
+
+## 4 September 2026: Functional-copy pass
+
+### Requested
+
+Make controls and tooltips explain their immediate result in basic language, reduce repeated reassurance, and keep fuller guarantees only where they affect a decision.
+
+### Changes
+
+- Renamed the requested controls: “Sort them out” to “Sort my notes,” “Flesh it out” to “Answer a few questions,” “Write the card” to “Create a card,” and “Start the board” to “Create an empty board.”
+- Renamed “Notes that aren't beats” to “Other notes” and carried that name through import results, card movement, and note-management language.
+- Replaced the notes-import introduction with the approved direct explanation of what Beatfall accepts, what it identifies, and when the board changes.
+- Simplified the new-project introduction, field hints, logline help, and the paired creation choices.
+- Renamed import review's “Build the board” action to “Add selected notes” and shortened its explanation of where each type of note goes.
+- Simplified uncertain-placement messages and gave every route into the same conversation the same “Answer a few questions” label.
+- Simplified the conversation-to-card and idea-to-card flow to “Create a card,” “Edit this idea,” and “Add to the board.”
+- Shortened the Other notes introduction and clarified its grouping, beat-conversion, removal, and deletion controls.
+- Rewrote the board, outline, character, note, account, project-menu, dashboard, and card tooltips around the immediate result of clicking.
+- Kept credit costs attached to every paid control.
+- Kept fuller safety language for destructive actions, imports, billing changes, failed saving, and failed project loading.
+
+### Testing
+
+- Loaded the authenticated app with two projects, beat cards, a set-aside card, and an Other note through a local account/API simulation.
+- Confirmed all requested old labels are absent from the shipped interface.
+- Confirmed the exact approved import introduction and the revised import cost sentence render correctly.
+- Confirmed the import sheet, project menu, Other notes view, uncertain-placement panel, conversation action, new-project sheet, and import-review screen show the intended labels and tooltips.
+- Confirmed every rendered tooltip in the tested flows is 24 words or fewer.
+- Confirmed paid controls still display their one- or two-credit cost.
+- Confirmed no horizontal overflow at 1440 and 1024 pixels wide.
+- Confirmed no browser errors during the complete interaction pass.
+- Saved visual review captures as `Claude outputs/copy-import.png`, `copy-placement.png`, `copy-other-notes.png`, and `copy-new-project.png`.
+
+### Intentionally unchanged
+
+- Story-beat descriptions and the writer-facing editorial voice inside the board remain intact; they explain story function rather than a button click.
+- Privacy promises, destructive-action warnings, subscription consequences, and data-safety error messages remain explicit.
+- No project placement, import, saving, billing, account, database, or mobile-app mechanics were changed.

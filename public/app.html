@@ -1779,7 +1779,7 @@ footer{
 
     <div class="projbar">
       <button class="projbtn" id="projbtn" aria-haspopup="true" aria-expanded="false"
-        data-tip="Everything this script can do: switch between scripts, change its structure, paste in more notes, print it.">
+        data-tip="Switch projects or open this project's options.">
         <span class="nm" id="projname">Untitled</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--blue)" stroke-width="1.6" aria-hidden="true"><path d="M2 4l3 3 3-3"/></svg>
       </button>
@@ -1788,33 +1788,33 @@ footer{
       <div class="pop wide left" id="projmenu" hidden>
         <div class="pophead">Your scripts</div>
         <div class="tabs" id="tabs"></div>
-        <button class="popitem" id="newproj" data-tip="Start another script. Each one keeps its own board, structure and notes.">
+        <button class="popitem" id="newproj" data-tip="Create another project.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
           New project</button>
 
         <div class="popsep"></div>
         <div class="pophead">Structure</div>
         <div class="strip">
-          <select id="structure" aria-label="Story structure" data-tip="The skeleton your cards hang on. Switch it and every card is re-sorted into the new shape. Nothing is lost, and you can switch back."></select>
+          <select id="structure" aria-label="Story structure" data-tip="Choose a structure and reorganize this project's cards into its beats."></select>
           <div class="meter"><div class="meter-track"><div class="meter-fill" id="fill"></div></div></div>
           <span class="meter-label" id="meterlabel"></span>
           <span class="gapcount" id="gapcount"></span>
         </div>
 
         <div class="popsep"></div>
-        <button class="popitem" id="renproj" data-tip="Title, format, logline, who it's about and genre. The more you fill in, the sharper its questions get.">
+        <button class="popitem" id="renproj" data-tip="Edit this project's title, format, logline, protagonist, and genre.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg>
           Project details</button>
-        <button class="popitem" id="dump" data-tip="Paste or drop a text file of scattered notes. It splits them up, works out which are story beats, and builds the board.">
+        <button class="popitem" id="dump" data-tip="Paste notes or add .txt and .md files.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4 2.6h8v10.8H4z"/><path d="M6 5.6h4M6 8h4M6 10.4h2.6"/></svg>
           Paste in your notes</button>
-        <button class="popitem" id="pdf" data-tip="Prints the board as index cards grouped by act, including the empty beats, so you can spread it on a table.">
+        <button class="popitem" id="pdf" data-tip="Download this board as a PDF organized by act.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
           <span class="lbl">Save as PDF</span></button>
-        <button class="popitem" id="loadsample" data-tip="Fills this board with nine notes from a made-up crime story, so you can see how placement behaves before using your own.">
+        <button class="popitem" id="loadsample" data-tip="Add nine sample notes to this empty board.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2v3.4l2.2 1.3"/></svg>
           See an example</button>
-        <button class="popitem danger" id="clear" data-tip="Takes every card off this board. Your notes are kept, other projects are untouched, and Undo brings it all back.">
+        <button class="popitem danger" id="clear" data-tip="Remove every beat card from this board. Other notes and projects stay in place. You can undo.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M3.4 4.6h9.2M6.4 4.6V3h3.2v1.6M4.6 4.6l.7 8.4h5.4l.7-8.4"/></svg>
           Empty this board</button>
       </div>
@@ -1827,7 +1827,7 @@ footer{
 
     <!-- Where you are in this script. -->
     <span class="tally" id="tally" hidden
-      data-tip="How many beats have a card, and how many are still bare.">
+      data-tip="Beats with cards and beats still empty.">
       <b id="tplaced"></b><span class="dot">&middot;</span><i id="topen"></i>
     </span>
     <div class="hrule" id="hrule1" hidden></div>
@@ -1836,16 +1836,16 @@ footer{
          view of this script; then the three ways of looking at the script. -->
     <div class="hgroup" id="hnav">
       <button class="navlink homelink" id="viewtoggle" aria-label="Dashboard"
-        data-tip="Every project at once: how far along each one is, and where you left off.">
+        data-tip="Open your projects dashboard.">
         <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor"
           stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M2.6 7.9L9 2.8l6.4 5.1V15a.6.6 0 0 1-.6.6h-3.4v-4.4H7.6v4.4H4.2a.6.6 0 0 1-.6-.6z"/>
         </svg>
       </button>
-      <button class="navlink" id="boardbtn" data-tip="The index cards, laid out in the shape you are writing to. Empty beats show as gaps.">Board</button>
-      <button class="navlink" id="outlinebtn" data-tip="The board in order, as a document. The beats are locked in sequence; you write what actually happens between them, and drag in anything you set aside.">Outline</button>
-      <button class="navlink" id="castbtn" data-tip="Everyone in the script: what each of them wants, what they actually need, and what is in the way. The board's questions get sharper once it knows.">Characters</button>
-      <button class="navlink" id="notesbtn" data-tip="Everything you wrote that isn't a story beat: voice, dialogue and research notes. Kept out of the way, but never thrown out.">Notes</button>
+      <button class="navlink" id="boardbtn" data-tip="View this project as cards arranged by story beat.">Board</button>
+      <button class="navlink" id="outlinebtn" data-tip="View this project in story order and write under each beat.">Outline</button>
+      <button class="navlink" id="castbtn" data-tip="View and edit this project's characters.">Characters</button>
+      <button class="navlink" id="notesbtn" data-tip="View character, dialogue, research, and other notes.">Notes</button>
     </div>
     <div class="hrule"></div>
 
@@ -1856,7 +1856,7 @@ footer{
          the app, and down there it kept ending up inside the footer. -->
     <div class="acct" id="acct">
           <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false"
-            data-tip="Your account, plan, credits and settings.">
+            data-tip="Open your account menu.">
             <span class="ini" id="avatarini">K</span>
             <span class="lbl">Account</span>
             <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none"
@@ -1872,7 +1872,7 @@ footer{
             <div class="popplan" style="flex-direction:column;align-items:flex-start;gap:2px">
               <span id="whoplan"></span>
               <span class="creditcount" id="credits" hidden
-                data-tip="Credits left this month. Placing notes is always free; conversations and reading a notes file are what count."></span>
+                data-tip="Your remaining credits for writing help."></span>
             </div>
 
             <div class="popsep"></div>
@@ -1881,7 +1881,7 @@ footer{
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"/></svg>
               Settings</button>
 
-            <button class="popitem" id="theme" data-tip="Auto goes dark at sunset and light at sunrise where you are. Or force light or dark.">
+            <button class="popitem" id="theme" data-tip="Switch between Auto, Light, and Dark.">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2"/></svg>
               Mode <span class="aside" id="modelabel">Auto</span></button>
 
@@ -1896,7 +1896,7 @@ footer{
             <div class="popsep"></div>
 
             <a class="popitem" href="/admin.html" id="adminlink" hidden
-              data-tip="Yours only. Who signed up, what they did, and what it cost.">
+              data-tip="Open account activity and cost reports.">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.6 12.6V7.4M6.2 12.6V4.2M9.8 12.6V9M13.4 12.6V5.8"/></svg>
               Admin <span class="tag">owner</span></a>
 
@@ -1913,9 +1913,8 @@ footer{
 
   <div class="sheet" id="sheetpaste">
     <div class="sheet-title">Paste in your notes</div>
-    <p class="sheet-note">Paste the whole mess, or drop in your text files. It doesn't need to be
-      organized or even limited to one story. Beatfall separates the ideas, identifies story beats
-      and other notes, and builds your board without changing your words.</p>
+    <p class="sheet-note">Paste your notes or drop in a text file. Beatfall will separate them,
+      identify possible story beats, and show you the results before changing your board.</p>
     <p class="sheet-note" style="margin-top:-8px">Your notes stay private and are never used to
       train a model.
       <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
@@ -1925,7 +1924,7 @@ footer{
       <span class="sheet-count" id="dumpcount">nothing yet</span>
       <button class="btn" id="dumpcancel">Cancel</button>
       <button class="btn" id="dumpstop" hidden>Stop</button>
-      <button class="btn btn-gold" id="dumpgo" data-tip="Splits your text into separate notes, decides what kind each one is, and shows you the plan before anything reaches the board.">Sort them out</button>
+      <button class="btn btn-gold" id="dumpgo" data-tip="Separate your notes and show the results before changing the board.">Sort my notes</button>
     </div>
   </div>
 
@@ -1938,7 +1937,7 @@ footer{
          fields is a long scroll, and the writer who most needs this button is
          the one looking at ten empty boxes wondering where to start. -->
     <div class="charhead">
-      <button class="btn btn-gold" id="charask" data-tip="Up to ten questions about this person, skipping anything you have already filled in. It writes the blanks from your answers and you can edit every one.">Help me build this character</button>
+      <button class="btn btn-gold" id="charask" data-tip="Answer questions to fill this character's blank fields.">Answer character questions</button>
       <span class="sheet-count" id="charcount"></span>
     </div>
     <div id="charfields"></div>
@@ -1961,7 +1960,7 @@ footer{
       <button class="btn btn-primary" id="castsend">Send</button>
     </div>
     <div class="ask-actions">
-      <button class="btn btn-primary" id="castwrite" disabled data-tip="Fills every blank field from what you have said. Nothing you typed yourself is touched, and you can edit all of it.">Fill in the blanks</button>
+      <button class="btn btn-primary" id="castwrite" disabled data-tip="Fill blank fields from your answers. Existing fields stay unchanged.">Fill in the blanks</button>
       <button class="btn" id="caststop" hidden>Stop</button>
       <button class="btn btn-ghost" id="castclose">Back to the character</button>
       <span class="limitnote" id="castlimit"></span>
@@ -1987,7 +1986,7 @@ footer{
       <button class="btn btn-primary" id="logsend">Send</button>
     </div>
     <div class="ask-actions">
-      <button class="btn btn-primary" id="logwrite" disabled data-tip="Turns your answers into one sentence and drops it in the box on the project sheet, where you can edit it.">Write the logline</button>
+      <button class="btn btn-primary" id="logwrite" disabled data-tip="Create a one-sentence logline from your answers.">Create the logline</button>
       <button class="btn" id="logstop" hidden>Stop</button>
       <button class="btn btn-ghost" id="logclose">Back to the project</button>
       <span class="limitnote" id="loglimit"></span>
@@ -1996,8 +1995,7 @@ footer{
 
   <div class="sheet" id="sheetnew" hidden>
     <div class="sheet-title" id="newtitle">A new project</div>
-    <p class="sheet-note">Only the format is required. Add more detail for better questions and
-      more accurate beat placement.</p>
+    <p class="sheet-note">Choose a format. Everything else is optional.</p>
 
     <div class="field">
       <label for="f-name">Title</label>
@@ -2007,13 +2005,13 @@ footer{
     <div class="field" id="formatfield">
       <label for="f-format">Format and structure</label>
       <select id="f-format"></select>
-      <div class="hint" id="formathint">You can change this later without losing any cards.</div>
+      <div class="hint" id="formathint">You can change the structure later.</div>
     </div>
 
     <div class="field">
       <label for="f-log">Logline</label>
-      <textarea id="f-log" rows="2" placeholder="Who wants what, and what's in the way. A rough sentence beats a polished one."></textarea>
-      <button class="linky" id="loghelp" data-tip="Opens a short conversation that explains what a logline has to do, asks about your story, and writes one from your answers.">Need help with your logline?</button>
+      <textarea id="f-log" rows="2" placeholder="Who wants what, and what stands in the way?"></textarea>
+      <button class="linky" id="loghelp" data-tip="Answer a few questions to create a logline.">Answer questions for a logline</button>
     </div>
 
     <div class="field two">
@@ -2060,15 +2058,15 @@ footer{
       </div>
       <div>
       <label for="f-like">Comps</label>
-      <input id="f-like" type="text" autocomplete="off" placeholder="Winter's Bone meets Mud: the comparison you'd say out loud in a room">
+      <input id="f-like" type="text" autocomplete="off" placeholder="Example: Winter's Bone meets Mud">
       </div>
     </div>
 
     <div class="sheet-actions">
-      <span class="sheet-count" id="newnote">Skip anything you don't know yet</span>
+      <span class="sheet-count" id="newnote">Only format is required</span>
       <button class="btn" id="newcancel">Cancel</button>
-      <button class="btn btn-gold" id="newpaste" data-tip="Creates the project, then opens the box where you paste in the notes you already have.">Start from my notes</button>
-      <button class="btn btn-primary" id="newgo" data-tip="Creates the project and opens its empty board.">Start the board</button>
+      <button class="btn btn-gold" id="newpaste" data-tip="Create the project and open the notes importer.">Create from notes</button>
+      <button class="btn btn-primary" id="newgo" data-tip="Create the project and open its empty board.">Create an empty board</button>
     </div>
   </div>
 
@@ -2079,7 +2077,7 @@ footer{
     <div class="sheet-actions">
       <span class="sheet-count" id="revcount"></span>
       <button class="btn" id="revback">Back</button>
-      <button class="btn btn-primary" id="revgo" data-tip="Adds every ticked note. Story beats go to the board, the rest go to the shelves on the right.">Build the board</button>
+      <button class="btn btn-primary" id="revgo" data-tip="Add selected beats to the board and file the other selected notes by type.">Add selected notes</button>
     </div>
   </div>
 
@@ -2102,8 +2100,8 @@ footer{
     <textarea id="note" rows="1" autocomplete="off" spellcheck="true"
       placeholder="He finds out his brother knew the whole time&hellip;"
       aria-label="Type a note"></textarea>
-    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
-    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">What&rsquo;s missing?</button>
+    <button class="btn btn-primary" id="place" data-tip="Suggest up to two beats for this note. You choose before it is placed.">Place it</button>
+    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Open a conversation about the most useful empty beat.">What&rsquo;s missing?</button>
   </div>
 </div>
 
@@ -2116,7 +2114,7 @@ footer{
       <div class="proposal-note" id="pnote"></div>
       <div class="candidates" id="cands"></div>
       <div class="proposal-actions">
-        <button class="btn btn-ghost" id="unplace" data-tip="Keeps the note without deciding where it goes. It waits in Set aside until you drag it somewhere.">Set it aside for now</button>
+        <button class="btn btn-ghost" id="unplace" data-tip="Move this note to Set aside without placing it.">Set it aside for now</button>
         <button class="btn btn-ghost" id="cancel">Cancel</button>
         <span class="sharpen" id="sharpen"></span>
         <span class="proposal-hint">Pick a beat. You can move the card later.</span>
@@ -2130,7 +2128,7 @@ footer{
         <div class="settled-title" id="settledtitle">Board updated</div>
         <div id="settledlines"></div>
       </div>
-      <button class="btn" id="undo" data-tip="Puts the board back exactly as it was before the last thing that changed it.">Undo</button>
+      <button class="btn" id="undo" data-tip="Reverse the last board change.">Undo</button>
       <button class="xclose" id="settledx" title="Dismiss" aria-label="Dismiss">&times;</button>
     </div>
   </div>
@@ -2148,8 +2146,7 @@ footer{
         <h2 class="slate-h" id="outlinetitle">Outline</h2>
         <div class="slate-acts"><span class="sheet-count" id="outlinecount"></span></div>
       </div>
-      <p class="figlede">The beat order follows your chosen structure. Add what happens under each
-        beat, or drag notes in from the right.</p>
+      <p class="figlede">Add what happens under each beat, or drag in notes from the right.</p>
       <div id="outlinebody"></div>
     </div>
     <aside class="outline-rail">
@@ -2193,7 +2190,7 @@ footer{
 <section id="notesview" hidden>
   <div class="slate-wrap">
     <div class="slate-head" style="margin-bottom:6px">
-      <h2 class="slate-h">Notes that aren't beats</h2>
+      <h2 class="slate-h">Other notes</h2>
     </div>
     <p class="figlede" id="noteslede"></p>
     <div id="notesbody"></div>
@@ -2210,7 +2207,7 @@ footer{
       <h2 class="slate-h">Your scripts</h2>
       <div class="slate-rule"></div>
       <div class="slate-acts">
-        <button class="bigbtn solid" id="slatenew" data-tip="Start a script. Each one keeps its own board, structure and notes, and you can start it from notes you already have.">
+        <button class="bigbtn solid" id="slatenew" data-tip="Create a project.">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 3.4v9.2M3.4 8h9.2"/></svg>
           New project</button>
       </div>
@@ -2236,9 +2233,9 @@ footer{
           <button class="btn btn-primary" id="asksend">Send</button>
         </div>
         <div class="ask-actions">
-          <button class="btn" id="askcard" disabled data-tip="Pulls everything you said in this conversation into one beat, in your words. You get to edit it before it lands.">Write the card</button>
-          <button class="btn" id="askstop" hidden data-tip="Stops it mid-answer. Whatever it has written so far is kept.">Stop</button>
-          <button class="btn btn-ghost" id="askclose" data-tip="Ends this conversation without putting anything on the board.">Close</button>
+          <button class="btn" id="askcard" disabled data-tip="Create an editable card from your answers.">Create a card</button>
+          <button class="btn" id="askstop" hidden data-tip="Stop the current response and keep what has appeared.">Stop</button>
+          <button class="btn btn-ghost" id="askclose" data-tip="Close without creating a card.">Close</button>
           <span class="limitnote" id="limitnote"></span>
         </div>
       </div>
@@ -2247,8 +2244,8 @@ footer{
         <div class="draft-label" id="draftlabel">Here's the beat Beatfall built from your answers. Edit it before adding it to the board.</div>
         <textarea id="drafttext" rows="3"></textarea>
         <div class="ask-actions">
-          <button class="btn btn-primary" id="draftgo" data-tip="Adds this as the card for that beat, pinned so the board won't move it later.">Put it on the board</button>
-          <button class="btn btn-ghost" id="draftback" data-tip="Returns to the questions without saving this draft.">Back to the conversation</button>
+          <button class="btn btn-primary" id="draftgo" data-tip="Add this card to the beat and mark its placement as settled.">Add to the board</button>
+          <button class="btn btn-ghost" id="draftback" data-tip="Return to the questions without adding this draft.">Back to the conversation</button>
           <button class="btn" id="draftstop" hidden>Stop</button>
         </div>
       </div>
@@ -2869,8 +2866,7 @@ function attachedList(slot, onChange){
       + '<button class="unpin" aria-label="Send back to your notes">&#8617;</button>';
     row.querySelector(".at").textContent = c.text;
     const u = row.querySelector(".unpin");
-    u.setAttribute("data-tip", "Takes this note off the beat and puts it back under Notes. "
-      + "It is never deleted this way.");
+    u.setAttribute("data-tip", "Remove this note from the beat. It stays under Other notes.");
     u.addEventListener("click", e => {
       e.stopPropagation();
       snapshot();
@@ -3283,9 +3279,7 @@ function render(justPlaced){
       el.dataset.slot = s.id;
       el.innerHTML =
         '<div class="slothead"><span class="slotname">' + esc(s.name) + "</span>"
-        + (contested ? '<span class="undecided" data-tip="You wrote more than one version of this '
-            + 'beat and haven\'t chosen between them. Both are kept. Delete the one you don\'t '
-            + 'want, or leave it and decide later.">undecided &middot; ' + cards.filter(c => c.declared).length
+        + (contested ? '<span class="undecided" data-tip="This beat has more than one version. Delete one or keep both for now.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
         + "</div>"
         + '<div class="cards"></div>';
@@ -3304,7 +3298,7 @@ function render(justPlaced){
         const ask = document.createElement("button");
         ask.className = "askbtn";
         ask.textContent = "What goes here?";
-        ask.setAttribute("data-tip", "Reads the cards on either side of this gap and talks you through what belongs here: up to five questions, then it writes the card from your answers.");
+        ask.setAttribute("data-tip", "Answer up to five questions to create a card for this beat.");
         ask.addEventListener("click", e => { e.stopPropagation(); askAbout(s); });
         acts.appendChild(ask);
         // No separator: a dot earns its place between two pieces of text and
@@ -3322,9 +3316,7 @@ function render(justPlaced){
           + '<path d="M8 1.9a4.2 4.2 0 0 0-2.5 7.6c.4.3.6.7.6 1.2v.4h3.8v-.4c0-.5.2-.9.6-1.2A4.2 4.2 0 0 0 8 1.9z"/>'
           + "</svg>";
         ideas.setAttribute("aria-label", "Ideas");
-        ideas.setAttribute("data-tip", "Reads the beats either side of this gap and everything you "
-          + "set aside, then offers a few shapes this beat could take, mostly built out of notes "
-          + "you already wrote. No questions.");
+        ideas.setAttribute("data-tip", "Show three ideas using nearby cards and notes you set aside.");
         ideas.addEventListener("click", e => { e.stopPropagation(); ideasFor(s); });
         acts.appendChild(ideas);
         /* The price lives in the tooltips here and nowhere else on this page.
@@ -3361,7 +3353,7 @@ function render(justPlaced){
     + '<div class="tray-body"></div>';
   const tb = tray.querySelector(".tray-body");
   if (!unplaced.length){
-    tb.innerHTML = '<span class="tray-empty">Notes you set aside wait here. Drag any card out of a beat to park it.</span>';
+    tb.innerHTML = '<span class="tray-empty">Notes you set aside appear here.</span>';
   } else {
     unplaced.forEach(c => tb.appendChild(cardEl(c)));
   }
@@ -3423,12 +3415,11 @@ function cardEl(c){
   el.addEventListener("dragend", () => el.classList.remove("dragging"));
 
   el.querySelector(".pin").setAttribute("data-tip", c.pinned
-    ? "Marked settled. You've decided this one. Click to un-mark it."
-    : "Mark this card as settled, so you can tell at a glance which beats you've decided and "
-      + "which are still rough. Nothing on the board moves on its own either way.");
-  el.querySelector(".del").setAttribute("data-tip", "Delete this card. Undo brings it back.");
+    ? "Mark this placement as unsettled."
+    : "Mark this placement as settled.");
+  el.querySelector(".del").setAttribute("data-tip", "Delete this card. You can undo.");
   el.querySelector(".move").setAttribute("data-tip",
-    "Send this card to a different beat, set it aside, or reclassify it as a note rather than a beat.");
+    "Move this card to another beat, set it aside, or file it under Other notes.");
   el.querySelector(".move").addEventListener("click", e => {
     e.stopPropagation();
     if (el.querySelector(".movepick")) return;
@@ -3745,21 +3736,18 @@ function paintCandidates(options, sharpened){
   if (options.length && best < SURE && askable){
     const box = document.createElement("div");
     box.className = "nosignal";
-    box.innerHTML = "<b>I'd rather ask than guess.</b> Best I have is <b>" + esc(options[0].name)
-      + "</b> at " + best + "%. Not enough to put it there on your behalf. Two questions will "
-      + "settle it, or place it yourself below.";
+    box.innerHTML = "<b>Beatfall isn't sure where this goes.</b> Best match: <b>"
+      + esc(options[0].name) + "</b> at " + best
+      + "%. Answer a few questions, or choose a beat below.";
     cands.appendChild(box);
     const row = document.createElement("div");
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn btn-primary";
-    /* ONE NAME FOR ONE DOOR. This button was "Ask me about it" here, "Tell it
-       more" a few lines down and "Flesh it out first" below that - three names
-       for the same conversation, which makes an app look like it was assembled
-       rather than designed. The sentence above each one carries the context;
-       the button says what happens. */
-    more.textContent = "Flesh it out";
-    more.setAttribute("data-tip", "A few questions about what actually happens here, then it places itself.");
+    /* ONE NAME FOR ONE DOOR. Every uncertain placement opens the same short
+       conversation, so every route names that action the same way. */
+    more.textContent = "Answer a few questions";
+    more.setAttribute("data-tip", "Open a short conversation to turn this note into a card.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
@@ -3772,31 +3760,29 @@ function paintCandidates(options, sharpened){
   if (!options.length){
     const box = document.createElement("div");
     box.className = "nosignal";
-    box.innerHTML = "<b>I can't place this yet.</b> There isn't enough here to tell what it does in "
-      + "the story: who it happens to, or what changes because of it. Tell me a little more and "
-      + "I'll place it, or park it and come back to it.";
+    box.innerHTML = "<b>Beatfall can't place this yet.</b> Add who it happens to or what changes. "
+      + "Answer a few questions, choose a beat, or set it aside.";
     cands.appendChild(box);
 
     const row = document.createElement("div");
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn btn-primary";
-    more.textContent = "Flesh it out";
-    more.setAttribute("data-tip", "Opens a short conversation: a few questions to turn this "
-      + "fragment into something that actually happens, then it goes on the board.");
+    more.textContent = "Answer a few questions";
+    more.setAttribute("data-tip", "Open a short conversation to turn this note into a card.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
 
     const pick = document.createElement("select");
-    pick.setAttribute("data-tip", "Put it wherever you want it. You know your story.");
+    pick.setAttribute("data-tip", "Choose a beat and place the note there.");
     pick.innerHTML = '<option value="">Or choose a beat yourself&hellip;</option>'
       + STRUCTURES[P().structure].slots.map(x =>
           '<option value="' + x.id + '">' + esc(x.name) + "</option>").join("");
     pick.addEventListener("change", () => { if (pick.value) commit(pick.value); });
     row.appendChild(pick);
     cands.appendChild(row);
-    document.getElementById("sharpen").textContent = sharpened ? "read closely" : (ai_sample ? "reading it closely…" : "");
+    document.getElementById("sharpen").textContent = sharpened ? "checked" : (ai_sample ? "checking…" : "");
     return;
   }
 
@@ -3814,16 +3800,15 @@ function paintCandidates(options, sharpened){
     row.className = "nosignal-acts";
     const more = document.createElement("button");
     more.className = "btn";
-    more.textContent = "Flesh it out";
-    more.setAttribute("data-tip", "Confident about where it goes, but if the note itself is thin, "
-      + "a few questions will make it a card worth having.");
+    more.textContent = "Answer a few questions";
+    more.setAttribute("data-tip", "Open a short conversation to add detail to this card.");
     marksCost(more, "conversation");
     more.addEventListener("click", () => { const t = pending.text; proposal.hidden = true; pending = null; askAboutNote(t); });
     row.appendChild(more);
     cands.appendChild(row);
   }
   document.getElementById("sharpen").textContent = sharpened
-    ? "read closely" : (ai_sample ? "reading it closely…" : "");
+    ? "checked" : (ai_sample ? "checking…" : "");
 }
 
 /* The note is proposed instantly by the built-in matcher, so capture never
@@ -3985,16 +3970,15 @@ function storedStructure(){
   return null;
 }
 
-/* Nothing leaves this sheet until the format is answered. Both buttons, because
-   Start from my notes runs the parse against whatever structure is set and is
-   the more expensive way to get it wrong. */
+/* Nothing leaves this sheet until the format is answered. Both creation paths
+   need the structure before they can build or sort anything. */
 function gateIntake(){
   const has = !!STRUCTURES[F.format.value];
   document.getElementById("newgo").disabled = !has;
   document.getElementById("newpaste").disabled = !has;
   document.getElementById("formatfield").classList.toggle("needs", !has);
   document.getElementById("formathint").textContent = has
-    ? "You can change this later without losing any cards."
+    ? "You can change the structure later."
     : "Pick one. It decides which beats your board has.";
 }
 F.format.addEventListener("change", gateIntake);
@@ -4007,7 +3991,7 @@ function openIntake(mode){
   document.getElementById("newtitle").textContent =
     mode === "edit" ? "About this project" : "A new project";
   document.getElementById("newgo").textContent =
-    mode === "edit" ? "Save" : "Start the board";
+    mode === "edit" ? "Save" : "Create an empty board";
   document.getElementById("newpaste").hidden = mode === "edit";
   F.name.value   = mode === "edit" ? (proj.name === "Untitled" ? "" : proj.name) : "";
   // A new project starts on whatever you told Settings new projects should start
@@ -4246,10 +4230,10 @@ document.getElementById("logwrite").addEventListener("click", async () => {
     F.log.focus();
   }catch(e){
     btn.textContent = "Couldn't write it";
-    setTimeout(() => { btn.textContent = "Write the logline"; }, 2000);
+    setTimeout(() => { btn.textContent = "Create the logline"; }, 2000);
   }finally{
     btn.disabled = false;
-    if (btn.textContent === "Writing…") btn.textContent = "Write the logline";
+    if (btn.textContent === "Writing…") btn.textContent = "Create the logline";
     logCtl = null;
   }
 });
@@ -4496,12 +4480,8 @@ document.getElementById("pdf").addEventListener("click", exportPDF);
    the cards on either side of the hole and asks; the writer answers in the
    box; the answer can become the card. Claude never writes the beat.
    ========================================================================= */
-/* ONE limit for both conversations. A note used to get 3 questions and an
-   empty beat 5, which is defensible - a fragment is a smaller problem than a
-   hole - but on screen it is the same panel counting to two different numbers,
-   and a writer reads that as a bug rather than as a judgement. Both are 5, both
-   stop early when there is nothing useful left to ask, and Write the card is
-   live from the first answer either way. */
+/* ONE limit for both conversations. Both stop early when there is nothing
+   useful left to ask, and Create a card is available after the first answer. */
 const ASK_LIMIT = 5;
 let askCtl = null;
 /* One conversation costs one credit however many questions it takes. Every
@@ -4562,22 +4542,22 @@ function drawThread(streaming){
   }
   askThreadEl.scrollTop = askThreadEl.scrollHeight;
 
-  // five questions, then it's time to write the card
+  // five questions, then it's time to create the card
   const asked = thread.turns.filter(t => t.role === "assistant").length;
   const answered = thread.turns.filter(t => t.role === "user").length - 1;
   const limit = ASK_LIMIT;
   const spent = asked >= limit;
   const card = document.getElementById("askcard");
   card.disabled = answered < 1;
-  card.textContent = thread.mode === "note" ? "Write it up" : "Write the card";
+  card.textContent = "Create a card";
   card.classList.toggle("btn-primary", spent);
   askInput.disabled = spent;
   document.getElementById("asksend").disabled = spent;
   askInput.placeholder = spent
-    ? "That's the questions, write it up"
+    ? "Questions complete. Create the card."
     : "Answer here, or push back (Enter to send)";
   document.getElementById("limitnote").textContent = ai_sample
-    ? (spent ? "that's the questions, write it up"
+    ? (spent ? "questions complete"
              : "question " + Math.min(asked, limit) + " of " + limit)
     : "";
 }
@@ -4638,7 +4618,7 @@ function briefing(hole){
     + "- Never use a craft term without saying what it means in the same breath.\n"
     + "- YOU GET FIVE QUESTIONS, NO MORE. Spend them getting to what actually happens in this beat. "
     + "By your fifth reply at the latest, stop asking, tell them you have what you need, and say "
-    + "they can write the card now.\n\n"
+    + "they can create the card now.\n\n"
     + (bare
         ? "The board is empty, so you have nothing of theirs to work from yet. Still teach the beat "
           + "first, then ask them in one short question what the story is and who it's about."
@@ -4788,10 +4768,10 @@ document.getElementById("askcard").addEventListener("click", async () => {
 
   convo.hidden = true; draft.hidden = false;
   document.getElementById("draftlabel").textContent = thread.mode === "note"
-    ? "Here's your note, filled in. Edit it before placing it."
-    : "Here's the beat Beatfall built from your answers. Edit it before adding it to the board.";
+    ? "Edit this card before choosing where it goes."
+    : "Edit this card before adding it to the board.";
   document.getElementById("draftgo").textContent = thread.mode === "note"
-    ? "Place it" : "Put it on the board";
+    ? "Choose its beat" : "Add to the board";
 
   if (!ai_sample){
     dt.value = myAnswers().join(" ");
@@ -4974,8 +4954,7 @@ async function ideasFor(hole){
     const lede = document.createElement("div");
     lede.className = "figlede";
     lede.style.margin = "0 0 12px";
-    lede.textContent = "These are suggestions, not your words. Take one as a starting point and "
-      + "rewrite it. Anything you keep stays labelled until you do.";
+    lede.textContent = "These are generated suggestions. Choose one to edit before adding it.";
     body.appendChild(lede);
 
     list.forEach(o => {
@@ -4988,16 +4967,15 @@ async function ideasFor(hole){
       d.querySelector(".does").textContent = String(o.does || "");
       const use = document.createElement("button");
       use.className = "btn";
-      use.textContent = "Work from this";
-      use.setAttribute("data-tip", "Opens it in an editable box. Change it into your own words "
-        + "before it goes on the board.");
+      use.textContent = "Edit this idea";
+      use.setAttribute("data-tip", "Open this idea for editing.");
       use.addEventListener("click", () => {
         thread = {slot: hole, mode: "idea", turns: [], origin: String(o.text || "")};
         document.getElementById("askconvo").hidden = true;
         document.getElementById("askdraft").hidden = false;
         document.getElementById("draftlabel").textContent =
-          "Make it yours. It stays marked as a suggestion until you change it";
-        document.getElementById("draftgo").textContent = "Put it on the board";
+          "Edit this idea before adding it. It stays marked Suggested until you change the wording.";
+        document.getElementById("draftgo").textContent = "Add to the board";
         document.getElementById("drafttext").value = String(o.text || "");
         document.getElementById("drafttext").focus();
       });
@@ -5147,8 +5125,7 @@ marksCost(document.getElementById("dump"), "import");
 /* Reading a file is the one spend worth a whole sentence: it is the most
    expensive thing here, and it is usually the first thing a new writer does. */
 document.getElementById("dumpcost").innerHTML =
-  "Reading a file costs <b>" + costWords("import") + "</b>, however long it is, and however many "
-  + "projects it turns out to hold. You'll see the whole plan before anything reaches a board.";
+  "Reading these notes costs <b>" + costWords("import") + "</b>, no matter how long the file is.";
 {
   const go = document.getElementById("dumpgo");
   go.setAttribute("data-tip", go.getAttribute("data-tip")
@@ -5901,7 +5878,7 @@ function renderReview(){
         const v = k === "format" ? STRUCTURES[st.brief[k]].label : st.brief[k];
         const kept = k !== "format" && cur[k] && cur[k] !== st.brief[k];
         return '<div class="briefrow"><span class="bl">' + LBL[k] + "</span><span class=\"bv\">"
-          + esc(v) + (kept ? ' <i>(you already have one, yours is kept)</i>' : "") + "</span></div>";
+          + esc(v) + (kept ? ' <i>(current value kept)</i>' : "") + "</span></div>";
       }).join("");
       const d = document.createElement("div");
       d.className = "brieffound";
@@ -5920,8 +5897,7 @@ function renderReview(){
             + (pc.want ? ' <i>wants ' + esc(pc.want.slice(0, 90)) + "</i>" : "")
             + "</span></div>").join("")
         + '<div class="briefrow"><span class="bl"></span><span class="bv"><i>'
-        + "They become character sheets under Characters. Anything you have already "
-        + "written there is kept.</i></span></div>";
+        + "These become character sheets under Characters. Existing fields stay unchanged.</i></span></div>";
       wrap.appendChild(d);
     }
     const counts = {};
@@ -5940,8 +5916,7 @@ function renderReview(){
          plainly which name it kept and where the other one can be used. */
       + (si === 0 && !importIntoNew && st.brief && st.brief.name && st.brief.name !== st.name
           ? '<div class="revkept">Your notes mention <b>' + esc(st.brief.name)
-            + '</b>. This project keeps the name it has. Change it in the box '
-            + 'above if you want.</div>'
+            + '</b>. Edit the title above to use it.</div>'
           : "");
     /* Typing in this box is the one way an existing project gets renamed by an
        import, because it is the writer doing it on purpose. `typed` is what
@@ -5956,7 +5931,7 @@ function renderReview(){
       const row = document.createElement("div");
       row.className = "revrow" + (n.keep ? "" : " off");
       const nm = id => (S.slots.find(x => x.id === id) || {name:"Set aside"}).name;
-      const dest = n.kind !== "beat" ? "→ " + KINDS[n.kind] + " shelf"
+      const dest = n.kind !== "beat" ? "→ Other notes · " + KINDS[n.kind]
         : n.beat  ? "→ " + nm(n.beat) + (n.declared ? "  (you said so)"
                                                     : "  (" + n.conf + "% sure)")
         // A full beat, said plainly. This is the one case where the writer
@@ -5983,12 +5958,11 @@ function renderReview(){
   document.getElementById("revnote").textContent = stories > 1
     ? "These notes look like " + stories + " different stories. "
       + (importIntoNew
-          ? "Each one becomes its own project. Nothing you already have is touched. "
+          ? "Each group becomes its own project. "
           : "The first group goes into the project you're in; the rest become their own projects. ")
-      + "Rename any of them, or untick anything you don't want."
-    : "Only notes that are clearly one specific beat go onto the board. The rest go to your notes "
-      + "or to Set aside. Expect most beats to stay empty: those gaps are the point, and filling "
-      + "them with near-misses would hide them. Untick anything you don't want.";
+      + "Rename a group or untick anything you don't want to add."
+    : "Review what Beatfall found. Story beats go to the board; other items go to Other notes "
+      + "or Set aside. Untick anything you don't want to add.";
 
   updateRevCount();
   sheetPaste.hidden = true;
@@ -6033,17 +6007,17 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
     }catch(e){
       plan = null;
       BF.track("import_failed", {error_code: (e && e.code) || "unknown", stage: "read"});
-      if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Read it"; stop.hidden = true; return; }
+      if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Sort my notes"; stop.hidden = true; return; }
       // A failed read used to fall through to the built-in matcher without saying
       // so, which looked exactly like a successful one. It says so now.
       document.getElementById("dumpcount").innerHTML =
-        "<b>Couldn't read that file.</b> Nothing has been placed and nothing was lost \u2014 "
-        + "your text is still in the box. Try again, or paste it in two halves."
+        "<b>Couldn't read that file.</b> Nothing was added. Your text is still above. "
+        + "Try again, or split it into two files."
         + (e && e.code === "out_of_credits" ? " (You're out of credits this month.)" : "");
       go.disabled = false; go.textContent = "Try again"; stop.hidden = true; dumpCtl = null;
       return;
     }finally{
-      go.disabled = false; go.textContent = "Sort them out"; stop.hidden = true; dumpCtl = null;
+      go.disabled = false; go.textContent = "Sort my notes"; stop.hidden = true; dumpCtl = null;
     }
     if (!plan || !plan.length){
       document.getElementById("dumpcount").textContent =
@@ -6347,7 +6321,7 @@ document.getElementById("boardbtn").addEventListener("click", () => setView("boa
 document.getElementById("outlinebtn").addEventListener("click", () => setView("outline"));
 
 /* =========================================================================
-   NOTES THAT AREN'T BEATS: kept with the project, off the board. A story
+   OTHER NOTES: kept with the project, off the board. A story
    board should show the story; character sketches and stray dialogue crowding
    it out is exactly the mess this app exists to end.
    ========================================================================= */
@@ -6758,11 +6732,9 @@ function renderNotes(){
   body.innerHTML = "";
 
   document.getElementById("noteslede").textContent = all.length
-    ? "Everything from " + proj.name + " that isn't a story event, sorted by what it is. Beatfall "
-      + "made these calls; change any of them, or send a note to the board if it turns out to be a beat."
-    : "Nothing here yet. When you paste in a pile of notes, anything that isn't a story beat (a "
-      + "character detail, a line you like, a rule you set yourself, a question you haven't answered "
-      + ") lands here instead of being forced onto the board.";
+    ? all.length + " other note" + (all.length === 1 ? "" : "s") + " from " + proj.name
+      + ", grouped by type. Change a type or send a note to a beat."
+    : "Character details, dialogue, questions, rules, and research appear here.";
 
   // filter bar: what it found, and how much of each
   const bar = document.createElement("div");
@@ -6815,8 +6787,8 @@ function renderNotes(){
         on.hidden = false;
         on.innerHTML = "Filed under <b>" + esc(slotName(proj.structure, c.attachedTo)) + "</b>";
         const off = document.createElement("button");
-        off.className = "btn"; off.textContent = "Take it off that beat";
-        off.setAttribute("data-tip", "Removes it from the beat. The note itself stays right here.");
+        off.className = "btn"; off.textContent = "Remove from beat";
+        off.setAttribute("data-tip", "Remove this note from the beat. It stays under Other notes.");
         off.addEventListener("click", () => {
           snapshot(); delete c.attachedTo; renderNotes(); render();
         });
@@ -6824,8 +6796,7 @@ function renderNotes(){
       }
 
       const kindSel = document.createElement("select");
-      kindSel.setAttribute("data-tip", "Beatfall guessed this. If it guessed wrong, put it right. "
-        + "rules in particular are treated as hard constraints it must never break.");
+      kindSel.setAttribute("data-tip", "Change how this note is grouped.");
       kindSel.innerHTML = SHELVES.map(k =>
         '<option value="' + k + '"' + (k === kind ? " selected" : "") + ">" + esc(KINDS[k]) + "</option>").join("");
       kindSel.addEventListener("change", () => {
@@ -6834,7 +6805,7 @@ function renderNotes(){
       row.appendChild(kindSel);
 
       const toBeat = document.createElement("select");
-      toBeat.setAttribute("data-tip", "Turns this into a card on the board, in the beat you choose.");
+      toBeat.setAttribute("data-tip", "Create a card in the beat you choose.");
       toBeat.innerHTML = '<option value="">Send to a beat&hellip;</option>'
         + STRUCTURES[proj.structure].slots.map(x =>
             '<option value="' + x.id + '">' + esc(x.name) + "</option>").join("");
@@ -6849,7 +6820,7 @@ function renderNotes(){
 
       const del = document.createElement("button");
       del.className = "btn"; del.textContent = "Delete";
-      del.setAttribute("data-tip", "Removes this note. Undo brings it back.");
+      del.setAttribute("data-tip", "Delete this note. You can undo.");
       del.addEventListener("click", () => {
         snapshot();
         proj.cards = proj.cards.filter(x => x.id !== c.id);
@@ -7160,7 +7131,7 @@ function renderSlate(){
       open(p.id || p.localId); askAbout(nx);
     });
     if (nx) el.querySelector(".up").setAttribute("data-tip",
-      "Opens a conversation about the most useful empty beat in this story. Costs "
+      "Answer questions about this project's next empty beat. Costs "
       + costWords("conversation") + ".");
 
     const acts = el.querySelector(".acts");
@@ -7171,7 +7142,7 @@ function renderSlate(){
     if (state.projects.length > 1){
       const d = btn("Delete", () => remove(p));
       d.className = "btn del";
-      d.setAttribute("data-tip", "Removes this project and everything in it, permanently.");
+      d.setAttribute("data-tip", "Delete this project and everything in it permanently.");
       acts.appendChild(d);
     }
     into.appendChild(el);
@@ -7194,8 +7165,8 @@ function renderSlate(){
     const b = document.createElement("button");
     b.className = "btn"; b.textContent = label;
     b.setAttribute("data-tip", {
-      "Open":"Switch to this project's board.",
-      "Details":"Title, format, logline, protagonist and genre for this project."
+      "Open":"Open this project's board.",
+      "Details":"Edit this project's title, format, logline, protagonist, and genre."
     }[label] || "");
     b.addEventListener("click", fn);
     return b;
@@ -8018,7 +7989,7 @@ BF.onCredits = function (c) {
         pill.appendChild(chip);
       }
       chip.textContent = left;
-      chip.setAttribute("data-tip", left + " credits left. The board stays free either way.");
+      chip.setAttribute("data-tip", left + " credits left for writing help.");
     } else if (chip) chip.remove();
     pill.classList.toggle("out", left <= 0);
   }
