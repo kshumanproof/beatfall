@@ -3041,9 +3041,21 @@ async function flush(){
   dirty.clear();
   for (const p of queue){
     try{
+      /* EVERY FIELD load() READS HAS TO BE IN THIS OBJECT.
+
+         This payload is built by hand, and that is how a character saved
+         perfectly in memory, drew its card, wrote itself to the crash cushion
+         in localStorage, and was gone on the next page load: the column
+         existed, the API wrote it, load() read it back, and this one object in
+         the middle never sent it. Three of the four links in the chain were
+         right, which is the worst way for a chain to be wrong.
+
+         If you add a field to a project, add it in FOUR places: blankProject,
+         this payload, load(), and api/projects.js. vsave.js checks it. */
       const saved = await BF.saveProject({
         id: p.id, name: p.name, structure: p.structure,
         brief: p.brief || {}, cards: p.cards || [], outline: p.outline || {},
+        characters: p.characters || [],
         sort_order: state.projects.indexOf(p),
         // A demo board and a real one look identical in this table, and every
         // product number that means anything depends on telling them apart.
@@ -4343,6 +4355,50 @@ async function exportPDF(){
         doc.text(ln, M, y); y += 13;
       });
       y += 12;
+    });
+  }
+
+  /* THE CAST, after the outline and before the shelf.
+
+     A page per person is wrong: a printed board is something you spread on a
+     table, and a character you have written two lines about does not deserve a
+     sheet of paper. One block each, only the fields that have something in
+     them, and the blanks are simply absent. What is missing on the screen is
+     missing here too. */
+  // A name on its own is not a character, here as everywhere else.
+  const people = cast(proj).filter(c => String(c.name || "").trim()
+    && CFIELDS.some(f => f.k !== "name" && String(c[f.k] || "").trim()));
+  if (people.length){
+    newPage();
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(30);
+    doc.text("CHARACTERS", M, y); y += 22;
+    people.forEach(c => {
+      const written = CFIELDS.filter(f => f.k !== "name" && f.k !== "role"
+                                       && String(c[f.k] || "").trim());
+      if (y > PH - M - 70) newPage();
+      doc.setFont("helvetica", "bold").setFontSize(13).setTextColor(20);
+      doc.text(String(c.name || "Unnamed"), M, y);
+      if (c.role){
+        doc.setFont("courier", "normal").setFontSize(8).setTextColor(120);
+        doc.text(String(c.role).toUpperCase(), PW - M, y, {align: "right"});
+      }
+      y += 7;
+      doc.setDrawColor(205).setLineWidth(.7).line(M, y, PW - M, y);
+      y += 16;
+      written.forEach(f => {
+        if (y > PH - M - 30) newPage();
+        doc.setFont("courier", "bold").setFontSize(7.5).setTextColor(130);
+        doc.text(f.label.toUpperCase(), M, y);
+        doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(28);
+        const lines = doc.splitTextToSize(String(c[f.k]).trim(), PW - M * 2 - 120);
+        lines.forEach((ln, i) => {
+          if (y + i * 13 > PH - M - 8) { /* let the block run on; the next
+                                            field starts a fresh page */ }
+          doc.text(ln, M + 120, y + i * 13);
+        });
+        y += Math.max(17, lines.length * 13 + 4);
+      });
+      y += 16;
     });
   }
 

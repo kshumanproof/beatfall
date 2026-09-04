@@ -1291,6 +1291,27 @@ two buttons on the dashboard: the choice between them should be about what they
 do, not about which looks more important. The gold one sets the width because it
 carries its price.
 
+### The character that saved and vanished (3 Sep 2026)
+
+Kris typed a name, pressed Save, and it was gone. Entirely my bug, and the
+shape of it is the lesson.
+
+`flush()` builds the save payload BY HAND. I added `characters` to the database,
+to `api/projects.js`, to `blankProject()` and to `load()`, and never to that one
+object. So the character saved perfectly in memory, drew its card, wrote itself
+to the localStorage crash cushion, and was never sent. Four links in the chain,
+three of them right, which is the worst way for a chain to be wrong: everything
+on screen said it worked.
+
+**Adding a field to a project means FOUR edits: `blankProject`, the `flush()`
+payload, `load()`, and `api/projects.js`.** `vsave.js` now checks the payload
+against a list of what `load()` reads and fails on anything missing, so the next
+one is caught by a test rather than by Kris.
+
+Characters are in the PDF too, after the outline: one block each, only the
+fields that have something in them, and a name with nothing behind it does not
+print. Same rule as everywhere else.
+
 Held down by `/home/claude/vcast.js` and `/home/claude/vpeople.js`.
 
 ### Two things Kris caught in the copy
