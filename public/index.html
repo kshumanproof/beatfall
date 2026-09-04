@@ -659,11 +659,18 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .xclose:hover{color:var(--ink)}
 
-.ask{padding:22px 0 0}
-.ask-inner{
-  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
-  box-shadow:var(--shadow);padding:18px 20px;
+/* The conversation sheet. Same discipline as the logline coach: while the
+   questions are running it is a FIXED window with the thread scrolling inside,
+   so the answer box and the buttons never move. The Ideas list and the written
+   draft are short and finite, so those size to their content - a fixed 600px
+   around three suggestions is a lot of empty room. */
+.asksheet.convo{
+  display:flex;flex-direction:column;
+  height:min(600px, calc(100vh - 48px));
 }
+.asksheet.convo .thread{flex:1;min-height:0;max-height:none;margin-bottom:2px}
+.asksheet.convo .thread > .turn:first-child{margin-top:auto}
+.asksheet #askconvo,.asksheet #askdraft{flex:0 0 auto}
 .ask-beat{
   font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
   color:var(--blue);margin-bottom:10px;
@@ -1891,6 +1898,26 @@ footer{
 
 </div>
 
+<!-- Capture, at the top of the board and stuck there.
+
+     It used to be docked at the floor, which put the one thing a writer does
+     most - type the thing they just thought of - furthest from the beat they
+     were reading. It sits under the header now and stays there as the board
+     scrolls, so the note box is in the same place whether you are looking at
+     Opening Image or Final Image. -->
+<div class="capture">
+  <div class="capture-row">
+    <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
+    <input id="note" type="text" autocomplete="off" spellcheck="true"
+      placeholder="He finds out his brother knew the whole time&hellip;"
+      aria-label="Type a note">
+    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
+    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
+  </div>
+</div>
+
+<!-- The trays sit UNDER the capture bar. Above it, every tray that opened
+     shoved the note box down the screen. -->
 <div class="trays">
 
   <div class="proposal" id="proposal" hidden>
@@ -1917,54 +1944,8 @@ footer{
     </div>
   </div>
 
-  <div class="ask" id="ask" hidden>
-    <div class="ask-inner">
-      <div class="ask-beat" id="askbeat"></div>
-      <div class="thread" id="askthread"></div>
-
-      <div id="askconvo">
-        <div class="compose">
-          <textarea id="askinput" rows="2" placeholder="Answer here, or push back (Enter to send)"></textarea>
-          <button class="btn btn-primary" id="asksend">Send</button>
-        </div>
-        <div class="ask-actions">
-          <button class="btn" id="askcard" disabled data-tip="Pulls everything you said in this conversation into one beat, in your words. You get to edit it before it lands.">Write the card</button>
-          <button class="btn" id="askstop" hidden data-tip="Stops it mid-answer. Whatever it has written so far is kept.">Stop</button>
-          <button class="btn btn-ghost" id="askclose" data-tip="Ends this conversation without putting anything on the board.">Close</button>
-          <span class="limitnote" id="limitnote"></span>
-        </div>
-      </div>
-
-      <div id="askdraft" hidden>
-        <div class="draft-label" id="draftlabel">Here's the beat Beatfall built from your answers. Edit it before adding it to the board.</div>
-        <textarea id="drafttext" rows="3"></textarea>
-        <div class="ask-actions">
-          <button class="btn btn-primary" id="draftgo" data-tip="Adds this as the card for that beat, pinned so the board won't move it later.">Put it on the board</button>
-          <button class="btn btn-ghost" id="draftback" data-tip="Returns to the questions without saving this draft.">Back to the conversation</button>
-          <button class="btn" id="draftstop" hidden>Stop</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<!-- Capture, at the top of the board and stuck there.
-
-     It used to be docked at the floor, which put the one thing a writer does
-     most - type the thing they just thought of - furthest from the beat they
-     were reading. It sits under the header now and stays there as the board
-     scrolls, so the note box is in the same place whether you are looking at
-     Opening Image or Final Image. -->
-<div class="capture">
-  <div class="capture-row">
-    <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
-    <input id="note" type="text" autocomplete="off" spellcheck="true"
-      placeholder="He finds out his brother knew the whole time&hellip;"
-      aria-label="Type a note">
-    <button class="btn btn-primary" id="place" data-tip="Reads your note and suggests the two beats it fits best, with a reason for each. Nothing lands until you pick one.">Place it</button>
-    <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Finds the widest unsolved stretch of your story and opens a conversation about the beat in the middle of it.">Ask what&rsquo;s missing</button>
-  </div>
 </div>
 
 <main id="boardview"><div class="board" id="board"></div></main>
@@ -2018,6 +1999,42 @@ footer{
     <div class="slate-grid" id="slategrid"></div>
   </div>
 </section>
+
+<!-- Working out a note or an empty beat. Its own sheet, over the board.
+
+     It used to open inside the page, above the capture bar, which pushed the
+     note box down the screen every time it appeared and moved it again with
+     every answer. The bar is the one thing on this page that must never move,
+     so the conversation floats over it instead. -->
+<div class="scrim" id="askscrim" hidden>
+  <div class="sheet asksheet" id="ask">
+      <div class="ask-beat" id="askbeat"></div>
+      <div class="thread" id="askthread"></div>
+
+      <div id="askconvo">
+        <div class="compose">
+          <textarea id="askinput" rows="2" placeholder="Answer here, or push back (Enter to send)"></textarea>
+          <button class="btn btn-primary" id="asksend">Send</button>
+        </div>
+        <div class="ask-actions">
+          <button class="btn" id="askcard" disabled data-tip="Pulls everything you said in this conversation into one beat, in your words. You get to edit it before it lands.">Write the card</button>
+          <button class="btn" id="askstop" hidden data-tip="Stops it mid-answer. Whatever it has written so far is kept.">Stop</button>
+          <button class="btn btn-ghost" id="askclose" data-tip="Ends this conversation without putting anything on the board.">Close</button>
+          <span class="limitnote" id="limitnote"></span>
+        </div>
+      </div>
+
+      <div id="askdraft" hidden>
+        <div class="draft-label" id="draftlabel">Here's the beat Beatfall built from your answers. Edit it before adding it to the board.</div>
+        <textarea id="drafttext" rows="3"></textarea>
+        <div class="ask-actions">
+          <button class="btn btn-primary" id="draftgo" data-tip="Adds this as the card for that beat, pinned so the board won't move it later.">Put it on the board</button>
+          <button class="btn btn-ghost" id="draftback" data-tip="Returns to the questions without saving this draft.">Back to the conversation</button>
+          <button class="btn" id="draftstop" hidden>Stop</button>
+        </div>
+      </div>
+  </div>
+</div>
 
 <!-- Settings: a modal over the board, never a page you navigate away to -->
 <div class="scrim" id="setscrim" hidden>
@@ -3251,7 +3268,7 @@ function showSettled(moves, title){
   settledBox.hidden = false;
 }
 function hideSettled(){ settledBox.hidden = true; }
-function hideAll(){ hideSettled(); proposal.hidden = true; pending = null; document.getElementById("ask").hidden = true; }
+function hideAll(){ hideSettled(); proposal.hidden = true; pending = null; closeAsk(); }
 
 document.getElementById("settledx").addEventListener("click", hideSettled);
 document.getElementById("undo").addEventListener("click", undo);
@@ -4339,16 +4356,28 @@ async function runTurn(){
   }
 }
 
+/* Opening and closing the conversation sheet, in one place so every route
+   agrees. `convo` is what makes it a fixed-height window; the Ideas list and
+   the written draft take it off and size to their content. */
+const askScrim = document.getElementById("askscrim");
+function openAsk(mode){
+  askScrim.hidden = false;
+  document.getElementById("ask").classList.toggle("convo", mode === "convo");
+}
+function closeAsk(){
+  askScrim.hidden = true;
+  document.getElementById("askdraft").hidden = true;
+  document.getElementById("askconvo").hidden = false;
+}
+
 /* A fragment with nothing in it yet. Two or three questions to find out what
    actually happens, then it goes through normal placement like any other note. */
 async function askAboutNote(text){
-  const box = document.getElementById("ask");
   document.getElementById("askbeat").textContent = "Working out where this goes";
-  box.hidden = false;
-  box.scrollIntoView({behavior: "smooth", block: "nearest"});
   askInput.value = "";
   document.getElementById("askdraft").hidden = true;
   document.getElementById("askconvo").hidden = false;
+  openAsk("convo");
 
   if (!ai_sample){
     thread = {slot: null, mode: "note", turns: [{role:"user",content:"x"}, {role:"assistant", content:
@@ -4376,13 +4405,11 @@ async function askAboutNote(text){
 async function askAbout(hole){
   if (!hole) return;
   BF.track("ask_missing_used", {items_bucket: bucket((P().cards || []).length)});
-  const box = document.getElementById("ask");
   document.getElementById("askbeat").textContent = "Empty beat: " + hole.name;
-  box.hidden = false;
-  box.scrollIntoView({behavior: "smooth", block: "nearest"});
   askInput.value = "";
   document.getElementById("askdraft").hidden = true;
   document.getElementById("askconvo").hidden = false;
+  openAsk("convo");
 
   if (!ai_sample){
     thread = {slot: hole, mode: "beat", turns: [{role:"user",content:"x"}, {role:"assistant", content:
@@ -4408,11 +4435,15 @@ askInput.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); document.getElementById("asksend").click(); }
 });
 document.getElementById("askstop").addEventListener("click", () => askCtl && askCtl.abort());
+/* Escape closes it. A click on the scrim deliberately does NOT: a stray click
+   should not throw away five answers, and there is a Close button two inches
+   away that says what it does. */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !askScrim.hidden){ if (askCtl) askCtl.abort(); closeAsk(); }
+});
 document.getElementById("askclose").addEventListener("click", () => {
   if (askCtl) askCtl.abort();
-  document.getElementById("ask").hidden = true;
-  document.getElementById("askdraft").hidden = true;
-  document.getElementById("askconvo").hidden = false;
+  closeAsk();
   thread = null;
 });
 
@@ -4483,9 +4514,7 @@ document.getElementById("draftgo").addEventListener("click", () => {
   if (!text || !thread) return;
   if (thread.mode === "note"){          // it's a beat now, so let it find its own home
     thread = null;
-    document.getElementById("ask").hidden = true;
-    document.getElementById("askdraft").hidden = true;
-    document.getElementById("askconvo").hidden = false;
+    closeAsk();
     input.value = text;
     propose();
     return;
@@ -4498,9 +4527,7 @@ document.getElementById("draftgo").addEventListener("click", () => {
   proj.cards.push({id: uid++, text, slot: slot.id, pinned: true, kind: "beat",
                    suggested: untouched});
   const moves = settle(proj);
-  document.getElementById("ask").hidden = true;
-  document.getElementById("askdraft").hidden = true;
-  document.getElementById("askconvo").hidden = false;
+  closeAsk();
   thread = null;
   render(slot.id);
   if (moves.length) showSettled(moves, "Your " + slot.name + " card landed, and some cards moved to fit");
@@ -4567,13 +4594,12 @@ document.getElementById("whatsmissing").addEventListener("click", () => askAbout
 async function ideasFor(hole){
   const proj = P();
   const S = STRUCTURES[proj.structure];
-  const box = document.getElementById("ask");
   const body = document.getElementById("askthread");
   document.getElementById("askbeat").textContent = "Ideas for: " + hole.name;
   document.getElementById("askdraft").hidden = true;
   document.getElementById("askconvo").hidden = true;
-  box.hidden = false;
-  box.scrollIntoView({behavior: "smooth", block: "nearest"});
+  // Three suggestions, not a conversation: no fixed window.
+  openAsk("list");
   thread = null;
 
   if (!ai_sample){

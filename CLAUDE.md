@@ -1183,6 +1183,28 @@ throwing away both the conversation and a half-filled form.
 
 Held down by `/home/claude/vlog.js`.
 
+**The capture bar never moves.** Everything that used to open above it — the
+two-candidate picker, "board updated", and the note conversation — shoved the
+note box down the screen, and the conversation moved it again with every answer.
+`.trays` sits UNDER the bar now, and `#ask` is its own sheet over a scrim
+(`#askscrim`), same fixed-height discipline as the logline coach: `.asksheet
+.convo` is 600px with the thread scrolling inside, so the answer box and the
+buttons are in the same place at question one and question five.
+
+`openAsk(mode)` / `closeAsk()` are the only ways in and out, because five call
+sites toggling three ids by hand is how a panel ends up half-open. `mode` is
+`"convo"` for a conversation and `"list"` for Ideas and the written draft, which
+are short and finite and size to their content — a fixed 600px around three
+suggestions is a lot of empty room.
+
+Escape closes the conversation; **a click on the scrim deliberately does not.**
+A stray click should not throw away five answers, and Close is two inches away
+saying what it does. Same reasoning as the logline sheet, where a scrim click
+steps back to the project rather than discarding it.
+
+Held down by `/home/claude/vask2.js`, which measures the bar's top edge through
+every one of those states.
+
 ## Footer and the account pill (2 Sep 2026)
 
 `body` is a flex column at `min-height:100dvh` and `footer` takes
