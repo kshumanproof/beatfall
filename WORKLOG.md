@@ -308,3 +308,94 @@ Make the marketing explain Beatfall through the transformation from scattered no
 - Credit balances, plan allowances, and the detailed Billing and Usage explanations remain visible because they are account information, not costs attached to action labels.
 - Gold still identifies writing-help actions that spend credits; the explainer now carries the number.
 - No project placement, import, saving, billing, account, database, or mobile-app mechanics were changed.
+
+## 4 September 2026: Protection against conflicting saves
+
+### Requested
+
+Prevent one tab or computer from silently overwriting a newer version of the same project, while keeping the future mobile app limited to append-only notes associated with a chosen project.
+
+### Changes
+
+- Added an atomic version condition to existing-project saves using the database's existing `updated_at` value.
+- A stale save now returns a specific conflict response and the newer saved project instead of overwriting it.
+- Added a blocking conflict dialog that names the project and confirms that neither version has been overwritten.
+- Added “Save my changes as a copy,” which preserves the newer original and creates a separately named recovered project from the stale tab's work.
+- Added “Discard my changes and use the saved version,” with an explicit confirmation before the local changes are replaced.
+- Re-checks the server at the moment either choice is made, so the writer receives the latest version even if it changed again while the dialog was open.
+- Stopped conflict responses from entering the ordinary automatic retry loop.
+- Serialized saves inside one browser so two quick edits cannot race one another with the same starting version.
+- Added saved-content fingerprints so opening a board or switching views no longer writes an unchanged project or creates false conflicts.
+- Kept the local project in memory and in Beatfall's browser crash cushion until a recovery choice succeeds.
+- Updated `CLAUDE.md` with the decided mobile flow: choose or name a project, type or dictate one note, append it separately, and review grouped incoming notes on the web.
+- Used the existing project timestamp and database trigger, so no Supabase schema update is required.
+
+### Testing
+
+- Simulated two tabs loading the same project version.
+- Confirmed opening the project and switching to its board produced no project write.
+- Confirmed the first tab saved normally and received a new database version.
+- Confirmed the stale second tab received a conflict, retained its local edit, and did not change the newer database project.
+- Confirmed “Save my changes as a copy” kept both versions with the correct content and opened the recovered copy.
+- Confirmed “Discard my changes and use the saved version” loaded the latest original without creating another project.
+- Confirmed the conflict dialog fits at 1440-pixel desktop and 390-pixel narrow widths.
+- Confirmed the projects API passes a JavaScript syntax check and no browser errors occurred during the complete two-tab flow.
+- Saved review captures as `Claude outputs/conflict-desktop.png`, `conflict-mobile.png`, and `conflict-resolved.png`.
+
+### Intentionally unchanged
+
+- Mobile files, incoming-note storage, speech capture, and the web pending-notes dialog were not built in this step; only their conflict-free boundary was recorded.
+- No database column, trigger, billing rule, AI behavior, placement rule, or project format changed.
+- Automatic restore points remain the next separate mechanical improvement.
+
+## 5 September 2026: Outline passages, and Save opens the next one
+
+### Requested
+
+In the Outline, typing a note and having no way to keep it where it sits. Save
+should keep the passage where it was placed, open a fresh "Nothing on this beat
+yet" box under it, and the Save button should appear only once there is
+something to save.
+
+### Changes
+
+- A beat now holds a list of passages instead of one box. Old projects stored a
+  single string; that is read as a list of one, so nothing written before today
+  is lost and the database is unchanged.
+- Save keeps the passage, opens an empty box beneath it, and puts the cursor
+  there. Leaving a box still commits it, so nothing typed is ever lost, but
+  only Save opens the next one.
+- Removed the 400ms keystroke autosave. A box now commits on blur, on leaving
+  the Outline, and on the page or tab being hidden.
+- The Save row is absent until the box differs from what is stored, and a
+  "Saved" receipt fades out on its own.
+- A written passage sits on card stock; only the last, unwritten box keeps the
+  dashed outline.
+- The word count and the PDF read passages through the same accessors.
+
+### Cross-agent note
+
+This change was written against `public/index.html` before Codex moved the
+application to `public/app.html`, and was committed there, which overwrote the
+public homepage in the working tree. The homepage is intact in commit
+`f3df9d0`. Both agents were editing `public/app.html` at the same time tonight;
+this work was rebased three times onto Codex's newer versions and none of the
+save-conflict work was lost.
+
+### Testing
+
+- Outline suite: an old one-string outline reads with a fresh box under it; no
+  Save button until typing; Save keeps the passage and opens the next; each
+  Save stacks another; editing in place adds nothing; clearing a passage and
+  leaving deletes only that one; the count sums them; the list reaches the
+  server; leaving the outline and hiding the tab both keep what was typed.
+- Save-payload, navigation, capture-bar, board-placement, and PDF suites all
+  pass against the merged file.
+- No em dashes in `public/app.html`, including the four that arrived with the
+  conflict sheet, which are now a colon and a comma.
+
+### Intentionally unchanged
+
+- Codex's save-conflict sheet, project fingerprints, and `updated_at`
+  concurrency check are untouched.
+- No placement, import, billing, account, or database mechanics were changed.

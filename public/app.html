@@ -225,6 +225,27 @@ header{
 .projbtn svg{flex:0 0 auto}
 .fmtline{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
 @media (max-width:1180px){ .fmtline{display:none} }
+/* The per beat receipt. Absent until a save lands, then it fades out on its
+   own, so a writer who has learned it saves is not told fifteen more times. */
+.opassage{margin-top:10px}
+.opassage .oprose{overflow-y:hidden;resize:none}
+/* The row under a box: absent until there is something to save. Reserving its
+   height would leave a gap under every passage on the page, so it collapses. */
+.orow{
+  display:flex;align-items:center;gap:10px;
+  height:0;overflow:hidden;opacity:0;
+  transition:opacity .14s ease;
+}
+.opassage.dirty .orow{height:auto;opacity:1;margin-top:7px}
+.osave{padding:5px 15px;font-size:12px}
+.osaved{
+  font-family:var(--sans);font-size:11px;color:var(--sage);
+  opacity:0;transition:opacity .18s ease;pointer-events:none;
+}
+.osaved.on{opacity:1}
+/* A saved passage still shows its receipt for a moment, even with the row
+   collapsed, so blur is not silent either. */
+.opassage .orow:has(.osaved.on){height:auto;opacity:1;margin-top:7px}
 /* Only ever seen when something is wrong, see setSaved(). Sized and coloured
    to be noticed across a room, because by the time it appears the writer's
    work exists in one browser tab and nowhere else. */
@@ -996,6 +1017,12 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .oprose:focus{border-style:solid;border-color:var(--blue);outline:none;background:var(--card)}
 .oprose::placeholder{color:var(--ink-4);font-style:italic}
+/* A passage that has been written reads as writing, not as an empty field: it
+   sits on card stock with a solid hairline. The dashed box is what an UNWRITTEN
+   one looks like, here as on the board, and only the last box is unwritten. */
+.opassage.written .oprose{
+  border-style:solid;border-color:var(--rule);background:var(--card);
+}
 .obeat.dragover{background:var(--blue-soft)}
 
 .outline-rail{position:sticky;top:88px;max-height:calc(100vh - 190px);overflow-y:auto}
@@ -1486,6 +1513,26 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   .loadfail-acts{flex-direction:column}
   .loadfail .bigbtn{width:100%;flex:0 0 42px}
   body.load-error .topline{min-height:68px}
+}
+
+/* A stale tab stops here instead of winning a race it did not know it was in.
+   The local project stays in memory until the writer explicitly keeps both
+   versions or discards it for the newer saved one. */
+.conflictsheet{max-width:590px}
+.conflictsheet .sheet-title{margin-bottom:14px}
+.conflict-name{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
+  margin:20px 0 4px;text-transform:uppercase}
+.conflict-safe{background:var(--blue-soft);border:1px solid var(--blue);
+  border-radius:var(--r-card);padding:12px 14px;color:var(--ink);margin:18px 0 0}
+.conflict-error{color:var(--red);font-size:12.5px;font-weight:600;margin:12px 0 0}
+.conflict-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:24px}
+.conflict-actions .discard{margin-left:auto;color:var(--red);
+  border-color:color-mix(in srgb,var(--red) 45%,var(--rule))}
+@media (max-width:600px){
+  .conflictsheet{max-height:calc(100dvh - 32px)}
+  .conflict-actions{flex-direction:column;align-items:stretch}
+  .conflict-actions .btn{width:100%}
+  .conflict-actions .discard{margin-left:0}
 }
 
 /* the acknowledgement before cancelling */
@@ -2195,6 +2242,22 @@ footer{
     <div class="slate-grid" id="slategrid"></div>
   </div>
 </section>
+
+<div class="scrim" id="conflictscrim" hidden>
+  <div class="sheet conflictsheet" role="dialog" aria-modal="true"
+       aria-labelledby="conflicttitle" aria-describedby="conflictdesc">
+    <div class="sheet-title" id="conflicttitle">This project changed somewhere else</div>
+    <p class="sheet-note" id="conflictdesc">A newer version was saved from another tab or computer.</p>
+    <div class="conflict-name" id="conflictname"></div>
+    <p class="sheet-note">Choose whether to keep both versions or use the newer saved one.</p>
+    <p class="conflict-safe"><b>Your changes are still here.</b> Beatfall has not overwritten either version.</p>
+    <p class="conflict-error" id="conflicterror" hidden></p>
+    <div class="conflict-actions">
+      <button class="btn btn-primary" id="conflictcopy">Save my changes as a copy</button>
+      <button class="btn discard" id="conflictdiscard">Discard my changes and use the saved version</button>
+    </div>
+  </div>
+</div>
 
 <!-- Working out a note or an empty beat. Its own sheet, over the board.
 
@@ -2969,7 +3032,7 @@ function sampleCTA(){
 function blankProject(name, structure){
   return {id: null, localId: pid++, name: name || "Untitled",
           structure: structure || "stc", brief: {}, cards: [], outline: {},
-          characters: []};
+          characters: [], updatedAt: null};
 }
 function P(){ return state.projects.find(p => (p.id || p.localId) === state.activeId) || state.projects[0]; }
 
@@ -2987,16 +3050,45 @@ function namedAlready(proj){
    has always used, and push whichever project changed, debounced, so the
    board stays instant and the network catches up behind it. */
 const dirty = new Set();
+const savedFingerprints = new WeakMap();
 let saveTimer = null;
+let flushing = false;
+let activeConflict = null;
+const conflictQueue = [];
+
+function projectPayload(p){
+  return {
+    id: p.id, name: p.name, structure: p.structure,
+    brief: p.brief || {}, cards: p.cards || [], outline: p.outline || {},
+    characters: p.characters || [],
+    sort_order: state.projects.indexOf(p),
+    is_sample: !!p.isSample,
+    created_from: p.createdFrom || null,
+    // This is the exact database version the browser started from. It is a
+    // condition on an update, never a value the client is allowed to write.
+    updated_at: p.updatedAt || null
+  };
+}
+
+function projectFingerprint(p){
+  const data = projectPayload(p);
+  delete data.id;
+  delete data.updated_at;
+  return JSON.stringify(data);
+}
 
 function save(){
   const p = P();
-  if (p) dirty.add(p);
+  // render() is called while navigating as well as while editing. Comparing
+  // the actual saved fields keeps opening a board from becoming a write, which
+  // would manufacture conflicts between two tabs that were only looking.
+  const changed = !!(p && !hasProjectConflict(p)
+      && projectFingerprint(p) !== savedFingerprints.get(p));
+  if (changed) dirty.add(p);
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(flush, 700);
+  if (dirty.size) saveTimer = setTimeout(flush, 700);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}   // crash cushion only
-  markWorked();
-  checkMeaningful();
+  if (changed){ markWorked(); checkMeaningful(); }
 }
 
 /* ------------------------------------------------------------- the chain --
@@ -3044,8 +3136,13 @@ function chain(){
 }
 
 async function flush(){
+  // A second edit can land while the first request is in flight. One flush at
+  // a time means this browser cannot race against itself with the same version.
+  if (flushing) return;
+  flushing = true;
   const queue = [...dirty];
   dirty.clear();
+  let retry = false;
   for (const p of queue){
     try{
       /* EVERY FIELD load() READS HAS TO BE IN THIS OBJECT.
@@ -3059,32 +3156,51 @@ async function flush(){
 
          If you add a field to a project, add it in FOUR places: blankProject,
          this payload, load(), and api/projects.js. vsave.js checks it. */
-      const saved = await BF.saveProject({
-        id: p.id, name: p.name, structure: p.structure,
-        brief: p.brief || {}, cards: p.cards || [], outline: p.outline || {},
-        characters: p.characters || [],
-        sort_order: state.projects.indexOf(p),
-        // A demo board and a real one look identical in this table, and every
-        // product number that means anything depends on telling them apart.
-        is_sample: !!p.isSample,
-        created_from: p.createdFrom || null
-      });
+      const payload = projectPayload(p);
+      const sentFingerprint = projectFingerprint(p);
+      const saved = await BF.saveProject(payload);
       if (!p.id && saved && saved.id){
         const wasActive = state.activeId === p.localId;
         p.id = saved.id;
         if (wasActive) state.activeId = p.id;
       }
-      setSaved("saved");
+      if (saved && saved.updated_at) p.updatedAt = saved.updated_at;
+      savedFingerprints.set(p, sentFingerprint);
+      // If another edit arrived during the request, it is a new save based on
+      // the timestamp that just came back. It waits for this request to finish.
+      if (projectFingerprint(p) !== sentFingerprint && !hasProjectConflict(p)) dirty.add(p);
+      try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+      setSaved(activeConflict ? "save conflict: choose a version" : "saved");
     }catch(e){
-      dirty.add(p);
-      setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(flush, 5000);
+      if (e && e.code === "version_conflict"){
+        // Do not retry a stale version: that would turn protection into a loop.
+        dirty.delete(p);
+        registerConflict(p, e.body && e.body.project);
+        setSaved("save conflict: choose a version");
+      } else {
+        dirty.add(p);
+        retry = true;
+        setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
+      }
     }
+  }
+  flushing = false;
+  if (dirty.size){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, retry ? 5000 : 0);
   }
 }
 window.addEventListener("beforeunload", e => {
-  if (dirty.size){ flush(); e.preventDefault(); e.returnValue = ""; }
+  commitOutlineBoxes();
+  if (dirty.size || activeConflict || conflictQueue.length){
+    if (dirty.size) flush();
+    e.preventDefault(); e.returnValue = "";
+  }
+});
+// Closing a laptop or switching tabs is leaving too, and on a phone it is the
+// only one of the three that reliably fires.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden"){ commitOutlineBoxes(); flush(); }
 });
 
 /* Silence when it works, and only then.
@@ -3115,16 +3231,134 @@ function knownStructure(key){
   return (key && STRUCTURES[key]) ? key : "stc";
 }
 
+function projectFromRow(r, keepLocalId){
+  return {
+    id: r.id, localId: keepLocalId || pid++, name: r.name,
+    structure: knownStructure(r.structure), brief: r.brief || {},
+    cards: r.cards || [], outline: r.outline || {},
+    characters: Array.isArray(r.characters) ? r.characters : [],
+    isSample: !!r.is_sample, createdFrom: r.created_from || null,
+    updatedAt: r.updated_at || null,
+    touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
+  };
+}
+
+function hasProjectConflict(project){
+  return !!((activeConflict && activeConflict.local === project)
+    || conflictQueue.some(item => item.local === project));
+}
+
+function registerConflict(local, current){
+  if (hasProjectConflict(local)) return;
+  conflictQueue.push({
+    local, current: current || null,
+    wasActive: state.activeId === (local.id || local.localId)
+  });
+  showNextConflict();
+}
+
+function showNextConflict(){
+  if (activeConflict || !conflictQueue.length) return;
+  activeConflict = conflictQueue.shift();
+  const scrim = document.getElementById("conflictscrim");
+  const error = document.getElementById("conflicterror");
+  document.getElementById("conflictname").textContent = activeConflict.local.name;
+  error.hidden = true; error.textContent = "";
+  ["conflictcopy", "conflictdiscard"].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
+  document.getElementById("conflictcopy").textContent = "Save my changes as a copy";
+  scrim.hidden = false;
+  requestAnimationFrame(() => document.getElementById("conflictcopy").focus());
+}
+
+async function currentConflictProject(item){
+  // The project may change again while this dialog is open. Read once more at
+  // the decision so "newer saved version" really means the newest one. The
+  // version returned with the conflict remains a safe fallback if that read
+  // is temporarily unavailable.
+  try{
+    const rows = await BF.loadProjects();
+    const latest = rows.find(row => row.id === item.local.id);
+    if (latest) return latest;
+  }catch(e){ if (item.current) return item.current; throw e; }
+  return item.current || null;
+}
+
+function finishConflict(item, replacements){
+  const at = state.projects.indexOf(item.local);
+  if (at >= 0) state.projects.splice(at, 1, ...replacements);
+  replacements.forEach(project => {
+    if (project.id) savedFingerprints.set(project, projectFingerprint(project));
+  });
+  dirty.delete(item.local);
+  activeConflict = null;
+  document.getElementById("conflictscrim").hidden = true;
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  setView(state.view, true);
+  if (conflictQueue.length){
+    setSaved("save conflict: choose a version");
+    showNextConflict();
+  } else setSaved("saved");
+}
+
+function conflictFailure(message){
+  const error = document.getElementById("conflicterror");
+  error.textContent = message || "Beatfall couldn't save the copy. Your changes are still here.";
+  error.hidden = false;
+  ["conflictcopy", "conflictdiscard"].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
+  document.getElementById("conflictcopy").textContent = "Save my changes as a copy";
+}
+
+document.getElementById("conflictcopy").addEventListener("click", async () => {
+  const item = activeConflict;
+  if (!item) return;
+  const copyButton = document.getElementById("conflictcopy");
+  const discardButton = document.getElementById("conflictdiscard");
+  copyButton.disabled = true; discardButton.disabled = true;
+  copyButton.textContent = "Saving the copy…";
+  try{
+    const current = await currentConflictProject(item);
+    if (!current) throw new Error("The newer saved version could not be found. Your changes are still here.");
+    const at = Math.max(0, state.projects.indexOf(item.local));
+    const payload = projectPayload(item.local);
+    payload.id = null;
+    payload.updated_at = null;
+    payload.name = (item.local.name + ", recovered copy").slice(0, 200);
+    payload.sort_order = at + 1;
+    payload.created_from = "other";
+    const saved = await BF.saveProject(payload);
+    const latest = projectFromRow(current, item.local.localId);
+    const copy = projectFromRow(saved);
+    if (item.wasActive) state.activeId = copy.id || copy.localId;
+    finishConflict(item, [latest, copy]);
+  }catch(e){ conflictFailure(e && e.message); }
+});
+
+document.getElementById("conflictdiscard").addEventListener("click", async () => {
+  const item = activeConflict;
+  if (!item) return;
+  if (!confirm("Discard the changes in this tab and use the newer saved version?")) return;
+  const copyButton = document.getElementById("conflictcopy");
+  const discardButton = document.getElementById("conflictdiscard");
+  copyButton.disabled = true; discardButton.disabled = true;
+  try{
+    const current = await currentConflictProject(item);
+    if (!current) throw new Error("The newer saved version could not be found. Your changes are still here.");
+    const latest = projectFromRow(current, item.local.localId);
+    if (item.wasActive) state.activeId = latest.id || latest.localId;
+    finishConflict(item, [latest]);
+  }catch(e){ conflictFailure(e && e.message); }
+});
+
 async function load(){
   const rows = await BF.loadProjects();
-  const projects = rows.map(r => ({
-    id: r.id, localId: pid++, name: r.name, structure: knownStructure(r.structure),
-    brief: r.brief || {}, cards: r.cards || [], outline: r.outline || {},
-    characters: Array.isArray(r.characters) ? r.characters : [],
-    touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
-  }));
+  const projects = rows.map(r => projectFromRow(r));
   if (!projects.length) projects.push(blankProject("Untitled", "stc"));
   state = {projects, activeId: projects[0].id || projects[0].localId, view: "slate"};
+  projects.forEach(p => { if (p.id) savedFingerprints.set(p, projectFingerprint(p)); });
   uid = 1 + projects.reduce((m,pr) =>
     Math.max(m, (pr.cards||[]).reduce((n,c) => Math.max(n, c.id||0), 0)), 0);
   return rows.length;
@@ -4358,7 +4592,7 @@ async function exportPDF(){
   });
   if (col !== 0){ col = 0; y += CH + GAP; }
 
-  const written = S.slots.filter(x => (proj.outline || {})[x.id] && proj.outline[x.id].trim());
+  const written = S.slots.filter(x => outlineList(proj, x.id).length);
   if (written.length){
     newPage();
     doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(30);
@@ -4368,7 +4602,7 @@ async function exportPDF(){
       doc.setFont("courier", "bold").setFontSize(8.5).setTextColor(70);
       doc.text(x.name.toUpperCase(), M, y); y += 13;
       doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(25);
-      doc.splitTextToSize(proj.outline[x.id].trim(), PW - M * 2).forEach(ln => {
+      doc.splitTextToSize(outlineText(proj, x.id), PW - M * 2).forEach(ln => {
         if (y > PH - M - 14) newPage();
         doc.text(ln, M, y); y += 13;
       });
@@ -6121,6 +6355,62 @@ document.getElementById("revgo").addEventListener("click", () => {
    ========================================================================= */
 let railFilter = "all";
 
+/* A BEAT IS A RUN OF PASSAGES, NOT ONE BOX.
+
+   A beat is rarely one paragraph. So each beat holds a list, Save closes the
+   passage you are in and opens the next one; nothing about a beat is ever one
+   box high again.
+
+   Old projects hold a string, so every read goes through here rather than
+   through a migration: a string is simply a list of one. Nothing in the
+   database has to change and nothing written before today is lost. */
+/* Same rule as the capture bar: a box of prose grows to fit rather than
+   scrolling inside itself, so a whole passage is on screen while it is being
+   written. */
+function growOutline(ta){
+  ta.style.height = "auto";
+  ta.style.height = Math.max(64, ta.scrollHeight) + "px";
+}
+
+/* NOTHING TYPED IS EVER LOST, AND SAVE STILL MEANS SOMETHING.
+
+   The old box wrote itself into the project 400ms after every keystroke, which
+   is safe but makes a Save button a lie. So there is no keystroke autosave any
+   more: a box commits when you leave it, when you leave the outline, and when
+   you leave the page. Save is the one thing none of those do, which is close
+   this passage and open the next.
+
+   Walks the DOM rather than tracking state, because the boxes ARE the state
+   while the outline is on screen. */
+function commitOutlineBoxes(){
+  const proj = P();
+  if (!proj) return false;
+  let changed = false;
+  document.querySelectorAll("#outlinebody .obeat[data-slot]").forEach(el => {
+    const id = el.getAttribute("data-slot");
+    const now = [...el.querySelectorAll(".oprose")].map(x => x.value);
+    if (outlineText(proj, id) === now.map(x => x.trim()).filter(Boolean).join("\n\n")) return;
+    setOutlineList(proj, id, now);
+    changed = true;
+  });
+  if (changed) save();
+  return changed;
+}
+
+function outlineList(proj, id){
+  const v = (proj.outline || {})[id];
+  if (Array.isArray(v)) return v.filter(x => String(x || "").trim());
+  const t = String(v || "").trim();
+  return t ? [t] : [];
+}
+function outlineText(proj, id){ return outlineList(proj, id).join("\n\n"); }
+function setOutlineList(proj, id, list){
+  proj.outline = proj.outline || {};
+  const keep = list.map(x => String(x || "").trim()).filter(Boolean);
+  if (keep.length) proj.outline[id] = keep;
+  else delete proj.outline[id];
+}
+
 function renderOutline(){
   const proj = P();
   const S = STRUCTURES[proj.structure];
@@ -6132,7 +6422,7 @@ function renderOutline(){
 
   let words = 0;
   Object.keys(proj.outline).forEach(k => {
-    words += (proj.outline[k] || "").trim().split(/\s+/).filter(Boolean).length;
+    words += outlineText(proj, k).split(/\s+/).filter(Boolean).length;
   });
   document.getElementById("outlinecount").textContent =
     words ? words.toLocaleString() + " words written" : "nothing written yet";
@@ -6142,6 +6432,7 @@ function renderOutline(){
       const cards = proj.cards.filter(c => c.slot === slot.id);
       const el = document.createElement("div");
       el.className = "obeat" + (cards.length ? " has" : (isGap(slot, proj) ? " gap" : ""));
+      el.setAttribute("data-slot", slot.id);
       const rivals = cards.filter(c => c.declared).length > 1;
       el.innerHTML = "<h3>" + esc(slot.name)
         + (rivals ? '<span class="undecided">undecided &middot; ' + cards.filter(c => c.declared).length + "</span>" : "")
@@ -6162,19 +6453,93 @@ function renderOutline(){
       const att = attachedList(slot, () => { renderOutline(); render(); });
       if (att) el.insertBefore(att, holder.nextSibling);
 
-      const ta = document.createElement("textarea");
-      ta.className = "oprose";
-      ta.value = proj.outline[slot.id] || "";
-      ta.placeholder = cards.length
-        ? "What actually happens here?"
-        : "Nothing on this beat yet. Write it, or leave it open.";
-      ta.addEventListener("input", () => {
-        proj.outline[slot.id] = ta.value;
-        clearTimeout(ta._t);
-        ta._t = setTimeout(() => { save(); renderOutlineCount(); }, 400);
+      /* ONE BOX PER PASSAGE, PLUS AN EMPTY ONE AT THE BOTTOM.
+
+         Save is not decoration here. Blur commits too, so nothing a writer
+         types is ever lost, but SAVE is the gesture that closes a passage and
+         opens the next box under it. That is the job blur cannot do, and it is
+         why the button earns its place: pressing it means "that one is done,
+         give me the next".
+
+         The button is absent until there is something uncommitted to save,
+         because a Save button that is always there and usually pointless
+         teaches a writer to ignore it. */
+      const passages = outlineList(proj, slot.id);
+      const boxes = passages.concat([""]);       // always a fresh one at the end
+
+      boxes.forEach((text, bi) => {
+        const last = bi === boxes.length - 1;
+        const wrap = document.createElement("div");
+        wrap.className = "opassage" + (text ? " written" : "");
+
+        const ta = document.createElement("textarea");
+        ta.className = "oprose";
+        ta.value = text;
+        ta.placeholder = !last ? ""
+          : cards.length ? "What actually happens here?"
+          : "Nothing on this beat yet. Write it, or leave it open.";
+
+        const bar = document.createElement("div");
+        bar.className = "orow";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary osave";
+        btn.textContent = "Save";
+        btn.setAttribute("data-tip", last
+          ? "Keep this passage and open a new box under it."
+          : "Keep your changes to this passage.");
+        const flag = document.createElement("span");
+        flag.className = "osaved";
+        flag.textContent = "Saved";
+        bar.appendChild(btn);
+        bar.appendChild(flag);
+
+        const dirtyNow = () => ta.value.trim() !== String(text).trim();
+        const showBtn = () => wrap.classList.toggle("dirty", dirtyNow());
+
+        // Writing the list back from what is on screen, so a passage cleared
+        // to nothing is a passage deleted.
+        function commit(){
+          const now = [...el.querySelectorAll(".opassage .oprose")].map(x => x.value);
+          setOutlineList(proj, slot.id, now);
+          save();
+          renderOutlineCount();
+        }
+        function flash(){
+          flag.classList.add("on");
+          clearTimeout(flag._t);
+          flag._t = setTimeout(() => flag.classList.remove("on"), 1600);
+        }
+
+        ta.addEventListener("input", () => {
+          growOutline(ta);
+          flag.classList.remove("on");
+          showBtn();
+        });
+        // Nothing is ever lost to navigating away, but leaving a box does not
+        // open a new one: that is Save's job and only Save's.
+        ta.addEventListener("blur", () => { if (dirtyNow()){ commit(); flash(); } });
+
+        btn.addEventListener("click", () => {
+          if (!ta.value.trim() && last) return;
+          commit();
+          if (last && ta.value.trim()){
+            renderOutline();
+            // Focus the new empty box on this beat, which is where the writer
+            // was already looking.
+            const fresh = document.getElementById("outlinebody")
+              .querySelectorAll('[data-slot="' + slot.id + '"] .oprose');
+            if (fresh.length) fresh[fresh.length - 1].focus();
+          } else {
+            wrap.classList.remove("dirty");
+            flash();
+          }
+        });
+
+        wrap.appendChild(ta);
+        wrap.appendChild(bar);
+        el.appendChild(wrap);
+        growOutline(ta);
       });
-      ta.addEventListener("blur", () => { proj.outline[slot.id] = ta.value; save(); renderOutline(); });
-      el.appendChild(ta);
 
       // anything from the rail can be dropped onto a beat
       el.addEventListener("dragover", e => { e.preventDefault(); el.classList.add("dragover"); });
@@ -6215,7 +6580,7 @@ function renderOutlineCount(){
   const proj = P();
   let words = 0;
   Object.keys(proj.outline || {}).forEach(k => {
-    words += (proj.outline[k] || "").trim().split(/\s+/).filter(Boolean).length;
+    words += outlineText(proj, k).split(/\s+/).filter(Boolean).length;
   });
   document.getElementById("outlinecount").textContent =
     words ? words.toLocaleString() + " words written" : "nothing written yet";
@@ -6821,6 +7186,9 @@ function setView(v, quiet){
   // exist to be discovered, so a count of zero here would say something.
   if (v !== state.view && (v === "outline" || v === "notes" || v === "cast"))
     BF.track(v + "_viewed", {});
+  // Leaving the outline commits whatever is in its boxes. A writer who types a
+  // passage and clicks Board has not asked to throw it away.
+  if (state.view === "outline" && v !== "outline") commitOutlineBoxes();
   state.view = v;
   const onBoard = v === "board";
   slate.hidden       = v !== "slate";

@@ -106,13 +106,24 @@ both platforms. Runs on a phone today through Expo Go (`npx expo start`).
   reads `tools/mark.png` (his artwork, black export field flood-filled away).
 - `.vercelignore` keeps `mobile/` out of the web deployment.
 
-**Next on the app, in order:** sign-in (Supabase magic link on the phone), a
-`captures` table + `/api/captures` endpoint that is idempotent on the client id,
-the sync loop, then an Inbox in the web app where phone notes arrive. A phone
-note belongs to no project — it lands in one inbox and gets sorted at the desk.
-Kris has not ruled on that; it is my recommendation and it is what the code
-assumes. Do NOT read or write the project JSON blob from the phone — last writer
-wins, and it would clobber desktop edits.
+**The capture route is decided (4 Sep).** The phone is a deliberately small
+note-taking app tied to the same account and project shelf. The writer chooses
+an existing project, types or dictates one note, and submits it. They may also
+choose New project, but must name it; that creates a named shell whose structure
+is chosen in the web app before its notes are sorted. That is the entire mobile
+workflow. No board, no project editing, no feature creep.
+
+Each submission is its own incoming-note row with a client-generated id and a
+project id. Sync is append-only and idempotent: retrying cannot duplicate a note
+and mobile can never overwrite the project blob. On the writer's next web visit,
+a dialog groups pending notes by project — "You have 7 new notes for NIGHT
+HAUL" — and offers Review and sort or Keep for later.
+
+**Next on the app, in order:** sign-in (Supabase magic link on the phone), read
+the user's project shelf + create a named project shell, a `captures` table and
+`/api/captures` endpoint idempotent on the client id, the sync loop, then the
+grouped pending-notes dialog in the web app. Do NOT read or write the project
+JSON blob from the phone.
 
 ## Dashboard scoreboard (2 Sep 2026)
 
@@ -1433,3 +1444,27 @@ the writing stays theirs, linking to Terms §2. The year is written by
 
 The account pill's clearance moved to this strip's bottom padding, since it is
 now the last thing in the footer.
+
+## Conflicting saves (4 Sep 2026)
+
+Full-project saves are protected by the `updated_at` value the browser loaded.
+`POST /api/projects` includes that value in the update condition; the existing
+`projects_touch` trigger changes it atomically. Two tabs may begin on the same
+version, but only the first save can match it. No schema change was needed.
+
+Opening a project used to call `save()` through `render()` and `setView()`, so
+merely looking at a board wrote the whole row. `savedFingerprints` now compares
+only persisted fields and turns those render-time calls into no-ops. `flush()`
+is also serial inside one browser, so two quick edits cannot race each other.
+
+A stale save gets HTTP 409 `version_conflict`, never retries, and opens one
+blocking choice. **Save my changes as a copy** keeps the newer server project
+and creates `PROJECT NAME — recovered copy` from the local work. **Discard my
+changes and use the saved version** is explicit and confirmed. Both decisions
+fetch the newest server version again before resolving, because it may have
+changed while the dialog was open. The local object stays in memory and the
+crash cushion until one of those choices succeeds.
+
+Mobile capture does not use this save path. It appends separate incoming-note
+rows linked to a project, so a phone submission cannot conflict with or replace
+the board blob.

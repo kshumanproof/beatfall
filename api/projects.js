@@ -67,10 +67,41 @@ export default async function handler(req, res) {
     }
 
     if (p.id) {
+      /* Optimistic concurrency, using the timestamp the client actually read.
+
+         The update and the version check are one database statement. Two tabs
+         may both start from the same timestamp, but only the first one can
+         match it; projects_touch changes updated_at before the row is returned,
+         so the second save cannot silently replace the first. Mobile capture
+         will append separate rows and never enters this whole-project path. */
+      const expected = typeof p.updated_at === 'string' ? p.updated_at : '';
+      if (!expected) {
+        return send(res, 409, {
+          error: 'version_conflict',
+          message: 'This project needs the latest saved version before it can be changed.'
+        });
+      }
+
       const { data, error } = await db.from('projects')
-        .update(row).eq('id', p.id).eq('user_id', user.id).select().single();
+        .update(row).eq('id', p.id).eq('user_id', user.id)
+        .eq('updated_at', expected).select();
       if (error) return send(res, 500, { error: 'save_failed' });
-      return send(res, 200, { project: data });
+      if (data && data.length) return send(res, 200, { project: data[0] });
+
+      // A zero-row update means either somebody saved a newer version or the
+      // project no longer exists. Read once to distinguish those outcomes and
+      // return the newer copy so the browser can protect both versions.
+      const { data: current, error: currentError } = await db.from('projects')
+        .select('*').eq('id', p.id).eq('user_id', user.id).maybeSingle();
+      if (currentError) return send(res, 500, { error: 'save_failed' });
+      if (!current) return send(res, 404, {
+        error: 'not_found', message: 'This project no longer exists.'
+      });
+      return send(res, 409, {
+        error: 'version_conflict',
+        message: 'A newer version of this project was saved somewhere else.',
+        project: current
+      });
     }
 
     const { count } = await db.from('projects')
