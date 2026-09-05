@@ -916,3 +916,70 @@ which `marksCost()` sets, so it cannot drift from the COST table.
   price, the second runs it, and a free control still works on one tap.
 - Outline passages, save payload, capture bar, board placement, drag and return,
   PDF, and the save-sync suite all pass.
+
+## 5 September 2026: The reader stops throwing away the two best signals in a file
+
+### What the Mayberry file exposed
+
+Kris pasted a short film. Two of eight beats were placed. The Hook, which he had
+typed OPENING: over, was in Notes tagged IMAGE. The ending, which he had typed
+ENDING IDEA: over, was in Notes tagged IMAGE, and Final Image was empty. The
+diner scene, the same. The Choice card read "Possible final turn During the town
+ceremony", with his own label printed on the front of it.
+
+Three separate faults, all of them ours.
+
+### Placement was gated on the kind of note
+
+`const named = kind === "beat" && S.slots.some(...)`. The instant the reader
+called a note an image it could not reach the board, however well it fitted, and
+the prompt above it said in as many words that images are not beats. But in a
+film every beat is an image: the first slot of Save the Cat is called Opening
+Image. The taxonomy was competing with the placement instead of describing what
+was left over after it. Placement is now judged on whether the note is a moment
+that meets the beat's requirement, whatever kind of note it is, and the prompt
+says the same.
+
+### Headings only matched a beat's exact name
+
+`beatFromHeading` compared the writer's label against the slot name and nothing
+else, so it caught MIDPOINT: and missed OPENING:, ENDING IDEA:, FIRST SHOT:,
+LAST SHOT:, CLOSING IMAGE: and every other thing a person actually types. Added
+`HEAD_ALIAS`, per slot, per structure. Only unambiguous aliases are in it:
+MID-STORY over a scene in an eight beat short could be The Cost or The Turn, and
+"Possible final turn" over the climax speech turned out to mean The Choice, so
+neither is aliased. A declared placement skips the confidence gate, which makes
+a wrong one worse than none.
+
+### A position label was being glued to the card
+
+`headerLine` classes a label as an attribution ("Rusk calls Dale:") when it is
+not shouty, and an attribution is prepended to the line below it. Any heading
+that talks about position in the story is now a section heading whatever its
+case, so it either declares a beat or is dropped, and never ends up as the first
+words of a card.
+
+### And a half placed note now goes where it can be seen
+
+A note the reader was 55 to 74 per cent sure about kept its own kind, so it
+landed on the note shelf, where the "possibly The Cost" hint is never drawn.
+Anything carrying a hint now lands in Set aside, which is where a writer can
+read the guess and act on it with one drag.
+
+### Testing
+
+- `foldNotes` on the real Mayberry file: both headings resolve, Final Image gets
+  the gazebo, Hook gets the clock shop, no label is glued to any card, no stub
+  notes are left behind, and MID-STORY and "Possible final turn" correctly
+  declare nothing.
+- The whole import path with a reader that names scenes as images and clues
+  while still naming their beats: seven of eight beats filled, Final Image
+  holding both endings as an undecided pair, Who and What They Want correctly
+  empty, and the two uncertain notes in Set aside with their hints.
+- Outline, gate, board trace, touch pricing, save sync, save payload, capture
+  bar, board placement, PDF and the import rename guard all pass.
+
+### Not fixed, on purpose
+
+The format is still chosen on the new project sheet before the file is read,
+even when the file states it in its second line. That is the next thing.

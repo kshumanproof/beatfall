@@ -3800,20 +3800,74 @@ function headerLine(text){
   // ALL CAPS, or Title Case with no lower-case first word, reads as a heading.
   const shouty = letters === letters.toUpperCase();
   const titled = /^[A-Z]/.test(label) && !/^[A-Z][a-z]+ (?:for|to|about|of|on) /.test(label);
-  return { label, kind: shouty || (titled && /^[A-Z\s\d'’-]+$/.test(label)) ? "section" : "attribution" };
+  /* An attribution is "Rusk calls Dale:" waiting for its quote, and it gets
+     glued to the front of the line below. A heading about WHERE something goes
+     is not that, and gluing it on is how a card ended up reading "Possible
+     final turn During the town ceremony, Linda introduces him". If it talks
+     about position in the story it is a section heading, whatever its case,
+     and if it names no beat it is simply dropped. */
+  const positional = /\b(?:open(?:ing|s)?|ending|end|final|finale|last|closing|close|first|hook|beat|act|midpoint|mid|middle|turn|pivot|climax|resolution|image|shot|teaser|tag|button|inciting|catalyst|setup|set up)\b/i
+    .test(label);
+  return { label, kind: shouty || positional
+    || (titled && /^[A-Z\s\d'’-]+$/.test(label)) ? "section" : "attribution" };
 }
 
-/* Does a heading name one of this structure's beats? Matched loosely, because
-   a writer types "BREAK INTO THREE:" and "MIDPOINT:" and "FIRST CHASE:", and
-   only the first two are beat names in Save the Cat. The ones that aren't
-   still get dropped as headings; they just don't scope anything. */
+/* WHAT WRITERS ACTUALLY TYPE ABOVE A BEAT.
+
+   This used to match a heading against the beat's exact name and nothing else,
+   which meant it caught "MIDPOINT:" and missed almost everything a person
+   really writes. Kris pasted a short film with OPENING: over the first shot and
+   ENDING IDEA: over the last one, the two clearest beats in the file, and both
+   went to the note shelf because no beat in the short structure is called
+   "Opening" or "Ending Idea".
+
+   Every alias below is one where the phrase means exactly one beat of that
+   structure. Nothing ambiguous is in here on purpose. "MID-STORY" over a scene
+   in an eight beat short could be The Cost or The Turn, and "Possible final
+   turn" over the climax speech turned out to mean The Choice, so neither is
+   aliased: a declared placement skips the confidence gate, which makes a wrong
+   one worse than none at all. An empty beat is information. */
+const HEAD_ALIAS = {
+  open:      ["opening","open","first shot","first image","cold open","opening shot"],
+  "t-open":  ["opening","open","first shot","first image","opening shot"],
+  "sh-hook": ["opening","open","opening image","first shot","first image","cold open"],
+  "c-you":   ["opening","open","first shot","opening image"],
+  "s-open":  ["opening","open","teaser","first shot"],
+  "h-cold":  ["opening","open","teaser","first shot"],
+  "b-teas":  ["opening","open","cold open","first shot"],
+  "ve-hook": ["opening","open","cold open","first shot"],
+  "v-hook":  ["opening","open","cold open","first shot","pilot hook"],
+
+  last:      ["ending","ending idea","the ending","last shot","last image","closing image","final shot","the end"],
+  "sh-last": ["ending","ending idea","the ending","last shot","last image","closing image","final shot","the end"],
+  "t-res":   ["ending","ending idea","the ending","final image","last shot","last image","closing image","the end"],
+  "c-chg":   ["ending","ending idea","the ending","final image","last shot","resolution"],
+  "h-res":   ["ending","ending idea","the ending","resolution"],
+  "v-final": ["ending","ending idea","the ending","final image"],
+  "ve-button":["ending","ending idea","the ending","button","last shot"],
+  "b-tag":   ["tag","button","the tag"],
+  "h-tag":   ["tag","button","the tag"],
+
+  mid:       ["midpoint","mid point","mid story","midstory"],
+  "t-mid":   ["midpoint","mid point","mid story","midstory"],
+  "v-mid":   ["midpoint","mid point","midpoint reversal"],
+  cat:       ["inciting incident","catalyst","the call"],
+  "t-inc":   ["inciting incident","catalyst","the call"],
+  fin:       ["climax","the climax"],
+  "t-cli":   ["climax","the climax","finale"],
+  lost:      ["all is lost","low point","the low point"],
+  "t-low":   ["low point","the low point","all is lost"],
+  "h-low":   ["low point","the low point","all is lost"],
+  "v-low":   ["low point","the low point","lowest point","all is lost"]
+};
 function beatFromHeading(label, key){
   const want = String(label).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
-  if (want.length < 4) return null;
+  if (want.length < 3) return null;
   const slots = (STRUCTURES[key] || {}).slots || [];
   const hit = slots.find(x => {
     const n = x.name.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
-    return n === want || n.replace(/ /g, "") === want.replace(/ /g, "");
+    if (n === want || n.replace(/ /g, "") === want.replace(/ /g, "")) return true;
+    return (HEAD_ALIAS[x.id] || []).indexOf(want) >= 0;
   });
   return hit ? hit.id : null;
 }
@@ -6003,8 +6057,12 @@ async function claudePlan(raw){
   const storyList = groups.map((g, i) => i + " = " + g.name + (g.about ? "  (" + g.about + ")" : "")).join("\n");
   const rules =
       "Rules that matter more than filling the board:\n"
-    + "- Most notes in a real file are NOT beats. Character sketches, images, lines of dialogue, "
-    + "rules the writer set, research to do and open questions are not beats. Label them as such.\n"
+    + "- A note earns a beat if it describes something that HAPPENS in the story at a place this "
+    + "structure names. How it is written does not matter: a shot, an image, a line of dialogue or "
+    + "a bare sentence can all be beats. In a film every beat is an image.\n"
+    + "- What is NOT a beat is a note about the story rather than a moment in it: a character "
+    + "sketch, a rule the writer set, research to do, an open question, or a motif with no place "
+    + "in the sequence. Label those and leave b null.\n"
     + "- A note where the writer is thinking out loud, weighing options, or rejecting an idea is a "
     + "question or a structural note, never a beat. Lines like Too easy, More interesting, "
     + "Absolutely not, Stop, Save, or NO DOG are the writer talking to themselves.\n"
@@ -6042,7 +6100,8 @@ async function claudePlan(raw){
         + "s  which story it belongs to, by the number above. Use -1 for anything that is not story "
         + "material at all: errands, reminders, appointments, shopping, unrelated observations.\n"
         + "k  the kind of note: beat, character, clue, image, structural, theme, line, question, rule, research\n"
-        + "b  the beat id, only if k is beat and the note clearly meets that beat's requirement. Otherwise null.\n"
+        + "b  the beat id if the note is a moment that meets that beat's requirement, whatever k is. "
+        + "Otherwise null.\n"
         + "c  0 to 100, how certain you are of b\n"
         + "d  true only if the writer named that beat themselves\n\n"
         + rules
@@ -6102,7 +6161,17 @@ async function claudePlan(raw){
     if (!forced.has(idx) && codeMade.has(si)) si = 0;
     let kind = KINDS[r.k] ? r.k : "structural";
     const conf = typeof r.c === "number" ? r.c : 0;
-    const named = kind === "beat" && S.slots.some(x => x.id === r.b);
+    /* PLACEMENT IS NOT A KIND.
+
+       This read `kind === "beat" && ...`, so the moment the model called a note
+       an image it could not reach the board however well it fitted. In a film
+       every beat IS an image: the first slot of Save the Cat is called Opening
+       Image. "Eli repairing a grandfather clock while two tourists photograph
+       him through the window. He slowly closes the blinds." is the Hook of that
+       short, and it was filed under Notes as an image along with the ending and
+       the scene in the diner. The taxonomy was competing with the placement
+       instead of describing what was left over after it. */
+    const named = S.slots.some(x => x.id === r.b);
     /* A line the writer put under a beat heading is a beat, whatever the model
        made of the sentence. Without this it could be classed "structural" and
        filed on a note shelf, so a bumped declaration disappeared into Notes
@@ -6411,12 +6480,18 @@ document.getElementById("revgo").addEventListener("click", () => {
     const slots = (STRUCTURES[target.structure] || {}).slots || [];
     const real  = id => id && slots.some(x => x.id === id);
     notes.forEach(n => {
+      /* A note the reader half placed belongs in Set aside, not on the note
+         shelf, whatever kind of note it is. Set aside is where "I think this is
+         the Hook and I am not sure enough to put it there" is visible and one
+         drag from being right. On the shelf the hint is never even drawn. */
+      const looking = n.kind === "beat" || real(n.maybe) || real(n.full);
       target.cards.push({
-        id: uid++, text: n.text, pinned: false, kind: n.kind,
+        id: uid++, text: n.text, pinned: false,
+        kind: looking ? "beat" : n.kind,
         maybe: real(n.maybe) ? n.maybe : null,
         full: real(n.full) ? n.full : null,
         declared: !!n.declared,
-        slot: n.kind === "beat" ? (real(n.beat) ? n.beat : "__none") : "__shelf"
+        slot: looking ? (real(n.beat) ? n.beat : "__none") : "__shelf"
       });
       added++;
     });
