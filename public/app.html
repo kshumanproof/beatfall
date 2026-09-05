@@ -5700,6 +5700,28 @@ function localPlan(raw){
 const IMPORT_BATCH = 40;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
 
+/* HOW SURE THE READER HAS TO BE TO TAKE A BEAT.
+
+   This was 75 for as long as a note also had to be typed as a beat to be
+   placed at all, and the two together were about right. With the kind gate
+   gone the floor was doing the whole job alone, and it was too low: on the
+   Mayberry file every beat but one filled, Set aside came back empty, and two
+   cards sat one beat earlier than they belonged. A note that only sort of fits
+   should not be able to take a beat away from the note that fits it exactly.
+
+   Below this and above SUGGEST, the note goes to Set aside carrying its guess,
+   which is a better outcome than a wrong card: the writer reads "possibly The
+   First Attempt" and settles it with one drag. A full board is not the goal.
+   The right board is.
+
+   80 rather than 85 on purpose. On that same file the reader put the writer's
+   second ending on Final Image beside the first, which is exactly right and is
+   the kind of judgment a higher floor would throw away. The review sheet prints
+   the real figure beside every placement, so this number gets set from what the
+   reader actually reports rather than from anybody's instinct about it. */
+const PLACE_SURE  = 80;
+const SUGGEST_SURE = 55;
+
 /* =========================================================================
    OTHER PROJECTS THE WRITER NAMED
 
@@ -6074,6 +6096,11 @@ async function claudePlan(raw){
     + "clearest one and leave the others unplaced. Do not spread one moment across three beats.\n"
     + "- If you are not certain which beat a note is, set b to null. An empty beat is useful to the "
     + "writer, because it shows them a hole. A wrongly filled one is worse than useless.\n"
+    + "- A note may only take a beat it satisfies on its own terms. If it is really the beat before "
+    + "or after the one you are considering, name that one instead. If you are weighing two beats "
+    + "for the same note, that is not certainty: set b to null and let the writer decide.\n"
+    + "- Empty beats and unplaced notes are the normal result on a real file. A board where every "
+    + "beat came out full usually means notes were stretched to reach them.\n"
     + "- Give no beat more than " + MAX_PER_BEAT + " notes in a batch. If more seem to fit, keep only "
     + "the strongest and leave the rest unplaced.\n\n";
 
@@ -6177,7 +6204,7 @@ async function claudePlan(raw){
        filed on a note shelf, so a bumped declaration disappeared into Notes
        instead of showing up in Set aside where it can be seen. */
     if (n.declared) kind = "beat";
-    let beat = own[idx] || (n.beat ? null : ((named && conf >= 75) ? r.b : null));
+    let beat = own[idx] || (n.beat ? null : ((named && conf >= PLACE_SURE) ? r.b : null));
     /* The ceiling and the confidence gate are different reasons to hold a note
        back, and the review screen has to say which one applied. It used to
        report both as confidence, so a note the model was 91% sure about was
@@ -6196,7 +6223,7 @@ async function claudePlan(raw){
       text: n.text,
       kind: beat ? "beat" : kind,
       beat,
-      maybe: (!beat && !full && named && conf >= 55) ? r.b : null,
+      maybe: (!beat && !full && named && conf >= SUGGEST_SURE) ? r.b : null,
       full,
       conf,
       declared: !!(n.declared || r.d),

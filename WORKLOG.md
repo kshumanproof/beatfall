@@ -983,3 +983,48 @@ read the guess and act on it with one drag.
 
 The format is still chosen on the new project sheet before the file is read,
 even when the file states it in its second line. That is the next thing.
+
+## 5 September 2026: A full board is not the goal
+
+### What the second Mayberry run showed
+
+Seven of eight beats filled and Set aside came back empty, which is the failure
+I asked Kris to watch for. The Hook, the Disruption, the Turn, the Choice and
+both endings are right, and both endings sitting on Final Image together is the
+best single piece of reading the app has done. But two cards landed one beat
+early: the jail cell took The First Attempt when it belongs at The Cost, and
+"agrees to attend one event" took Who and What They Want when it is The First
+Attempt. The Cost was left empty while the note that belongs in it, Tommy being
+assigned to protect him, was still on the note shelf.
+
+### Cause
+
+Removing the kind gate was right, but the confidence floor of 75 had been doing
+half its work in company with that gate and was left carrying the whole load
+alone. A note that only sort of fits could take a beat away from the note that
+fits it exactly.
+
+### Changes
+
+- `PLACE_SURE` (80) and `SUGGEST_SURE` (55) are named constants instead of bare
+  numbers in two places. 80 rather than 85 on purpose: a higher floor would have
+  thrown away the second ending, which was correct and was placed at a figure in
+  that band. The review sheet already prints the real confidence beside every
+  placement, so this number can be set from what the reader reports rather than
+  from instinct.
+- Three rules added to the classifier: a note may only take a beat it satisfies
+  on its own terms; if it is really the beat before or after, name that one; if
+  two beats are being weighed for one note, that is not certainty, so leave it
+  null. And plainly: empty beats and unplaced notes are the normal result on a
+  real file, and a board where every beat came out full usually means notes were
+  stretched to reach them.
+
+### Testing
+
+- The same import path with the two stretched notes at 78 and 79 and the second
+  ending at 84: both stretches go to Set aside carrying "possibly The First
+  Attempt" and "possibly Who, and What They Want", the second ending stays on
+  Final Image beside the first, and Tommy's escort reaches Set aside with
+  "possibly The Cost" instead of sitting on the note shelf.
+- Headings, outline, gate, board trace, touch pricing, save sync, save payload,
+  board placement, import rename guard and PDF all pass.
