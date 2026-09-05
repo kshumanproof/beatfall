@@ -227,16 +227,22 @@ header{
    own, so a writer who has learned it saves is not told fifteen more times. */
 .opassage{margin-top:10px;max-width:74ch;position:relative}
 .opassage .oprose{overflow-y:hidden;resize:none}
-/* Delete sits in the corner of the passage and stays out of sight until the
-   writer goes looking for it, the same as the cross on a card. Nothing here is
-   ever really gone: it drops into the Undo bar first. */
-.odel{
-  position:absolute;top:5px;right:6px;border:none;background:none;
-  color:var(--ink-4);font-size:15px;line-height:1;padding:3px 6px;cursor:pointer;
-  border-radius:var(--r-ctl);opacity:0;transition:opacity .12s ease;
+/* One action grammar for everything added beneath a beat. The words adapt to
+   the destination, but Return to Set aside, Return to Notes and Delete passage
+   occupy the same kind of quiet, always-visible control. */
+.outline-action{
+  flex:0 0 auto;border:1px solid var(--rule);border-radius:3px;background:transparent;
+  padding:4px 7px;cursor:pointer;color:var(--blue);font-family:var(--sans);
+  font-size:9px;font-weight:600;letter-spacing:.06em;line-height:1;
+  text-transform:uppercase;white-space:nowrap;
 }
-.opassage:hover .odel,.odel:focus{opacity:1}
-.odel:hover{color:var(--red);background:var(--rule-soft)}
+.outline-action:hover,.outline-action:focus-visible{
+  border-color:var(--blue);background:var(--blue-soft);outline:none;
+}
+.outline-action.destructive{margin-left:auto;color:var(--red)}
+.outline-action.destructive:hover,.outline-action.destructive:focus-visible{
+  border-color:var(--red);background:var(--red-soft);
+}
 /* The row under a box: absent until there is something to save. Reserving its
    height would leave a gap under every passage on the page, so it collapses. */
 .orow{
@@ -244,7 +250,8 @@ header{
   height:0;overflow:hidden;opacity:0;
   transition:opacity .14s ease;
 }
-.opassage.dirty .orow{height:auto;opacity:1;margin-top:7px}
+.opassage.written .orow,.opassage.dirty .orow{height:auto;opacity:1;margin-top:7px}
+.opassage:not(.dirty) .osave{display:none}
 .osave{padding:5px 15px;font-size:12px}
 .osaved{
   font-family:var(--sans);font-size:11px;color:var(--sage);
@@ -623,18 +630,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .anote .at{flex:1;min-width:0;overflow:hidden;display:-webkit-box;
   -webkit-line-clamp:3;-webkit-box-orient:vertical}
 .anote .unpin{
-  flex:0 0 auto;border:none;background:none;cursor:pointer;padding:1px 5px;
-  color:var(--ink-4);font-size:13px;line-height:1.2;opacity:0;transition:opacity .12s ease;
-}
-.anote:hover .unpin{opacity:1}
-.anote .unpin:hover{color:var(--blue)}
-.anote .unpin.return-aside{
-  opacity:1;border:1px solid var(--rule);border-radius:3px;padding:4px 7px;
-  color:var(--blue);font-family:var(--sans);font-size:9px;font-weight:600;
-  letter-spacing:.06em;line-height:1;text-transform:uppercase;white-space:nowrap;
-}
-.anote .unpin.return-aside:hover{
-  border-color:var(--blue);background:var(--blue-soft);
+  flex:0 0 auto;
 }
 .obeat .attached{margin:0 0 12px;padding-left:13px}
 .obeat .anote{font-size:12px}
@@ -2953,20 +2949,20 @@ function attachedList(slot, onChange){
     row.className = "anote";
     row.innerHTML = '<span class="chip ' + k + '">' + esc(home ? "Additional card" : KINDS[k]) + "</span>"
       + '<span class="at"></span>'
-      + '<button class="unpin' + (home ? " return-aside" : "") + '" aria-label="'
-      + (home ? "Return to Set aside" : "Send back to your notes") + '">'
-      + (home ? "Return to Set aside" : "&#8617;") + "</button>";
+      + '<button class="unpin outline-action" aria-label="'
+      + (home ? "Return to Set aside" : "Return to Notes") + '">'
+      + (home ? "Return to Set aside" : "Return to Notes") + "</button>";
     row.querySelector(".at").textContent = c.text;
     const u = row.querySelector(".unpin");
     u.setAttribute("data-tip", home
       ? "Take it off this beat. It goes back to Set aside."
-      : "Take it off this beat. It stays under Other notes.");
+      : "Take it off this beat. It stays in Notes.");
     u.addEventListener("click", e => {
       e.stopPropagation();
       snapshot();
       delete c.attachedTo;
       onChange();
-      const destination = home ? "Set aside" : "Other notes";
+      const destination = home ? "Set aside" : "Notes";
       showSettled([{text: c.text, from: slot.name, to: destination}],
                   "Returned to " + destination);
     });
@@ -6764,9 +6760,9 @@ function renderOutline(){
         // has nothing to take away.
         if (text){
           const del = document.createElement("button");
-          del.className = "odel";
+          del.className = "odel outline-action destructive";
           del.type = "button";
-          del.innerHTML = "&times;";
+          del.textContent = "Delete passage";
           del.setAttribute("aria-label", "Delete this passage");
           del.setAttribute("data-tip", "Delete this passage. You can undo.");
           del.addEventListener("click", () => {
@@ -6779,7 +6775,7 @@ function renderOutline(){
             renderOutlineCount();
             showSettled([{text: text, from: slot.name}], "Passage deleted");
           });
-          wrap.appendChild(del);
+          bar.appendChild(del);
         }
 
         wrap.appendChild(ta);
@@ -6820,8 +6816,8 @@ function renderOutline(){
         const home = card.slot === "__none";
         card.attachedTo = slot.id;
         showSettled([{text: card.text, from: home ? "Set aside" : "Notes",
-                      to: slot.name + ", filed under it"}],
-                    "Filed under the beat");
+                      to: slot.name + (home ? "" : ", filed under it")}],
+                    home ? "Additional card added" : "Note filed under the beat");
         renderOutline(); renderRail(); render();
       });
 

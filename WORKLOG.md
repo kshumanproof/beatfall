@@ -602,3 +602,59 @@ is gone.
 - Passage-delete styling, empty-passage wording, Outline access rules, card
   ordering, and the structure-switch work are untouched.
 - No database or API changes are required.
+
+## 5 September 2026: One action system beneath every Outline beat
+
+### Requested
+
+Make the newly visible passage deletion feel related to removing additional
+cards and filed notes. Evaluate whether Set aside ideas, categorized notes, and
+typed Outline details should enter and leave a beat through one coherent
+system rather than three accidental-looking interactions.
+
+### UX decision
+
+The entry methods remain intentionally different. Additional cards and notes
+already exist, so dragging them to a beat is direct manipulation. Outline prose
+does not exist yet, so typing it in place is the natural action. Consistency is
+applied after placement: every item identifies what it is, every exit action
+names where it goes, and every completed exit produces the same Undo receipt.
+
+### Changes
+
+- Added one shared, always-visible Outline action style.
+- Additional cards use Return to Set aside.
+- Filed categorized notes now use Return to Notes instead of a hover-only
+  curved arrow.
+- Saved typed passages now use a visible Delete passage button instead of a
+  tiny hover-only cross.
+- Movement actions remain blue; deletion is red. Their size, border, type,
+  alignment, hover state, and focus state otherwise match.
+- Both kinds of dragged-in material produce an adaptive placement receipt:
+  Additional card added for Set aside material and Note filed under the beat
+  for categorized notes.
+- Clean passages keep Delete passage visible and hide Save. Editing reveals
+  Save without displacing Delete passage. The unwritten trailing box never has
+  a delete action.
+
+### Testing
+
+- Rendered a Setup beat containing a primary card, an additional card, a filed
+  research note, two saved passages, and the trailing empty passage.
+- Confirmed Return to Set aside, Return to Notes, and both Delete passage
+  controls were simultaneously visible and visually related in light and dark
+  modes.
+- Deleted the first passage and confirmed only the second remained; Undo
+  restored both passages.
+- Returned the research note and confirmed its beat attachment cleared while
+  its note type and extra metadata remained; Undo restored the attachment.
+- Confirmed the additional card was unaffected by both operations.
+- Edited and saved an existing passage: Save appeared only while dirty, hid
+  after saving, no extra passage was created, and Delete passage stayed visible.
+- Parsed the finished inline application script successfully.
+
+### Intentionally unchanged
+
+- Drag mechanics, card and note classification, passage storage, the Notes
+  screen, empty-passage wording, and Outline access rules were not changed.
+- No database or API changes are required.

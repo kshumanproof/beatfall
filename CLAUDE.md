@@ -1533,4 +1533,25 @@ Return to Set aside button. Returning it deletes only `attachedTo`, calls the
 normal render/save path, and raises a named Undo receipt. Undo restores the
 attachment. Do not turn this back into a one-time Undo-only interaction or
 change `slot` when filing it beneath a beat. Ordinary `__shelf` notes still show
-their kind and use the smaller return-to-notes arrow.
+their kind and use the same visible action style, labelled Return to Notes.
+
+## One Outline action grammar (5 Sep 2026)
+
+The three kinds of material beneath a beat enter differently on purpose:
+
+- a Set aside item and an existing note are already objects, so the writer
+  drags them from the rail;
+- a passage does not exist yet, so the writer types it directly beneath the
+  beat.
+
+Do not flatten those into one input gesture. Their consistency begins after
+placement. Additional cards say Return to Set aside, filed notes say Return to
+Notes, and written passages say Delete passage. All three use
+`.outline-action`, sit at the right edge of their material, remain visible
+without hover, and produce the same named receipt with Undo. The red passage
+action is destructive because prose has no earlier home; both blue Return
+actions are movements back to an existing home.
+
+A clean saved passage hides Save but keeps Delete passage visible. Editing makes
+Save appear on the left while Delete passage remains on the right. The final
+empty passage has Save only after typing and never has a delete action.
