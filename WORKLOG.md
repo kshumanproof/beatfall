@@ -1080,3 +1080,61 @@ format all correct, four people with roles. But the two lines it read those from
 ("I'm thinking of calling this THE MIDGET OF MAYBERRY", "Short film. Southern
 dark comedy...") also land on the note shelf as structural ideas. Once a line
 has been used as a project detail it should not also be filed as a note.
+
+## 5 September 2026: The board is cast, not sorted
+
+### Why
+
+Four runs on the Mayberry file gave four different boards, and the last two ran
+on identical code. The cause was the question we were asking. For each note in
+turn, which beat is this? Asked that way a note is never compared against the
+note that should have had the beat, and an empty slot always looks like a fit.
+That is how the jail cell took The First Attempt while the note that belonged
+there sat on the shelf, and it is why more rules kept moving the problem around
+instead of removing it.
+
+### The casting call
+
+A third pass, `castTheBoard`, runs once after the batch pass and before anything
+is assembled. Every beat is asked once, with its requirement and every plausible
+note laid out beneath it, and the answer is a choice between candidates rather
+than a verdict on one note. It is also the only moment anything sees the whole
+board at once.
+
+- Beats the writer declared with a heading are not up for audition and are shown
+  as already set.
+- A character sketch is never a candidate. That is enforced in code now, not
+  asked for in a sentence, because the reader put Eli's bio on the board once.
+- A note may be named for at most one beat.
+- Null is a real answer and the prompt says so twice. A beat with nothing that
+  truly satisfies it stays open.
+- Anything the casting call looked at and passed over loses the beat it won in
+  the batch pass, and keeps its earlier guess as the "possibly" hint in Set
+  aside.
+- If the call fails or returns nothing, the batch result stands. The pass is an
+  improvement, never a dependency.
+- Skipped when the plausible pool is over 90 notes, and on secondary stories,
+  which do not have a board to cast.
+
+### A bug this found before it shipped
+
+`Number(null)` is 0, and 0 is a real note: the first line of the file. A beat
+answered null, which is the answer we most want the reader free to give, would
+have quietly taken whatever the writer typed first. On the test it took "I'm
+thinking of calling this THE MIDGET OF MAYBERRY" and put it on Who, and What
+They Want. The field is now read as a number only when it actually is one.
+
+### Testing
+
+Replaying the reader's real 5 September answers through the batch pass and
+letting the casting call see them all together: the writer's Hook and Final
+Image are untouched and never offered as candidates, Eli's bio never auditions,
+Sherry's admission is reached down for and given The Turn, Tommy's escort comes
+off the shelf to The Cost, the diner flyers move off Who and What They Want to
+The First Attempt where they belong, the note casting passed over loses its beat
+and appears in Set aside with its guess, and a beat answered null is left open.
+Seven of eight, and the eighth an honest hole. With the casting call made to
+fail, the board falls back to the batch result rather than collapsing.
+
+Outline, gate, board trace, touch pricing, save sync, save payload, board
+placement, import rename guard and PDF all pass.

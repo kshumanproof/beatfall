@@ -6079,7 +6079,110 @@ async function claudePlan(raw){
     forced.set(idx, at);
   });
 
-  /* ---- pass two onward: classify, in batches, by number ---- */
+  /* ONE BEAT AT A TIME, WITH THE CANDIDATES SIDE BY SIDE.
+
+   The pass above asks twenty-four separate questions: for each note, which beat
+   is this? That question has no way to be wrong carefully. When the jail cell
+   was asked about, The First Attempt was empty, so it fit, and nothing ever
+   asked which of the twenty-four notes was the BEST First Attempt. Four runs on
+   the same file gave four different boards, because twenty-four isolated
+   judgments have nothing to hold them steady.
+
+   So the board gets cast rather than sorted. Every beat is asked once, with its
+   requirement and every plausible note laid out beneath it, and the answer is a
+   choice between candidates instead of a verdict on one. Comparisons are far
+   steadier than isolated judgments, and this is also the only moment anything
+   sees the whole board at once, so a note taking a beat while a better one sits
+   on the shelf becomes visible rather than invisible.
+
+   Runs on the main story only. A second film mentioned in four lines does not
+   have a board to cast. Returns a Map of note index to beat id, and an entry
+   whose value is null means the reader looked at that note again and took the
+   beat back off it. */
+async function castTheBoard(notes, placed, storyOf, S, beats, ask){
+  const out = new Map();
+  const idx = [];
+  notes.forEach((n, i) => {
+    if (storyOf[i] !== 0) return;
+    if (n.declared) return;                       // the writer already said
+    const r = placed[i] || {};
+    // A person is not a moment, so a character sheet is never a candidate. The
+    // reader put Eli's bio on the board once already; this is the floor under
+    // that rule rather than another sentence asking it not to.
+    if (r.k === "character" || r.k === "rule" || r.k === "research") return;
+    idx.push(i);
+  });
+  if (!idx.length || idx.length > 90) return out;
+
+  // Beats the writer declared are spoken for and are shown as such.
+  const taken = {};
+  notes.forEach((n, i) => { if (n.declared && n.beat) taken[n.beat] = n.text; });
+
+  const sheet = idx.map(i =>
+    i + ". " + notes[i].text.replace(/\s+/g, " ").slice(0, 240)).join("\n");
+  const board = S.slots.map(x => "- " + x.id + " | " + x.name
+    + (taken[x.id] ? "  [already set by the writer: "
+        + taken[x.id].replace(/\s+/g, " ").slice(0, 70) + "]" : "")).join("\n");
+
+  let data = null;
+  try {
+    data = await ask(
+      "You are casting a screenwriter's beat board. Every beat below is a part, "
+      + "and the notes are the people auditioning. Do not rewrite any note and do "
+      + "not invent one.\n\n"
+      + "STRUCTURE: " + S.label + "\n\n"
+      + "THE BEATS, and what each one requires:\n" + beats + "\n\n"
+      + "THE BOARD as it stands:\n" + board + "\n\n"
+      + "THE NOTES, by number:\n" + sheet + "\n\n"
+      + "For every beat that is not already set by the writer, name the ONE note "
+      + "that best satisfies it, or null.\n\n"
+      + "How to choose:\n"
+      + "- Compare the candidates against each other, not against the empty slot. "
+      + "The question is which note is the best of these for this beat, never "
+      + "whether a note could work here.\n"
+      + "- A note may be named for at most one beat. If two beats both want it, "
+      + "give it to the one it fits better and leave the other empty or take the "
+      + "next best.\n"
+      + "- Null is a real answer and often the right one. A beat with nothing "
+      + "that truly satisfies it shows the writer a hole, which is worth more "
+      + "than a card that half fits.\n"
+      + "- How a note is written has no bearing: a shot, an image, a line of "
+      + "dialogue or a clue can all be the best candidate for a beat.\n"
+      + "- A description of a person is never a candidate for any beat, however "
+      + "well it answers a beat about who somebody is.\n"
+      + "- Beats out of reach of this file stay empty. Most files do not fill a "
+      + "whole board and are not supposed to.\n\n"
+      + "Reply with JSON only, one row per beat, every beat accounted for:\n"
+      + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"c\":85}]}");
+  } catch (e) {
+    if (e && e.code === "cancelled") throw e;
+    return out;                                  // the batch pass stands
+  }
+
+  const rows = (data && data.beats) || [];
+  if (!rows.length) return out;
+  const valid = new Set(S.slots.map(x => x.id));
+  const spoken = new Set();
+  // Everything it looked at starts with its beat taken away, so a note the
+  // casting call passed over cannot keep a place it won in the batch pass.
+  idx.forEach(i => out.set(i, null));
+  rows.forEach(r => {
+    const id = r && r.id;
+    /* Number(null) is 0, and 0 is a real note: the first line of the file. So a
+       beat answered null, which is the answer we most want it to be free to
+       give, would have quietly taken whatever the writer typed first. Read the
+       field as a number only when it actually is one. */
+    const n = typeof (r && r.n) === "number" ? r.n : -1;
+    if (!valid.has(id) || taken[id] || spoken.has(id)) return;
+    if (!Number.isInteger(n) || idx.indexOf(n) < 0) return;
+    if (out.get(n)) return;                      // one note, one beat
+    spoken.add(id);
+    out.set(n, id);
+  });
+  return out;
+}
+
+/* ---- pass two onward: classify, in batches, by number ---- */
   const beats = S.slots.map(x => "- " + x.id + " | " + x.name + ": " + (x.req || x.fn)).join("\n");
   const storyList = groups.map((g, i) => i + " = " + g.name + (g.about ? "  (" + g.about + ")" : "")).join("\n");
   const rules =
@@ -6178,6 +6281,17 @@ async function claudePlan(raw){
   // Nothing came back at all. Say so, do not quietly hand this to the matcher.
   if (!answered) { const e = new Error("unreadable"); e.code = "unreadable"; throw e; }
 
+  /* ---- pass three: the casting call ------------------------------------ */
+  const storyOf = new Array(notes.length);
+  notes.forEach((n, idx) => {
+    const r = placed[idx] || {};
+    let si = forced.has(idx) ? forced.get(idx)
+      : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
+    if (!forced.has(idx) && codeMade.has(si)) si = 0;
+    storyOf[idx] = si;
+  });
+  const cast = await castTheBoard(notes, placed, storyOf, S, beats, ask);
+
   /* ---- assemble, with the confidence gate and a hard per-beat ceiling ---- */
   const perBeat = {};
   const buckets = groups.map(() => []);
@@ -6234,7 +6348,15 @@ async function claudePlan(raw){
        filed on a note shelf, so a bumped declaration disappeared into Notes
        instead of showing up in Set aside where it can be seen. */
     if (n.declared) kind = "beat";
-    let beat = own[idx] || (n.beat ? null : ((named && conf >= PLACE_SURE) ? r.b : null));
+    /* The casting call has already compared this note against every other
+       candidate for the beat it wanted, which is a better question than the one
+       the batch pass could ask. Where it has an opinion, it is the opinion.
+       A beat the writer declared with a heading is not up for casting. */
+    const chosen = cast.get(idx);
+    let beat = own[idx]
+      || (n.beat ? null
+        : chosen !== undefined ? chosen
+        : ((named && conf >= PLACE_SURE) ? r.b : null));
     /* The ceiling and the confidence gate are different reasons to hold a note
        back, and the review screen has to say which one applied. It used to
        report both as confidence, so a note the model was 91% sure about was
