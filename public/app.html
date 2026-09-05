@@ -506,7 +506,14 @@ select:focus{border-color:var(--blue);outline:none}
 /* =====================================================================
    THE WALL: acts are horizontal bands, so nothing runs off the screen
    ===================================================================== */
-main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
+/* width:100% is load bearing. body is a flex column, and an AUTO margin on the
+   cross axis switches off the stretch a flex item would otherwise get, so main
+   sized itself to its own content: a board of short cards came out 622px wide
+   and rendered two columns, while the same structure holding long cards filled
+   the window and rendered five. Same project, same beats, different shape. The
+   width makes it definite, max-width still caps it, and the auto margins still
+   centre it. */
+main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .board{display:flex;flex-direction:column;gap:34px}
 .band{display:flex;flex-direction:column;gap:15px}
 .acthead{display:flex;align-items:center;gap:14px}
@@ -537,6 +544,15 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;
   color:var(--gold);
 }
+/* The one mark the Outline is allowed to leave on the board. Same size and
+   weight as the undecided flag, pushed to the far end of the head, and blue
+   because it costs nothing and leads somewhere. */
+.otrace{
+  margin-left:auto;border:none;background:none;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:9px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--ink-4);
+}
+.otrace:hover,.otrace:focus-visible{color:var(--blue);outline:none}
 /* an empty beat is the ABSENCE of a card, never a box drawn around nothing */
 .gapbody{padding:7px 1px 0}
 .slotfn{
@@ -3450,12 +3466,33 @@ function render(justPlaced){
         + (contested ? " contested" : "")
         + (justPlaced === s.id ? " justplaced" : "");
       el.dataset.slot = s.id;
+      /* WHAT THE BOARD SHOWS OF THE OUTLINE: that it exists, and nothing else.
+
+         The board is index cards. Prose and filed notes rendered underneath
+         them turned it into a wall of text, which is what made the Outline
+         look like something to be locked away rather than written in. So the
+         beat carries a count and no content, in the same quiet key as
+         "undecided", and pressing it opens the Outline at this beat. */
+      const passages = outlineList(proj, s.id).length;
+      const filedHere = notesOn(s.id, proj).filter(c => isAttached(c, proj)).length;
+      const trace = [passages ? passages + (passages === 1 ? " passage" : " passages") : "",
+                     filedHere ? filedHere + (filedHere === 1 ? " note" : " notes") : ""]
+                    .filter(Boolean).join(" &middot; ");
       el.innerHTML =
         '<div class="slothead"><span class="slotname">' + esc(s.name) + "</span>"
         + (contested ? '<span class="undecided" data-tip="This beat has more than one version. Delete one or keep both for now.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
+        + (trace ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
+            + trace + "</button>" : "")
         + "</div>"
         + '<div class="cards"></div>';
+      const traceBtn = el.querySelector(".otrace");
+      if (traceBtn) traceBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (!tryOpenOutline()) return;
+        const target = document.querySelector('#outlinebody .obeat[data-slot="' + s.id + '"]');
+        if (target) target.scrollIntoView({block: "center", behavior: "smooth"});
+      });
       const holder = el.querySelector(".cards");
       cards.forEach(c => holder.appendChild(cardEl(c)));
 
@@ -4089,6 +4126,9 @@ function carryOutlineToStructure(proj, fromKey, toKey){
   const targetIds = new Set(STRUCTURES[toKey].slots.map(x => x.id));
   const source = STRUCTURES[fromKey];
   const kept = {};
+  // Reserved keys are not beats and must survive the rebuild. Losing __started
+  // here would lock a writer out of prose they are looking at.
+  if (old.__started) kept.__started = true;
   const unplaced = outlineUnplaced(proj).slice();
   let moved = 0;
 
@@ -6490,14 +6530,34 @@ function outlineUnplaced(proj){
 /* Outline is the story after every structural beat exists. Saved prose is
    never deleted when the board becomes incomplete, but it waits here until
    every beat has a card again. */
+/* THE GATE OPENS ONCE AND STAYS OPEN.
+
+   An outline of fifteen empty prompts is not an outline, so the Outline waits
+   until every beat has a card. That is the whole of its job. Once a writer has
+   been through that door, taking a card off a beat cannot take their prose
+   away from them: the board is a working surface, and leaving a beat open on
+   purpose is a thing this app tells them they are allowed to do.
+
+   The marker lives in the outline object under a reserved key, so nothing in
+   the database or the API has to change to carry it. */
 function outlineAccess(proj, knownFilled, knownTotal){
   const slots = STRUCTURES[proj.structure].slots;
   const total = knownTotal == null ? slots.length : knownTotal;
   const filled = knownFilled == null
     ? slots.filter(slot => proj.cards.some(c => c.slot === slot.id)).length
     : knownFilled;
+  const complete = filled === total;
+  const started = !!(proj.outline && proj.outline.__started);
   return {filled, total, remaining: Math.max(0, total - filled),
-          canOpen: filled === total};
+          complete, started, canOpen: complete || started};
+}
+// Called the moment the Outline actually opens, never before.
+function markOutlineStarted(proj){
+  if (!proj) return;
+  proj.outline = proj.outline || {};
+  if (proj.outline.__started) return;
+  proj.outline.__started = true;
+  save();
 }
 function paintOutlineAccess(proj, filled, total){
   const access = outlineAccess(proj, filled, total);
@@ -6515,7 +6575,9 @@ function paintOutlineAccess(proj, filled, total){
     ? access.remaining + " beat" + (access.remaining === 1 ? "" : "s")
         + (access.remaining === 1 ? " still needs" : " still need")
         + " a card before you can open the Outline."
-    : "Every beat has a card. Open the Outline.");
+    : access.started && !access.complete
+      ? "Write what happens under each beat."
+      : "Every beat has a card. Open the Outline.");
 }
 function tryOpenOutline(){
   const proj = P();
@@ -6531,9 +6593,12 @@ function tryOpenOutline(){
                                 : access.remaining + " beats still need cards.")
       + "</div>";
     settledBox.hidden = false;
-    return;
+    return false;
   }
+  // Going through the door is what records that it was ever open.
+  markOutlineStarted(proj);
   setView("outline");
+  return true;
 }
 function setOutlineUnplaced(proj, list){
   proj.outline = proj.outline || {};
@@ -8324,7 +8389,36 @@ document.addEventListener("focusin", e => {
   if (y) y.textContent = new Date().getFullYear(); })();
 
 document.addEventListener("focusout", hideTip);
-["click","scroll","keydown"].forEach(ev => document.addEventListener(ev, hideTip, true));
+
+/* A PRICE A FINGER CAN READ.
+
+   The rule is that nothing spends a credit without saying so first. Moving the
+   prices into the explainers kept that promise for a mouse and quietly broke it
+   for a finger: there is no hover on a touch screen, and the tap that would
+   reveal the explainer is the same tap that runs the action.
+
+   So on a touch screen a paid control answers the first tap with its price and
+   does nothing else. The second tap runs it. Free controls are untouched, and
+   nothing changes for a mouse. `data-costed` is set by marksCost(), so this
+   can never drift out of step with the COST table. */
+let touching = false;
+let armed = null;
+document.addEventListener("pointerdown", e => {
+  touching = e.pointerType && e.pointerType !== "mouse";
+}, true);
+document.addEventListener("click", e => {
+  const paid = e.target.closest("[data-costed]");
+  if (!touching || !paid){ armed = null; return; }
+  if (armed === paid){ armed = null; return; }     // asked and answered
+  armed = paid;
+  e.preventDefault();
+  e.stopPropagation();
+  showTip(paid);
+}, true);
+["click","scroll","keydown"].forEach(ev => document.addEventListener(ev, e => {
+  if (ev === "click" && armed && e.target.closest("[data-costed]") === armed) return;
+  hideTip();
+}, true));
 
 /* =========================================================================
    BOOT: sign the person in, load their projects, then run the board.

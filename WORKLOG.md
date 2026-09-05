@@ -856,3 +856,63 @@ scrolls instead. It looked fine at eight scripts, which is why it shipped.
 - The junk projects from the old behaviour are still in the account: "Dirt
   Money, recovered copy" and "Dirt Money, recovered copy recovered copy". Check
   which one holds the newest work before deleting the others.
+
+## 5 September 2026: The board keeps its shape, and the Outline stops being a vault
+
+### Why
+
+The Outline was locked away because material added there was rendering on the
+Beat Board and wrecking its design. The lock was a workaround for a layout
+problem, so this fixes the layout problem and lets the lock go back to doing
+only its own job.
+
+### The board was sizing itself to its contents
+
+`main` sits in a flex column and carried `margin:0 auto`. An auto margin on the
+cross axis switches off the stretch a flex item would otherwise get, so `main`
+sized to its own content. Dirt Money, whose cards are short, came out 622px wide
+and rendered two columns. Night Haul, same structure, same beats, holds long
+cards and filled the window at five. One project looked like a different app
+from the next. `width:100%` makes it definite; `max-width` still caps it and the
+auto margins still centre it.
+
+### What the board shows of the Outline
+
+That it exists, and nothing else. A beat carrying prose or filed notes now shows
+a count in its head, in the same quiet key as the undecided flag: "2 passages ·
+1 note". Pressing it opens the Outline scrolled to that beat, which makes the
+board a table of contents into the writing rather than a place the writing
+leaks into. A beat with nothing written says nothing.
+
+### The gate opens once and stays open
+
+Outline still waits until every beat has a card. But taking a card off a beat
+afterwards no longer takes a writer's prose away from them: the first successful
+opening records `__started` in the outline object, and access survives card
+removal and structure changes. Leaving a beat open on purpose is something this
+app tells writers they are allowed to do. A project that has never qualified is
+still held at the Board.
+
+### A price a finger can read
+
+The rule is that nothing spends a credit without saying so first. Moving prices
+into hover explainers kept that for a mouse and quietly broke it for a finger:
+there is no hover on a touch screen, and the tap that would reveal the explainer
+is the same tap that runs the action. On a touch screen a paid control now
+answers the first tap with its price and does nothing else; the second tap runs
+it. Free controls and mouse behaviour are untouched. The test is `data-costed`,
+which `marksCost()` sets, so it cannot drift from the COST table.
+
+### Testing
+
+- Short cards and long cards now render the same column count at 1253 and 1440.
+- No outline prose and no filed-note rows appear anywhere on the board.
+- The mark counts passages and notes, singular and plural, is absent on a bare
+  beat, and opens the Outline at its own beat.
+- Removing a card from a started project leaves the Outline open with its
+  writing intact; a structure change does not shut it; a project that never
+  qualified stays at the Board.
+- On a touch screen the first tap on a paid control spends nothing and shows the
+  price, the second runs it, and a free control still works on one tap.
+- Outline passages, save payload, capture bar, board placement, drag and return,
+  PDF, and the save-sync suite all pass.
