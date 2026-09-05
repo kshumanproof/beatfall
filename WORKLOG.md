@@ -399,3 +399,36 @@ save-conflict work was lost.
 - Codex's save-conflict sheet, project fingerprints, and `updated_at`
   concurrency check are untouched.
 - No placement, import, billing, account, or database mechanics were changed.
+
+## 5 September 2026: Undo on an outline drag, and deleting a passage
+
+### Requested
+
+Dragging a note or a set-aside card onto a beat in the Outline gave no visible
+way to put it back. Typed passages had no way to be deleted.
+
+### Changes
+
+- Dropping a set-aside card onto a beat now raises the Undo bar, which names
+  the beat it came from. Undo returns the card to Set aside. Dropping a note
+  already did this.
+- Every written passage carries a delete in its top right corner, hidden until
+  hover or keyboard focus, in the same shape as the cross on a board card.
+  Deleting raises the Undo bar and Undo brings the passage back.
+- The Undo bar reads "removed from" when a move has no destination, rather than
+  saying something moved to nowhere.
+
+### Testing
+
+- The drag: the card lands on the beat, the bar comes up naming Set aside, and
+  Undo returns the card to Set aside.
+- The delete: two written passages carry a delete and the trailing empty box
+  does not, the control is invisible at rest, deleting the first leaves the
+  second and the empty box, the word count follows, and Undo restores it.
+- Outline, save-payload, navigation, board-placement and PDF suites all pass.
+- No em dashes in `public/app.html`.
+
+### Intentionally unchanged
+
+- Codex's save-conflict work, and all placement, import, billing, account and
+  database mechanics.

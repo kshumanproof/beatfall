@@ -227,8 +227,18 @@ header{
 @media (max-width:1180px){ .fmtline{display:none} }
 /* The per beat receipt. Absent until a save lands, then it fades out on its
    own, so a writer who has learned it saves is not told fifteen more times. */
-.opassage{margin-top:10px}
+.opassage{margin-top:10px;max-width:74ch;position:relative}
 .opassage .oprose{overflow-y:hidden;resize:none}
+/* Delete sits in the corner of the passage and stays out of sight until the
+   writer goes looking for it, the same as the cross on a card. Nothing here is
+   ever really gone: it drops into the Undo bar first. */
+.odel{
+  position:absolute;top:5px;right:6px;border:none;background:none;
+  color:var(--ink-4);font-size:15px;line-height:1;padding:3px 6px;cursor:pointer;
+  border-radius:var(--r-ctl);opacity:0;transition:opacity .12s ease;
+}
+.opassage:hover .odel,.odel:focus{opacity:1}
+.odel:hover{color:var(--red);background:var(--rule-soft)}
 /* The row under a box: absent until there is something to save. Reserving its
    height would leave a gap under every passage on the page, so it collapses. */
 .orow{
@@ -3707,8 +3717,11 @@ function showSettled(moves, title){
   document.getElementById("settledtitle").textContent = title || "Some cards moved to fit";
   document.getElementById("settledlines").innerHTML = moves.slice(0, 6).map(m =>
     '<div class="settled-line">&ldquo;<b>' + esc(m.text.slice(0, 58))
-    + (m.text.length > 58 ? "&hellip;" : "") + "</b>&rdquo; moved from " + esc(m.from)
-    + " to " + esc(m.to) + "</div>"
+    + (m.text.length > 58 ? "&hellip;" : "") + "</b>&rdquo; "
+    // No destination means it was taken off the board rather than moved, and
+    // "moved to deleted" is not a sentence.
+    + (m.to ? "moved from " + esc(m.from) + " to " + esc(m.to)
+            : "removed from " + esc(m.from)) + "</div>"
   ).join("") + (moves.length > 6
     ? '<div class="settled-line">and ' + (moves.length - 6) + " more</div>" : "");
   settledBox.hidden = false;
@@ -6535,6 +6548,28 @@ function renderOutline(){
           }
         });
 
+        // Only a written passage can be deleted. The empty box at the bottom
+        // has nothing to take away.
+        if (text){
+          const del = document.createElement("button");
+          del.className = "odel";
+          del.type = "button";
+          del.innerHTML = "&times;";
+          del.setAttribute("aria-label", "Delete this passage");
+          del.setAttribute("data-tip", "Delete this passage. You can undo.");
+          del.addEventListener("click", () => {
+            snapshot();
+            const now = [...el.querySelectorAll(".opassage .oprose")].map(x => x.value);
+            now.splice(bi, 1);
+            setOutlineList(proj, slot.id, now);
+            save();
+            renderOutline();
+            renderOutlineCount();
+            showSettled([{text: text, from: slot.name}], "Passage deleted");
+          });
+          wrap.appendChild(del);
+        }
+
         wrap.appendChild(ta);
         wrap.appendChild(bar);
         el.appendChild(wrap);
@@ -6562,10 +6597,15 @@ function renderOutline(){
         } else {
           // A set-aside card is a beat looking for a home. Putting it here is
           // you deciding this is that beat.
+          const cameFrom = slotName(proj.structure, card.slot);
           card.slot = slot.id;
           card.kind = "beat";
           card.pinned = true;
           delete card.attachedTo;
+          // Dropping a card is as undoable as anything else the board does, so
+          // it says so: the Undo bar puts it back where it was dragged from.
+          showSettled([{text: card.text, from: cameFrom, to: slot.name}],
+                      "Card placed");
         }
         renderOutline(); renderRail(); render();
       });
