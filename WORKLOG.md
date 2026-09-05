@@ -1138,3 +1138,48 @@ fail, the board falls back to the batch result rather than collapsing.
 
 Outline, gate, board trace, touch pricing, save sync, save payload, board
 placement, import rename guard and PDF all pass.
+
+## 5 September 2026: Three things the casting call's first run exposed
+
+The casting call did its job. "Eli absolutely hates the phrase but agrees to
+attend one event" went to The First Attempt, which is where it belongs and where
+nothing had put it in five previous runs. Sherry's admission got a beat. The
+board came back coherent. Three faults showed up with it, two of them mine.
+
+### The review sheet said 0% sure
+
+Every placement the casting call made was reported as "0% sure", because the
+sheet was still printing the batch pass's confidence for a decision the batch
+pass did not make. A board that reads as nought per cent sure of itself is not
+one anybody is going to trust, and it looked like a bug because it was one. The
+casting call's own figure is carried through now.
+
+### A note that came second fell all the way to the note shelf
+
+The jail cell had a beat in the run before and lost it to a better candidate,
+which is correct. But losing the audition dropped it out of Set aside entirely
+and onto the note shelf, where the near miss is never even drawn. So the casting
+call is now asked for the runner up on each beat, and a runner up lands in Set
+aside carrying the beat it nearly won. One drag settles it.
+
+### A stated want is not a scene
+
+"Eli WANT: get through the weekend, take the money, keep the shop open" was cast
+into Who, and What They Want. It answers that beat exactly and it is still
+wrong: it is the writer telling the reader about the character, not a moment
+with a camera on it. Same class of error as the bio two runs ago, in a new
+costume. The casting call is now told so by name, next to the rule about
+character sketches.
+
+### Also hardened
+
+`alt` is read as a number only when it actually is one, the same guard the `n`
+field already had, so a null runner up can never mean note zero. A note cannot
+be recorded as nearly winning a beat it actually won, or one already taken.
+
+### Testing
+
+Every casting assertion passes, plus two new ones: no placement is reported at
+nought per cent, and the runner up appears in Set aside labelled with the beat
+it nearly won. The fallback path still holds: with the casting call made to
+fail, the batch result stands.

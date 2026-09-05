@@ -6135,7 +6135,8 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
       + "THE BOARD as it stands:\n" + board + "\n\n"
       + "THE NOTES, by number:\n" + sheet + "\n\n"
       + "For every beat that is not already set by the writer, name the ONE note "
-      + "that best satisfies it, or null.\n\n"
+      + "that best satisfies it, or null. Name the runner up too, if a second "
+      + "note was seriously in contention for that beat.\n\n"
       + "How to choose:\n"
       + "- Compare the candidates against each other, not against the empty slot. "
       + "The question is which note is the best of these for this beat, never "
@@ -6150,10 +6151,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
       + "dialogue or a clue can all be the best candidate for a beat.\n"
       + "- A description of a person is never a candidate for any beat, however "
       + "well it answers a beat about who somebody is.\n"
+      + "- A bare statement of what somebody wants or needs is not a scene either, "
+      + "however exactly it answers a beat about wanting. \"WANT: get through the "
+      + "weekend and keep the shop open\" is the writer telling you about the "
+      + "character. The beat wants the moment that SHOWS it.\n"
       + "- Beats out of reach of this file stay empty. Most files do not fill a "
       + "whole board and are not supposed to.\n\n"
-      + "Reply with JSON only, one row per beat, every beat accounted for:\n"
-      + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"c\":85}]}");
+      + "Reply with JSON only, one row per beat, every beat accounted for. n is the "
+      + "note that takes the beat, alt the runner up, c how sure you are of n:\n"
+      + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"alt\":null,\"c\":85}]}");
   } catch (e) {
     if (e && e.code === "cancelled") throw e;
     return out;                                  // the batch pass stands
@@ -6165,19 +6171,31 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   const spoken = new Set();
   // Everything it looked at starts with its beat taken away, so a note the
   // casting call passed over cannot keep a place it won in the batch pass.
-  idx.forEach(i => out.set(i, null));
+  idx.forEach(i => out.set(i, {beat: null, alt: null, conf: 0}));
+  /* Number(null) is 0, and 0 is a real note: the first line of the file. So a
+     beat answered null, which is the answer we most want it to be free to give,
+     would have quietly taken whatever the writer typed first. Read these fields
+     as numbers only when they actually are numbers. */
+  const num = v => typeof v === "number" && Number.isInteger(v) ? v : -1;
   rows.forEach(r => {
     const id = r && r.id;
-    /* Number(null) is 0, and 0 is a real note: the first line of the file. So a
-       beat answered null, which is the answer we most want it to be free to
-       give, would have quietly taken whatever the writer typed first. Read the
-       field as a number only when it actually is one. */
-    const n = typeof (r && r.n) === "number" ? r.n : -1;
+    const n = num(r && r.n);
     if (!valid.has(id) || taken[id] || spoken.has(id)) return;
-    if (!Number.isInteger(n) || idx.indexOf(n) < 0) return;
-    if (out.get(n)) return;                      // one note, one beat
+    if (idx.indexOf(n) < 0) return;
+    if ((out.get(n) || {}).beat) return;         // one note, one beat
     spoken.add(id);
-    out.set(n, id);
+    out.set(n, {beat: id, alt: null,
+                conf: typeof r.c === "number" ? r.c : 0});
+  });
+  /* The runner up, in a second pass so a note cannot be recorded as nearly
+     winning a beat it actually won, or one that went to somebody else first. */
+  rows.forEach(r => {
+    const id = r && r.id;
+    const a = num(r && r.alt);
+    if (!valid.has(id) || idx.indexOf(a) < 0) return;
+    const cur = out.get(a);
+    if (!cur || cur.beat || cur.alt) return;
+    out.set(a, {beat: null, alt: id, conf: 0});
   });
   return out;
 }
@@ -6331,7 +6349,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
       : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
     if (!forced.has(idx) && codeMade.has(si)) si = 0;
     let kind = KINDS[r.k] ? r.k : "structural";
-    const conf = typeof r.c === "number" ? r.c : 0;
+    let conf = typeof r.c === "number" ? r.c : 0;
     /* PLACEMENT IS NOT A KIND.
 
        This read `kind === "beat" && ...`, so the moment the model called a note
@@ -6355,8 +6373,20 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     const chosen = cast.get(idx);
     let beat = own[idx]
       || (n.beat ? null
-        : chosen !== undefined ? chosen
+        : chosen ? (chosen.beat || null)
         : ((named && conf >= PLACE_SURE) ? r.b : null));
+    /* The casting call's own figure. Without this the review sheet reported
+       every placement the casting call made as "0% sure", because it was still
+       printing the batch pass's confidence for a decision the batch pass did
+       not make. A board that reads as nought per cent sure of itself is not one
+       anybody is going to trust. */
+    if (beat && chosen && chosen.beat) conf = chosen.conf || conf;
+    /* A note that auditioned for a beat and came second is a scene without a
+       home, not a research note. It belongs in Set aside carrying the beat it
+       nearly won, where one drag settles it, rather than on the note shelf
+       where the near miss is never even drawn. */
+    const runnerUp = (chosen && !chosen.beat && chosen.alt) ? chosen.alt : null;
+    if (runnerUp) kind = "beat";
     /* The ceiling and the confidence gate are different reasons to hold a note
        back, and the review screen has to say which one applied. It used to
        report both as confidence, so a note the model was 91% sure about was
@@ -6375,7 +6405,9 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
       text: n.text,
       kind: beat ? "beat" : kind,
       beat,
-      maybe: (!beat && !full && named && conf >= SUGGEST_SURE) ? r.b : null,
+      maybe: beat || full ? null
+        : runnerUp ? runnerUp
+        : (named && conf >= SUGGEST_SURE) ? r.b : null,
       full,
       conf,
       declared: !!(n.declared || r.d),
