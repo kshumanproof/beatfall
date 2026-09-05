@@ -1494,3 +1494,29 @@ the same account but only appends incoming-note rows. Those endpoints must call
 `requireUser(req, { webDevice: false })`; opening the phone app must not close
 the desktop board. Do not reuse that exemption for any endpoint that reads,
 changes, or generates content for a web project.
+
+## Project structure control and Outline preservation (5 Sep 2026)
+
+The active story structure is no longer shown beside the wordmark or inside the
+project popover. One larger `#structurebar` sits below the capture/tray area and
+above the working surface. It is visible in Board and Outline only. The header
+keeps the project name; do not put the structure label back there.
+
+A structure change is a destructive-looking action but is implemented
+losslessly:
+
+- beat cards are rescored into the new structure with every existing card field
+  preserved through an object spread;
+- notes filed under a beat lose `attachedTo` and return visibly to Other notes;
+- Outline passages on beat ids the new structure does not have move to
+  `project.outline.__unplaced` with their source beat and source structure;
+- exact-id matches remain attached, and no semantic match is guessed for prose;
+- the visible Unplaced Outline passages stack lets the writer drag each passage
+  to a new beat;
+- `outlineWordCount()` and PDF export include the unplaced stack; and
+- Undo restores the whole snapshot from before the structure switch.
+
+`salvageStrandedOutline()` also recovers prose left under obsolete ids by older
+versions of the app. Keep `__unplaced` inside the existing Outline JSON rather
+than adding a column. Any future Outline reader must ignore it when iterating
+beat ids and include it when counting or exporting the writer's work.

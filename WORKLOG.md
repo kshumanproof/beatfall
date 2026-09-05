@@ -507,3 +507,57 @@ Carried forward so whoever picks this up next does not have to rediscover it.
 - Two agents work in this tree. Read `public/app.html` from disk immediately
   before editing it, and write it back the same minute. Tonight it changed four
   times in ninety seconds while a change was being prepared against it.
+
+## 5 September 2026: Put the project structure where the work happens
+
+### Requested
+
+Move the current story structure out of the small header line and the project
+menu. Give it a clearer, larger home below the note capture bar and before the
+board or Outline. A structure change must not lose cards, filed notes, or any
+of the passage work already added to the Outline.
+
+### Changes
+
+- Added one project-level Story structure bar between the capture/tray area and
+  the Board or Outline. It carries the selector, completion meter, placed count,
+  and empty count. The compact header now carries only the project name.
+- The bar is visible on Board and Outline, and stays out of the Dashboard,
+  Characters, and Notes views.
+- A structure change now explains what will move before it proceeds.
+- Rebuilt beat cards retain their existing metadata instead of being reduced to
+  only id, text, slot, and pinned state.
+- Notes filed beneath an old beat return to Other notes when that beat structure
+  goes away.
+- Outline passages whose beat ids do not exist in the new structure move into a
+  visible Unplaced Outline passages section. Their source beat and source
+  structure are shown, and each passage can be dragged onto its new beat.
+- The Outline word count and PDF include those unplaced passages, so they cannot
+  quietly disappear from either measure or export.
+- Older projects that already contain passages stranded under obsolete beat ids
+  recover those passages into the same visible section when the Outline opens.
+- The existing Undo restores the complete pre-change project, including its
+  structure, passage locations, and filed-note locations.
+
+### Testing
+
+- Loaded a saved Save the Cat project with a placed card, a filed note, a
+  set-aside card, and four Outline passages, then switched it to Classic
+  Three-Act in the rendered app.
+- Confirmed all four passages remained exact and visible, the word count stayed
+  at 22, the filed note returned to Other notes, and all three cards remained.
+- Confirmed custom, declared, and suggested card metadata survived the rebuild.
+- Used Undo and confirmed the Save the Cat structure, all four original passage
+  locations, and the note's original Theme Stated filing were restored.
+- Confirmed the structure bar renders on Board and Outline, is hidden on the
+  Dashboard, and the old header structure line is gone.
+- Parsed the finished inline application script successfully.
+
+### Intentionally unchanged
+
+- Claude's existing multi-passage Save, passage delete, and drag/Undo behavior
+  remain in place.
+- Outline access rules, the passage-delete styling, and broader Outline card
+  movement are separate steps and were not changed here.
+- No database schema or API payload shape changed; the recovery list lives in
+  the existing Outline JSON.
