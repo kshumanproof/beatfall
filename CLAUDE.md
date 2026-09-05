@@ -1555,3 +1555,32 @@ actions are movements back to an existing home.
 A clean saved passage hides Save but keeps Delete passage visible. Editing makes
 Save appear on the left while Delete passage remains on the right. The final
 empty passage has Save only after typing and never has a delete action.
+
+## Outline start gate (5 Sep 2026)
+
+Outline is earned once, not continually policed. A project that has never
+started its Outline may open it only when every slot in its current structure
+has at least one primary beat card. The locked navigation control remains
+clickable so it can explain the requirement and name the number of beats still
+missing cards.
+
+The first successful opening writes `project.outline.__started = true` inside
+the existing Outline JSON. Treat all `__` keys as reserved metadata rather than
+beat ids. Structure conversion must preserve this marker, and any code that
+walks Outline beat ids must ignore reserved keys. Do not add a database column
+for it.
+
+This gate must never hide existing work. Any project containing saved Outline
+prose or recovered unplaced prose is grandfathered as started even if the
+marker predates the project. Once started, Outline remains available when cards
+are moved or removed and after a structure change. This lets a writer revise
+freely after establishing the complete board.
+
+When changing projects from Outline, commit the visible boxes before changing
+`state.activeId`. If the destination has not earned Outline, open its Board.
+The order is data safety: committing after the id changes can write one
+project's visible prose into another project.
+
+The empty writing box beneath every Outline beat says What happens in this
+beat? Do not vary that prompt based on whether a primary card is present; the
+start gate makes the old empty-beat distinction unnecessary for new Outlines.

@@ -289,6 +289,12 @@ header{
 .navlink:hover{color:var(--ink)}
 .navlink.on{color:var(--blue);font-weight:500}
 .navlink svg{flex:0 0 auto}
+.navlink.locked{color:var(--ink-4)}
+.navlink.locked::after{
+  content:"locked";padding:2px 4px;border:1px solid var(--rule);border-radius:3px;
+  font-size:8px;font-weight:600;letter-spacing:.07em;line-height:1;text-transform:uppercase;
+}
+.navlink.locked:hover{color:var(--ink-3)}
 /* The way home. An icon, because "Dashboard" is a word for a thing every other
    app draws as a house, and because the shelf of scripts is a place rather
    than a view of this one. */
@@ -2212,7 +2218,7 @@ footer{
         <h2 class="slate-h" id="outlinetitle">Outline</h2>
         <div class="slate-acts"><span class="sheet-count" id="outlinecount"></span></div>
       </div>
-      <p class="figlede">Add what happens under each beat, or drag in notes from the right.</p>
+      <p class="figlede">Drag in additional cards or notes, then write what happens in each beat.</p>
       <div id="outlineunplaced"></div>
       <div id="outlinebody"></div>
     </div>
@@ -3482,8 +3488,23 @@ function renderTabs(){
         openIntake("edit");
         return;
       }
+      const previousView = state.view;
+      // Outline boxes live in the page until they are committed. Save them
+      // against the project they came from before changing activeId; otherwise
+      // the old project's visible prose can be written into the next project.
+      if (previousView === "outline") commitOutlineBoxes();
       state.activeId = key;
-      hideAll(); render();
+      // Keep the current surface when the next project has earned it. A
+      // project that has not started its Outline lands on its Board instead
+      // of borrowing the previous project's open Outline. Set state first so
+      // setView does not try to commit the previous DOM a second time against
+      // the newly active project.
+      if (previousView === "outline" && !outlineAccess(P()).canOpen){
+        state.view = "board";
+        setView("board");
+      } else {
+        setView(previousView);
+      }
     });
     tabs.appendChild(b);
   });
@@ -3638,6 +3659,7 @@ function render(justPlaced){
   else if (filled === total)  gc.textContent = "every beat has a card";
   else if (holes)        gc.textContent = holes + " " + (holes === 1 ? "gap" : "gaps") + " between what you have";
   else                   gc.textContent = (total - filled) + " beats still empty";
+  paintOutlineAccess(proj, filled, total);
 
   // The button never names its target. It reads the board when pressed and
   // opens on the question, the writer shouldn't be told where to go before
@@ -3763,6 +3785,7 @@ function wireDrop(el, slotId){
    ========================================================================= */
 function showSettled(moves, title){
   if (!moves.length) return;
+  document.getElementById("undo").hidden = false;
   document.getElementById("settledtitle").textContent = title || "Some cards moved to fit";
   document.getElementById("settledlines").innerHTML = moves.slice(0, 6).map(m =>
     '<div class="settled-line">&ldquo;<b>' + esc(m.text.slice(0, 58))
@@ -4161,7 +4184,7 @@ Object.keys(STRUCTURES).forEach(k => {
 
 function assignedOutlineCount(proj){
   return Object.keys((proj && proj.outline) || {})
-    .filter(id => id !== "__unplaced")
+    .filter(id => !id.startsWith("__"))
     .reduce((n, id) => n + outlineList(proj, id).length, 0);
 }
 
@@ -4175,10 +4198,11 @@ function carryOutlineToStructure(proj, fromKey, toKey){
   const targetIds = new Set(STRUCTURES[toKey].slots.map(x => x.id));
   const source = STRUCTURES[fromKey];
   const kept = {};
+  if (old.__started) kept.__started = true;
   const unplaced = outlineUnplaced(proj).slice();
   let moved = 0;
 
-  Object.keys(old).filter(id => id !== "__unplaced").forEach(id => {
+  Object.keys(old).filter(id => !id.startsWith("__")).forEach(id => {
     const passages = outlineList(proj, id);
     if (!passages.length) return;
     if (targetIds.has(id)) {
@@ -4252,6 +4276,7 @@ sel.addEventListener("change", () => {
   if (!had && !held && !attachedCount) return; // nothing moved, so there is nothing to report
   const what = STRUCTURES[to].label.replace(/^[^·]*· /, "");
   document.getElementById("settledtitle").textContent = "Rebuilt as " + what;
+  document.getElementById("undo").hidden = false;
   document.getElementById("settledlines").innerHTML =
       (had ? '<div class="settled-line">All ' + had + (had === 1 ? " card found" : " cards found")
         + " a beat.</div>" : "")
@@ -6488,6 +6513,7 @@ document.getElementById("revgo").addEventListener("click", () => {
   if (!firstMoves.length){
     document.getElementById("settledtitle").textContent = added + " notes sorted"
       + (newProjects ? ", " + newProjects + " new project" + (newProjects > 1 ? "s" : "") + " created" : "");
+    document.getElementById("undo").hidden = false;
     document.getElementById("settledlines").innerHTML = "";
     settledBox.hidden = false;
   }
@@ -6563,6 +6589,71 @@ function outlineUnplaced(proj){
       structure: String(x.structure || "Earlier structure")
     }));
 }
+
+/* Outline is earned once, not policed forever. Existing prose proves the
+   writer already started, even if it predates this marker. The marker matters
+   after that: moving a card or changing structure must never lock somebody
+   away from work they were already allowed to begin. */
+function outlineHasWriting(proj){
+  const outline = (proj && proj.outline) || {};
+  if (outlineUnplaced(proj).length) return true;
+  return Object.entries(outline).some(([id, value]) => {
+    if (id.startsWith("__")) return false;
+    if (Array.isArray(value)) return value.some(x => String(x || "").trim());
+    return !!String(value || "").trim();
+  });
+}
+function outlineAccess(proj, knownFilled, knownTotal){
+  const slots = STRUCTURES[proj.structure].slots;
+  const total = knownTotal == null ? slots.length : knownTotal;
+  const filled = knownFilled == null
+    ? slots.filter(slot => proj.cards.some(c => c.slot === slot.id)).length
+    : knownFilled;
+  const started = !!((proj.outline || {}).__started) || outlineHasWriting(proj);
+  return {started, filled, total, remaining: Math.max(0, total - filled),
+          canOpen: started || filled === total};
+}
+function paintOutlineAccess(proj, filled, total){
+  const access = outlineAccess(proj, filled, total);
+  const button = document.getElementById("outlinebtn");
+  const locked = !access.canOpen;
+  button.classList.toggle("locked", locked);
+  button.dataset.locked = locked ? "true" : "false";
+  button.setAttribute("aria-label", locked
+    ? "Outline locked, " + access.remaining + " beat"
+        + (access.remaining === 1 ? " still needs" : "s still need") + " a card"
+    : "Outline");
+  button.setAttribute("data-tip", locked
+    ? access.remaining + " beat" + (access.remaining === 1 ? "" : "s")
+        + (access.remaining === 1 ? " still needs" : " still need")
+        + " a card before you can start the Outline."
+    : access.started
+      ? "View this project in story order and write under each beat."
+      : "Every beat has a card. Start the Outline.");
+}
+function tryOpenOutline(){
+  const proj = P();
+  const access = outlineAccess(proj);
+  if (!access.canOpen){
+    hideAll();
+    document.getElementById("undo").hidden = true;
+    document.getElementById("settledtitle").textContent = "Finish the board to start the Outline";
+    document.getElementById("settledlines").innerHTML =
+      '<div class="settled-line">Outline opens after all ' + access.total
+      + " beats have a card. "
+      + (access.remaining === 1 ? "One beat still needs a card."
+                                : access.remaining + " beats still need cards.")
+      + "</div>";
+    settledBox.hidden = false;
+    return;
+  }
+  proj.outline = proj.outline || {};
+  if (!proj.outline.__started){
+    proj.outline.__started = true;
+    save();
+  }
+  setView("outline");
+}
 function setOutlineUnplaced(proj, list){
   proj.outline = proj.outline || {};
   if (list.length) proj.outline.__unplaced = list;
@@ -6578,7 +6669,7 @@ function salvageStrandedOutline(proj){
   proj.outline = proj.outline || {};
   const valid = new Set(STRUCTURES[proj.structure].slots.map(x => x.id));
   const stranded = Object.keys(proj.outline)
-    .filter(id => id !== "__unplaced" && !valid.has(id));
+    .filter(id => !id.startsWith("__") && !valid.has(id));
   if (!stranded.length) return 0;
   const unplaced = outlineUnplaced(proj).slice();
   let moved = 0;
@@ -6696,9 +6787,7 @@ function renderOutline(){
         const ta = document.createElement("textarea");
         ta.className = "oprose";
         ta.value = text;
-        ta.placeholder = !last ? ""
-          : cards.length ? "What actually happens here?"
-          : "Nothing on this beat yet. Write it, or leave it open.";
+        ta.placeholder = !last ? "" : "What happens in this beat?";
 
         const bar = document.createElement("div");
         bar.className = "orow";
@@ -6896,7 +6985,7 @@ function renderRail(){
    So Board is a real item instead. The bar never moves, every view is one click
    from every other, and the blue one tells you where you are. */
 document.getElementById("boardbtn").addEventListener("click", () => setView("board"));
-document.getElementById("outlinebtn").addEventListener("click", () => setView("outline"));
+document.getElementById("outlinebtn").addEventListener("click", tryOpenOutline);
 
 /* =========================================================================
    OTHER NOTES: kept with the project, off the board. A story

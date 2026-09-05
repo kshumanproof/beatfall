@@ -658,3 +658,56 @@ names where it goes, and every completed exit produces the same Undo receipt.
 - Drag mechanics, card and note classification, passage storage, the Notes
   screen, empty-passage wording, and Outline access rules were not changed.
 - No database or API changes are required.
+
+## 5 September 2026: Outline starts after the board is complete
+
+### Requested
+
+Do not let a writer begin the Outline until every beat in the project's current
+structure has at least one card. Once the Outline has begun, later rearranging
+must not take it away.
+
+### Changes
+
+- A project that has never opened Outline now shows Outline as locked until
+  every beat has a card. The navigation label and tooltip state exactly how
+  many beats still need cards.
+- Clicking the locked control keeps the writer on the Board and shows a clear
+  explanation with the structure's total beat count and the number remaining.
+- The first successful Outline opening stores `outline.__started = true` in
+  the existing Outline JSON. From then on the project keeps Outline access even
+  if a card is moved, removed, or remapped by a structure change.
+- Existing projects with any saved Outline writing are treated as already
+  started, so this gate never strands earlier work.
+- Switching projects from Outline now commits visible boxes to their original
+  project before changing the active project. A locked destination opens on
+  its Board instead of inheriting the previous project's Outline or prose.
+- Every trailing Outline box now uses the same direct prompt: What happens in
+  this beat?
+- Structure conversion and stranded-prose recovery preserve the start marker
+  and ignore reserved `__` Outline keys when walking beat ids.
+
+### Testing
+
+- Confirmed a one-card Save the Cat project reported 14 beats remaining,
+  stayed on Board when Outline was clicked, and showed no irrelevant Undo.
+- Confirmed a complete 15-beat project opened Outline, created the start
+  marker, and rendered 15 matching What happens in this beat? prompts without
+  fabricating prose.
+- Moved a card off that completed board and confirmed its already-started
+  Outline still opened with one beat empty.
+- Confirmed an older one-card project with saved Outline prose opened despite
+  14 empty beats, preserved the prose exactly, and acquired the start marker.
+- Switched from that Outline to the incomplete project and confirmed the new
+  project landed on Board, remained locked, and received none of the earlier
+  project's prose.
+- Parsed the finished inline application script successfully.
+
+### Intentionally unchanged
+
+- This is a one-time start gate, not permanent completeness policing. Writers
+  may deliberately leave a beat open after Outline has begun.
+- Card placement, additional-card handling, filed-note handling, and passage
+  actions are unchanged.
+- No database schema or API payload change is required; the marker lives in the
+  existing Outline JSON.
