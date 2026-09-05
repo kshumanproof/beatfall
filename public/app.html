@@ -6099,6 +6099,24 @@ async function claudePlan(raw){
    have a board to cast. Returns a Map of note index to beat id, and an entry
    whose value is null means the reader looked at that note again and took the
    beat back off it. */
+/* "Eli WANT: get through the weekend and keep the shop open." "Eli NEED: stop
+   treating independence like dignity."
+
+   A writer sets these down as headings with a colon, and they are the truest
+   sentences in the file, which is exactly why they keep getting cast. The WANT
+   line answers a beat called Who, and What They Want more directly than any
+   scene could. It is still not a scene. It is the writer telling the reader
+   about the character, and on the board it is a card nobody can shoot.
+
+   Asked in the prompt twice and cast anyway both times, so it is a rule here
+   instead. These lines belong in the brief and on the character sheet, which is
+   where the first pass already puts them. */
+const STATEMENT = /\b(?:want|needs?|arc|goal|flaw|theme|voice|tone|backstory|premise)\s*:/i;
+function isStatement(text){
+  const t = String(text).trim();
+  return STATEMENT.test(t.slice(0, 60));
+}
+
 async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   const out = new Map();
   const idx = [];
@@ -6110,6 +6128,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     // reader put Eli's bio on the board once already; this is the floor under
     // that rule rather than another sentence asking it not to.
     if (r.k === "character" || r.k === "rule" || r.k === "research") return;
+    if (isStatement(n.text)) return;
     idx.push(i);
   });
   if (!idx.length || idx.length > 90) return out;
@@ -6124,78 +6143,145 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     + (taken[x.id] ? "  [already set by the writer: "
         + taken[x.id].replace(/\s+/g, " ").slice(0, 70) + "]" : "")).join("\n");
 
-  let data = null;
-  try {
-    data = await ask(
+  const prompt =
       "You are casting a screenwriter's beat board. Every beat below is a part, "
-      + "and the notes are the people auditioning. Do not rewrite any note and do "
-      + "not invent one.\n\n"
-      + "STRUCTURE: " + S.label + "\n\n"
-      + "THE BEATS, and what each one requires:\n" + beats + "\n\n"
-      + "THE BOARD as it stands:\n" + board + "\n\n"
-      + "THE NOTES, by number:\n" + sheet + "\n\n"
-      + "For every beat that is not already set by the writer, name the ONE note "
-      + "that best satisfies it, or null. Name the runner up too, if a second "
-      + "note was seriously in contention for that beat.\n\n"
-      + "How to choose:\n"
-      + "- Compare the candidates against each other, not against the empty slot. "
-      + "The question is which note is the best of these for this beat, never "
-      + "whether a note could work here.\n"
-      + "- A note may be named for at most one beat. If two beats both want it, "
-      + "give it to the one it fits better and leave the other empty or take the "
-      + "next best.\n"
-      + "- Null is a real answer and often the right one. A beat with nothing "
-      + "that truly satisfies it shows the writer a hole, which is worth more "
-      + "than a card that half fits.\n"
-      + "- How a note is written has no bearing: a shot, an image, a line of "
-      + "dialogue or a clue can all be the best candidate for a beat.\n"
-      + "- A description of a person is never a candidate for any beat, however "
-      + "well it answers a beat about who somebody is.\n"
-      + "- A bare statement of what somebody wants or needs is not a scene either, "
-      + "however exactly it answers a beat about wanting. \"WANT: get through the "
-      + "weekend and keep the shop open\" is the writer telling you about the "
-      + "character. The beat wants the moment that SHOWS it.\n"
-      + "- Beats out of reach of this file stay empty. Most files do not fill a "
-      + "whole board and are not supposed to.\n\n"
-      + "Reply with JSON only, one row per beat, every beat accounted for. n is the "
-      + "note that takes the beat, alt the runner up, c how sure you are of n:\n"
-      + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"alt\":null,\"c\":85}]}");
-  } catch (e) {
-    if (e && e.code === "cancelled") throw e;
-    return out;                                  // the batch pass stands
-  }
+    + "and the notes are the people auditioning. Do not rewrite any note and do "
+    + "not invent one.\n\n"
+    + "STRUCTURE: " + S.label + "\n\n"
+    + "THE BEATS, and what each one requires:\n" + beats + "\n\n"
+    + "THE BOARD as it stands:\n" + board + "\n\n"
+    + "THE NOTES, by number:\n" + sheet + "\n\n"
+    + "For every beat that is not already set by the writer, name the ONE note "
+    + "that best satisfies it, or null. Name the runner up too, if a second "
+    + "note was seriously in contention for that beat.\n\n"
+    + "How to choose:\n"
+    + "- Compare the candidates against each other, not against the empty slot. "
+    + "The question is which note is the best of these for this beat, never "
+    + "whether a note could work here.\n"
+    + "- A note may be named for at most one beat. If two beats both want it, "
+    + "give it to the one it fits better and leave the other empty or take the "
+    + "next best.\n"
+    + "- Null is a real answer and often the right one. A beat with nothing "
+    + "that truly satisfies it shows the writer a hole, which is worth more "
+    + "than a card that half fits.\n"
+    + "- How a note is written has no bearing: a shot, an image, a line of "
+    + "dialogue or a clue can all be the best candidate for a beat.\n"
+    + "- A description of a person is never a candidate for any beat, however "
+    + "well it answers a beat about who somebody is.\n"
+    + "- A bare statement of what somebody wants or needs is not a scene either, "
+    + "however exactly it answers a beat about wanting. \"WANT: get through the "
+    + "weekend and keep the shop open\" is the writer telling you about the "
+    + "character. The beat wants the moment that SHOWS it.\n"
+    + "- Beats out of reach of this file stay empty. Most files do not fill a "
+    + "whole board and are not supposed to.\n\n"
+    + "Reply with JSON only, one row per beat, every beat accounted for. n is the "
+    + "note that takes the beat, alt the runner up, c how sure you are of n:\n"
+    + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"alt\":null,\"c\":85}]}";
 
-  const rows = (data && data.beats) || [];
-  if (!rows.length) return out;
+  /* READ IT THREE TIMES AND KEEP WHAT AGREES.
+
+     This is the answer to the thing that made the last week feel like whack a
+     mole. The reader's placements move between runs on identical input, because
+     beat placement is a judgment on ambiguous material and it is answering at
+     the model's normal sampling temperature. Every round of "it put X in the
+     wrong beat, add a rule" was treating one roll of the dice as a defect, and
+     each rule moved the problem somewhere else.
+
+     So the variance becomes the measurement instead of the enemy. The same
+     question is asked three times, and a beat is only filled by a note that won
+     it in at least two of the three. What the readings disagree about is, by
+     definition, the uncertain part of this file, and it goes to Set aside
+     carrying the beat it won once, where the writer settles it with one drag.
+
+     The confidence on the card is now a count of agreements rather than the
+     reader's opinion of itself, which the review sheets proved does not
+     separate its right answers from its wrong ones: on 5 September it was 92
+     per cent certain of the one placement in the file that was plainly wrong.
+     Two of three is 67. Three of three is 100. Those numbers mean something.
+
+     The three calls carry the same session id, so they are one charge to the
+     writer, and they run together so the wait is one call long. */
+  const READINGS = 3;
+  const replies = await Promise.all(
+    Array.from({length: READINGS}, () => ask(prompt).catch(e => {
+      if (e && e.code === "cancelled") throw e;
+      return null;
+    })));
+  const heard = replies.filter(r => r && Array.isArray(r.beats));
+  if (!heard.length) return out;                 // the batch pass stands
+
   const valid = new Set(S.slots.map(x => x.id));
-  const spoken = new Set();
-  // Everything it looked at starts with its beat taken away, so a note the
-  // casting call passed over cannot keep a place it won in the batch pass.
-  idx.forEach(i => out.set(i, {beat: null, alt: null, conf: 0}));
   /* Number(null) is 0, and 0 is a real note: the first line of the file. So a
      beat answered null, which is the answer we most want it to be free to give,
      would have quietly taken whatever the writer typed first. Read these fields
      as numbers only when they actually are numbers. */
   const num = v => typeof v === "number" && Number.isInteger(v) ? v : -1;
-  rows.forEach(r => {
-    const id = r && r.id;
-    const n = num(r && r.n);
-    if (!valid.has(id) || taken[id] || spoken.has(id)) return;
-    if (idx.indexOf(n) < 0) return;
-    if ((out.get(n) || {}).beat) return;         // one note, one beat
-    spoken.add(id);
-    out.set(n, {beat: id, alt: null,
-                conf: typeof r.c === "number" ? r.c : 0});
+
+  // votes[beat id][note number] = how many readings put that note there
+  const votes = {};
+  const runnerFor = {};
+  heard.forEach(reply => {
+    const spoken = new Set();
+    reply.beats.forEach(r => {
+      const id = r && r.id;
+      if (!valid.has(id) || taken[id] || spoken.has(id)) return;
+      const n = num(r && r.n);
+      if (idx.indexOf(n) >= 0){
+        spoken.add(id);
+        votes[id] = votes[id] || {};
+        votes[id][n] = (votes[id][n] || 0) + 1;
+      }
+      const a = num(r && r.alt);
+      if (idx.indexOf(a) >= 0 && runnerFor[a] === undefined) runnerFor[a] = id;
+    });
   });
-  /* The runner up, in a second pass so a note cannot be recorded as nearly
-     winning a beat it actually won, or one that went to somebody else first. */
-  rows.forEach(r => {
-    const id = r && r.id;
-    const a = num(r && r.alt);
-    if (!valid.has(id) || idx.indexOf(a) < 0) return;
+
+  // Two of three, or on a partial outage whatever a majority of what came back
+  // means. One reading alone is still better than the batch pass guessing.
+  const need = heard.length >= 3 ? 2 : 1;
+
+  // Everything it looked at starts with its beat taken away, so a note the
+  // casting call passed over cannot keep a place it won in the batch pass.
+  idx.forEach(i => out.set(i, {beat: null, alt: null, conf: 0, split: false}));
+
+  const settled = [];
+  Object.keys(votes).forEach(id => {
+    const tally = votes[id];
+    const best = Object.keys(tally)
+      .sort((a, b) => tally[b] - tally[a] || Number(a) - Number(b))[0];
+    if (best === undefined) return;
+    settled.push({id, n: Number(best), v: tally[best]});
+  });
+  // A beat with more agreement is settled first, so a note two readings agree
+  // about cannot lose its place to one a single reading preferred elsewhere.
+  settled.sort((a, b) => b.v - a.v);
+  const spokenFor = new Set();
+  settled.forEach(({id, n, v}) => {
+    if (v < need || spokenFor.has(id)) return;
+    const cur = out.get(n);
+    if (!cur || cur.beat) return;                // one note, one beat
+    spokenFor.add(id);
+    out.set(n, {beat: id, alt: null, split: false,
+                conf: Math.round(v / heard.length * 100)});
+  });
+
+  /* What the readings could not agree about. A note one reading in three put on
+     a beat is the honest middle of this file: not confident enough for the
+     board, far too considered for the note shelf. */
+  settled.forEach(({id, n, v}) => {
+    if (v >= need) return;
+    const cur = out.get(n);
+    if (!cur || cur.beat || cur.alt) return;
+    out.set(n, {beat: null, alt: id, conf: 0, split: true});
+  });
+
+  /* The runner up, last, so a note cannot be recorded as nearly winning a beat
+     it actually won or one the readings already split over. */
+  Object.keys(runnerFor).forEach(k => {
+    const a = Number(k);
     const cur = out.get(a);
     if (!cur || cur.beat || cur.alt) return;
-    out.set(a, {beat: null, alt: id, conf: 0});
+    out.set(a, {beat: null, alt: runnerFor[k], conf: 0, split: false});
   });
   return out;
 }
@@ -6411,6 +6497,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
       full,
       conf,
       declared: !!(n.declared || r.d),
+      // The casting call scores the note it picks, never the one it passes
+      // over, so a runner up has no figure and the review sheet must not
+      // invent one. It was printing "only 0% sure" against notes the reader
+      // had actually thought hard about.
+      runner: !!runnerUp,
+      // Told apart on the sheet, because they are different facts about the
+      // note: one reading in three chose it, versus every reading agreed it
+      // came second.
+      split: !!(chosen && chosen.split),
       /* Everything arrives ticked. Errands used to come in unticked, and that
          was the app deciding on the writer's behalf that a line of their file
          was worthless, while the counter quietly showed a smaller number than
@@ -6526,7 +6621,10 @@ function renderReview(){
         // should be told the board pushed back rather than the reader.
         : n.full  ? "→ Set aside · " + nm(n.full) + " already has "
                     + MAX_PER_BEAT + " cards"
-        : n.maybe ? "→ Set aside · possibly " + nm(n.maybe) + ", only " + n.conf + "% sure"
+        : n.maybe ? "→ Set aside · possibly " + nm(n.maybe)
+                    + (n.split  ? ", one reading in three put it there"
+                    :  n.runner ? ", the runner up for it"
+                                : ", only " + n.conf + "% sure")
         :           "→ Set aside, an event but not clearly any one beat";
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"

@@ -1183,3 +1183,85 @@ Every casting assertion passes, plus two new ones: no placement is reported at
 nought per cent, and the runner up appears in Set aside labelled with the beat
 it nearly won. The fallback path still holds: with the casting call made to
 fail, the batch result stands.
+
+## 5 September 2026: Asked twice, ignored twice, so now it is a rule
+
+### The WANT line
+
+"Eli WANT: get through the weekend, take the money, keep the shop open" was cast
+into Who, and What They Want again, at 78 per cent, one run after the prompt was
+told by name not to do that. Asked twice and ignored twice is the signal to stop
+asking. `isStatement()` now bars any note carrying a labelled WANT, NEED, ARC,
+GOAL, FLAW, THEME, VOICE, TONE, BACKSTORY or PREMISE from auditioning at all,
+the same way a character sketch is barred.
+
+It is worth writing down why the reader keeps reaching for it. These lines are
+the truest sentences in the file, and the WANT line answers a beat called Who,
+and What They Want more directly than any scene ever could. It is still not a
+scene. It is the writer talking about the character, and on the board it is a
+card nobody can shoot. The first pass already puts both lines where they belong,
+in the brief and on the character sheet.
+
+### "only 0% sure" on the runner ups
+
+The casting call scores the note it picks and never the one it passes over, so a
+runner up has no figure, and the review sheet was printing "only 0% sure" beside
+notes the reader had actually thought hard about. Three of the five notes in Set
+aside read that way. A runner up is marked as one now and the row says "possibly
+The Disruption, the runner up for it" instead of quoting a number that was never
+measured.
+
+### Testing
+
+The casting suite now includes a reader that reaches for the WANT line at 78 per
+cent and is refused, and a check that nothing in Set aside is described as
+nought per cent sure. Everything else still passes, including the fallback with
+the casting call unavailable.
+
+## 5 September 2026: Read it three times and keep what agrees
+
+### What was actually wrong
+
+Six rounds of "it put that note on the wrong beat, add a rule". Each rule was
+defensible, each one helped the note it was written for, and each one shoved
+something else somewhere new. The pattern was the tell. Placement is a judgment
+on ambiguous material answered at the model's normal sampling temperature, so it
+moves between runs on identical input. Every one of those rounds was treating a
+single roll of the dice as a defect.
+
+Some were real defects and stay fixed: the kind gate in code, the ordering of b
+and k, `Number(null)` meaning note zero, the 0% on the review sheet, headings,
+bios and WANT lines. The rest was chasing variance with rules, which cannot work,
+because a rule that catches this run's mistake has no opinion about next run's.
+
+### The change
+
+The casting call asks the same question three times and keeps what agrees. A
+beat is only filled by a note that won it in at least two of the three readings.
+The three calls carry the same session id, so they are one charge to the writer,
+and they run together so the wait is one call long.
+
+What the readings disagree about is, by definition, the uncertain part of the
+file. A note one reading in three put on a beat goes to Set aside carrying that
+beat, and the sheet says "one reading in three put it there" rather than quoting
+a figure. A beat the readings split over is left open, which is the honest
+answer: two good candidates and no way to choose is exactly what a hole in the
+board is for.
+
+The confidence on a card is now a count of agreements. Two of three is 67, three
+of three is 100. The review sheets proved the reader's own figure does not
+separate its right answers from its wrong ones: on 5 September it was 92 per cent
+certain of the single plainly wrong placement in the file. A count of agreements
+is a measurement.
+
+Partial outage degrades rather than fails: with fewer than three replies a simple
+majority of what came back is used, and with none the batch pass stands.
+
+### Testing
+
+Three readings that agree, disagree and split on purpose. Two of three settles a
+beat at 67, three of three at 100, a beat the readings split over is left open
+with both candidates in Set aside named for it, a note no reading chose is set
+aside, the WANT line is refused however hard a reading reaches for it, the board
+is read exactly three times, and nothing anywhere is described as nought per cent
+sure. The fallback with the casting call unavailable still holds.
