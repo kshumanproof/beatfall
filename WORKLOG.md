@@ -1265,3 +1265,67 @@ with both candidates in Set aside named for it, a note no reading chose is set
 aside, the WANT line is refused however hard a reading reaches for it, the board
 is read exactly three times, and nothing anywhere is described as nought per cent
 sure. The fallback with the casting call unavailable still holds.
+
+## 5 September 2026: Two ways to start the next one
+
+Eleven scripts on the shelf, and New project lived at the top of the page and
+nowhere else, so starting a twelfth meant scrolling all the way back.
+
+Not a floating button. That is a phone convention, it would be the only piece of
+furniture on that page that hovers over the work, and on a short window it sits
+on top of the cards it is meant to help you add to. This page reads like a table
+with index cards on it and nothing else on it floats.
+
+- The "Your scripts" row parks under the masthead when you scroll past it, at
+  76px, the same offset the structure bar uses. It already holds the label, the
+  rule and the button, so the button comes along for free and the section label
+  stays readable. Static again under 700px, where the shelf is one column and
+  the header would eat the screen.
+- One blank card at the end of the shelf, dashed, the way an empty beat is drawn
+  on the board, reading New project. It is what the next script looks like
+  before it is written, and it means a writer who has just finished reading
+  everything they own does not have to go anywhere to start another. One card
+  for the whole shelf, never one per section.
+
+### Testing
+
+Eleven projects across three media: the header is sticky at 76px with ground
+under it so cards pass behind rather than through, exactly one blank card exists
+and it is the last on the shelf, and scrolled to the very bottom both ways in
+are on screen at once.
+
+## 5 September 2026: Two doors to the PDF, neither of them locked
+
+Kris could not find Save as PDF on his own board. It was the third project
+action inside a menu whose main job is switching projects, so on an eleven
+script account it sat under a scrolling list of every title he owns. It is also
+the only thing in this app that takes a writer's work OUT of it, and it was
+harder to reach than "See an example".
+
+- Moved to the top of the action group, above Project details.
+- The line that says "every beat has a card" now offers it. That sentence was
+  doing nothing but congratulating the writer at the exact moment they want the
+  board on paper, so it is the door. No new control, and it appears only when
+  there is something to celebrate. An unfinished board keeps saying what is
+  missing and offers nothing.
+
+### Not locked, on purpose
+
+The question was whether to gate the PDF behind a complete board the way Outline
+is gated. No, and the two are not alike. The Outline lock earns itself: an
+outline of eight empty prompts is not an outline, and that writing surface
+depends on the spine being settled. Export is different. It is how work leaves
+the app, onto a table or to a collaborator, and gating it behind a completeness
+score is the app holding a writer's own material against a metric it invented.
+It would also contradict the footer.
+
+There is a craft argument too. The PDF already prints empty beats as gaps.
+Spreading a half-built board on a table with the holes showing is one of the
+best uses of the feature, not a degraded one.
+
+### Testing
+
+Save as PDF is the first of the project actions and sits above Project details.
+A finished board carries the door in its own sentence and pressing it produces
+the file. A half-built board says what is missing and offers no door, while the
+menu item stays present and enabled.

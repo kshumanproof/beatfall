@@ -422,6 +422,12 @@ select:focus{border-color:var(--blue);outline:none}
 .meter-fill{height:100%;background:var(--blue);transition:width .5s cubic-bezier(.2,.7,.3,1)}
 .meter-label{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .gapcount{font-size:11.5px;color:var(--gold);font-weight:600}
+/* Set in the sentence it sits in rather than as a control bolted beside it. */
+.gcpdf{
+  padding:0;font-size:11.5px;font-weight:600;color:var(--gold);
+  text-decoration:underline;text-underline-offset:2px;
+}
+.gcpdf:hover,.gcpdf:focus-visible{color:var(--gold-ink);outline:none}
 .structure-progress .gapcount{grid-column:1/-1;text-align:right}
 @media (max-width:900px){
   .structurebar-in{grid-template-columns:1fr;gap:10px}
@@ -1269,7 +1275,25 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .bigbtn.solid:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
 .bigbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
-.slate-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
+/* THE SHELF HEADER COMES WITH YOU.
+
+   New project lived at the top of the page and nowhere else, so a writer with
+   eleven scripts had to scroll all the way back up to start a twelfth. The
+   answer is not a button hovering over the cards: this page is meant to read
+   like a table with index cards on it, and nothing else on it floats. The row
+   that already holds the label, the rule and the button simply parks under the
+   masthead when you scroll past it. No new furniture, and the section label
+   stays readable, so you always know what you are looking at.
+
+   76px is the masthead's height, the same number the structure bar uses. The
+   negative top margin and the padding give it a band of ground to sit on, so
+   cards pass underneath it rather than touching it. */
+.slate-head{
+  display:flex;align-items:center;gap:14px;margin-bottom:26px;flex-wrap:wrap;
+  position:sticky;top:76px;z-index:30;
+  background:var(--ground);margin-top:-10px;padding:14px 0 12px;
+}
+@media (max-width:700px){ .slate-head{position:static;margin-top:0;padding:0} }
 .slate-h{
   font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--ink-4);margin:0;
@@ -1312,6 +1336,19 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   display:flex;flex-direction:column;gap:14px;transition:box-shadow .14s ease,transform .14s ease;
 }
 .pcard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
+/* An empty card, drawn the way an empty beat is drawn on the board: a dashed
+   hairline where the paper would be. It is the only card on the shelf with no
+   shadow, because there is nothing on it yet to cast one. */
+.newcard{
+  align-items:center;justify-content:center;gap:9px;
+  background:none;border:1px dashed var(--rule);box-shadow:none;
+  color:var(--blue);cursor:pointer;font-family:var(--sans);
+  font-size:13px;font-weight:500;min-height:150px;
+}
+.newcard:hover{
+  border-color:var(--blue);background:var(--blue-soft);
+  box-shadow:none;transform:none;
+}
 /* Two lines of headroom, whether the title needs them or not. Titles wrap at
    three-across ("THE COLLECTION PLATE" does), and a card whose title took two
    lines used to push its grade, its bar and its buttons a line below every
@@ -1863,15 +1900,20 @@ footer{
           New project</button>
 
         <div class="popsep"></div>
+        <!-- First in the group, because it is the only thing in this app that
+             takes a writer's work OUT of it. It was third, under a list of
+             every project they own, and Kris could not find it on his own
+             board. Nothing that hands somebody their own material back should
+             be harder to reach than "See an example". -->
+        <button class="popitem" id="pdf" data-tip="Download this board as a PDF organized by act.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
+          <span class="lbl">Save as PDF</span></button>
         <button class="popitem" id="renproj" data-tip="Edit this project's title, format, logline, protagonist, and genre.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg>
           Project details</button>
         <button class="popitem" id="dump" data-tip="Paste notes or add .txt and .md files.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4 2.6h8v10.8H4z"/><path d="M6 5.6h4M6 8h4M6 10.4h2.6"/></svg>
           Paste in your notes</button>
-        <button class="popitem" id="pdf" data-tip="Download this board as a PDF organized by act.">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
-          <span class="lbl">Save as PDF</span></button>
         <button class="popitem" id="loadsample" data-tip="Add nine sample notes to this empty board.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2v3.4l2.2 1.3"/></svg>
           See an example</button>
@@ -3575,9 +3617,31 @@ function render(justPlaced){
   const holes = S.slots.filter(s => !proj.cards.some(c => c.slot === s.id) && isGap(s)).length;
   const gc = document.getElementById("gapcount");
   const undecided = S.slots.filter(x => proj.cards.filter(c => c.slot === x.id && c.declared).length > 1).length;
+  gc.textContent = "";
   if (undecided)         gc.textContent = undecided + " beat" + (undecided === 1 ? "" : "s")
                                         + " with more than one version";
-  else if (filled === total)  gc.textContent = "every beat has a card";
+  else if (filled === total){
+    /* THE LINE THAT CONGRATULATES YOU BECOMES THE DOOR OUT.
+
+       "every beat has a card" was doing nothing but saying well done, and Save
+       as PDF was buried in a menu behind a list of every project the writer
+       owns. So the sentence they are already reading at the moment they finish
+       is the thing that hands them the board on paper. No new control, and it
+       only appears when it has something to celebrate.
+
+       Note what this is NOT: the PDF is never locked. A half-built board prints
+       its holes, and spreading that on a table is one of the best uses of the
+       feature, not a degraded one. Export is how work leaves the app, and it is
+       never conditional on a score. */
+    gc.textContent = "every beat has a card. ";
+    const go = document.createElement("button");
+    go.className = "linky gcpdf";
+    go.type = "button";
+    go.textContent = "Save as PDF";
+    go.setAttribute("data-tip", "Download this board as a PDF organized by act.");
+    go.addEventListener("click", exportPDF);
+    gc.appendChild(go);
+  }
   else if (holes)        gc.textContent = holes + " " + (holes === 1 ? "gap" : "gaps") + " between what you have";
   else                   gc.textContent = (total - filled) + " beats still empty";
   paintOutlineAccess(proj, filled, total);
@@ -8115,6 +8179,25 @@ function renderSlate(){
     }
     g.items.forEach(card);
   });
+
+  /* THE NEXT BLANK CARD.
+
+     The other half of the same problem, and the better half. At the end of
+     everything you own there is a card shaped like all the others, dashed and
+     empty, which is what the next one looks like before you write it. A writer
+     who has just finished reading the shelf does not have to go anywhere to
+     start another. */
+  const blank = document.createElement("button");
+  blank.className = "pcard newcard";
+  blank.type = "button";
+  blank.setAttribute("data-tip", "Create a project.");
+  blank.innerHTML =
+      '<svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.4" stroke-linecap="round" aria-hidden="true">'
+    + '<path d="M8 3.4v9.2M3.4 8h9.2"/></svg>'
+    + "<span>New project</span>";
+  blank.addEventListener("click", () => openIntake("new"));
+  into.appendChild(blank);
 
   function card(p){
     const c = coverage(p);
