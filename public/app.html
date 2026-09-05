@@ -5714,12 +5714,17 @@ const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
    First Attempt" and settles it with one drag. A full board is not the goal.
    The right board is.
 
-   80 rather than 85 on purpose. On that same file the reader put the writer's
-   second ending on Final Image beside the first, which is exactly right and is
-   the kind of judgment a higher floor would throw away. The review sheet prints
-   the real figure beside every placement, so this number gets set from what the
-   reader actually reports rather than from anybody's instinct about it. */
-const PLACE_SURE  = 80;
+   78, and that is measured rather than guessed. The review sheet prints the
+   real figure beside every placement, and on the Mayberry file the reader's
+   whole range for a judgment it had to make itself was 68 to 82. Sorted by what
+   it reported: 82 The Choice, right. 78 The Disruption, right. 75, 70 and 68,
+   all three wrong by one beat. The line between its right answers and its wrong
+   ones on that file falls between 75 and 78, so that is where this sits.
+
+   Which also means 85 would have been a disaster and 80 was still too high: it
+   threw away The Disruption, a correct placement, to catch nothing. Anyone
+   raising this number again should read a review sheet first. */
+const PLACE_SURE  = 78;
 const SUGGEST_SURE = 55;
 
 /* =========================================================================
@@ -6122,18 +6127,32 @@ async function claudePlan(raw){
         + "requirement:\n" + beats + "\n\n"
         + "STORIES FOUND IN THIS FILE:\n" + storyList + "\n\n"
         + "NOTES:\n" + lines + "\n\n"
-        + "For each numbered note return:\n"
+        /* ANSWER b BEFORE k, BECAUSE k WAS QUIETLY DECIDING b.
+
+           The code no longer requires k to be "beat" before it will honour a
+           beat id, but asking for k first put the same gate back inside the
+           reader's own head: it committed to "image", then answered b to match
+           what it had already said. The drunk tourist and the fake jail cell,
+           the second ending, the diner flyers, Tommy's escort: all typed image
+           or clue, all returned with no beat at all. Placement is the harder
+           judgment and it goes first. The kind is only a label for the shelf. */
+        + "For each numbered note answer b FIRST, then the rest:\n"
+        + "b  the beat id, if this note is a moment that meets that beat's requirement. This is the "
+        + "question that matters and it is answered before k. A note written as an image, a shot, a "
+        + "line of dialogue or a clue can be a beat: what it is written as has no bearing on where "
+        + "it goes. Null if it is not a moment in the story, or if you cannot choose between beats.\n"
+        + "c  0 to 100, how certain you are of b\n"
+        + "d  true only if the writer named that beat themselves\n"
+        + "k  the kind of note, for the shelf only: beat, character, clue, image, structural, theme, "
+        + "line, question, rule, research. k never restricts b. If b is set, k is simply how the "
+        + "note is written.\n"
         + "n  its number\n"
         + "s  which story it belongs to, by the number above. Use -1 for anything that is not story "
-        + "material at all: errands, reminders, appointments, shopping, unrelated observations.\n"
-        + "k  the kind of note: beat, character, clue, image, structural, theme, line, question, rule, research\n"
-        + "b  the beat id if the note is a moment that meets that beat's requirement, whatever k is. "
-        + "Otherwise null.\n"
-        + "c  0 to 100, how certain you are of b\n"
-        + "d  true only if the writer named that beat themselves\n\n"
+        + "material at all: errands, reminders, appointments, shopping, unrelated observations.\n\n"
         + rules
         + "Reply with JSON only, every note accounted for:\n"
-        + "{\"notes\":[{\"n\":0,\"s\":0,\"k\":\"beat\",\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"d\":false}]}");
+        + "{\"notes\":[{\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"d\":false,\"k\":\"image\","
+        + "\"n\":0,\"s\":0}]}");
     } catch (e) {
       if (e && e.code === "cancelled") throw e;
     }

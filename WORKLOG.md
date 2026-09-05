@@ -1028,3 +1028,55 @@ fits it exactly.
   "possibly The Cost" instead of sitting on the note shelf.
 - Headings, outline, gate, board trace, touch pricing, save sync, save payload,
   board placement, import rename guard and PDF all pass.
+
+## 5 September 2026: The review sheet settles two arguments
+
+### The numbers, read off a real run
+
+Kris sent the review sheet for the Mayberry file. The reader's entire range for
+a judgment it had to make itself was 68 to 82. Sorted by what it reported:
+
+    82  The Choice          right
+    78  The Disruption      right
+    75  Who and What...     wrong, that note is The First Attempt
+    70  The Cost            wrong, that note is The Turn
+    68  The Turn            wrong, that note is a request for a scene
+
+The line between its right answers and its wrong ones falls between 75 and 78.
+
+That settles the floor and it corrects me twice. 85 would have been a disaster:
+this reader never reports 85 for its own judgment on a file like this. 80, which
+shipped an hour ago, was still too high, because it threw away The Disruption, a
+correct placement, and caught nothing in exchange. `PLACE_SURE` is 78, measured.
+Anyone moving it again should read a review sheet first.
+
+### The kind was still deciding the beat, inside the reader's head
+
+Removing the code gate was necessary and not sufficient. The prompt asked for
+the kind before the beat id, so the reader committed to "image", then answered
+the beat id consistently with what it had just said. The fake jail cell, the
+second ending, the diner flyers and Tommy's escort all came back typed image or
+clue with no beat at all. Not blocked by us this time. Never offered.
+
+The classifier now asks for b FIRST, says in as many words that a note written
+as an image, a shot, a line or a clue can be a beat and that what it is written
+as has no bearing on where it goes, and describes k as a label for the shelf
+that never restricts b. The example reply carries k "image" with a beat id, so
+the shape of the answer says the same thing as the words.
+
+### Testing
+
+- Replayed the exact figures from that review sheet against this build: Hook and
+  Final Image by heading, The Disruption at 78 and The Choice at 82 placed, and
+  the three wrong ones in Set aside carrying their guesses. Four of eight, all
+  four right, three visible hints. That is the shape the product promises.
+- Headings, outline, gate, board trace, touch pricing, save sync, save payload,
+  board placement, import rename guard all pass.
+
+### Still open
+
+Pass one is doing very well: logline, protagonist, genre, tone, setting and
+format all correct, four people with roles. But the two lines it read those from
+("I'm thinking of calling this THE MIDGET OF MAYBERRY", "Short film. Southern
+dark comedy...") also land on the note shelf as structural ideas. Once a line
+has been used as a project detail it should not also be filed as a note.
