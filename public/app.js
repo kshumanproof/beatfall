@@ -62,8 +62,198 @@
     return BF.session;
   };
 
+  // ------------------------------------------------------ active browser --
+  // This is an installation id, not an IP address or a hardware fingerprint.
+  // Tabs in the same browser profile share it, so they are one device. Another
+  // browser profile or computer gets a different id and takes over when it
+  // opens a protected Beatfall page.
+  const DEVICE_KEY = 'beatfall.web-device';
+  let deviceTimer = null, deviceChannel = null;
+  let deviceChecking = false, deviceListeners = false;
+
+  BF.deviceId = function () {
+    try {
+      let value = localStorage.getItem(DEVICE_KEY);
+      if (!value) {
+        value = 'web_' + rid();
+        localStorage.setItem(DEVICE_KEY, value);
+      }
+      return value;
+    } catch (e) {
+      // localStorage can be disabled. Keep one id for this open page so the
+      // person receives a useful error instead of sending an empty header.
+      if (!BF._pageDeviceId) BF._pageDeviceId = 'web_' + rid();
+      return BF._pageDeviceId;
+    }
+  };
+
+  async function deviceRequest(method) {
+    const t = await token();
+    if (!t) throw Object.assign(new Error('signed out'), { status: 401 });
+    const r = await fetch('/api/session', {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + t,
+        'X-Beatfall-Device': BF.deviceId()
+      }
+    });
+    let body = {};
+    try { body = await r.json(); } catch (e) {}
+    if (r.status === 401) { location.href = '/'; throw new Error('signed out'); }
+    if (!r.ok) {
+      const err = new Error(body.message || body.error || 'request failed');
+      err.code = body.error; err.status = r.status; err.body = body;
+      throw err;
+    }
+    return body;
+  }
+
+  function stopDeviceWatch() {
+    clearInterval(deviceTimer);
+    deviceTimer = null;
+    if (deviceChannel && sb && typeof sb.removeChannel === 'function') {
+      try { sb.removeChannel(deviceChannel); } catch (e) {}
+    }
+    deviceChannel = null;
+    BF.deviceActive = false;
+  }
+
+  BF.showDeviceReplaced = function () {
+    if (document.getElementById('bf-device-ended')) return;
+    stopDeviceWatch();
+
+    const el = document.createElement('div');
+    el.id = 'bf-device-ended';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.innerHTML =
+        '<div class="bf-ended-card">'
+      +   '<div class="bf-ended-brand">' + MARK
+      +     '<span class="bf-ended-word">Beat<span>fall</span></span></div>'
+      +   '<p class="bf-ended-tag">Where your story falls into place.</p>'
+      +   '<h1>Beatfall is open on another device</h1>'
+      +   '<p>This browser is no longer the active editing session. Anything it already saved is safe.</p>'
+      +   '<p>To work here instead, make this browser active. Beatfall will close on the other computer.</p>'
+      +   '<button type="button" id="bf-use-here">Use Beatfall here instead</button>'
+      +   '<button type="button" class="bf-ended-link" id="bf-signout-here">Sign out here</button>'
+      + '</div>';
+
+    const css = document.createElement('style');
+    css.id = 'bf-device-ended-style';
+    css.textContent = [
+      '#bf-device-ended{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;',
+      'padding:24px;background:rgba(31,27,22,.72);font-family:var(--sans,Instrument Sans,system-ui,sans-serif);',
+      'color:var(--ink,#2B2620);-webkit-font-smoothing:antialiased}',
+      '.bf-ended-card{width:min(100%,500px);box-sizing:border-box;padding:34px 36px 30px;',
+      'background:var(--card,#FDFBF6);border:1px solid var(--rule,#DED6C8);border-radius:12px;',
+      'box-shadow:0 22px 70px rgba(20,16,10,.3)}',
+      '.bf-ended-brand{display:flex;align-items:center;gap:3px;font-family:var(--serif,Newsreader,Georgia,serif);',
+      'font-size:31px;font-weight:650;letter-spacing:-.025em;line-height:1}',
+      '.bf-ended-brand svg{width:29px;height:40px;flex:0 0 auto}',
+      '.bf-ended-word{color:var(--ink,#2B2620)}',
+      '.bf-ended-word>span{color:var(--blue,#2C5C8F)}',
+      '.bf-ended-tag{margin:5px 0 27px!important;font-family:var(--serif,Newsreader,Georgia,serif);',
+      'font-size:14px!important;font-style:italic;color:var(--ink-3,#726859)!important}',
+      '#bf-device-ended h1{margin:0 0 14px;font-family:var(--serif,Newsreader,Georgia,serif);',
+      'font-size:29px;line-height:1.15;font-weight:600;letter-spacing:-.015em}',
+      '#bf-device-ended p{font-size:15px;line-height:1.55;color:var(--ink-2,#5C5349);margin:0 0 12px}',
+      '#bf-use-here{display:block;width:100%;margin:24px 0 7px;padding:12px 16px;border:0;',
+      'border-radius:5px;background:var(--blue,#2C5C8F);color:#fff;font:600 14px var(--sans,system-ui,sans-serif);cursor:pointer}',
+      '#bf-use-here:disabled{opacity:.58;cursor:wait}',
+      '.bf-ended-link{display:block;margin:4px auto 0;padding:8px;border:0;background:none;',
+      'color:var(--ink-3,#726859);font:500 13px var(--sans,system-ui,sans-serif);text-decoration:underline;',
+      'text-underline-offset:3px;cursor:pointer}',
+      '@media(max-width:560px){.bf-ended-card{padding:28px 23px 24px}#bf-device-ended h1{font-size:25px}}'
+    ].join('\n');
+    document.head.appendChild(css);
+    document.body.appendChild(el);
+
+    document.getElementById('bf-use-here').addEventListener('click', async function () {
+      const button = this;
+      button.disabled = true;
+      button.textContent = 'Opening Beatfall here…';
+      try {
+        await BF.claimWebDevice();
+        location.href = '/app';
+      } catch (e) {
+        button.disabled = false;
+        button.textContent = 'Try again';
+      }
+    });
+    document.getElementById('bf-signout-here').addEventListener('click', () => BF.signOut());
+  };
+
+  BF.showDeviceSetupFailure = function () {
+    if (document.getElementById('bf-device-setup')) return;
+    const el = document.createElement('div');
+    el.id = 'bf-device-setup';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:24px;background:#F1EEE7;color:#2B2620;font-family:system-ui,sans-serif';
+    el.innerHTML = '<div style="max-width:480px;background:#FDFBF6;border:1px solid #DED6C8;border-radius:10px;padding:32px">'
+      + '<h1 style="font:600 28px Georgia,serif;margin:0 0 12px">Beatfall could not open on this device</h1>'
+      + '<p style="line-height:1.55;color:#5C5349;margin:0 0 22px">Your work is safe. Refresh the page and try again.</p>'
+      + '<button type="button" onclick="location.reload()" style="width:100%;padding:12px;border:0;border-radius:5px;background:#2C5C8F;color:white;font-weight:600;cursor:pointer">Refresh</button></div>';
+    document.body.appendChild(el);
+  };
+
+  BF.checkWebDevice = async function () {
+    if (!BF.deviceActive || deviceChecking) return;
+    deviceChecking = true;
+    try {
+      const result = await deviceRequest('GET');
+      if (!result.active) BF.showDeviceReplaced();
+    } catch (e) {
+      // A dropped connection is not evidence of another device. Protected API
+      // calls still enforce ownership while this quiet check waits for network.
+      if (e.status === 401) location.href = '/';
+    } finally { deviceChecking = false; }
+  };
+
+  function startDeviceWatch() {
+    BF.deviceActive = true;
+    clearInterval(deviceTimer);
+    // Realtime carries the normal takeover notice. This slow check is only a
+    // safety net for a browser or network that could not hold the live socket.
+    deviceTimer = setInterval(BF.checkWebDevice, 120000);
+
+    if (deviceChannel && sb && typeof sb.removeChannel === 'function') {
+      try { sb.removeChannel(deviceChannel); } catch (e) {}
+      deviceChannel = null;
+    }
+    const userId = BF.session && BF.session.user && BF.session.user.id;
+    if (userId && sb && typeof sb.channel === 'function') {
+      deviceChannel = sb.channel('bf-web-device-' + userId)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'id=eq.' + userId
+        }, function (change) {
+          const current = change && change.new && change.new.active_web_device_id;
+          if (BF.deviceActive && current && current !== BF.deviceId()) {
+            BF.showDeviceReplaced();
+          }
+        })
+        .subscribe();
+    }
+    if (!deviceListeners) {
+      window.addEventListener('focus', BF.checkWebDevice);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) BF.checkWebDevice();
+      });
+      deviceListeners = true;
+    }
+  }
+
+  BF.claimWebDevice = async function () {
+    const result = await deviceRequest('POST');
+    startDeviceWatch();
+    return result;
+  };
+
   BF.signOut = async function () {
-    await sb.auth.signOut();
+    stopDeviceWatch();
+    try { await deviceRequest('DELETE'); } catch (e) {}
+    // Sign out only this browser. A future signed-in mobile capture app must
+    // not lose its Supabase session because the writer left the web board.
+    await sb.auth.signOut({ scope: 'local' });
     location.href = '/';
   };
 
@@ -76,6 +266,12 @@
     // the signed-out destination and carries the same small-screen gate.
     if (BF.isSmallScreen()) return null;
     if (!session) { location.href = '/'; return null; }
+    try {
+      await BF.claimWebDevice();
+    } catch (e) {
+      BF.showDeviceSetupFailure();
+      return null;
+    }
     return session;
   };
 
@@ -91,12 +287,16 @@
       headers: {
         'Content-Type': 'application/json',
         ...(t ? { Authorization: 'Bearer ' + t } : {}),
+        ...(t ? { 'X-Beatfall-Device': BF.deviceId() } : {}),
         ...(options.headers || {})
       }
     });
     let body = null;
     try { body = await r.json(); } catch (e) { body = {}; }
     if (r.status === 401) { location.href = '/'; throw new Error('signed out'); }
+    if (r.status === 409 && (body.error === 'device_replaced' || body.error === 'device_required')) {
+      BF.showDeviceReplaced();
+    }
     if (!r.ok) { const err = new Error(body.message || body.error || 'request failed');
                  err.code = body.error; err.status = r.status; err.body = body; throw err; }
     return body;

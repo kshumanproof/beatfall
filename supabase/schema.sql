@@ -21,8 +21,30 @@ create table if not exists public.profiles (
   current_period_end     timestamptz,                          -- when Stripe next bills, or when access ends
   cancel_at_period_end   boolean not null default false,
   created_at          timestamptz not null default now(),
-  last_seen_at        timestamptz not null default now()
+  last_seen_at        timestamptz not null default now(),
+  -- One web-editing device at a time. The phone capture app does not use this
+  -- field because it appends notes and never writes a project board.
+  active_web_device_id text,
+  active_web_device_claimed_at timestamptz
 );
+
+-- Existing databases get the same two fields when this file is re-run.
+alter table public.profiles add column if not exists active_web_device_id text;
+alter table public.profiles add column if not exists active_web_device_claimed_at timestamptz;
+
+-- Send an ownership change to the previously active browser immediately.
+-- Row-level security below limits each signed-in client to its own profile.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime'
+       and schemaname = 'public'
+       and tablename = 'profiles'
+  ) then
+    alter publication supabase_realtime add table public.profiles;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------- projects --
 -- One row per script. The board is stored as JSON because the client already

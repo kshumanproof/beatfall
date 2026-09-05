@@ -1468,3 +1468,29 @@ crash cushion until one of those choices succeeds.
 Mobile capture does not use this save path. It appends separate incoming-note
 rows linked to a project, so a phone submission cannot conflict with or replace
 the board blob.
+
+## One active web device (4 Sep 2026)
+
+An account may edit Beatfall from one web browser installation at a time.
+`beatfall.web-device` is a random id stored in that browser's localStorage. It
+is deliberately not an IP address, cookie from a third party, or hardware
+fingerprint. Tabs in the same browser profile share the id and are one device;
+a different browser profile counts as another device.
+
+Every protected web page claims its id through `POST /api/session` after the
+Supabase session is restored. That value is stored in
+`profiles.active_web_device_id`. All other authenticated web endpoints compare
+the `X-Beatfall-Device` header with that value in `requireUser`, so the earlier
+browser loses server access the instant a newer browser claims the account.
+Supabase Realtime sends the profile change to the open earlier page, which then
+blocks itself with a choice to make that browser active again. Focus, returning
+to a visible tab, every protected request, and a slow two-minute heartbeat are
+fallbacks if the live connection drops. An offline or sleeping computer cannot
+redraw at that instant, but it is denied by the server and blocks as soon as it
+wakes or makes another request.
+
+Do not enforce this rule on the future mobile capture API. Mobile signs in to
+the same account but only appends incoming-note rows. Those endpoints must call
+`requireUser(req, { webDevice: false })`; opening the phone app must not close
+the desktop board. Do not reuse that exemption for any endpoint that reads,
+changes, or generates content for a web project.

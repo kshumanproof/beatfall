@@ -328,7 +328,7 @@ Prevent one tab or computer from silently overwriting a newer version of the sam
 - Added saved-content fingerprints so opening a board or switching views no longer writes an unchanged project or creates false conflicts.
 - Kept the local project in memory and in Beatfall's browser crash cushion until a recovery choice succeeds.
 - Updated `CLAUDE.md` with the decided mobile flow: choose or name a project, type or dictate one note, append it separately, and review grouped incoming notes on the web.
-- Used the existing project timestamp and database trigger, so no Supabase schema update is required.
+- Used the existing project timestamp and database trigger, so the version-check portion itself needs no new project field.
 
 ### Testing
 
@@ -345,8 +345,66 @@ Prevent one tab or computer from silently overwriting a newer version of the sam
 ### Intentionally unchanged
 
 - Mobile files, incoming-note storage, speech capture, and the web pending-notes dialog were not built in this step; only their conflict-free boundary was recorded.
-- No database column, trigger, billing rule, AI behavior, placement rule, or project format changed.
+- No project column, trigger, billing rule, AI behavior, placement rule, or project format changed.
 - Automatic restore points remain the next separate mechanical improvement.
+
+## 4 September 2026: One active web device
+
+### Requested
+
+Allow one web browser/device to edit an account at a time. Opening Beatfall on
+a laptop should immediately stop an already-open desktop browser from reading
+or changing the account. Identify the browser installation rather than using
+its IP address, and preserve the future phone app's append-only capture role.
+
+### Changes
+
+- Added a random first-party browser id stored locally as `beatfall.web-device`.
+- Tabs in one browser profile share that id and remain one allowed device.
+- Added `POST /api/session` to claim the active web session, `GET /api/session`
+  to check it, and `DELETE /api/session` to release it on local sign-out.
+- Added the active web browser id and claim time to the account profile.
+- Every authenticated web endpoint now rejects a browser after another device
+  has claimed the account, so the old device cannot load, save, bill, export,
+  use writing help, or reach admin data.
+- Supabase Realtime sends the ownership change to the open earlier browser;
+  window focus, returning to a visible tab, every protected request, and a slow
+  two-minute heartbeat cover a dropped live connection without wasteful polling.
+- Added a blocking “Beatfall is open on another device” screen with a clear
+  “Use Beatfall here instead” action that transfers ownership back.
+- Web sign-out releases only the current browser session rather than globally
+  signing out other Supabase clients.
+- Recorded the mobile boundary in `CLAUDE.md`: future append-only capture
+  endpoints explicitly bypass the web-device rule and cannot claim web editing.
+- Kept Claude's concurrent Outline passage, Save, drag/Undo, and delete work
+  intact; the only shared-file addition is the startup guard for this screen.
+
+### Testing
+
+- Passed JavaScript syntax checks for the shared platform layer, device-session
+  API, account guard, projects API, and merged application.
+- Simulated two independent browser storage identities against the complete
+  application. Confirmed the second browser claimed the account and the first
+  received the live blocking screen in under one second.
+- Confirmed transferring the session back reopened the first browser and then
+  blocked the second one.
+- Confirmed two tabs sharing one browser id remained active together.
+- Confirmed the blocking screen includes the official icon-and-wordmark lockup,
+  the Beatfall tagline, plain explanation, takeover action, and local sign-out.
+- Confirmed the second browser remained usable while the replaced browser was
+  blocked from the application.
+- Re-tested Claude's merged Outline work: an empty passage had no active save
+  state; typing revealed Save; Save retained the passage, opened and focused a
+  new blank box; delete removed it; and Undo restored it.
+- Verified the unpushed marketing pass remains present: approved homepage and
+  Sign in copy, tagline, real board/dashboard images, and action costs carried
+  in hover/focus explainers rather than printed beside controls.
+
+### Deployment note
+
+- Run the active-device block from `supabase/schema.sql` in Supabase before
+  deploying this code. It adds two columns and enables live profile updates;
+  every statement is safe to re-run.
 
 ## 5 September 2026: Outline passages, and Save opens the next one
 
@@ -432,3 +490,20 @@ way to put it back. Typed passages had no way to be deleted.
 
 - Codex's save-conflict work, and all placement, import, billing, account and
   database mechanics.
+
+## Open at the end of 5 September 2026
+
+Carried forward so whoever picks this up next does not have to rediscover it.
+
+- The `characters` column has to be added to the live database once. The
+  statement is the last line of `supabase/schema.sql`. Until it runs, character
+  sheets save in the browser and are lost on reload.
+- The import review lets a writer untick individual notes but not individual
+  characters. Characters found in a notes file are all in or all out.
+- `route: 0` is a dead entry in the COST and CREDIT tables. Nothing reads it.
+- Credit arithmetic has not been checked against the live database with a
+  Stripe test-mode purchase.
+- `contact@`, `privacy@` and `legal@` at beatfall.app need to exist and forward.
+- Two agents work in this tree. Read `public/app.html` from disk immediately
+  before editing it, and write it back the same minute. Tonight it changed four
+  times in ninety seconds while a change was being prepared against it.

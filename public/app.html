@@ -8222,6 +8222,9 @@ function showLoadFailure(){
   try {
     hadProjects = await load();
   } catch (e) {
+    // The platform layer has already put up the blocking device-takeover
+    // screen. Do not replace it with the ordinary project-load error.
+    if (e && (e.code === "device_replaced" || e.code === "device_required")) return;
     // A lapsed plan closes the boards. The work is not gone and it is not
     // held: export answers whether or not there is a subscription, so the one
     // door that stays open is the one that lets somebody leave with their

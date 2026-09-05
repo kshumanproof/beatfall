@@ -61,10 +61,12 @@ export const costMicros = (tin, tout) =>
   Math.round((tin / 1e6) * PRICE_IN * 1e6 + (tout / 1e6) * PRICE_OUT * 1e6);
 
 // -------------------------------------------------------------------- auth --
-// Every protected route calls this. It verifies the caller's Supabase session
-// token, then loads their profile, rolling the credit period over if a new
-// month has started.
-export async function requireUser(req) {
+// Every protected web route calls this. It verifies both the Supabase session
+// and the browser installation that currently owns the account's web session.
+// A future mobile capture endpoint must opt out with { webDevice: false }:
+// mobile appends incoming notes and must never take ownership away from the
+// desktop board.
+export async function requireUser(req, options = {}) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return { error: 'not signed in', status: 401 };
@@ -93,6 +95,17 @@ export async function requireUser(req) {
       .update({ period_start: startOfMonth.toISOString(), credits_used: 0 })
       .eq('id', user.id).select().single();
     profile = rolled || profile;
+  }
+
+  if (options.webDevice !== false) {
+    const rawDevice = req.headers['x-beatfall-device'];
+    const device = Array.isArray(rawDevice) ? rawDevice[0] : String(rawDevice || '').trim();
+    if (!/^[A-Za-z0-9_-]{16,120}$/.test(device)) {
+      return { error: 'device_required', status: 409, db, user, profile };
+    }
+    if (!profile.active_web_device_id || profile.active_web_device_id !== device) {
+      return { error: 'device_replaced', status: 409, db, user, profile };
+    }
   }
 
   db.from('profiles').update({ last_seen_at: new Date().toISOString() })
