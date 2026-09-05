@@ -561,3 +561,44 @@ of the passage work already added to the Outline.
   movement are separate steps and were not changed here.
 - No database schema or API payload shape changed; the recovery list lives in
   the existing Outline JSON.
+
+## 5 September 2026: A permanent return trip for additional cards
+
+### Requested
+
+An item dragged from Set aside beneath an Outline beat is an additional card,
+but the writer needs a clear way to move it back after the temporary Undo bar
+is gone.
+
+### Changes
+
+- Set-aside items filed beneath a beat are now labelled Additional card, which
+  describes what they are doing there rather than where they used to live.
+- Each additional card has an always-visible Return to Set aside button on both
+  the Outline and Board. Ordinary filed notes keep their separate return-to-
+  notes control.
+- Returning the card raises a receipt that names its old beat and Set aside as
+  its destination, with a visible Undo button.
+- The return only removes `attachedTo`. The card remains a beat idea in Set
+  aside, and all of its other saved fields remain unchanged.
+- Removed a duplicated block of filed-note CSS while adding the control.
+
+### Testing
+
+- Loaded a project with a primary Setup card, an additional Set aside card
+  filed beneath Setup, and a research note filed beneath the same beat.
+- Confirmed Additional card and Return to Set aside are always visible in both
+  light and dark modes, on both Outline and Board.
+- Returned the card and confirmed it appeared in the Set aside rail, the Setup
+  attachment cleared, and its extra test metadata remained intact.
+- Confirmed the receipt read Returned to Set aside and offered Undo.
+- Used Undo and confirmed the additional card returned beneath Setup while Set
+  aside became empty again. The research note and its separate action were not
+  changed.
+- Parsed the finished inline application script successfully.
+
+### Intentionally unchanged
+
+- Passage-delete styling, empty-passage wording, Outline access rules, card
+  ordering, and the structure-switch work are untouched.
+- No database or API changes are required.

@@ -1520,3 +1520,17 @@ losslessly:
 versions of the app. Keep `__unplaced` inside the existing Outline JSON rather
 than adding a column. Any future Outline reader must ignore it when iterating
 beat ids and include it when counting or exporting the writer's work.
+
+## Additional cards return to Set aside (5 Sep 2026)
+
+Dragging a Set aside item from the Outline rail beneath a beat does not change
+its `slot`. It remains `__none` and gains `attachedTo`, so it can appear as an
+additional card without becoming the beat's primary card or being counted as a
+filled beat. This is intentional.
+
+While attached, the row says Additional card and carries an always-visible
+Return to Set aside button. Returning it deletes only `attachedTo`, calls the
+normal render/save path, and raises a named Undo receipt. Undo restores the
+attachment. Do not turn this back into a one-time Undo-only interaction or
+change `slot` when filing it beneath a beat. Ordinary `__shelf` notes still show
+their kind and use the smaller return-to-notes arrow.

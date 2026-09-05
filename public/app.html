@@ -612,7 +612,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
 }
 
-/* ---------- notes filed under a beat: material, never the beat itself ---- */
+/* ----- material filed under a beat, without becoming the beat itself ----- */
 .attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
   border-left:1px solid var(--rule);padding-left:11px}
 .anote{
@@ -628,27 +628,14 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .anote:hover .unpin{opacity:1}
 .anote .unpin:hover{color:var(--blue)}
-.obeat .attached{margin:0 0 12px;padding-left:13px}
-.obeat .anote{font-size:12px}
-.ncard .on{font-size:11.5px;color:var(--ink-4)}
-.ncard .on b{color:var(--gold);font-weight:600}
-
-/* ---------- notes filed under a beat: material, never the beat itself ---- */
-.attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
-  border-left:1px solid var(--rule);padding-left:11px}
-.anote{
-  display:flex;align-items:flex-start;gap:8px;padding:5px 0;
-  font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);
+.anote .unpin.return-aside{
+  opacity:1;border:1px solid var(--rule);border-radius:3px;padding:4px 7px;
+  color:var(--blue);font-family:var(--sans);font-size:9px;font-weight:600;
+  letter-spacing:.06em;line-height:1;text-transform:uppercase;white-space:nowrap;
 }
-.anote .chip{font-size:8.5px;padding:2px 5px;margin-top:1px;flex:0 0 auto}
-.anote .at{flex:1;min-width:0;overflow:hidden;display:-webkit-box;
-  -webkit-line-clamp:3;-webkit-box-orient:vertical}
-.anote .unpin{
-  flex:0 0 auto;border:none;background:none;cursor:pointer;padding:1px 5px;
-  color:var(--ink-4);font-size:13px;line-height:1.2;opacity:0;transition:opacity .12s ease;
+.anote .unpin.return-aside:hover{
+  border-color:var(--blue);background:var(--blue-soft);
 }
-.anote:hover .unpin{opacity:1}
-.anote .unpin:hover{color:var(--blue)}
 .obeat .attached{margin:0 0 12px;padding-left:13px}
 .obeat .anote{font-size:12px}
 .ncard .on{font-size:11.5px;color:var(--ink-4)}
@@ -2936,13 +2923,18 @@ function mediumOf(key){
    in Notes; attachedTo only records which beat it sits under. Taking it off a
    beat sends it straight back. Nothing here can delete a note.
    ========================================================================= */
+/* Anything off the board can be FILED under a beat: a note from Other notes,
+   and a card the writer set aside. Filing is not placing. The card keeps the
+   column it came from, so the curved arrow can always send it straight back,
+   and clearing the beat can never take it with it. */
+const FILEABLE = ["__shelf", "__none"];
 function notesOn(slotId, proj){
   proj = proj || P();
-  return proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slotId);
+  return proj.cards.filter(c => FILEABLE.indexOf(c.slot) >= 0 && c.attachedTo === slotId);
 }
 function isAttached(c, proj){
   proj = proj || P();
-  if (c.slot !== "__shelf" || !c.attachedTo) return false;
+  if (FILEABLE.indexOf(c.slot) < 0 || !c.attachedTo) return false;
   // a structure switch can strand an attachment on a beat that no longer exists
   return STRUCTURES[proj.structure].slots.some(s => s.id === c.attachedTo);
 }
@@ -2952,20 +2944,31 @@ function attachedList(slot, onChange){
   const box = document.createElement("div");
   box.className = "attached";
   notes.forEach(c => {
-    const k = shelfKind(c);
+    // A set-aside beat idea is an additional card while it is filed here, not
+    // a research note and not the beat's primary card. Its always-visible
+    // action names the home it will return to.
+    const home = c.slot === "__none";
+    const k = home ? "beat" : shelfKind(c);
     const row = document.createElement("div");
     row.className = "anote";
-    row.innerHTML = '<span class="chip ' + k + '">' + esc(KINDS[k]) + "</span>"
+    row.innerHTML = '<span class="chip ' + k + '">' + esc(home ? "Additional card" : KINDS[k]) + "</span>"
       + '<span class="at"></span>'
-      + '<button class="unpin" aria-label="Send back to your notes">&#8617;</button>';
+      + '<button class="unpin' + (home ? " return-aside" : "") + '" aria-label="'
+      + (home ? "Return to Set aside" : "Send back to your notes") + '">'
+      + (home ? "Return to Set aside" : "&#8617;") + "</button>";
     row.querySelector(".at").textContent = c.text;
     const u = row.querySelector(".unpin");
-    u.setAttribute("data-tip", "Remove this note from the beat. It stays under Other notes.");
+    u.setAttribute("data-tip", home
+      ? "Take it off this beat. It goes back to Set aside."
+      : "Take it off this beat. It stays under Other notes.");
     u.addEventListener("click", e => {
       e.stopPropagation();
       snapshot();
       delete c.attachedTo;
       onChange();
+      const destination = home ? "Set aside" : "Other notes";
+      showSettled([{text: c.text, from: slot.name, to: destination}],
+                  "Returned to " + destination);
     });
     box.appendChild(row);
   });
@@ -3603,7 +3606,8 @@ function render(justPlaced){
     board.appendChild(band);
   });
 
-  const unplaced = proj.cards.filter(c => c.slot === "__none");
+  // a set-aside card filed under a beat is showing under that beat instead
+  const unplaced = proj.cards.filter(c => c.slot === "__none" && !isAttached(c, proj));
   const tray = document.createElement("div");
   tray.className = "band tray";
   tray.innerHTML = '<div class="acthead"><span class="n">Set aside</span>'
@@ -3750,6 +3754,9 @@ function wireDrop(el, slotId){
     snapshot();
     card.slot = slotId;
     card.pinned = true;          // moving it by hand is a decision, so hold it there
+    // Dropping it somewhere on the board is placing it, which is not filing it
+    // under a beat. It cannot be in both places at once.
+    delete card.attachedTo;
     hideSettled();
     render();
   });
@@ -6805,27 +6812,16 @@ function renderOutline(){
         const card = proj.cards.find(c => c.id === id);
         if (!card) return;
         snapshot();
-        if (card.slot === "__shelf"){
-          // A note is reference material. Dragging it here files it against
-          // this beat, it does NOT become the beat, and it stays a note, so
-          // clearing the beat can never take it with it.
-          card.attachedTo = slot.id;
-          showSettled([{text: card.text, from: "Notes",
-                        to: slot.name + ", filed under it as a note, not as the beat itself"}],
-                      "Kept as a note");
-        } else {
-          // A set-aside card is a beat looking for a home. Putting it here is
-          // you deciding this is that beat.
-          const cameFrom = slotName(proj.structure, card.slot);
-          card.slot = slot.id;
-          card.kind = "beat";
-          card.pinned = true;
-          delete card.attachedTo;
-          // Dropping a card is as undoable as anything else the board does, so
-          // it says so: the Undo bar puts it back where it was dragged from.
-          showSettled([{text: card.text, from: cameFrom, to: slot.name}],
-                      "Card placed");
-        }
+        /* Everything dragged in from the rail is FILED under the beat, never
+           turned into it. It keeps the column it came from, which is what lets
+           the curved arrow on its row send it straight back, and it is what
+           stops a drag from quietly rewriting the board. Placing a card as a
+           beat is still a board move, made on the board. */
+        const home = card.slot === "__none";
+        card.attachedTo = slot.id;
+        showSettled([{text: card.text, from: home ? "Set aside" : "Notes",
+                      to: slot.name + ", filed under it"}],
+                    "Filed under the beat");
         renderOutline(); renderRail(); render();
       });
 
@@ -6844,7 +6840,8 @@ function renderOutlineCount(){
 
 function renderRail(){
   const proj = P();
-  const aside = proj.cards.filter(c => c.slot === "__none");
+  // anything filed under a beat is showing there instead, it has not left
+  const aside = proj.cards.filter(c => c.slot === "__none" && !isAttached(c, proj));
   // a note filed under a beat is showing there instead, it hasn't left the app
   const shelf = proj.cards.filter(c => c.slot === "__shelf" && !isAttached(c, proj));
 
