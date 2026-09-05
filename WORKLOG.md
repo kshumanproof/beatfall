@@ -773,3 +773,25 @@ Outline material, not Board cards.
   Outline. Typed passages remain in the existing Outline JSON.
 - No database schema or API payload changes are required; the origin marker is
   one field inside the existing card JSON.
+
+## 5 September 2026: Outline lock no longer covers the app
+
+### Problem found
+
+The Outline navigation button used the generic class `locked`. Beatfall already
+uses that class for the full-screen one-device session blocker, so CSS expanded
+the small Outline control across the viewport and intercepted clicks meant for
+the Board and other sections.
+
+### Fix and testing
+
+- Renamed the navigation-only state to `outline-locked`. The full-screen
+  session blocker keeps its existing `locked` class and behavior.
+- Opened an incomplete project from the projects dashboard and confirmed its
+  Board remained fully usable.
+- Opened Characters and Notes, then returned to Board successfully.
+- Clicked the locked Outline control and confirmed only Outline was refused;
+  the writer stayed on Board and received the correct 14-beat explanation.
+- Parsed the finished inline application script successfully.
+
+No project data, access rule, database schema, or API behavior changed.

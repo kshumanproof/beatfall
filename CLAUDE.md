@@ -1573,6 +1573,12 @@ unlock. Existing prose and old `outline.__started` markers do not bypass it.
 The locked navigation control remains clickable so it can explain the
 requirement and name the number of beats still missing cards.
 
+The navigation state class is `outline-locked`. Never shorten it to `locked`:
+`.locked` is the full-screen one-device session blocker, and applying it to the
+Outline button expands that button over the whole app. The completeness gate
+must affect only opening Outline. Board, Characters, Notes, project settings,
+and the dashboard remain available for incomplete projects.
+
 Locking never deletes Outline prose. If the Board becomes incomplete, preserve
 all saved passages and recovered unplaced prose, return the writer to Board,
 and reveal the work again after every beat has a card. Do not add or rely on a

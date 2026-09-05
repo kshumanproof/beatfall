@@ -289,12 +289,12 @@ header{
 .navlink:hover{color:var(--ink)}
 .navlink.on{color:var(--blue);font-weight:500}
 .navlink svg{flex:0 0 auto}
-.navlink.locked{color:var(--ink-4)}
-.navlink.locked::after{
+.navlink.outline-locked{color:var(--ink-4)}
+.navlink.outline-locked::after{
   content:"locked";padding:2px 4px;border:1px solid var(--rule);border-radius:3px;
   font-size:8px;font-weight:600;letter-spacing:.07em;line-height:1;text-transform:uppercase;
 }
-.navlink.locked:hover{color:var(--ink-3)}
+.navlink.outline-locked:hover{color:var(--ink-3)}
 /* The way home. An icon, because "Dashboard" is a word for a thing every other
    app draws as a house, and because the shelf of scripts is a place rather
    than a view of this one. */
@@ -6622,7 +6622,9 @@ function paintOutlineAccess(proj, filled, total){
   const access = outlineAccess(proj, filled, total);
   const button = document.getElementById("outlinebtn");
   const locked = !access.canOpen;
-  button.classList.toggle("locked", locked);
+  // Do not call this class `locked`: that name belongs to the full-screen
+  // device-session blocker farther down the stylesheet.
+  button.classList.toggle("outline-locked", locked);
   button.dataset.locked = locked ? "true" : "false";
   button.setAttribute("aria-label", locked
     ? "Outline locked, " + access.remaining + " beat"
