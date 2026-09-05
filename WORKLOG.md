@@ -711,3 +711,65 @@ must not take it away.
   actions are unchanged.
 - No database schema or API payload change is required; the marker lives in the
   existing Outline JSON.
+
+## 5 September 2026: Strict Outline gate and a clean Board
+
+### Correction requested
+
+The earlier one-time Outline unlock was too permissive. Outline must be
+unavailable whenever any beat is empty, even when the project already contains
+Outline prose. Material added while outlining must also respect the existing
+data model: Set aside ideas are cards; categorized notes and typed passages are
+Outline material, not Board cards.
+
+### Changes
+
+- Outline now requires every beat in the current structure to have a card on
+  every opening. Existing prose and the obsolete `outline.__started` marker no
+  longer bypass the gate.
+- Saved Outline writing is preserved while locked and becomes visible again
+  when the Board is complete.
+- A remembered Outline view, a switch from another project, and a structure
+  change can no longer leave an incomplete project showing Outline.
+- Dragging a Set aside idea into Outline now makes it a real beat card: its slot
+  becomes the destination beat, its placed dot is filled, and it uses the
+  ordinary Board card with the move menu, dot, and delete X.
+- `pinned` remains the only state that creates the gold card edge. The new
+  origin marker never changes color or styling.
+- The real card keeps Return to Set aside in Outline. Returning it clears its
+  beat placement and placed-dot state, with the normal Undo receipt.
+- Existing projects are upgraded automatically: older Set aside attachments
+  become real pinned cards in the beat where the writer placed them, with all
+  unrelated card data preserved.
+- Categorized notes may still be filed beneath a beat in Outline, but no filed
+  notes render on Board. Typed Outline passages were already Outline-only and
+  remain so.
+
+### Testing
+
+- Loaded an incomplete 1-of-15 project containing saved prose and an old
+  `__started` marker. Outline remained locked, stayed on Board when clicked,
+  and accurately reported 14 missing beats.
+- Loaded a complete project containing a legacy attached Set aside card and a
+  filed research note. The legacy item became a real pinned Setup card with all
+  three standard Board controls; its unrelated test metadata survived.
+- Confirmed the Board contained zero attached-note rows and no research-note
+  text, while the filed research note remained visible beneath Setup in
+  Outline.
+- Confirmed the additional card showed Return to Set aside in Outline and
+  returned cleanly without moving or deleting the research note.
+- Toggled the placed dot on the migrated card and confirmed the `pinned` class
+  and gold edge disappeared with the hollow dot, then returned with the filled
+  dot. No Outline-specific gold class exists.
+- Confirmed the automatic migration persisted the real beat slot, placed-dot
+  state, origin marker, and unrelated card metadata through the normal save.
+- Parsed the finished inline application script successfully.
+
+### Intentionally unchanged
+
+- The existing placed-dot behavior, three-dot move menu, delete X, and Board
+  card styling remain the card system. No parallel card controls were added.
+- Notes keep their categories and remain accessible from Notes while filed in
+  Outline. Typed passages remain in the existing Outline JSON.
+- No database schema or API payload changes are required; the origin marker is
+  one field inside the existing card JSON.

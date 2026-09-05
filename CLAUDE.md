@@ -1523,17 +1523,26 @@ beat ids and include it when counting or exporting the writer's work.
 
 ## Additional cards return to Set aside (5 Sep 2026)
 
-Dragging a Set aside item from the Outline rail beneath a beat does not change
-its `slot`. It remains `__none` and gains `attachedTo`, so it can appear as an
-additional card without becoming the beat's primary card or being counted as a
-filled beat. This is intentional.
+Set aside contains possible beat cards, not supporting notes. Dragging one from
+the Outline rail onto a beat changes its `slot` to that beat, sets `pinned`, and
+marks `placedFromOutline`. It is now a real card everywhere: on Board it uses
+the ordinary three-dot move menu, placed dot, and delete X. Never render a
+separate attached-note row for it on Board.
 
-While attached, the row says Additional card and carries an always-visible
-Return to Set aside button. Returning it deletes only `attachedTo`, calls the
-normal render/save path, and raises a named Undo receipt. Undo restores the
-attachment. Do not turn this back into a one-time Undo-only interaction or
-change `slot` when filing it beneath a beat. Ordinary `__shelf` notes still show
-their kind and use the same visible action style, labelled Return to Notes.
+The gold edge has exactly one source of truth: `pinned`. A filled placed dot
+means the card is pinned and has the gold edge; a hollow dot means neither.
+`placedFromOutline` must never create gold styling of its own. It exists only so
+Outline can offer Return to Set aside for that card. Returning it changes the
+slot to `__none`, clears `pinned` and `placedFromOutline`, and raises the normal
+Undo receipt.
+
+`migrateAttachedSetAsides()` upgrades older projects that stored Set aside cards
+as `slot: "__none"` plus `attachedTo`. It moves each valid one into that beat as
+a pinned real card and preserves every other card field.
+
+Ordinary `__shelf` notes remain notes. They may keep `attachedTo` so they appear
+as supporting material in Outline, with Return to Notes, but they never render
+beneath cards on Board.
 
 ## One Outline action grammar (5 Sep 2026)
 
@@ -1558,26 +1567,19 @@ empty passage has Save only after typing and never has a delete action.
 
 ## Outline start gate (5 Sep 2026)
 
-Outline is earned once, not continually policed. A project that has never
-started its Outline may open it only when every slot in its current structure
-has at least one primary beat card. The locked navigation control remains
-clickable so it can explain the requirement and name the number of beats still
-missing cards.
+Outline is available only while every slot in the project's current structure
+has at least one beat card. This is a strict completeness gate, not a one-time
+unlock. Existing prose and old `outline.__started` markers do not bypass it.
+The locked navigation control remains clickable so it can explain the
+requirement and name the number of beats still missing cards.
 
-The first successful opening writes `project.outline.__started = true` inside
-the existing Outline JSON. Treat all `__` keys as reserved metadata rather than
-beat ids. Structure conversion must preserve this marker, and any code that
-walks Outline beat ids must ignore reserved keys. Do not add a database column
-for it.
-
-This gate must never hide existing work. Any project containing saved Outline
-prose or recovered unplaced prose is grandfathered as started even if the
-marker predates the project. Once started, Outline remains available when cards
-are moved or removed and after a structure change. This lets a writer revise
-freely after establishing the complete board.
+Locking never deletes Outline prose. If the Board becomes incomplete, preserve
+all saved passages and recovered unplaced prose, return the writer to Board,
+and reveal the work again after every beat has a card. Do not add or rely on a
+database marker for access.
 
 When changing projects from Outline, commit the visible boxes before changing
-`state.activeId`. If the destination has not earned Outline, open its Board.
+`state.activeId`. If the destination is incomplete, open its Board.
 The order is data safety: committing after the id changes can write one
 project's visible prose into another project.
 

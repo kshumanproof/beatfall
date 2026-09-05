@@ -1027,6 +1027,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.6;
 }
 .ocard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.ocard .outline-action{display:block;margin:9px 0 0 auto}
 .ocard,.oprose{max-width:74ch}
 .oprose{
   width:100%;min-height:54px;resize:vertical;background:transparent;color:var(--ink);
@@ -2920,23 +2921,36 @@ function mediumOf(key){
 }
 
 /* =========================================================================
-   ATTACHED NOTES: a note can sit under a beat as the material you gathered
-   for it, without becoming that beat. It keeps its kind and it keeps its home
-   in Notes; attachedTo only records which beat it sits under. Taking it off a
-   beat sends it straight back. Nothing here can delete a note.
+   ATTACHED NOTES: a categorized note can sit beneath an Outline beat as
+   supporting material without becoming a story card. It keeps its kind and
+   its home in Notes; attachedTo only records where the Outline displays it.
+
+   Set-aside material is different. It is a possible beat card, so dropping it
+   into Outline PLACES it as a real card. Older builds stored those cards as
+   attachments. Migrate them in place so existing projects acquire the same
+   clean Board and the writer loses nothing.
    ========================================================================= */
-/* Anything off the board can be FILED under a beat: a note from Other notes,
-   and a card the writer set aside. Filing is not placing. The card keeps the
-   column it came from, so the curved arrow can always send it straight back,
-   and clearing the beat can never take it with it. */
-const FILEABLE = ["__shelf", "__none"];
+function migrateAttachedSetAsides(proj){
+  const valid = new Set(STRUCTURES[proj.structure].slots.map(s => s.id));
+  let changed = false;
+  proj.cards.forEach(c => {
+    if (c.slot !== "__none" || !c.attachedTo || !valid.has(c.attachedTo)) return;
+    c.slot = c.attachedTo;
+    c.kind = "beat";
+    c.pinned = true;
+    c.placedFromOutline = true;
+    delete c.attachedTo;
+    changed = true;
+  });
+  return changed;
+}
 function notesOn(slotId, proj){
   proj = proj || P();
-  return proj.cards.filter(c => FILEABLE.indexOf(c.slot) >= 0 && c.attachedTo === slotId);
+  return proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slotId);
 }
 function isAttached(c, proj){
   proj = proj || P();
-  if (FILEABLE.indexOf(c.slot) < 0 || !c.attachedTo) return false;
+  if (c.slot !== "__shelf" || !c.attachedTo) return false;
   // a structure switch can strand an attachment on a beat that no longer exists
   return STRUCTURES[proj.structure].slots.some(s => s.id === c.attachedTo);
 }
@@ -2946,31 +2960,22 @@ function attachedList(slot, onChange){
   const box = document.createElement("div");
   box.className = "attached";
   notes.forEach(c => {
-    // A set-aside beat idea is an additional card while it is filed here, not
-    // a research note and not the beat's primary card. Its always-visible
-    // action names the home it will return to.
-    const home = c.slot === "__none";
-    const k = home ? "beat" : shelfKind(c);
+    const k = shelfKind(c);
     const row = document.createElement("div");
     row.className = "anote";
-    row.innerHTML = '<span class="chip ' + k + '">' + esc(home ? "Additional card" : KINDS[k]) + "</span>"
+    row.innerHTML = '<span class="chip ' + k + '">' + esc(KINDS[k]) + "</span>"
       + '<span class="at"></span>'
-      + '<button class="unpin outline-action" aria-label="'
-      + (home ? "Return to Set aside" : "Return to Notes") + '">'
-      + (home ? "Return to Set aside" : "Return to Notes") + "</button>";
+      + '<button class="unpin outline-action" aria-label="Return to Notes">Return to Notes</button>';
     row.querySelector(".at").textContent = c.text;
     const u = row.querySelector(".unpin");
-    u.setAttribute("data-tip", home
-      ? "Take it off this beat. It goes back to Set aside."
-      : "Take it off this beat. It stays in Notes.");
+    u.setAttribute("data-tip", "Take it off this beat. It stays in Notes.");
     u.addEventListener("click", e => {
       e.stopPropagation();
       snapshot();
       delete c.attachedTo;
       onChange();
-      const destination = home ? "Set aside" : "Notes";
-      showSettled([{text: c.text, from: slot.name, to: destination}],
-                  "Returned to " + destination);
+      showSettled([{text: c.text, from: slot.name, to: "Notes"}],
+                  "Returned to Notes");
     });
     box.appendChild(row);
   });
@@ -3494,8 +3499,8 @@ function renderTabs(){
       // the old project's visible prose can be written into the next project.
       if (previousView === "outline") commitOutlineBoxes();
       state.activeId = key;
-      // Keep the current surface when the next project has earned it. A
-      // project that has not started its Outline lands on its Board instead
+      // Keep Outline only when the next project's board is complete. An
+      // incomplete project lands on its Board instead
       // of borrowing the previous project's open Outline. Set state first so
       // setView does not try to commit the previous DOM a second time against
       // the newly active project.
@@ -3528,6 +3533,9 @@ function renderTabs(){
 
 function render(justPlaced){
   const proj = P();
+  // Older Outline drops kept Set aside cards as attachments. Convert them to
+  // real beat cards before either surface counts or draws this project.
+  migrateAttachedSetAsides(proj);
   const S = STRUCTURES[proj.structure];
   renderTabs();
   sel.value = proj.structure;
@@ -3613,18 +3621,13 @@ function render(justPlaced){
         el.appendChild(gap);
       }
 
-      // whatever you gathered for this beat, under it, never replacing it
-      const att = attachedList(s, () => render());
-      if (att) el.appendChild(att);
-
       wireDrop(el, s.id);
       row.appendChild(el);
     });
     board.appendChild(band);
   });
 
-  // a set-aside card filed under a beat is showing under that beat instead
-  const unplaced = proj.cards.filter(c => c.slot === "__none" && !isAttached(c, proj));
+  const unplaced = proj.cards.filter(c => c.slot === "__none");
   const tray = document.createElement("div");
   tray.className = "band tray";
   tray.innerHTML = '<div class="acthead"><span class="n">Set aside</span>'
@@ -3716,9 +3719,15 @@ function cardEl(c){
     sel2.addEventListener("change", () => {
       snapshot();
       if (sel2.value.startsWith("b:")){
-        c.slot = sel2.value.slice(2); c.kind = "beat"; c.pinned = true;
+        c.slot = sel2.value.slice(2); c.kind = "beat";
+        c.pinned = c.slot !== "__none";
+        if (c.slot === "__none") delete c.placedFromOutline;
         delete c.attachedTo;
-      } else { c.slot = "__shelf"; c.kind = sel2.value.slice(2); }
+      } else {
+        c.slot = "__shelf"; c.kind = sel2.value.slice(2); c.pinned = false;
+        delete c.attachedTo;
+        delete c.placedFromOutline;
+      }
       render();
     });
     sel2.addEventListener("blur", () => sel2.remove());
@@ -3771,7 +3780,8 @@ function wireDrop(el, slotId){
     if (!card) return;
     snapshot();
     card.slot = slotId;
-    card.pinned = true;          // moving it by hand is a decision, so hold it there
+    card.pinned = slotId !== "__none"; // a manual beat placement is a decision
+    if (slotId === "__none") delete card.placedFromOutline;
     // Dropping it somewhere on the board is placing it, which is not filing it
     // under a beat. It cannot be in both places at once.
     delete card.attachedTo;
@@ -4198,7 +4208,6 @@ function carryOutlineToStructure(proj, fromKey, toKey){
   const targetIds = new Set(STRUCTURES[toKey].slots.map(x => x.id));
   const source = STRUCTURES[fromKey];
   const kept = {};
-  if (old.__started) kept.__started = true;
   const unplaced = outlineUnplaced(proj).slice();
   let moved = 0;
 
@@ -4270,9 +4279,16 @@ sel.addEventListener("change", () => {
   proj.structure = to;
   proj.cards = rebuilt.cards;
   const moves = settle(proj);
-  hideAll();
-  render();
-  if (state.view === "outline") renderOutline();
+  if (state.view === "outline" && !outlineAccess(proj).canOpen){
+    // Structure changes can create empty beats. Saved Outline prose remains in
+    // the project, but the writer returns to Board until the new shape is full.
+    state.view = "board";
+    setView("board");
+  } else {
+    hideAll();
+    render();
+    if (state.view === "outline") renderOutline();
+  }
   if (!had && !held && !attachedCount) return; // nothing moved, so there is nothing to report
   const what = STRUCTURES[to].label.replace(/^[^·]*· /, "");
   document.getElementById("settledtitle").textContent = "Rebuilt as " + what;
@@ -6590,28 +6606,17 @@ function outlineUnplaced(proj){
     }));
 }
 
-/* Outline is earned once, not policed forever. Existing prose proves the
-   writer already started, even if it predates this marker. The marker matters
-   after that: moving a card or changing structure must never lock somebody
-   away from work they were already allowed to begin. */
-function outlineHasWriting(proj){
-  const outline = (proj && proj.outline) || {};
-  if (outlineUnplaced(proj).length) return true;
-  return Object.entries(outline).some(([id, value]) => {
-    if (id.startsWith("__")) return false;
-    if (Array.isArray(value)) return value.some(x => String(x || "").trim());
-    return !!String(value || "").trim();
-  });
-}
+/* Outline is the story after every structural beat exists. Saved prose is
+   never deleted when the board becomes incomplete, but it waits here until
+   every beat has a card again. */
 function outlineAccess(proj, knownFilled, knownTotal){
   const slots = STRUCTURES[proj.structure].slots;
   const total = knownTotal == null ? slots.length : knownTotal;
   const filled = knownFilled == null
     ? slots.filter(slot => proj.cards.some(c => c.slot === slot.id)).length
     : knownFilled;
-  const started = !!((proj.outline || {}).__started) || outlineHasWriting(proj);
-  return {started, filled, total, remaining: Math.max(0, total - filled),
-          canOpen: started || filled === total};
+  return {filled, total, remaining: Math.max(0, total - filled),
+          canOpen: filled === total};
 }
 function paintOutlineAccess(proj, filled, total){
   const access = outlineAccess(proj, filled, total);
@@ -6626,10 +6631,8 @@ function paintOutlineAccess(proj, filled, total){
   button.setAttribute("data-tip", locked
     ? access.remaining + " beat" + (access.remaining === 1 ? "" : "s")
         + (access.remaining === 1 ? " still needs" : " still need")
-        + " a card before you can start the Outline."
-    : access.started
-      ? "View this project in story order and write under each beat."
-      : "Every beat has a card. Start the Outline.");
+        + " a card before you can open the Outline."
+    : "Every beat has a card. Open the Outline.");
 }
 function tryOpenOutline(){
   const proj = P();
@@ -6646,11 +6649,6 @@ function tryOpenOutline(){
       + "</div>";
     settledBox.hidden = false;
     return;
-  }
-  proj.outline = proj.outline || {};
-  if (!proj.outline.__started){
-    proj.outline.__started = true;
-    save();
   }
   setView("outline");
 }
@@ -6756,7 +6754,32 @@ function renderOutline(){
       cards.forEach(c => {
         const cd = document.createElement("div");
         cd.className = "ocard" + (c.pinned ? " pinned" : "");
-        cd.textContent = c.text;
+        cd.appendChild(document.createTextNode(c.text));
+        // A Set aside idea placed from Outline is now a genuine beat card.
+        // This return action reverses that placement without inventing a
+        // second card system; on Board it has the normal dot, menu, and delete.
+        if (c.placedFromOutline){
+          const back = document.createElement("button");
+          back.className = "outline-action";
+          back.type = "button";
+          back.textContent = "Return to Set aside";
+          back.setAttribute("data-tip", "Move this card off the beat and return it to Set aside.");
+          back.addEventListener("click", () => {
+            snapshot();
+            c.slot = "__none";
+            c.pinned = false;
+            delete c.placedFromOutline;
+            delete c.attachedTo;
+            // Usually this is an extra card beside the beat's original card.
+            // If it was the only one, returning it makes the Board incomplete
+            // and the strict Outline gate takes the writer back there.
+            if (!outlineAccess(proj).canOpen) setView("board");
+            else { render(); renderOutline(); }
+            showSettled([{text: c.text, from: slot.name, to: "Set aside"}],
+                        "Returned to Set aside");
+          });
+          cd.appendChild(back);
+        }
         holder.appendChild(cd);
       });
 
@@ -6897,13 +6920,21 @@ function renderOutline(){
         const card = proj.cards.find(c => c.id === id);
         if (!card) return;
         snapshot();
-        /* Everything dragged in from the rail is FILED under the beat, never
-           turned into it. It keeps the column it came from, which is what lets
-           the curved arrow on its row send it straight back, and it is what
-           stops a drag from quietly rewriting the board. Placing a card as a
-           beat is still a board move, made on the board. */
         const home = card.slot === "__none";
-        card.attachedTo = slot.id;
+        if (home){
+          // Set aside contains possible beat cards. Dragging one here is an
+          // intentional placement, so it becomes the same pinned card the
+          // Board already understands: filled gold dot, gold edge, menu, and X.
+          card.slot = slot.id;
+          card.kind = "beat";
+          card.pinned = true;
+          card.placedFromOutline = true;
+          delete card.attachedTo;
+        } else {
+          // Categorized notes are supporting material. They remain Notes and
+          // only borrow a position in the Outline.
+          card.attachedTo = slot.id;
+        }
         showSettled([{text: card.text, from: home ? "Set aside" : "Notes",
                       to: slot.name + (home ? "" : ", filed under it")}],
                     home ? "Additional card added" : "Note filed under the beat");
@@ -7520,6 +7551,9 @@ const outlineview = document.getElementById("outlineview");
 const castview = document.getElementById("castview");
 
 function setView(v, quiet){
+  // Outline is available only while the current structure is complete. A
+  // remembered Outline view must not bypass the gate after refresh or login.
+  if (v === "outline" && !outlineAccess(P()).canOpen) v = "board";
   // Which surfaces writers actually reach. Outline and Notes are the two that
   // exist to be discovered, so a count of zero here would say something.
   if (v !== state.view && (v === "outline" || v === "notes" || v === "cast"))
