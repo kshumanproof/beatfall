@@ -372,7 +372,12 @@ header{
 
 /* project switcher inside the popover */
 .tabs{display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto}
+/* flex:0 0 auto is load bearing. .tabs is a flex column with a max height, so
+   without it every row shrinks to share 230px between them: at eight scripts
+   the list still looked fine, and at twelve every name was sliced in half. A
+   row keeps its height and the LIST scrolls. */
 .tab{
+  flex:0 0 auto;line-height:1.35;
   border:none;background:none;text-align:left;cursor:pointer;
   padding:7px 15px;font-family:var(--sans);font-size:13px;color:var(--ink-2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase;
@@ -1554,25 +1559,6 @@ main{max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   body.load-error .topline{min-height:68px}
 }
 
-/* A stale tab stops here instead of winning a race it did not know it was in.
-   The local project stays in memory until the writer explicitly keeps both
-   versions or discards it for the newer saved one. */
-.conflictsheet{max-width:590px}
-.conflictsheet .sheet-title{margin-bottom:14px}
-.conflict-name{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
-  margin:20px 0 4px;text-transform:uppercase}
-.conflict-safe{background:var(--blue-soft);border:1px solid var(--blue);
-  border-radius:var(--r-card);padding:12px 14px;color:var(--ink);margin:18px 0 0}
-.conflict-error{color:var(--red);font-size:12.5px;font-weight:600;margin:12px 0 0}
-.conflict-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:24px}
-.conflict-actions .discard{margin-left:auto;color:var(--red);
-  border-color:color-mix(in srgb,var(--red) 45%,var(--rule))}
-@media (max-width:600px){
-  .conflictsheet{max-height:calc(100dvh - 32px)}
-  .conflict-actions{flex-direction:column;align-items:stretch}
-  .conflict-actions .btn{width:100%}
-  .conflict-actions .discard{margin-left:0}
-}
 
 /* the acknowledgement before cancelling */
 .cancelscrim{display:flex}
@@ -2290,28 +2276,7 @@ footer{
   </div>
 </section>
 
-<div class="scrim" id="conflictscrim" hidden>
-  <div class="sheet conflictsheet" role="dialog" aria-modal="true"
-       aria-labelledby="conflicttitle" aria-describedby="conflictdesc">
-    <div class="sheet-title" id="conflicttitle">This project changed somewhere else</div>
-    <p class="sheet-note" id="conflictdesc">A newer version was saved from another tab or computer.</p>
-    <div class="conflict-name" id="conflictname"></div>
-    <p class="sheet-note">Choose whether to keep both versions or use the newer saved one.</p>
-    <p class="conflict-safe"><b>Your changes are still here.</b> Beatfall has not overwritten either version.</p>
-    <p class="conflict-error" id="conflicterror" hidden></p>
-    <div class="conflict-actions">
-      <button class="btn btn-primary" id="conflictcopy">Save my changes as a copy</button>
-      <button class="btn discard" id="conflictdiscard">Discard my changes and use the saved version</button>
-    </div>
-  </div>
-</div>
 
-<!-- Working out a note or an empty beat. Its own sheet, over the board.
-
-     It used to open inside the page, above the capture bar, which pushed the
-     note box down the screen every time it appeared and moved it again with
-     every answer. The bar is the one thing on this page that must never move,
-     so the conversation floats over it instead. -->
 <div class="scrim" id="askscrim" hidden>
   <div class="sheet asksheet" id="ask">
       <div class="ask-beat" id="askbeat"></div>
@@ -3120,8 +3085,6 @@ const dirty = new Set();
 const savedFingerprints = new WeakMap();
 let saveTimer = null;
 let flushing = false;
-let activeConflict = null;
-const conflictQueue = [];
 
 function projectPayload(p){
   return {
@@ -3149,7 +3112,7 @@ function save(){
   // render() is called while navigating as well as while editing. Comparing
   // the actual saved fields keeps opening a board from becoming a write, which
   // would manufacture conflicts between two tabs that were only looking.
-  const changed = !!(p && !hasProjectConflict(p)
+  const changed = !!(p
       && projectFingerprint(p) !== savedFingerprints.get(p));
   if (changed) dirty.add(p);
   clearTimeout(saveTimer);
@@ -3235,20 +3198,13 @@ async function flush(){
       savedFingerprints.set(p, sentFingerprint);
       // If another edit arrived during the request, it is a new save based on
       // the timestamp that just came back. It waits for this request to finish.
-      if (projectFingerprint(p) !== sentFingerprint && !hasProjectConflict(p)) dirty.add(p);
+      if (projectFingerprint(p) !== sentFingerprint) dirty.add(p);
       try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
-      setSaved(activeConflict ? "save conflict: choose a version" : "saved");
+      setSaved("saved");
     }catch(e){
-      if (e && e.code === "version_conflict"){
-        // Do not retry a stale version: that would turn protection into a loop.
-        dirty.delete(p);
-        registerConflict(p, e.body && e.body.project);
-        setSaved("save conflict: choose a version");
-      } else {
-        dirty.add(p);
-        retry = true;
-        setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
-      }
+      dirty.add(p);
+      retry = true;
+      setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
     }
   }
   flushing = false;
@@ -3259,16 +3215,51 @@ async function flush(){
 }
 window.addEventListener("beforeunload", e => {
   commitOutlineBoxes();
-  if (dirty.size || activeConflict || conflictQueue.length){
-    if (dirty.size) flush();
-    e.preventDefault(); e.returnValue = "";
-  }
+  if (dirty.size){ flush(); e.preventDefault(); e.returnValue = ""; }
 });
 // Closing a laptop or switching tabs is leaving too, and on a phone it is the
 // only one of the three that reliably fires.
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden"){ commitOutlineBoxes(); flush(); }
+  else refreshOnReturn();
 });
+window.addEventListener("focus", refreshOnReturn);
+
+/* THE OTHER HALF OF "THE LAST SAVE WINS".
+
+   A tab left open on the desktop overnight is holding last night's version. If
+   the writer touches it after working on the laptop, that stale copy is what
+   would be saved. So coming back to a tab that has nothing unsaved reads the
+   projects again first: the desktop quietly catches up to the laptop instead
+   of overwriting it. Anything typed and not yet saved is left alone, because
+   that work is newer than the server's. */
+let refreshing = false;
+async function refreshOnReturn(){
+  if (refreshing || dirty.size || !state.projects.length) return;
+  if (document.visibilityState === "hidden") return;
+  refreshing = true;
+  try{
+    const rows = await BF.loadProjects();
+    if (!rows.length || dirty.size) return;
+    const known = new Set(state.projects.map(p => p.id).filter(Boolean));
+    const changed = rows.length !== state.projects.length
+      || rows.some(r => !known.has(r.id))
+      || rows.some(r => {
+           const mine = state.projects.find(p => p.id === r.id);
+           return mine && r.updated_at && mine.updatedAt && r.updated_at !== mine.updatedAt;
+         });
+    if (!changed) return;
+    const wasActive = state.activeId;
+    const view = state.view;
+    state.projects = rows.map(r => projectFromRow(r));
+    state.projects.forEach(p => savedFingerprints.set(p, projectFingerprint(p)));
+    state.activeId = state.projects.some(p => (p.id || p.localId) === wasActive)
+      ? wasActive : (state.projects[0].id || state.projects[0].localId);
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+    setView(view === "outline" && !outlineAccess(P()).canOpen ? "board" : view, true);
+  }catch(e){ /* offline is not an error worth a dialog */ }
+  finally{ refreshing = false; }
+}
 
 /* Silence when it works, and only then.
 
@@ -3309,116 +3300,6 @@ function projectFromRow(r, keepLocalId){
     touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
   };
 }
-
-function hasProjectConflict(project){
-  return !!((activeConflict && activeConflict.local === project)
-    || conflictQueue.some(item => item.local === project));
-}
-
-function registerConflict(local, current){
-  if (hasProjectConflict(local)) return;
-  conflictQueue.push({
-    local, current: current || null,
-    wasActive: state.activeId === (local.id || local.localId)
-  });
-  showNextConflict();
-}
-
-function showNextConflict(){
-  if (activeConflict || !conflictQueue.length) return;
-  activeConflict = conflictQueue.shift();
-  const scrim = document.getElementById("conflictscrim");
-  const error = document.getElementById("conflicterror");
-  document.getElementById("conflictname").textContent = activeConflict.local.name;
-  error.hidden = true; error.textContent = "";
-  ["conflictcopy", "conflictdiscard"].forEach(id => {
-    document.getElementById(id).disabled = false;
-  });
-  document.getElementById("conflictcopy").textContent = "Save my changes as a copy";
-  scrim.hidden = false;
-  requestAnimationFrame(() => document.getElementById("conflictcopy").focus());
-}
-
-async function currentConflictProject(item){
-  // The project may change again while this dialog is open. Read once more at
-  // the decision so "newer saved version" really means the newest one. The
-  // version returned with the conflict remains a safe fallback if that read
-  // is temporarily unavailable.
-  try{
-    const rows = await BF.loadProjects();
-    const latest = rows.find(row => row.id === item.local.id);
-    if (latest) return latest;
-  }catch(e){ if (item.current) return item.current; throw e; }
-  return item.current || null;
-}
-
-function finishConflict(item, replacements){
-  const at = state.projects.indexOf(item.local);
-  if (at >= 0) state.projects.splice(at, 1, ...replacements);
-  replacements.forEach(project => {
-    if (project.id) savedFingerprints.set(project, projectFingerprint(project));
-  });
-  dirty.delete(item.local);
-  activeConflict = null;
-  document.getElementById("conflictscrim").hidden = true;
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
-  setView(state.view, true);
-  if (conflictQueue.length){
-    setSaved("save conflict: choose a version");
-    showNextConflict();
-  } else setSaved("saved");
-}
-
-function conflictFailure(message){
-  const error = document.getElementById("conflicterror");
-  error.textContent = message || "Beatfall couldn't save the copy. Your changes are still here.";
-  error.hidden = false;
-  ["conflictcopy", "conflictdiscard"].forEach(id => {
-    document.getElementById(id).disabled = false;
-  });
-  document.getElementById("conflictcopy").textContent = "Save my changes as a copy";
-}
-
-document.getElementById("conflictcopy").addEventListener("click", async () => {
-  const item = activeConflict;
-  if (!item) return;
-  const copyButton = document.getElementById("conflictcopy");
-  const discardButton = document.getElementById("conflictdiscard");
-  copyButton.disabled = true; discardButton.disabled = true;
-  copyButton.textContent = "Saving the copy…";
-  try{
-    const current = await currentConflictProject(item);
-    if (!current) throw new Error("The newer saved version could not be found. Your changes are still here.");
-    const at = Math.max(0, state.projects.indexOf(item.local));
-    const payload = projectPayload(item.local);
-    payload.id = null;
-    payload.updated_at = null;
-    payload.name = (item.local.name + ", recovered copy").slice(0, 200);
-    payload.sort_order = at + 1;
-    payload.created_from = "other";
-    const saved = await BF.saveProject(payload);
-    const latest = projectFromRow(current, item.local.localId);
-    const copy = projectFromRow(saved);
-    if (item.wasActive) state.activeId = copy.id || copy.localId;
-    finishConflict(item, [latest, copy]);
-  }catch(e){ conflictFailure(e && e.message); }
-});
-
-document.getElementById("conflictdiscard").addEventListener("click", async () => {
-  const item = activeConflict;
-  if (!item) return;
-  if (!confirm("Discard the changes in this tab and use the newer saved version?")) return;
-  const copyButton = document.getElementById("conflictcopy");
-  const discardButton = document.getElementById("conflictdiscard");
-  copyButton.disabled = true; discardButton.disabled = true;
-  try{
-    const current = await currentConflictProject(item);
-    if (!current) throw new Error("The newer saved version could not be found. Your changes are still here.");
-    const latest = projectFromRow(current, item.local.localId);
-    if (item.wasActive) state.activeId = latest.id || latest.localId;
-    finishConflict(item, [latest]);
-  }catch(e){ conflictFailure(e && e.message); }
-});
 
 async function load(){
   const rows = await BF.loadProjects();

@@ -67,40 +67,28 @@ export default async function handler(req, res) {
     }
 
     if (p.id) {
-      /* Optimistic concurrency, using the timestamp the client actually read.
+      /* THE LAST SAVE WINS.
 
-         The update and the version check are one database statement. Two tabs
-         may both start from the same timestamp, but only the first one can
-         match it; projects_touch changes updated_at before the row is returned,
-         so the second save cannot silently replace the first. Mobile capture
-         will append separate rows and never enters this whole-project path. */
-      const expected = typeof p.updated_at === 'string' ? p.updated_at : '';
-      if (!expected) {
-        return send(res, 409, {
-          error: 'version_conflict',
-          message: 'This project needs the latest saved version before it can be changed.'
-        });
-      }
+         This used to be an optimistic-concurrency check: the update carried the
+         timestamp the browser had read and only applied if the row still had
+         it. Two problems, both of which a writer met on an ordinary Tuesday.
+         A project the browser had never re-read carried no timestamp, so the
+         very first branch below refused it outright and every save of that
+         project failed. And an exact string match on a timestamptz is fragile
+         in the ways timestamps always are. Each refusal offered to keep the
+         writer's work as a copy, which is how one script became three.
 
+         A writer with one account editing their own script does not need a
+         merge protocol. They need the version they just wrote. The browser
+         side does the rest: a tab returning from the background reloads before
+         it is allowed to save, so a stale copy cannot land on top of newer
+         work. Mobile capture appends rows and never enters this path. */
       const { data, error } = await db.from('projects')
-        .update(row).eq('id', p.id).eq('user_id', user.id)
-        .eq('updated_at', expected).select();
+        .update(row).eq('id', p.id).eq('user_id', user.id).select();
       if (error) return send(res, 500, { error: 'save_failed' });
       if (data && data.length) return send(res, 200, { project: data[0] });
-
-      // A zero-row update means either somebody saved a newer version or the
-      // project no longer exists. Read once to distinguish those outcomes and
-      // return the newer copy so the browser can protect both versions.
-      const { data: current, error: currentError } = await db.from('projects')
-        .select('*').eq('id', p.id).eq('user_id', user.id).maybeSingle();
-      if (currentError) return send(res, 500, { error: 'save_failed' });
-      if (!current) return send(res, 404, {
+      return send(res, 404, {
         error: 'not_found', message: 'This project no longer exists.'
-      });
-      return send(res, 409, {
-        error: 'version_conflict',
-        message: 'A newer version of this project was saved somewhere else.',
-        project: current
       });
     }
 

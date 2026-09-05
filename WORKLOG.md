@@ -795,3 +795,64 @@ the Board and other sections.
 - Parsed the finished inline application script successfully.
 
 No project data, access rule, database schema, or API behavior changed.
+
+## 5 September 2026: One story, one version
+
+### Problem found
+
+Dirt Money had forked into "Dirt Money, recovered copy" and then "Dirt Money,
+recovered copy recovered copy". Changing the structure on the board was enough
+to do it.
+
+The cause was in `api/projects.js`. Every save carried the timestamp the browser
+had read and the update only applied if the row still matched it exactly. Two
+faults, both reachable on an ordinary day. A project the browser had not re-read
+carried no timestamp at all, and the first branch refused that outright, so
+every save of it failed on sight. And an exact string match on a timestamptz is
+fragile in the ways timestamps always are. Each refusal offered to keep the
+writer's work as a second project, so one script became three.
+
+### Changes
+
+- `api/projects.js` updates the row. No precondition, no `version_conflict`,
+  no 409. The last save wins, which is what one writer with one account editing
+  their own script expects.
+- Removed the conflict sheet, its stylesheet block, the conflict queue, the
+  copy and discard paths, and the "recovered copy" naming.
+- Added `refreshOnReturn()`. A tab returning to the foreground with nothing
+  unsaved reloads the projects first, so a desktop left open overnight catches
+  up to what the laptop wrote instead of pushing last night's copy over it. A
+  tab holding unsaved work is left alone, because that work is the newer of the
+  two.
+
+### Also fixed
+
+The project switcher was slicing every title in half. `.tabs` is a flex column
+with a 230px max height, so with twelve scripts each row shrank to 18px around
+30px of text. Rows are now `flex:0 0 auto` with a real line-height; the list
+scrolls instead. It looked fine at eight scripts, which is why it shipped.
+
+### Testing
+
+- A save carrying no timestamp lands, does not fork the project, and reports
+  "saved".
+- A save from a timestamp behind the server still lands.
+- A tab returning to the foreground picks up another device's version.
+- A tab with unsaved work keeps it.
+- Twelve scripts: no row clipped, every row 32px, the list scrolls.
+- Outline passages, Save, delete, drag and return, board placement, PDF, save
+  payload, navigation and capture bar all pass.
+- Confirmed the Outline lock refuses only Outline: Board, Characters and Notes
+  stay reachable from anywhere.
+
+### Intentionally unchanged
+
+- The Outline gate stays. Kris wants Outline locked until every beat has a card
+  and everything else open, which is what it does.
+- The one-device session claim is untouched.
+
+### Left for Kris
+
+- The junk projects from the old behaviour are still in the account: "Dirt
+  Money, recovered copy" and "Dirt Money, recovered copy recovered copy". Check
+  which one holds the newest work before deleting the others.
