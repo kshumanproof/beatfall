@@ -422,12 +422,6 @@ select:focus{border-color:var(--blue);outline:none}
 .meter-fill{height:100%;background:var(--blue);transition:width .5s cubic-bezier(.2,.7,.3,1)}
 .meter-label{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .gapcount{font-size:11.5px;color:var(--gold);font-weight:600}
-/* Set in the sentence it sits in rather than as a control bolted beside it. */
-.gcpdf{
-  padding:0;font-size:11.5px;font-weight:600;color:var(--gold);
-  text-decoration:underline;text-underline-offset:2px;
-}
-.gcpdf:hover,.gcpdf:focus-visible{color:var(--gold-ink);outline:none}
 .structure-progress .gapcount{grid-column:1/-1;text-align:right}
 @media (max-width:900px){
   .structurebar-in{grid-template-columns:1fr;gap:10px}
@@ -452,6 +446,18 @@ select:focus{border-color:var(--blue);outline:none}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-ghost{background:transparent;border-color:transparent;color:var(--blue);padding:8px 6px}
 .btn-ghost:hover{color:var(--blue-ink);border-color:transparent;text-decoration:underline;text-underline-offset:3px}
+/* THE COLOUR THIS APP ALREADY USES FOR FINISHED.
+
+   Not red. Red is Delete and Empty this board, and a writer who has been taught
+   that red destroys should never meet it on the one control that hands them
+   their work. Not gold either: gold means it costs credits and this is free.
+   The navy is the same palette a completed project wears on the dashboard, so
+   the board finishing and the card going navy are visibly the same event. */
+.btn-win{
+  background:var(--win-2);border-color:var(--win-hair);color:var(--win-ink);
+  font-weight:600;
+}
+.btn-win:hover{background:var(--win);border-color:var(--win)}
 .btn-danger{border-color:#E0C9C9;color:var(--red);background:var(--card)}
 .btn-danger:hover{background:var(--red);color:var(--card);border-color:var(--red)}
 .linky{
@@ -2204,6 +2210,11 @@ footer{
       aria-label="Type a note"></textarea>
     <button class="btn btn-primary" id="place" data-tip="Suggest up to two beats for this note. You choose before it is placed.">Place it</button>
     <button class="btn btn-gold" id="whatsmissing" hidden data-tip="Open a conversation about the most useful empty beat.">What&rsquo;s missing?</button>
+    <!-- Stands in the same place, and only ever one of the two is here. While
+         beats are open the bar asks what is missing; the moment the last card
+         lands the question has no answer left and this takes its slot. Same
+         position, same size, so nothing on the bar moves: the offer changes. -->
+    <button class="btn btn-win" id="savepdf" hidden data-tip="Download this board as a PDF organized by act.">Save as PDF</button>
   </div>
 </div>
 
@@ -3620,28 +3631,13 @@ function render(justPlaced){
   gc.textContent = "";
   if (undecided)         gc.textContent = undecided + " beat" + (undecided === 1 ? "" : "s")
                                         + " with more than one version";
-  else if (filled === total){
-    /* THE LINE THAT CONGRATULATES YOU BECOMES THE DOOR OUT.
-
-       "every beat has a card" was doing nothing but saying well done, and Save
-       as PDF was buried in a menu behind a list of every project the writer
-       owns. So the sentence they are already reading at the moment they finish
-       is the thing that hands them the board on paper. No new control, and it
-       only appears when it has something to celebrate.
-
-       Note what this is NOT: the PDF is never locked. A half-built board prints
-       its holes, and spreading that on a table is one of the best uses of the
-       feature, not a degraded one. Export is how work leaves the app, and it is
-       never conditional on a score. */
-    gc.textContent = "every beat has a card. ";
-    const go = document.createElement("button");
-    go.className = "linky gcpdf";
-    go.type = "button";
-    go.textContent = "Save as PDF";
-    go.setAttribute("data-tip", "Download this board as a PDF organized by act.");
-    go.addEventListener("click", exportPDF);
-    gc.appendChild(go);
-  }
+  /* This line used to carry the Save as PDF link, which looked accidental and
+     deserved to: a gold underlined control glued to the end of a gold status
+     sentence with a full stop between them, in the one colour this app uses to
+     mean "this spends credits", on the one action that never does. It is a
+     status line again. The offer is a button on the bar above, where the
+     controls live. */
+  else if (filled === total) gc.textContent = "every beat has a card";
   else if (holes)        gc.textContent = holes + " " + (holes === 1 ? "gap" : "gaps") + " between what you have";
   else                   gc.textContent = (total - filled) + " beats still empty";
   paintOutlineAccess(proj, filled, total);
@@ -3649,7 +3645,10 @@ function render(justPlaced){
   // The button never names its target. It reads the board when pressed and
   // opens on the question, the writer shouldn't be told where to go before
   // they've been asked anything.
-  document.getElementById("whatsmissing").hidden = filled === total;
+  const done = !!total && filled === total;
+  document.getElementById("whatsmissing").hidden = done;
+  // The board is finished, so the bar stops asking and starts offering.
+  document.getElementById("savepdf").hidden = !done;
   const nShelf = proj.cards.filter(c => c.slot === "__shelf").length;
   const nb = document.getElementById("notesbtn");
   nb.textContent = nShelf ? "Notes (" + nShelf + ")" : "Notes";
@@ -4904,6 +4903,7 @@ async function exportPDF(){
   }
 }
 document.getElementById("pdf").addEventListener("click", exportPDF);
+document.getElementById("savepdf").addEventListener("click", exportPDF);
 
 /* =========================================================================
    THE ROOM: an empty beat starts a conversation about itself. Claude reads

@@ -1329,3 +1329,41 @@ Save as PDF is the first of the project actions and sits above Project details.
 A finished board carries the door in its own sentence and pressing it produces
 the file. A half-built board says what is missing and offers no door, while the
 menu item stays present and enabled.
+
+## 5 September 2026: The bar stops asking and starts offering
+
+The Save as PDF link glued to the end of the "every beat has a card" line looked
+accidental, and it deserved to. Same colour, same size, same weight as the
+status text it followed, joined by a full stop, so the eye could not tell where
+the state ended and the control began. Worse, it was gold, and gold in this app
+means the action spends credits. The one colour a writer has been taught to read
+as money was sitting on the one action that is always free.
+
+### It is a button now, and it takes a slot rather than adding one
+
+`What's missing?` hides the moment every beat has a card, which leaves a hole in
+the capture bar at exactly the moment the board is finished. Save as PDF stands
+there instead. Same position, same size, only ever one of the two present: while
+beats are open the bar asks what is missing, and when the last card lands the
+question has no answer left and the offer takes its place. Nothing on the bar
+moves. The gapcount line is a status line again with no control inside it.
+
+### Not red
+
+Red was floated and is wrong. Red is Delete and Empty this board, and a writer
+taught that red destroys should never meet it on the control that hands them
+their work. Not gold either. The colour is the navy a completed project already
+wears on the dashboard, so the board finishing and the card going navy read as
+the same event.
+
+Set to `--win-2` rather than `--win`: at full strength in light mode it came out
+within a few points of the blue on Place it beside it, and the pair read as two
+primaries. The deeper navy with the warm `--win-ink` type is plainly a different
+kind of control, and in dark mode it sits well against the pale blue Place it.
+
+### Testing
+
+A finished board swaps the question for the offer, a half-built board asks the
+question and offers nothing, the status line carries no control, pressing the
+button produces the file, and Save as PDF remains first in the project menu and
+enabled at every stage, because export is never conditional.
