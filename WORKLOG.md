@@ -1546,3 +1546,42 @@ again. Suite re-run: vshape, vfile, vundel, vcast, vsync, voutline-app, vnote,
 vsave, vshelf, vout, vcarddl, vcost, vrename all pass. No em dashes.
 
 No project data, access rule, database schema, or API behavior changed.
+
+
+## 2026-09-06 - Two board fixes
+
+### See an example no longer overwrites the writer's project
+
+Kris clicked See an example inside Dirt Money and it wiped the board. The two
+lines that did it were `proj.cards = []` and `proj.isSample = true`: it emptied
+the board, the Notes shelf and everything set aside, then marked his own script
+as a demo, with no confirmation, in a menu where Empty this board sits directly
+beneath it and asks first.
+
+The example now gets its own project, "Example - The Spillway", pushed onto the
+shelf like any other. Opening it again reuses the one already there instead of
+breeding copies, and if the writer has added cards of their own to it, it is
+theirs and gets left alone. Sample cards carry `fromSample: true` so that check
+is exact rather than a guess. The help sheet's third choice routes through the
+same handler, so both doors are fixed by the one change.
+
+### The wordmark stopped reloading the application
+
+`<a class="brand" href="/app">` meant a plain click on the wordmark reloaded all
+480KB of Beatfall and the writer watched it boot through a flash of the
+dashboard to arrive somewhere already on screen. It now switches view in the
+page the way the house icon does. The href stays, so a middle click still opens
+the app in a new tab, and modifier clicks are left alone.
+
+### Testing
+
+A project holding a board card, a shelf note, a set-aside idea, outline prose
+and a character: after See an example it is byte for byte unchanged and not
+marked as a sample, and the example is a second project on the shelf holding its
+nine cards. Pressing it twice more makes no further projects and no duplicate
+cards. After adding a card to the example by hand, pressing it again leaves that
+work alone. The wordmark switches to the dashboard with zero page navigations.
+Suite re-run: vshape, vfile, vundel, vcast, vsync, voutline-app, vnote, vsave,
+vshelf, vout, vcarddl, vcost, vrename all pass. No em dashes.
+
+No access rule, database schema, or API behavior changed.

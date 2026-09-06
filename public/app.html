@@ -5559,21 +5559,46 @@ const SAMPLE = [
   "His deputy walks out on him after the third lie",
   "Ends with him sitting in the empty grove at dusk, water gone down"
 ];
+/* The example gets its own project and never lays a finger on anyone else's.
+
+   It used to load itself into whichever board you were standing on, and the
+   two lines that did it were `proj.cards = []` and `proj.isSample = true`: it
+   emptied the board, the Notes shelf and everything set aside, then marked the
+   writer's own script as a demo. With no confirmation, in a menu where Empty
+   this board, directly beneath it, asks first and keeps your notes.
+
+   Now it is a project on the shelf like any other. Look at it, then delete it.
+   Opening it a second time reuses the one already there rather than breeding
+   copies, and if you have written on it, it is yours and gets left alone. */
+const SAMPLE_NAME = "Example · The Spillway";
 document.getElementById("loadsample").addEventListener("click", () => {
   BF.track("sample_opened", {authenticated: true});
   cameFromSample = true;
   snapshot();
-  const proj = P();
-  proj.isSample = true;
-  proj.cards = [];
-  SAMPLE.forEach(text => {
-    const ranked = score(text, proj.structure, proj);
-    proj.cards.push({id: uid++, text, slot: ranked[0].slot.id, pinned: false});
-  });
-  settle(proj);
+
+  let proj = state.projects.find(p => p.isSample);
+  if (!proj){
+    proj = blankProject(SAMPLE_NAME, "stc");
+    proj.isSample = true;
+    proj.createdFrom = "sample";
+    state.projects.push(proj);
+  }
+  // Only ever refill the example itself, and only when it is still the example.
+  if (!proj.cards.length || proj.cards.every(c => c.fromSample)){
+    proj.cards = [];
+    SAMPLE.forEach(text => {
+      const ranked = score(text, proj.structure, proj);
+      proj.cards.push({id: uid++, text, slot: ranked[0].slot.id,
+                       pinned: false, fromSample: true});
+    });
+    settle(proj);
+  }
+
+  state.activeId = proj.id || proj.localId;
   hideAll();
   setView("board");
   sampleCTA();
+  save();
 });
 document.getElementById("clear").addEventListener("click", () => {
   const proj = P();
@@ -8145,6 +8170,16 @@ function setView(v, quiet){
 }
 document.getElementById("notesbtn").addEventListener("click", () => setView("notes"));
 document.getElementById("viewtoggle").addEventListener("click", () => setView("slate"));
+/* The wordmark goes to the dashboard the same way the house does, in the page
+   rather than through it. It kept its href so a middle click still opens the
+   app in a new tab, but a plain click used to reload all of Beatfall, and a
+   writer watched the whole application boot back up through a flash of the
+   dashboard to arrive somewhere they could already see. */
+document.querySelector("header .brand").addEventListener("click", e => {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+  e.preventDefault();
+  setView("slate");
+});
 document.getElementById("castbtn").addEventListener("click", () => setView("cast"));
 
 /* The standings. Four counts and a chain, and every one of them is something
