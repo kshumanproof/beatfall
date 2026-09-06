@@ -1045,12 +1045,25 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   background:var(--rule);border:2px solid var(--ground);
 }
 .obeat.has::before{background:var(--blue)}
-.obeat.gap::before{background:var(--gold)}
+.obeat.gap::before,.obeat.empty::before{background:var(--gold)}
 .obeat h3{
   font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
   letter-spacing:.13em;color:var(--ink-3);margin:0 0 4px;display:flex;gap:10px;align-items:baseline;
 }
-.obeat.gap h3{color:var(--gold)}
+.obeat.gap h3,.obeat.empty h3{color:var(--gold)}
+/* Not red. Red in this app is Delete and Empty this board, and a beat nobody
+   has written yet is not an error, it is the ordinary state of unfinished work.
+   Gold is already the word this app uses for missing, all over the board, so
+   the Outline says the same word rather than inventing a third meaning. */
+.nocard{
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--gold);
+}
+/* The loudest of the three, because it is the biggest shape on the row. An
+   empty beat's box is drawn in gold; a beat that has cards and simply has not
+   been written under yet keeps the quiet hairline. */
+.obeat.empty .oprose{border-color:var(--gold-hair)}
+.obeat.empty .oprose:focus{border-color:var(--blue)}
 .obeat h3 .act{margin-left:auto;font-size:9.5px;color:var(--ink-4);letter-spacing:.1em}
 .obeat .job{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-3);margin-bottom:12px}
 .ocards{display:flex;flex-direction:column;gap:8px;margin-bottom:11px}
@@ -7143,11 +7156,23 @@ function renderOutline(){
     S.slots.filter(x => x.act === ai).forEach(slot => {
       const cards = proj.cards.filter(c => c.slot === slot.id);
       const el = document.createElement("div");
-      el.className = "obeat" + (cards.length ? " has" : (isGap(slot, proj) ? " gap" : ""));
+      /* The board golds EVERY empty beat and reserves the gap dot for one that
+         sits between two full ones. The Outline only ever set the gap class, so
+         an empty beat at the end of the file got no mark at all and read as a
+         beat somebody had simply not written under yet. Same two states, same
+         two classes, both surfaces. */
+      el.className = "obeat"
+        + (cards.length ? " has" : (isGap(slot, proj) ? " empty gap" : " empty"));
       el.setAttribute("data-slot", slot.id);
       const rivals = cards.filter(c => c.declared).length > 1;
+      /* Named, not merely tinted. A gold heading and a grey one are four points
+         apart at ten pixels, which is why the board reads at a glance and this
+         page did not: on the board an empty beat is a visible absence of white
+         card, and here every beat ends in an empty box whether it has cards or
+         not. So the hole says what it is. */
       el.innerHTML = "<h3>" + esc(slot.name)
         + (rivals ? '<span class="undecided">undecided &middot; ' + cards.filter(c => c.declared).length + "</span>" : "")
+        + (cards.length ? "" : '<span class="nocard">no card yet</span>')
         + '<span class="act">' + esc(actName) + "</span></h3>"
         + '<div class="job">' + esc(slot.fn) + "</div>"
         + '<div class="ocards"></div>';

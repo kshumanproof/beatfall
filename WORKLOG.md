@@ -1399,3 +1399,33 @@ An unfinished card still says what is next and a finished one carries the
 control, both in a 46px box so nothing on the shelf shifts. No inert div is left
 behind. Pressing it downloads the project whose card was pressed, not the one
 last opened, and the view stays on the dashboard.
+
+## 5 September 2026: An empty beat in the Outline says so
+
+The board reads at a glance and the Outline did not, and the reason is not that
+gold is too quiet. It is that on the board an empty beat is a visible absence of
+white card, while in the Outline every beat ends in an empty dashed box whether
+it holds cards or not. The only difference between a hole and an unwritten beat
+was four points of hue on a ten pixel heading: gold #7B5A13 against warm grey
+#726859.
+
+Three changes, all in the colour this app already uses for missing.
+
+- The Outline only ever set the `gap` class, which means an empty beat NOT
+  sitting between two full ones got no mark at all. The board golds every empty
+  beat and reserves the gap dot for one in the middle. Same two states, same two
+  classes, both surfaces now.
+- The hole says what it is: "no card yet", in the same nine pixel gold as the
+  undecided flag, right after the beat name. Named rather than merely tinted.
+- The empty beat's write box is drawn in `--gold-hair` instead of the neutral
+  rule. It is the biggest shape on the row and does most of the work. A beat
+  that has cards and simply has not been written under keeps the quiet
+  hairline, so the distinction stays meaningful.
+
+### Not red
+
+Red was suggested and is wrong for the same reason it was wrong on the PDF
+button. Red in this app is Delete and Empty this board. A beat nobody has
+written yet is not an error, it is the ordinary state of unfinished work, and
+gold is already the word for missing right across the board. Better to say the
+same word louder than to invent a third meaning for red.
