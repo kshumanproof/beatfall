@@ -1429,3 +1429,33 @@ button. Red in this app is Delete and Empty this board. A beat nobody has
 written yet is not an error, it is the ordinary state of unfinished work, and
 gold is already the word for missing right across the board. Better to say the
 same word louder than to invent a third meaning for red.
+
+## 5 September 2026: A blank card on every shelf, and a hairline sealed
+
+### One per section
+
+The blank card went at the end of the whole page, which put it under Short films
+and nowhere else. Each medium is its own shelf, so a writer looking at their
+television projects had to go back to the top to start another one. Every
+section ends in its own blank now, including a section holding a single project.
+
+### The navy hairline in the left margin
+
+Kris saw the edge of a card sliding up the left side of the sticky header. The
+cause: `.pcard.current`, the project you are standing in, carries a 1px ring as
+`box-shadow: 0 0 0 1px`, and a spread shadow paints one pixel OUTSIDE the box.
+The card and the sticky header share a left edge at the wrap's content box, so
+that one pixel of navy was outside the header's background and slid up the
+padding as the shelf scrolled under.
+
+Fixed with two offset copies of the header's own background,
+`box-shadow: 34px 0 0 var(--ground), -34px 0 0 var(--ground)`, which paints the
+wrap's padding on both sides without touching the layout and without hard-coding
+the padding, which changes at the narrow breakpoint.
+
+### Testing
+
+Four media, four sections, one blank card each and each last in its own section.
+The header sticks at 76px with ground under it and now paints past its own box
+on both sides. Scrolled to the foot of the shelf, both New project and the last
+blank card are on screen.
