@@ -1431,11 +1431,12 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .pcard .up .arw{color:var(--gold);flex:0 0 auto}
-.pcard .done{
-  display:flex;align-items:center;min-height:46px;
-  font-size:12.5px;color:var(--sage);background:var(--sage-soft);
-  border:1px solid var(--sage);border-radius:var(--r-ctl);padding:9px 14px;
-}
+/* Inherits everything from .up, because it IS a .up now: same box, same
+   height, same place on the card. Only the label and the mark change, and the
+   mark has to be told: the chevron is gold, which is legible on paper stock and
+   nearly gone against a navy card. */
+.pcard .up.done .k{color:var(--win-ink);opacity:.72}
+.pcard .up.done .arw{color:var(--win-ink);opacity:.8}
 
 /* ------------------------------------------------- a card with no holes --
    Every beat has a card. The one state on this shelf worth looking up for,
@@ -4667,11 +4668,16 @@ document.getElementById("newpaste").addEventListener("click", () => {
 /* =========================================================================
    PDF EXPORT: the board as index cards, holes included.
    ========================================================================= */
-async function exportPDF(){
+/* Takes an optional project, because the shelf can now print a finished script
+   without opening it. Everything below reads `proj`, never P(), so a download
+   from the dashboard does not have to yank the writer onto a board they did not
+   ask to see. Called with nothing it prints the project you are standing in,
+   which is every other caller. */
+async function exportPDF(which){
   BF.track("export_used", {export_type: "pdf"});
   const btn = document.getElementById("pdf");
   const say = t => { const l = btn.querySelector(".lbl"); if (l) l.textContent = t; };
-  const proj = P();
+  const proj = (which && which.structure) ? which : P();
   const S = STRUCTURES[proj.structure];
 
   if (!window.jspdf || !window.jspdf.jsPDF){
@@ -8243,7 +8249,24 @@ function renderSlate(){
             + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
             + 'stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"/></svg>'
             + "</button>"
-          : '<div class="done">Every beat has a card.</div>')
+          /* The same slot, and now the same kind of thing.
+
+             On an unfinished card this bar is a live control: Next up, a beat
+             name, a chevron, and pressing it drops you into the conversation
+             about that hole. On a finished card it was a div of exactly the
+             same size and shape that said "Every beat has a card." and did
+             nothing at all. It looked pressable and it was not, which is the
+             fault we had just finished fixing in the structure bar one level
+             up. The percentage and "15 of 15 beats" directly above already say
+             the board is done, so the bar gives up the sentence and does a job:
+             the finished script, on paper, without opening it. */
+          : '<button class="up done"><span class="k">Finished</span>'
+            + '<span class="n">Save as PDF</span>'
+            + '<svg class="arw" width="14" height="14" viewBox="0 0 16 16" fill="none" '
+            + 'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" '
+            + 'stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M8 2.6v7.2M5.2 7l2.8 2.8L10.8 7M3.2 12.4h9.6"/></svg>'
+            + "</button>")
       + '<div class="acts"></div>';
 
     if (nx) el.querySelector(".up").addEventListener("click", () => {
@@ -8252,6 +8275,12 @@ function renderSlate(){
     if (nx) el.querySelector(".up").setAttribute("data-tip",
       "Answer questions about this project's next empty beat. Costs "
       + costWords("conversation") + ".");
+    if (!nx){
+      const out = el.querySelector(".up.done");
+      out.setAttribute("data-tip",
+        "Download this board as a PDF organized by act. You stay on the dashboard.");
+      out.addEventListener("click", () => exportPDF(p));
+    }
 
     const acts = el.querySelector(".acts");
     const go = btn("Open", () => open(p.id || p.localId));

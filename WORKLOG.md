@@ -1367,3 +1367,35 @@ A finished board swaps the question for the offer, a half-built board asks the
 question and offers nothing, the status line carries no control, pressing the
 button produces the file, and Save as PDF remains first in the project menu and
 enabled at every stage, because export is never conditional.
+
+## 5 September 2026: A finished card hands you the script
+
+No fourth button in the row. Open, Details and Delete is balanced with Delete on
+its own end, and export is not a shelf-level urgency for most cards.
+
+The slot already existed and was doing nothing. On an unfinished card that bar
+is a live control: Next up, the beat name, a chevron, and pressing it drops the
+writer into the conversation about that hole. On a finished card the same box,
+the same height, the same place held a plain div reading "Every beat has a
+card." It looked pressable and it was not, which is precisely the fault fixed in
+the structure bar an hour earlier, one level up.
+
+So the finished card's bar is a control now: FINISHED / Save as PDF, with a
+download mark where the chevron was. The percentage and "15 of 15 beats"
+directly above already state the board is complete, so the bar gives up the
+sentence and does a job.
+
+- `exportPDF(which)` takes an optional project and reads `proj` throughout, so
+  the shelf can print a finished script without opening it. Called with nothing
+  it prints the project you are standing in, which is every other caller.
+- Pressing it leaves the writer on the dashboard. Three finished scripts, three
+  PDFs for a meeting, without entering a single project.
+- The chevron's gold is legible on paper stock and nearly gone on navy, so the
+  mark and the label take `--win-ink` on a finished card.
+
+### Testing
+
+An unfinished card still says what is next and a finished one carries the
+control, both in a 46px box so nothing on the shelf shifts. No inert div is left
+behind. Pressing it downloads the project whose card was pressed, not the one
+last opened, and the view stays on the dashboard.
