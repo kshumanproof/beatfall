@@ -1459,3 +1459,48 @@ Four media, four sections, one blank card each and each last in its own section.
 The header sticks at 76px with ground under it and now paints past its own box
 on both sides. Scrolled to the foot of the shelf, both New project and the last
 blank card are on screen.
+
+
+## 2026-09-06 - The bar rearranged, and the wall-of-text trap closed
+
+### What changed
+
+Kris: "maybe the notes button could replace what's missing beside place it and
+what's missing could go next to the beat counter where it says 'X beats still
+empty'."
+
+Three moves, one idea: a control belongs beside the thing it acts on.
+
+1. The notes importer now has a door on the capture bar, next to Place it, as
+   a matched pair. One note goes on the board; a page of them goes to the
+   importer. It used to live only in the project menu, three clicks away and
+   invisible to anyone who had not gone looking. Same words as the menu item,
+   "Paste in your notes", and it carries its price the same way.
+
+2. What's missing? and Save as PDF moved off the capture bar and onto the
+   structure bar, on the line with the beat count. While beats are empty the
+   line reads "14 beats still empty" with What's missing? beside it; when the
+   last card lands the question has no answer left and Save as PDF takes its
+   place. The status text goes quiet on a finished board rather than repeating
+   the meter directly above it.
+
+3. Pasting a page of notes into the one-note box used to make one enormous
+   card, silently, with nothing offering to sort it. Two lines or more and the
+   bar now says what Place it would do and offers the importer holding the same
+   text. Nothing is decided for the writer: Place it still works and still
+   makes one card. If they back out of the importer without running it, their
+   text goes back in the box they pasted it into.
+
+### Testing
+
+Empty board, half-built board and finished board, at 1400px and at 880px:
+the pair on the capture bar keeps equal widths, What's missing? and Save as PDF
+swap in the right places and never both show, and the offer line wraps rather
+than overflowing. Three lines pasted into the note box raises the offer, carries
+the text into the importer with the word count correct, and Cancel puts it back.
+Both new controls carry data-costed, so a finger gets the price before the
+spend. Full suite re-run: vshape, vfile, vundel, vcast, vsync, voutline-app,
+vnote, vplace, vboard, vsave, vshelf, vout, vcarddl, vcost, vrename, vpdfcast
+all pass. No em dashes.
+
+No project data, access rule, database schema, or API behavior changed.
