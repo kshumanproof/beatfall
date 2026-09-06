@@ -1504,3 +1504,45 @@ vnote, vplace, vboard, vsave, vshelf, vout, vcarddl, vcost, vrename, vpdfcast
 all pass. No em dashes.
 
 No project data, access rule, database schema, or API behavior changed.
+
+
+## 2026-09-06 - A ceiling on Place it
+
+Kris: "should we add a character/sentence cap to the place it input field...to
+prevent them from pasting a whole shitload of notes into this box and throwing
+the system off."
+
+He is right about the leak. Place it is free and it sends the note to the model
+(`smartProposal` interpolates the raw text into the prompt with no bound), so
+without a ceiling the free door will carry a whole notes file through it, and
+the model asked which single beat a 3,000 word paste belongs in answers badly
+and deserves to.
+
+Two marks, neither of them a maxlength. A maxlength eats the tail of a paste in
+silence and a writer who cannot see what was cut has lost work. The text always
+stays in the box; what changes is what the bar offers to do with it.
+
+- NOTE_LONG, 250 characters, or two lines: the offer line appears and Place it
+  still works. Measured on a Save the Cat board, 220 characters is 202px of
+  card and still reads as an index card; 320 is 287px, 480 is 413px. The wall is
+  a grid, so the tallest card in an act sets the height of every beat in that
+  act, which is how one long note leaves four empty beats sitting in 400px of
+  white space.
+- NOTE_MAX, 1,000 characters, about 170 words: Place it goes disabled, the bar
+  says "That is 1,745 characters. This box takes one note," and the importer is
+  offered beside it. No honest note about one beat runs 170 words, so the
+  ceiling never touches a writer working the way the box intends.
+
+`propose()` checks the ceiling too, because Enter also places a note and a
+disabled button is not a rule.
+
+### Testing
+
+Under 250 quiet; 300 characters raises "That is long for one card" with Place it
+still live; three lines raises the line count; 2,000 characters disables Place
+it and names the count. Enter over the ceiling makes no card, opens no proposal
+and keeps all 2,000 characters in the box. Back under the ceiling Place it works
+again. Suite re-run: vshape, vfile, vundel, vcast, vsync, voutline-app, vnote,
+vsave, vshelf, vout, vcarddl, vcost, vrename all pass. No em dashes.
+
+No project data, access rule, database schema, or API behavior changed.

@@ -4200,6 +4200,11 @@ function paintCandidates(options, sharpened){
 async function propose(){
   const text = input.value.trim();
   if (!text) return;
+  /* Belt and braces. The button is disabled over the ceiling, but Enter also
+     places a note, and a disabled button is not a rule. Nothing is thrown away:
+     the text sits where it was pasted and the bar is holding the importer open
+     underneath it. */
+  if (text.length > NOTE_MAX){ paintCaptureMore(); return; }
   const seq = ++proposeSeq;
 
   const options = localProposal(text);
@@ -4263,17 +4268,48 @@ function growNote(){
    accident, and every notes file has line breaks in it. The bar says what Place
    it would do and holds the door to the importer open. Nothing is decided for
    the writer: Place it still works, and it still makes one card. */
+/* Two marks, not one.
+
+   NOTE_LONG is where a note stops looking like an index card. Measured on a
+   Save the Cat board: 220 characters is 202px of card and still reads as one,
+   320 is 287px, 480 is 413px. The wall is a grid, so the tallest card in an act
+   sets the height of every beat in that act, which is how one long note leaves
+   four empty beats sitting in 400px of white space.
+
+   NOTE_MAX is the ceiling on the ACTION, and it is there for a different
+   reason: Place it is free and it sends the note to the model. Without a
+   ceiling, the free door is a way to push a whole notes file through, and the
+   model asked which single beat a 3,000 word paste belongs in will answer
+   badly and deserve to. A thousand characters is about 170 words. No honest
+   note about one beat is 170 words, so the ceiling never touches a writer
+   working the way the box intends.
+
+   Neither one is a maxlength. A maxlength eats the tail of a paste in silence,
+   and a writer who does not see what was cut has lost work. The text always
+   stays in the box. What changes is what the bar offers to do with it. */
+const NOTE_LONG = 250;
+const NOTE_MAX = 1000;
 let captureStash = "";
 function captureLines(){
   return input.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 }
+function noteTooBig(){ return input.value.trim().length > NOTE_MAX; }
 function paintCaptureMore(){
   const lines = captureLines();
+  const n = input.value.trim().length;
+  const over = n > NOTE_MAX;
   const more = document.getElementById("capturemore");
-  more.hidden = lines.length < 2;
+  more.hidden = lines.length < 2 && n <= NOTE_LONG;
+  placeBtn.disabled = over;
+  placeBtn.setAttribute("data-tip", over
+    ? "This box takes one note. Sort these into beats instead."
+    : "Suggest up to two beats for this note. You choose before it is placed.");
   if (more.hidden) return;
-  document.getElementById("capturemoretext").textContent =
-    "That is " + lines.length + " lines. Place it would make them one card.";
+  document.getElementById("capturemoretext").textContent = over
+    ? "That is " + n.toLocaleString() + " characters. This box takes one note."
+    : lines.length > 1
+      ? "That is " + lines.length + " lines. Place it would make them one card."
+      : "That is long for one card.";
 }
 function captureToImport(){
   const text = input.value;
