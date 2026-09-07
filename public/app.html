@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Hold the page back until start() knows what to draw. Without this the
+     static shell paints first: the wordmark, a project called Untitled, the
+     capture bar and an empty board, for as long as it takes to read the
+     config, restore the session, claim this browser and load the projects.
+     A writer pressing refresh watched their own app flash a board that was
+     not theirs. Cleared by BF.ready(), which every boot path calls. -->
+<script>document.documentElement.classList.add("booting");
+/* A hold that can only be lifted by code is a blank page the day that code
+   fails to load. Six seconds is far longer than a boot and far shorter than
+   a writer's patience: past it, show the shell rather than nothing. */
+setTimeout(function(){document.documentElement.classList.remove("booting");},6000);</script>
 <title>Beatfall</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -143,6 +154,7 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none !important}   /* .scrim sets display:flex, never let it beat this */
+html.booting body{visibility:hidden}   /* see the head; BF.ready() lifts it */
 body{
   margin:0;background:var(--ground);color:var(--ink);
   font-family:var(--sans);font-size:14px;line-height:1.55;
@@ -1628,6 +1640,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   border-radius:var(--r-card);padding:12px 15px;font-size:13px;
 }
 .locked-acts{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 20px}
+.locked-acts + .locked-acts{margin-top:0}  /* the way out sits under the two ways back in */
 .lk-out{font-size:12.5px;color:var(--ink-3);text-decoration:none}
 .lk-out:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 
@@ -2948,6 +2961,12 @@ function briefBlock(){
    place and route are free, and free things say nothing. */
 const CREDIT = {conversation: 1, ideas: 1, logline: 1, character: 2, import: 2,
                 place: 0, route: 0};
+
+/* And the two prices, for the screens that have to name them before
+   /api/account has answered. Same rule as CREDIT: the server is what actually
+   charges, this is what the writer is told, and /api/account now sends both so
+   anything that can wait should read them from there instead. */
+const PRICES = {month: 12, year: 99};
 
 function costWords(kind){
   const n = CREDIT[kind] || 0;
@@ -8870,10 +8889,12 @@ function panePlan(){
      which is a riddle: what a buyer wants to know is what it costs and what
      they save. Say the number. */
   const PERIODS = [
-    {key: "month", label: "Monthly", price: "$12", per: "a month",
-     note: "Billed every month. Cancel whenever you like."},
-    {key: "year",  label: "Annual",  price: "$99", per: "a year",
-     note: "Billed once a year. Saves $45 against paying monthly."}
+    {key: "month", label: "Monthly", price: "$" + (ME.price_month || PRICES.month),
+     per: "a month", note: "Billed every month. Cancel whenever you like."},
+    {key: "year",  label: "Annual",  price: "$" + (ME.price_year || PRICES.year),
+     per: "a year", note: "Billed once a year. Saves $"
+       + ((ME.price_month || PRICES.month) * 12 - (ME.price_year || PRICES.year))
+       + " against paying monthly."}
   ];
   let note = "";
   if (ME.unlimited){
@@ -8883,9 +8904,13 @@ function panePlan(){
   } else if (ME.plan === "trial" && ME.trialing){
     const days = Math.max(0, Math.ceil((new Date(ME.trial_ends_at) - Date.now()) / 86400000));
     const ends = new Date(ME.trial_ends_at).toLocaleDateString(undefined, {month: "long", day: "numeric"});
+    // The trial's allowance is not the plan's, and a writer who has read the
+    // billing page has 150 in mind. Say this one's number where they can see
+    // it against the days.
     note = '<div class="note info"><b>Free trial: ' + days + " day"
-      + (days === 1 ? "" : "s") + " left, ending " + ends + ".</b> No card on file. "
-      + "Your boards carry over whichever plan you pick.</div>";
+      + (days === 1 ? "" : "s") + " left, ending " + ends + ".</b> No card on file, and "
+      + ME.credits_allowance + " credits for the trial rather than the "
+      + "150 a plan carries. Your boards carry over whichever plan you pick.</div>";
   } else if (ME.plan === "none"){
     note = '<div class="note warn"><b>No active plan.</b> The boards are closed until you pick '
       + "one. Nothing has been deleted, and you can download everything from Your data.</div>";
@@ -9099,7 +9124,12 @@ document.addEventListener("click", e => {
    ========================================================================= */
 /* The plan ended. Two things on the screen and nothing else: get your work,
    or come back. No board behind it teasing what is switched off. */
-function showLocked(){
+/* `why` is the reason the server gave with its 402. A trial that ran out and a
+   subscription that lapsed both close the boards, and they are not the same
+   thing to the person reading the screen: one of them never bought anything. */
+function showLocked(why){
+  BF.ready();
+  const trial = why === "trial_ended";
   document.querySelectorAll("header, main, footer, .capture, .trays, #slate, .acct")
     .forEach(el => el && (el.hidden = true));
   document.body.insertAdjacentHTML("beforeend", `
@@ -9110,7 +9140,7 @@ function showLocked(){
             <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
               <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
             </g>
-            <rect x="15" y="22.6" width="32.8" height="6.95" rx="1.6"
+            <rect x="15" y="22.6" width="34" height="6.95" rx="1.6"
                   fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
             <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
             <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
@@ -9118,29 +9148,41 @@ function showLocked(){
           </svg>
           <span class="wordmark">Beat<span>fall</span></span>
         </a>
-        <h1>Your plan has ended.</h1>
+        <h1>${trial ? "Your free trial has ended." : "Your plan has ended."}</h1>
         <p>The boards are closed, but nothing has been deleted. Everything you wrote
           is still here, and you can download all of it right now whether or not you
           come back.</p>
+        <p>${trial
+          ? "A plan opens them again exactly as you left them, and carries 150 credits a month."
+          : "Subscribing again opens them exactly as you left them."}</p>
         <p class="warnline">An account nobody signs into for six months is deleted
           along with everything in it. Take a copy if you are not sure.</p>
         <div class="locked-acts">
-          <button class="bigbtn solid" id="lk-plan">Choose a plan</button>
+          <button class="bigbtn solid" id="lk-month">$${PRICES.month} a month</button>
+          <button class="bigbtn solid" id="lk-year">$${PRICES.year} a year</button>
+        </div>
+        <div class="locked-acts">
           <button class="bigbtn" id="lk-export">Download everything</button>
         </div>
         <a class="lk-out" href="#" id="lk-signout">Sign out</a>
       </div>
     </div>`);
 
-  document.getElementById("lk-plan").addEventListener("click", async ev => {
-    const b = ev.currentTarget; b.disabled = true;
-    b.innerHTML = '<span class="spinner"></span>Opening\u2026';
-    try {
-      const {url} = await BF.api("/api/billing", {method: "POST",
-        body: JSON.stringify({action: "checkout", period: "year"})});
-      location.href = url;
-    } catch (e) { b.disabled = false; b.textContent = "Choose a plan"; }
-  });
+  /* This used to be one button reading "Choose a plan" that opened the annual
+     checkout without asking. A control that names a decision has to let the
+     person make it, and $99 is not the answer to a question nobody was asked. */
+  const goCheckout = (id, period, label) =>
+    document.getElementById(id).addEventListener("click", async ev => {
+      const b = ev.currentTarget; b.disabled = true;
+      b.innerHTML = '<span class="spinner"></span>Opening\u2026';
+      try {
+        const {url} = await BF.api("/api/billing", {method: "POST",
+          body: JSON.stringify({action: "checkout", period})});
+        location.href = url;
+      } catch (e) { b.disabled = false; b.textContent = label; }
+    });
+  goCheckout("lk-month", "month", "$" + PRICES.month + " a month");
+  goCheckout("lk-year",  "year",  "$" + PRICES.year  + " a year");
 
   document.getElementById("lk-export").addEventListener("click", async ev => {
     const b = ev.currentTarget, was = b.textContent;
@@ -9164,6 +9206,7 @@ function showLocked(){
 }
 
 function showLoadFailure(){
+  BF.ready();
   document.title = "Couldn\u2019t load \u00b7 Beatfall";
   document.body.classList.add("load-error");
 
@@ -9213,7 +9256,7 @@ function showLoadFailure(){
     // held: export answers whether or not there is a subscription, so the one
     // door that stays open is the one that lets somebody leave with their
     // material. Anything else would be holding a writer's notes to ransom.
-    if (e && e.status === 402) return showLocked();
+    if (e && e.status === 402) return showLocked(e.body && e.body.reason);
     showLoadFailure();
     return;
   }
@@ -9222,6 +9265,9 @@ function showLoadFailure(){
   // shelf first and choose; dropping them into whichever board they closed
   // last decides that for them.
   setView("slate", true);
+
+  // The shell has something true on it now, so the page can be shown.
+  BF.ready();
 
   // Who am I? Shows the credit count straight away rather than only after the
   // first AI call, and reveals the admin link for the one account that has it.
@@ -9323,16 +9369,28 @@ function showFirstRun(which){
    not warned about a month they are not relying on. */
 const LOW_NOTICE = 30, LAST_NOTICE = 10;
 
+/* Those two numbers were set against the 150 a paid month carries: a fifth of
+   it left, and a fifteenth of it left. The trial carries 25, so a flat 30 fired
+   the low warning on an account that had not spent anything yet. A writer's
+   first ever screen told them they were nearly out.
+
+   So the marks are the SHARE of the allowance those numbers always meant, and
+   whichever is lower wins. At 150 that is 30 and 10, exactly what shipped. At
+   25 it is 5 and 2. No warning is owed to somebody with a full allowance. */
+const lowMark  = a => Math.min(LOW_NOTICE,  Math.max(1, Math.round(a * 0.20)));
+const lastMark = a => Math.min(LAST_NOTICE, Math.max(1, Math.round(a * 0.07)));
+
 BF.onCredits = function (c) {
   if (!c || !c.allowance) return;
   const left = c.left;
+  const low = lowMark(c.allowance), last = lastMark(c.allowance);
 
   const el = document.getElementById("credits");
   if (el){
     el.textContent = left + " of " + c.allowance + " credits left"
       + (c.banked ? " (" + c.banked + " bought)" : "");
     el.className = left <= 0 ? "creditcount cr out"
-                 : left <= LOW_NOTICE ? "creditcount cr low" : "creditcount cr";
+                 : left <= low ? "creditcount cr low" : "creditcount cr";
     el.hidden = false;
   }
 
@@ -9340,7 +9398,7 @@ BF.onCredits = function (c) {
   const pill = document.getElementById("avatar");
   if (pill){
     let chip = document.getElementById("avatarlow");
-    if (left <= LOW_NOTICE && left > 0){
+    if (left <= low && left > 0){
       if (!chip){
         chip = document.createElement("span");
         chip.className = "lowchip"; chip.id = "avatarlow";
@@ -9352,7 +9410,7 @@ BF.onCredits = function (c) {
     pill.classList.toggle("out", left <= 0);
   }
 
-  if (left <= LAST_NOTICE) lowStrip(left);
+  if (left <= last) lowStrip(left);
 };
 
 /* One strip, once per credit period, dismissible. A person who has decided to

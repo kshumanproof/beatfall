@@ -1585,3 +1585,151 @@ Suite re-run: vshape, vfile, vundel, vcast, vsync, voutline-app, vnote, vsave,
 vshelf, vout, vcarddl, vcost, vrename all pass. No em dashes.
 
 No access rule, database schema, or API behavior changed.
+
+
+## 2026-09-07 - The audit pass: the refresh flash, and five things the signup flow was getting wrong
+
+Kris asked for a read of the whole platform and then for everything found to be
+fixed, mobile excluded. The phone stays out of scope until the web app is right.
+
+### The flash on refresh
+
+Pressing refresh showed the wordmark, a project called Untitled, the capture bar
+and an empty board for the best part of a second before the real view arrived.
+Nothing was broken. `public/app.html` simply had no boot guard, so the static
+shell painted immediately while `start()` spent three round trips finding out
+what to draw: read the config, restore the Supabase session, claim this browser
+through `POST /api/session`, load the projects. Only then does `setView("slate")`
+correct the page.
+
+The public homepage already solved this in January's terms: `auth-checking` on
+the root element and `visibility:hidden` on the body until the session check
+resolves. The application never got the same treatment.
+
+- `booting` goes on the root element in the head, before any stylesheet, and
+  `html.booting body{visibility:hidden}` sits with the other structural rules.
+  The background is declared on `body` and propagates to the canvas, so the room
+  is still the right colour while the page is held.
+- `BF.ready()` in `app.js` takes it off. Every path that ends a boot calls it:
+  the first view drawing, the project-load failure, the ended-plan screen, both
+  device screens, the small-screen gate, and the unconfigured notice. It is
+  harmless on the pages that never set the class.
+- A six-second timer in the head lifts the hold whatever happens. A hold that
+  only code can release is a blank page on the day that code fails to load.
+
+Settings has its own honest loading state and was left alone.
+
+### A new account was told it was nearly out of credits
+
+`LOW_NOTICE` is 30 and `LAST_NOTICE` is 10, both set against the 150 a paid
+month carries: a fifth left, and a fifteenth left. The trial carries 25. So the
+flat comparison fired on the first load of every new account, and a writer's
+first ever screen put a gold count on the Account pill telling them they were
+running low before they had spent anything.
+
+The marks are the share those numbers always meant, whichever is lower: at 150
+they compute to 30 and 10, exactly what shipped, and at 25 they are 5 and 2.
+
+### The trial is 25 credits and every page said 150
+
+Kris's call: keep 25 and say so. `billing.html` said "You get 150 credits a
+month" with nothing anywhere about the trial's own allowance, so a trial writer
+read 150 and would have hit a wall at 25.
+
+- The short version now separates the plan's 150 from the trial's 25 and says
+  what 25 buys: a notes file read in, and twenty conversations after it.
+- Section 1 carries the number beside the fourteen days, and says plainly that
+  running the credits down does not close the board, because adding and
+  organizing notes is free on the trial exactly as it is on a plan.
+- Terms section 8 carries the same number, since the two must agree.
+- The plan pane in Settings prints the trial's allowance against the days left,
+  where a writer who has read the billing page has 150 in mind.
+
+### Day fifteen told writers a plan had ended that they never had
+
+The trial expires, `entitlement` returns `none`, `/api/projects` answers 402 and
+the client draws `showLocked()`, whose heading read **Your plan has ended.** to
+somebody who had never subscribed. The server's message said the same.
+
+`api/projects.js` now sends a `reason` with the 402, decided on whether the
+account has ever carried a Stripe subscription, and both the server message and
+the locked screen say trial or plan accordingly.
+
+The other half of that screen was worse. **Choose a plan** named a decision and
+then made it: one button, straight into the annual checkout at $99, with no
+choice offered anywhere on the page. It is two buttons now, `$12 a month` and
+`$99 a year`, with Download everything on its own row beneath them.
+
+Both prices came off the page and into one place. `/api/account` serves
+`price_month` and `price_year` from `core.js`, the plan pane reads them, and a
+`PRICES` mirror beside the existing `CREDIT` mirror covers the locked screen,
+which has to name them before that call has answered. The annual saving is
+computed rather than typed. This is the lesson the admin plan card taught when
+it went on saying 100 for $6: nothing on a screen that quotes a price should be
+a literal.
+
+Also: the lockup inside the locked screen had drifted, its falling gold card
+34 wide everywhere else in the site and 32.8 here.
+
+### Three measurements that were not measuring anything
+
+1. `login.html` counts the magic links a browser asks for, in first-party
+   storage, and its comment said the app hands the count over on the first
+   authenticated call. Nothing read that key. The drop-off between asking for a
+   link and arriving, which is the cost of magic-link auth and the number that
+   comment called worth knowing before ten writers hit it, was not being
+   recorded at either end. `BF.sendAuthFunnel()` hands it over and clears it.
+2. `BF.sendTouch()` was written, correct, and never called. Attribution was
+   captured into localStorage on every visit and never delivered, while
+   `/api/account` sat waiting with a working `attribution` action. Both it and
+   the funnel are called from `requireSession`, which is the first moment any
+   protected page is certain it has a session.
+3. `requireUser` fires an event when it has to create a profile row, commented
+   as the only place in the system that can tell a new account from a returning
+   one. The `handle_new_user` trigger writes that row and a `signed_up` event
+   first, so the branch is not reached on a normal signup. It is a fallback for
+   a database whose trigger did not run, and it is named `profile_recreated`
+   now rather than counted as an ordinary signup.
+
+### The homepage lockup stopped loading the whole application to bounce
+
+Every linked lockup in the site points at `/app`, which is right everywhere it
+was decided. The public homepage is the exception and could not have been one
+when that rule was written: the early session check now sends anybody holding a
+session straight to `/app`, so a person reading the homepage is signed out by
+definition, and pressing the lockup loaded 487KB of application in order to be
+redirected back to the page they were already on. Both homepage lockups point
+at `/`. No other lockup changed.
+
+### Testing
+
+- Every touched file parses: the inline application script, `app.js`, and the
+  four API modules.
+- Em dashes are at zero across every page, `app.js`, `theme.css` and `api/`.
+  One had been sitting in `core.js` since before that rule was audited there.
+- No duplicate element ids were introduced.
+- Both new credit marks were checked against both allowances: 150 gives 30 and
+  10 unchanged, 25 gives 5 and 2, and a full allowance warns about nothing.
+- Every boot path was walked for its `BF.ready()`: first view, load failure,
+  ended plan, device replaced, device setup failure, small-screen gate,
+  unconfigured, and the timer behind all of them.
+- `BF.onCredits` is only ever called after an await, so the two new marks are
+  past their temporal dead zone at both call sites.
+
+### Left alone on purpose
+
+`settle()` is a stub returning an empty list, and seven call sites still feed
+its result to `showSettled()`, which returns early on nothing. That is dead
+wiring, not a defect: auto-float was removed deliberately and the receipts it
+used to raise are meant never to appear. `showSettled` itself is alive and
+carries every Undo receipt in the app. Removing the seven would touch placement,
+import and notes for no visible gain, which is the only real regression risk in
+this pass, so it stays until it is worth its own step.
+
+`CLAUDE.md` has two sections that no longer describe the code: conflicting saves
+still documents the 409 sheet removed on 5 September, and the Outline start gate
+still describes the strict version the board-shape work replaced the same day.
+Both are history rather than guidance now, and neither was rewritten here.
+
+No project data, placement rule, import behaviour, database schema or API
+payload shape changed.

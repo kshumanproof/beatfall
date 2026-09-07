@@ -20,9 +20,16 @@ export default async function handler(req, res) {
   // opening and editing.
   const ent = entitlement(profile);
   if (ent.key === 'none') {
+    // Two different events arrive here and one sentence cannot be true of
+    // both. Somebody who has never had a subscription did not have a plan end;
+    // their trial ran out. Telling a writer on day fifteen that their plan
+    // ended is the app describing a purchase they never made.
+    const neverSubscribed = !profile.stripe_subscription_id && !profile.subscription_status;
     return send(res, 402, {
       error: 'no_plan',
-      message: 'Your plan has ended, so the boards are closed. Nothing has been '
+      reason: neverSubscribed ? 'trial_ended' : 'plan_ended',
+      message: (neverSubscribed ? 'Your free trial has ended, ' : 'Your plan has ended, ')
+             + 'so the boards are closed. Nothing has been '
              + 'deleted, you can download all of it, and picking a plan opens '
              + 'everything again exactly as you left it.'
     });

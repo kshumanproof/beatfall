@@ -3,7 +3,8 @@
 // destructive things a person is entitled to do: take their data out, and
 // delete the lot.
 // ============================================================================
-import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE, track } from './_lib/core.js';
+import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE,
+         PRICE_MONTH, PRICE_YEAR, track } from './_lib/core.js';
 
 export default async function handler(req, res) {
   const auth = await requireUser(req);
@@ -61,6 +62,10 @@ export default async function handler(req, res) {
       has_history: (everUsed || 0) > 0,
       topup_credits: TOPUP_CREDITS,
       topup_price: TOPUP_PRICE,
+      // Both prices, so a page showing them does not carry its own copy of the
+      // number. That is how the admin plan card went on saying 100 for $6.
+      price_month: PRICE_MONTH,
+      price_year: PRICE_YEAR,
       plans: PLANS
     });
   }

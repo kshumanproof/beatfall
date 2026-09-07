@@ -141,10 +141,11 @@
 
   /* This page cannot use BF.track: nobody is signed in yet, and that endpoint
      needs a session. It writes what it saw into first-party storage instead,
-     and the app hands it over on the first authenticated call. Two counts,
-     no addresses: how many people asked for a link, and how many arrived. The
-     gap between them is the cost of magic-link auth, and it is a number worth
-     knowing before ten writers hit it. */
+     and BF.sendAuthFunnel hands it over on the first authenticated call, then
+     clears it. One count, no addresses: how many links this browser asked for
+     before one of them worked. The gap between asking and arriving is the cost
+     of magic-link auth, and it is a number worth knowing before ten writers
+     hit it. */
   function note(key) {
     try {
       const k = 'beatfall.auth.' + key;

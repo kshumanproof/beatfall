@@ -17,6 +17,7 @@
   function sayUnconfigured(what) {
     unconfigured = true;
     BF.unconfigured = true;
+    BF.ready();
     document.body.innerHTML =
       '<div style="max-width:560px;margin:14vh auto;padding:0 24px;font-family:' +
       "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#15181D\">" +
@@ -31,6 +32,16 @@
       'missing: ' + what + '</span></div></div>';
     document.documentElement.style.background = '#E9ECEF';
   }
+
+  /* A page may hold itself back until it knows what to draw, by putting
+     `booting` on the root element in its head. This takes it off again, and
+     every path that ends a boot calls it: the app drawing its first view, the
+     project-load failure, the ended-plan screen, the device screens, the
+     small-screen gate and the unconfigured notice. Harmless on a page that
+     never set the class. */
+  BF.ready = function () {
+    try { document.documentElement.classList.remove('booting'); } catch (e) {}
+  };
 
   BF.init = async function () {
     try {
@@ -120,6 +131,7 @@
   }
 
   BF.showDeviceReplaced = function () {
+    BF.ready();
     if (document.getElementById('bf-device-ended')) return;
     stopDeviceWatch();
 
@@ -185,6 +197,7 @@
   };
 
   BF.showDeviceSetupFailure = function () {
+    BF.ready();
     if (document.getElementById('bf-device-setup')) return;
     const el = document.createElement('div');
     el.id = 'bf-device-setup';
@@ -272,6 +285,11 @@
       BF.showDeviceSetupFailure();
       return null;
     }
+    // Both of these were written and never called, so what they collect sat in
+    // this browser and never reached the server. This is the first moment a
+    // page is certain it has a session, which is what they were waiting for.
+    BF.sendTouch();
+    BF.sendAuthFunnel();
     return session;
   };
 
@@ -403,6 +421,24 @@
       localStorage.setItem(TOUCH_KEY + '.sent', '1');
       BF.api('/api/account', { method: 'POST',
         body: JSON.stringify({ action: 'attribution', touch: t }) }).catch(function () {});
+    } catch (e) {}
+  };
+
+  /* login.html counts the magic links this browser asked for, in first-party
+     storage, because nobody is signed in yet and the event endpoint needs a
+     session. This is the other half of that count, and until it existed the
+     first half was written to a key nothing ever read: once there IS a
+     session, hand the number over and clear it. The gap between links asked
+     for and sign-ins reached is the cost of magic-link auth, and it is worth
+     knowing before ten writers hit it. */
+  var AUTH_ASKED = 'beatfall.auth.requested';
+
+  BF.sendAuthFunnel = function () {
+    try {
+      var asked = Number(localStorage.getItem(AUTH_ASKED)) || 0;
+      if (!asked) return;
+      localStorage.removeItem(AUTH_ASKED);
+      BF.track('magic_link_arrived', { count: asked });
     } catch (e) {}
   };
 
@@ -626,6 +662,7 @@
 
   BF.showSmallScreenGate = function (session) {
     if (document.getElementById('bf-gate')) return;
+    BF.ready();
 
     const soon = !BF.APP_STORE && !BF.PLAY_STORE;
     const el = document.createElement('div');

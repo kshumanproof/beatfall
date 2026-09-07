@@ -81,10 +81,13 @@ export async function requireUser(req, options = {}) {
     const { data: made } = await db.from('profiles')
       .insert({ id: user.id, email: user.email }).select().single();
     profile = made;
-    // The only place in the system that can tell a new account from a returning
-    // one, because it is the moment the row did not exist. Recorded here rather
-    // than guessed from created_at later.
-    track(db, user.id, 'signup_completed');
+    /* This is a fallback, not the normal path, and the comment here used to say
+       otherwise. `handle_new_user` fires on auth.users and writes both the
+       profile row and a `signed_up` event, so by the time this runs the row is
+       already there and this branch is not reached. It is reached only when
+       that trigger did not run, which is worth its own name rather than being
+       counted as an ordinary signup. */
+    track(db, user.id, 'profile_recreated');
   }
 
   // new calendar month → credits reset, topped-up credits carry over
@@ -159,7 +162,7 @@ export function entitlement(profile) {
 
 // Spend n credits: this month's first, then the ones they paid for. Returns the
 // patch to apply to the profile, or null when there isn't enough. Keeping the
-// order fixed here is the whole point — spending banked credits first would
+// order fixed here is the whole point. Spending banked credits first would
 // burn what somebody paid for while their free allowance expired unused.
 export function spend(profile, ent, n) {
   if (!n || n <= 0) return {};
