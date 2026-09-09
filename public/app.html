@@ -660,16 +660,23 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .icard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .icard.dragging{opacity:.4;cursor:grabbing}
-.icard .del,.icard .move,.icard .pin{
-  position:absolute;top:5px;border:none;background:none;
-  color:var(--ink-4);line-height:1;padding:3px 5px;cursor:pointer;
+/* Four controls, and the padding is the hit area rather than the glyph: the
+   marks stay small because a card is not a toolbar, but a finger or a tired
+   hand at eleven at night gets something real to aim at. */
+.icard .del,.icard .move,.icard .pin,.icard .edit{
+  position:absolute;top:3px;border:none;background:none;
+  color:var(--ink-4);line-height:1;padding:6px 7px;cursor:pointer;
   opacity:0;transition:opacity .12s ease;
 }
-.icard .del{right:5px;font-size:15px}
+.icard .del{right:3px;font-size:15px}
 .icard .pin{right:27px;font-size:12px}
-.icard .move{right:49px;font-size:14px}
-.icard:hover .del,.icard:hover .move,.icard:hover .pin{opacity:1}
-.icard .del:hover,.icard .move:hover,.icard .pin:hover{color:var(--ink);background:var(--rule-soft)}
+.icard .move{right:51px;font-size:14px}
+.icard .edit{right:75px;font-size:12px}
+.icard:hover .del,.icard:hover .move,.icard:hover .pin,.icard:hover .edit,
+.icard .del:focus-visible,.icard .move:focus-visible,.icard .pin:focus-visible,
+.icard .edit:focus-visible{opacity:1}
+.icard .del:hover,.icard .move:hover,.icard .pin:hover,.icard .edit:hover{
+  color:var(--ink);background:var(--rule-soft)}
 .icard[contenteditable="true"],.icard .body[contenteditable="true"]{cursor:text}
 .icard.pinned{box-shadow:inset 3px 0 0 var(--gold-hair),var(--shadow)}
 .icard.pinned .pin{opacity:1;color:var(--gold)}
@@ -1644,6 +1651,23 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .locked-acts{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 20px}
 .locked-acts + .locked-acts{margin-top:0}  /* the way out sits under the two ways back in */
+/* Every board they have, and a way to take each one with them. A closed
+   account is not a confiscated one. */
+.locked-projects{border-top:1px solid var(--rule);margin:22px 0 20px;padding-top:16px}
+.locked-projects .lp-head{font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.lp-row{display:flex;align-items:center;gap:12px;padding:8px 0;
+  border-bottom:1px solid var(--rule-soft)}
+.lp-row:last-child{border-bottom:0}
+.lp-name{flex:1 1 auto;min-width:0;font-family:var(--serif);font-size:15px;color:var(--ink);
+  text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.lp-n{flex:0 0 auto;font-size:12px;color:var(--ink-3)}
+.lp-get{flex:0 0 auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:var(--r-card);color:var(--blue);font:inherit;font-size:13px;font-weight:500;
+  padding:7px 13px;cursor:pointer;min-height:36px}
+.lp-get:hover{border-color:var(--blue);background:var(--blue-soft)}
+.lp-get:disabled{opacity:.5;cursor:default}
 .lk-out{font-size:12.5px;color:var(--ink-3);text-decoration:none}
 .lk-out:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 
@@ -3747,7 +3771,11 @@ function cardEl(c){
   const hint = c.maybe && c.slot === "__none"
     ? '<div class="maybe">possibly: ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
   el.innerHTML =
-      '<button class="move" title="Move or relabel">&#8942;</button>'
+      '<button class="edit" title="Edit card" aria-label="Edit this card">'
+    + '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg></button>'
+    + '<button class="move" title="Move or relabel">&#8942;</button>'
     + '<button class="pin" title="' + (c.pinned ? "Settled here" : "Mark as settled") + '">'
     + (c.pinned ? "&#9679;" : "&#9675;") + "</button>"
     + '<button class="del" title="Delete card" aria-label="Delete card">&times;</button>'
@@ -3768,6 +3796,8 @@ function cardEl(c){
   el.querySelector(".del").setAttribute("data-tip", "Delete this card. You can undo.");
   el.querySelector(".move").setAttribute("data-tip",
     "Move this card to another beat, set it aside, or file it under Other notes.");
+  el.querySelector(".edit").setAttribute("data-tip",
+    "Change the wording on this card. Double-clicking the card does the same.");
   el.querySelector(".move").addEventListener("click", e => {
     e.stopPropagation();
     if (el.querySelector(".movepick")) return;
@@ -3813,11 +3843,20 @@ function cardEl(c){
   });
 
   const body = el.querySelector(".body");
-  el.addEventListener("dblclick", () => {
+  /* Editing a card was a double-click and nothing else: no control, no label,
+     no hint. A writer who never guessed it could not change a word they had
+     typed. The gesture stays, because it is the fast way once you know it, and
+     the pencil is how you find out. */
+  const startEdit = () => {
     body.contentEditable = "true";
     el.draggable = false;
     body.focus();
     document.getSelection().selectAllChildren(body);
+  };
+  el.addEventListener("dblclick", startEdit);
+  el.querySelector(".edit").addEventListener("click", e => {
+    e.stopPropagation();
+    startEdit();
   });
   body.addEventListener("blur", () => {
     body.contentEditable = "false";
@@ -7002,7 +7041,11 @@ document.getElementById("revgo").addEventListener("click", () => {
       // Started from the dashboard: there was no project in front of the
       // writer, so nothing they already have is touched.
       target = blankProject(st.name, baseStructure);
-      state.projects.push(target);
+      // On a brand-new account the shelf holds only the placeholder load()
+      // made. The imported project takes its place rather than arriving beside
+      // an Untitled nobody created.
+      if (bareShelf()) state.projects[0] = target;
+      else state.projects.push(target);
       newProjects++;
       state.activeId = target.id || target.localId;
     } else if (si === 0){
@@ -8847,7 +8890,7 @@ function confirmCancel(go){
         <li><b>Nothing is deleted.</b> Every project, card, note and outline stays exactly
           where it is.</li>
         <li><b>You can still download all of it</b>, any time, including after your plan ends.
-          One file, no conditions.</li>
+          Every board as its own PDF, or the whole account as one file. No conditions.</li>
         <li><b>${banked ? "Your " + banked + " bought credit" + (banked === 1 ? "" : "s") + " stay in your account."
                         : "Any credits you have bought stay in your account."}</b>
           They do not expire and we do not take them back.</li>
@@ -8972,8 +9015,14 @@ function panePlan(){
         + "<b>Download your work before then</b> from Your data. To stay, resubscribe under "
         + "Manage billing.</div>";
     } else if (ME.subscription_status === "past_due"){
-      note = '<div class="note bad"><b>Your last payment failed.</b> Update your card under '
-        + "Manage billing. Until it goes through, the writing help is off.</div>";
+      /* It is not off. `entitlement` counts past_due as paid, so everything
+         keeps working while Stripe retries the card. Saying otherwise made the
+         app describe a punishment it does not apply, and the two settings
+         screens disagreed about it. What is actually at stake is what happens
+         if the retries run out. */
+      note = '<div class="note bad"><b>Your last payment failed.</b> Everything still works '
+        + "while your bank is retried. Update your card under Manage billing: if it never "
+        + "goes through, the plan ends and the boards close.</div>";
     } else {
       note = '<div class="note info"><b>Subscribed.</b> ' + ME.credits_allowance
         + " credits a month."
@@ -9083,8 +9132,20 @@ function paintWho(me){
   document.getElementById("whoname").textContent = name;
   document.getElementById("whoemail").textContent = ME.email || "";
   document.getElementById("avatarini").textContent = (name.trim()[0] || "?").toUpperCase();
+  /* This used to read "Beatfall · $12 a month" for everybody on a plan,
+     including the people paying $99 a year, who were being quoted a price
+     they do not pay. Nothing on the account says which they chose, so
+     rather than guess a figure this says the one thing true either way,
+     and then the date their money next moves. */
+  const renews = ME.current_period_end
+    ? new Date(ME.current_period_end).toLocaleDateString(undefined,
+        {month: "short", day: "numeric", year: "numeric"})
+    : null;
   const plan = ME.unlimited ? "Owner · no limits"
-    : ME.plan === "beatfall" ? "Beatfall · $12 a month"
+    : ME.plan === "beatfall"
+      ? ("Beatfall" + (ME.cancel_at_period_end
+          ? (renews ? " · ends " + renews : " · ending")
+          : (renews ? " · renews " + renews : "")))
     : (ME.plan === "trial" && ME.trialing) ? "Free trial"
     : "No plan";
   document.getElementById("whoplan").textContent = plan;
@@ -9198,11 +9259,17 @@ function showLocked(why){
         <p>The boards are closed, but nothing has been deleted. Everything you wrote
           is still here, and you can download all of it right now whether or not you
           come back.</p>
-        <p>${trial
+        <p>You can't add to a board without a plan, but every one of them is still
+          yours to take: download any of them below, as the same PDF you would
+          have got with a plan. ${trial
           ? "A plan opens them again exactly as you left them, and carries 150 credits a month."
           : "Subscribing again opens them exactly as you left them."}</p>
         <p class="warnline">An account nobody signs into for six months is deleted
           along with everything in it. Take a copy if you are not sure.</p>
+        <div class="locked-projects" id="lockedprojects" hidden>
+          <div class="lp-head">Your boards</div>
+          <div id="lockedlist"></div>
+        </div>
         <div class="locked-acts">
           <button class="bigbtn solid" id="lk-month">$${PRICES.month} a month</button>
           <button class="bigbtn solid" id="lk-year">$${PRICES.year} a year</button>
@@ -9229,6 +9296,46 @@ function showLocked(why){
     });
   goCheckout("lk-month", "month", "$" + PRICES.month + " a month");
   goCheckout("lk-year",  "year",  "$" + PRICES.year  + " a year");
+
+  /* The boards themselves. `load()` succeeded before this screen was drawn, so
+     the work is already in memory and exportPDF takes a project, which is what
+     the finished dashboard card already relies on. Nothing here writes: a
+     closed account may read and print and nothing else.
+
+     Not gated on a complete board, deliberately. A half-built board with the
+     holes showing is still the writer's, and the PDF prints the gaps. Holding
+     somebody's own material against a completeness score is the thing this app
+     decided not to do. */
+  const boards = (state && state.projects || []).filter(p => p.id || (p.cards || []).length);
+  if (boards.length){
+    const list = document.getElementById("lockedlist");
+    boards.forEach(proj => {
+      const c = coverage(proj);
+      const row = document.createElement("div");
+      row.className = "lp-row";
+      const nm = document.createElement("div");
+      nm.className = "lp-name";
+      nm.textContent = proj.name || "Untitled";
+      const n = document.createElement("span");
+      n.className = "lp-n";
+      n.textContent = c.filled + " of " + c.total + " beats";
+      const get = document.createElement("button");
+      get.className = "lp-get";
+      get.type = "button";
+      get.textContent = "Save as PDF";
+      get.addEventListener("click", async () => {
+        get.disabled = true;
+        const was = get.textContent;
+        get.innerHTML = '<span class="spinner"></span>Building\u2026';
+        try { await exportPDF(proj); get.textContent = "Downloaded"; }
+        catch (e) { get.textContent = "Couldn\u2019t build that one"; }
+        setTimeout(() => { get.disabled = false; get.textContent = was; }, 2600);
+      });
+      row.appendChild(nm); row.appendChild(n); row.appendChild(get);
+      list.appendChild(row);
+    });
+    document.getElementById("lockedprojects").hidden = false;
+  }
 
   document.getElementById("lk-export").addEventListener("click", async ev => {
     const b = ev.currentTarget, was = b.textContent;
@@ -9306,6 +9413,12 @@ function showLoadFailure(){
     showLoadFailure();
     return;
   }
+
+  /* A closed account reads fine now, so the refusal in the catch above is only
+     ever a write being refused. This is the read that succeeded and came back
+     saying the boards are shut: the work is in memory, and the locked screen
+     hands it back as PDFs rather than opening a board. */
+  if (BF.boardsClosed) return showLocked(BF.closedReason);
 
   // Always open on the slate. A writer arriving cold wants to see the whole
   // shelf first and choose; dropping them into whichever board they closed
@@ -9405,7 +9518,14 @@ function showFirstRun(which){
     BF.track("onboarding_choice_" + CHOICE[go], {});
     BF.api("/api/account", {method:"POST", body: JSON.stringify(
       {action:"onboarding", choice: CHOICE[go]})}).catch(()=>{});
-    if (go === "paste")  openImport(false);
+    /* Which project this lands in is decided by where the writer is standing,
+       not by whichever board they happened to open last. This sheet is the
+       empty-account greeting AND "How Beatfall works" from the account menu,
+       and from the dashboard the second one had no project in front of it: a
+       writer with nine scripts choosing it would have had a file poured into
+       whichever board was last active. That is the shape of the paste that
+       renamed Night Haul and dropped a comedy's beats into it. */
+    if (go === "paste")  openImport(state.view === "slate");
     if (go === "new")    openIntake("edit");
     if (go === "sample"){ document.getElementById("loadsample").click(); }
   }));

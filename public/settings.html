@@ -326,8 +326,14 @@ const PERIODS = [
       + `No card on file. Pick a plan whenever you're ready; your boards carry over either way.`;
   } else if (me.plan === 'none') {
     note.className = 'note warn';
-    note.innerHTML = `<b>No active plan.</b> Your projects, boards and notes are all still here and `
-      + `the board works normally. It's the writing help that's switched off.`;
+    /* This page used to say the board works normally without a plan and only
+       the writing help stops. It does not: the server refuses to open a board
+       with no plan, and the app shows the closed screen. Stripe returns people
+       HERE after cancelling, so the one page a leaving customer reads was the
+       one telling them the opposite of what would happen. */
+    note.innerHTML = `<b>No active plan.</b> Nothing has been deleted and everything is `
+      + `still yours. The boards are closed to changes until you pick a plan, and you can `
+      + `download any of them as a PDF, or export the whole account, at any time.`;
   } else {
     const when = me.current_period_end
       ? new Date(me.current_period_end).toLocaleDateString(undefined,
@@ -335,10 +341,13 @@ const PERIODS = [
       : null;
     if (me.cancel_at_period_end) {
       note.className = 'note warn';
+      // Not "then the writing help switches off", which was the old wording and
+      // was the smaller half of what happens. The boards close too.
       note.innerHTML = '<b>Cancelled.</b> You keep everything you\'ve paid for '
         + (when ? `until <b>${when}</b>` : 'until the end of this billing period')
-        + ', then the writing help switches off. Your projects, boards and notes '
-        + 'stay exactly where they are. Changed your mind? Resubscribe under Manage billing.';
+        + ', then the boards close to changes. Nothing is deleted: every project stays '
+        + 'where it is and you can still download any of them as a PDF, or export the '
+        + 'whole account. Changed your mind? Resubscribe under Manage billing.';
     } else if (me.subscription_status === 'past_due') {
       note.className = 'note bad';
       note.innerHTML = '<b>Your last payment failed.</b> Update your card under '

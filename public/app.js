@@ -448,8 +448,15 @@
 
   // ------------------------------------------------------------- projects --
   BF.loadProjects = async function () {
-    const { projects } = await BF.api('/api/projects');
-    return projects;
+    const body = await BF.api('/api/projects');
+    /* An account with no plan can still read its own work, so this call now
+       succeeds where it used to refuse outright. `closed` is how the server
+       says the boards are shut to changes: the caller draws the locked screen
+       over the shelf instead of opening a board, and the projects it just
+       received are what make Save as PDF possible from there. */
+    BF.boardsClosed = !!body.closed;
+    BF.closedReason = body.reason || null;
+    return body.projects;
   };
 
   BF.saveProject = async function (project) {

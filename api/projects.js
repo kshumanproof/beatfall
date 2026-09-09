@@ -19,18 +19,28 @@ export default async function handler(req, res) {
   // answers, so a person can always take everything with them. What stops is
   // opening and editing.
   const ent = entitlement(profile);
-  if (ent.key === 'none') {
-    // Two different events arrive here and one sentence cannot be true of
-    // both. Somebody who has never had a subscription did not have a plan end;
-    // their trial ran out. Telling a writer on day fifteen that their plan
-    // ended is the app describing a purchase they never made.
-    const neverSubscribed = !profile.stripe_subscription_id && !profile.subscription_status;
+  const closed = ent.key === 'none';
+
+  // Two different events close the boards and one sentence cannot be true of
+  // both. Somebody who has never had a subscription did not have a plan end;
+  // their trial ran out. Telling a writer on day fifteen that their plan ended
+  // is the app describing a purchase they never made.
+  const neverSubscribed = !profile.stripe_subscription_id && !profile.subscription_status;
+  const closedReason = neverSubscribed ? 'trial_ended' : 'plan_ended';
+
+  // A closed account may still READ. That is the whole difference between
+  // closing a door and confiscating what is behind it: a writer who stops
+  // paying stops adding to their boards, and takes any of them away as a PDF
+  // whenever they want. Reading is what the PDF is built from, so refusing GET
+  // meant the only way out was a JSON file of the entire account, which is a
+  // backup and not somebody's script. Every WRITE still refuses below.
+  if (closed && req.method !== 'GET') {
     return send(res, 402, {
       error: 'no_plan',
-      reason: neverSubscribed ? 'trial_ended' : 'plan_ended',
+      reason: closedReason,
       message: (neverSubscribed ? 'Your free trial has ended, ' : 'Your plan has ended, ')
-             + 'so the boards are closed. Nothing has been '
-             + 'deleted, you can download all of it, and picking a plan opens '
+             + 'so the boards are closed to changes. Nothing has been '
+             + 'deleted, you can download any of it, and picking a plan opens '
              + 'everything again exactly as you left it.'
     });
   }
@@ -40,7 +50,11 @@ export default async function handler(req, res) {
     const { data, error } = await db.from('projects')
       .select('*').eq('user_id', user.id).order('sort_order', { ascending: true });
     if (error) return send(res, 500, { error: 'read_failed' });
-    return send(res, 200, { projects: data || [] });
+    // `closed` is the client's cue to draw the locked screen over the shelf
+    // rather than a board. It is only ever true with no plan at all.
+    return send(res, 200, { projects: data || [],
+                            closed: closed || undefined,
+                            reason: closed ? closedReason : undefined });
   }
 
   // --------------------------------------------------------------- write --
