@@ -130,6 +130,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
 <script>
+/* The homepage has two controls that land here and they are not the same
+   errand: Sign in, and three buttons offering to start a trial. They used to
+   arrive at an identical page headed "Sign in", which contradicts the button
+   somebody just pressed and is the first thing Beatfall says to a new writer.
+   `?start=1` says which one it was. The box, the field and the link are the
+   same either way; only the words around them change.
+
+   This runs BEFORE anything is awaited, and that is the point. Sitting it
+   after the session check meant the page painted "Sign in", waited on the
+   network, and then changed its own heading in front of the reader. A heading
+   that corrects itself is worse than either heading on its own, and none of
+   this needs to know whether anybody is signed in. */
+const startedTrial = !!new URLSearchParams(location.search).get('start');
+if (startedTrial) {
+  document.title = 'Start your trial \u00b7 Beatfall';
+  document.getElementById('title').textContent = 'Start your 14 days';
+  document.getElementById('sub').textContent =
+    "Your email, and we'll send a link. No password, no card.";
+  document.getElementById('fineswap').textContent =
+    'Already have an account? The same box works. We\u2019ll email you a link either way.';
+}
+
 (async function () {
   const session = await BF.init();
   if (BF.unconfigured) return;
@@ -137,22 +159,6 @@
   // magic link in the URL, so nothing is lost by stopping here.
   if (BF.isSmallScreen()) return;
   if (session) { location.href = '/app'; return; }
-
-  /* The homepage has two controls that land here and they are not the same
-     errand: Sign in, and three buttons offering to start a trial. They used to
-     arrive at an identical page headed "Sign in", which contradicts the button
-     somebody just pressed and is the first thing Beatfall says to a new
-     writer. `?start=1` says which one it was. The box, the field and the link
-     are the same either way; only the words around them change. */
-  const startedTrial = !!new URLSearchParams(location.search).get('start');
-  if (startedTrial) {
-    document.title = 'Start your trial \u00b7 Beatfall';
-    document.getElementById('title').textContent = 'Start your 14 days';
-    document.getElementById('sub').textContent =
-      "Your email, and we'll send a link. No password, no card.";
-    document.getElementById('fineswap').textContent =
-      'Already have an account? The same box works. We\u2019ll email you a link either way.';
-  }
 
   const form  = document.getElementById('form');
   const go    = document.getElementById('go');
