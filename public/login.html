@@ -104,14 +104,13 @@
         <!-- The promise belongs beside the button, not three paragraphs under
              it. This is the last thing somebody reads before deciding whether
              to hand over an address. -->
-        <!-- What the fourteen days actually contain. This line is the last
-             thing read before somebody hands over an address, and until now it
-             said only how long the trial lasts. A writer who reads "free" and
-             then meets a credit they did not know they had has been surprised
-             by us. The board being free is the more important half and goes
-             first. -->
-        <p class="promise">14 days free, no card. The board is free to use, and 25 credits
-          cover the writing help.</p>
+        <!-- The last thing read before somebody hands over an address, and it
+             used to say only how long the trial lasts, so a writer met their
+             first credit without knowing they had any. Three facts and three
+             full stops; the longer version explained them, and explaining is
+             not what this line is for. It belongs to the trial path only, and
+             the script below takes it off the sign-in one. -->
+        <p class="promise" id="promise">14-day trial. 25 credits. No card required.</p>
         <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
       </form>
 
@@ -150,6 +149,14 @@ if (startedTrial) {
     "Your email, and we'll send a link. No password, no card.";
   document.getElementById('fineswap').textContent =
     'Already have an account? The same box works. We\u2019ll email you a link either way.';
+} else {
+  /* A returning writer is not being sold a trial. Fourteen days and twenty-five
+     credits answer "what am I signing up for", which is not the question
+     somebody pressing Sign in is asking, and a person who already has an
+     account being told about a trial is the page talking to the wrong one. It
+     sits in the shared markup so that it survives this script failing, because
+     the trial path is the one that would miss it. */
+  document.getElementById('promise').hidden = true;
 }
 
 (async function () {
