@@ -104,11 +104,18 @@
         <!-- The promise belongs beside the button, not three paragraphs under
              it. This is the last thing somebody reads before deciding whether
              to hand over an address. -->
-        <p class="promise">14 days free. No card required.</p>
+        <!-- What the fourteen days actually contain. This line is the last
+             thing read before somebody hands over an address, and until now it
+             said only how long the trial lasts. A writer who reads "free" and
+             then meets a credit they did not know they had has been surprised
+             by us. The board being free is the more important half and goes
+             first. -->
+        <p class="promise">14 days free, no card. The board is free to use, and 25 credits
+          cover the writing help.</p>
         <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
       </form>
 
-      <p class="fine">New here? The same box works. We'll make your account when you click the link.</p>
+      <p class="fine" id="fineswap">New here? The same box works. We'll make your account when you click the link.</p>
 
       <p class="fine">By signing in you agree to the <a href="/terms.html">Terms</a> and the
          <a href="/privacy.html">Privacy Policy</a>. Your writing stays yours, nothing you write
@@ -130,6 +137,22 @@
   // magic link in the URL, so nothing is lost by stopping here.
   if (BF.isSmallScreen()) return;
   if (session) { location.href = '/app'; return; }
+
+  /* The homepage has two controls that land here and they are not the same
+     errand: Sign in, and three buttons offering to start a trial. They used to
+     arrive at an identical page headed "Sign in", which contradicts the button
+     somebody just pressed and is the first thing Beatfall says to a new
+     writer. `?start=1` says which one it was. The box, the field and the link
+     are the same either way; only the words around them change. */
+  const startedTrial = !!new URLSearchParams(location.search).get('start');
+  if (startedTrial) {
+    document.title = 'Start your trial \u00b7 Beatfall';
+    document.getElementById('title').textContent = 'Start your 14 days';
+    document.getElementById('sub').textContent =
+      "Your email, and we'll send a link. No password, no card.";
+    document.getElementById('fineswap').textContent =
+      'Already have an account? The same box works. We\u2019ll email you a link either way.';
+  }
 
   const form  = document.getElementById('form');
   const go    = document.getElementById('go');
@@ -208,7 +231,8 @@
   document.getElementById('another').addEventListener('click', () => {
     sent.hidden = true;
     form.hidden = false;
-    title.textContent = 'Sign in';
+    // Back to whichever heading this page arrived with, not always Sign in.
+    title.textContent = startedTrial ? 'Start your 14 days' : 'Sign in';
     sub.hidden = false;
     err.hidden = true;
     emailEl.value = '';

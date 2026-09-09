@@ -1733,3 +1733,113 @@ Both are history rather than guidance now, and neither was rewritten here.
 
 No project data, placement rule, import behaviour, database schema or API
 payload shape changed.
+
+
+## 2026-09-09 - The walk from the homepage to the first spend
+
+Kris: "there are three options. the top one about having notes already allows
+them to use credits before they even know what they have as far as number of
+credits. they know they have 14 days free, but that's it." Then: go through the
+workflow of a new sign up. The homepage is not up for redesign and did not
+change beyond three hrefs.
+
+Walking it end to end turned up four things, and they are one problem seen four
+times: the product knows what the trial is and never tells the person on it.
+
+### Sign in was the first thing a trial button said
+
+The homepage has two controls landing on the same page and they are not the same
+errand. Somebody pressing **Start free** or **Start 14 days free** arrived at a
+page headed **Sign in**, with the answer buried four paragraphs down in "New
+here? The same box works."
+
+The three start buttons now carry `?start=1`. The page reads it and changes its
+heading, its sub-line, its document title and the fine print, which addresses
+whichever audience did not arrive. The box, the field, the link and every
+mechanic are identical either way, and the homepage's own design is untouched.
+"Use a different email" returns to the heading the page arrived with rather than
+always to Sign in.
+
+### The promise line said how long the trial was and nothing about what it holds
+
+It sits beside the button and it is the last thing read before somebody hands
+over an address, and it read "14 days free. No card required." It now says the
+board is free to use and that 25 credits cover the writing help. The free half
+goes first because it is the more important one: a writer who reads "free" and
+then meets a credit they did not know they had has been surprised by us.
+
+### The one paid door on the welcome sheet was the recommended one, unpriced
+
+**I have notes already** is the top choice, labelled the fastest way to see what
+this does, and it is the only one of the three that spends anything. It carried
+no price. It opens the paste sheet, which carried no price either: the "2
+credits" had ended up in the tooltip on Sort my notes and nowhere else, which is
+a price only a mouse can find, and it is the exact arrangement the touch-pricing
+work rejected on 5 September.
+
+That is a regression against a written decision. `CLAUDE.md`: reading a file
+"gets a whole sentence on the paste sheet instead, because the button's label is
+rewritten while it works and a chip would be wiped." The sentence was gone.
+
+- The paste sheet has it back, in the copy, built from `CREDIT` rather than
+  typed: what it costs, that pasting is free, that nothing is charged until Sort
+  my notes, and that the results come before the board changes.
+- The welcome sheet's paste choice carries its cost in the hint slot. That slot
+  is blue, and blue in this app means free and touchable, so the price takes a
+  `.cost` span in gold. Gold is what every other paid control wears.
+- And the sheet says what the account holds, once, above the three choices,
+  read from `/api/account` rather than written into the page: the number, and
+  that adding notes, moving cards, the outline and the PDF are free. It is the
+  only place in the whole signup where a writer can see their budget without
+  going looking for it in a popover.
+
+### The first frame was a scoreboard of noughts about a script nobody wrote
+
+`load()` puts one blank Untitled in front of a new writer so `P()` always has
+something to return. It is not a project they made and it has never been saved,
+and the shelf drew it: a card reading UNTITLED at 0% COMPLETE, over a scoreboard
+reading 0 of 15 filled, 15 still empty, none this week, no days in a row.
+
+`bareShelf()` is the one test for it, and both surfaces ask before drawing. The
+lede already handled this correctly and now the rest agrees with it: "Nothing
+saved yet. Start where you are.", one dashed New project card, and no scoreboard
+until there is something real to count. The blank card is appended per shelf and
+a bare account has no shelves, so it is appended directly in that case.
+
+**And the ghost that would have followed.** Hiding the placeholder made the
+blank New project card the only way in from the shelf, and `commitIntake` pushes
+a new project rather than taking the placeholder's place, so a writer naming
+their first script would have been left with it sitting beside them forever.
+That bug is older than this change and reachable today; it is fixed at the
+source. On a bare shelf a new project and the example both replace the
+placeholder instead of queueing behind it. It has no id, no cards and no name
+the writer chose, so there is nothing to lose.
+
+### Testing
+
+- Every touched file parses, and em dashes stay at zero across all three.
+- No duplicate ids introduced.
+- All three doors off the welcome sheet walked on a bare account: naming a
+  project, pasting notes, and the example each leave exactly one project on the
+  shelf and no Untitled beside it.
+- `blankCard` is a declaration inside `renderSlate`, so calling it before its
+  textual position is fine.
+- `showFirstRun` runs after `/api/account`, so the allowance line has a real
+  number; with `ME` absent the line hides rather than inventing one.
+- The unpriced import path is unchanged in behaviour, only in what it says.
+
+### Found in the same flow, left for its own step
+
+The welcome sheet's paste choice calls `openImport(false)`, which means "into
+the board in front of you". Opened as the empty-account greeting that is
+harmless, because the placeholder is empty. But the same sheet opens from **How
+Beatfall works** in the account menu, and a writer sitting on the dashboard with
+nine scripts who chooses it imports into whichever board was last active. That
+is the shape of the Night Haul overwrite from 3 September, which `openImport
+(intoNew)` exists to prevent. The fix is to pass `state.view === "slate"`, but
+it lands in the import build, which is the most bug-prone path in this app and
+has a history of fixes exposing each other. It deserves a step of its own rather
+than riding along here.
+
+No project data, placement rule, import behaviour, database schema or API
+payload shape changed.
