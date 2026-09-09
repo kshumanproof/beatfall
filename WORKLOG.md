@@ -1843,3 +1843,113 @@ than riding along here.
 
 No project data, placement rule, import behaviour, database schema or API
 payload shape changed.
+
+
+## 2026-09-09 - A closed account keeps its work, and three screens stop disagreeing
+
+Kris brought an outside UI/UX audit. Most of it was real and is acted on below.
+Two things about that audit are worth recording, because they change how the
+next one should be read.
+
+It praised the project-conflict dialog at length, including "Save my changes as
+a copy" as the safest default. That dialog was deleted on 5 September when Dirt
+Money forked into three copies; last save wins now. It was reading `CLAUDE.md`,
+whose conflicting-saves and Outline-gate sections still describe code that no
+longer exists. And it missed the one item on either list that can destroy work:
+the welcome sheet's paste choice landing on whichever board was last open.
+
+### The importer no longer lands on a board nobody is looking at
+
+`if (go === "paste") openImport(false)` means "into the project in front of
+you". As the empty-account greeting that is harmless. But the same sheet opens
+from **How Beatfall works** in the account menu, and a writer standing on the
+dashboard with nine scripts had no project in front of them: the file went into
+whichever board was last active. That is the exact shape of the paste that
+renamed NIGHT HAUL to BLACK RIVER and dropped a comedy's beats into it.
+
+It is `openImport(state.view === "slate")` now: from the shelf the import makes
+its own project, from a board it fills that board. And group zero's new project
+takes the placeholder's place on a bare account rather than arriving beside an
+Untitled nobody created, the same guard the new-project and example paths got.
+
+### A cancelled account keeps its boards, as PDFs
+
+Kris: they cannot add to the boards, but they should be able to download the
+boards they have. Agreed, with one change: any board, not only finished ones. A
+half-built board with the holes showing is still the writer's work, and gating
+export on a completeness score is what the 5 September PDF decision refused.
+
+`api/projects.js` refused every method with 402 when the plan was gone, so the
+only door out was `/api/account` export: one JSON file of the whole account,
+which is a backup and not somebody's script. Reads are open now and every write
+still refuses. `closed` comes back with the GET, `BF.loadProjects` carries it,
+and `start()` draws the locked screen over a shelf that is already in memory.
+
+The locked screen lists every project with its beat count and Save as PDF.
+`exportPDF` already took a project, for the finished dashboard card, so the
+machinery was there. Nothing on that screen writes.
+
+### Three screens were telling three different stories about a lapsed plan
+
+The standalone Settings page said, to somebody whose plan had ended: "Your
+projects, boards and notes are all still here and the board works normally.
+It's the writing help that's switched off." The server refuses to open a board
+without a plan. Stripe returns people to that page after cancelling, so the one
+screen a leaving customer reads was the one contradicting what would happen. Its
+cancellation copy said the same, promising that only the writing help stops.
+
+Both now say what is true: the boards close to changes, nothing is deleted, and
+any board can still be downloaded as a PDF or the account exported whole.
+
+The in-app past-due notice had the opposite fault. It said "Until it goes
+through, the writing help is off." `entitlement` counts `past_due` as paid, so
+nothing is switched off while Stripe retries the card. It now says everything
+keeps working, and what actually happens if the retries run out.
+
+The cancellation sheet's third fact said "One file, no conditions", which is
+now half the truth: every board as its own PDF, or the whole account as one
+file.
+
+### Annual subscribers stopped being quoted a monthly price
+
+The account menu read "Beatfall · $12 a month" for everybody on a plan,
+including the people paying $99 a year. Nothing on the account records which
+they chose, so rather than guess a figure it says "Beatfall" and the date their
+money next moves, or the date it ends when a cancellation is scheduled.
+
+### Editing a card was a double-click and nothing else
+
+No control, no label, no hint. A writer who never guessed it could not change a
+word they had typed. There is a pencil beside the move, settle and delete marks
+now, and the double-click still works because it is the fast way once you know.
+The four microcontrols also gained real hit areas: the padding grew and the
+glyphs did not, so a finger has something to aim at without the card turning
+into a toolbar. They reveal on keyboard focus as well as hover.
+
+### Help stopped describing an interface from four days ago
+
+"Open the project menu and choose a structure" has been wrong since the
+structure bar moved below the capture row on 5 September. That answer now says
+where the control is and what a switch preserves, including the Outline prose
+that gets stranded and the fact that the whole thing can be undone.
+
+### Testing
+
+- Every touched file parses: the inline application script, `app.js`,
+  `settings.html`'s script, and `api/projects.js`.
+- Em dashes remain zero across the pages, `app.js`, `theme.css` and `api/`.
+- The read/write split was checked against `entitlement`: `closed` is only ever
+  true for `key === 'none'`, GET is the only method that passes it, and
+  `api/claude.js` still refuses the writing help on the same test.
+- `past_due` was confirmed against `entitlement` and `api/claude.js` before the
+  copy was changed rather than after.
+
+### Deliberately not done
+
+Durable recovery is the audit's second priority and it is right, but undo
+surviving a refresh and an escape hatch for a save that keeps failing both land
+in the save path, which is the most load-bearing code in the app. It gets its
+own step rather than riding along with nine other changes.
+
+No project data, placement rule, import parsing, database schema or API payload
+shape changed. The only API change is which methods a closed account may call.
