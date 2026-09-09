@@ -113,7 +113,7 @@
     try { body = await r.json(); } catch (e) {}
     if (r.status === 401) { location.href = '/'; throw new Error('signed out'); }
     if (!r.ok) {
-      const err = new Error(body.message || body.error || 'request failed');
+      const err = new Error(body.message || body.error || 'Something went wrong.');
       err.code = body.error; err.status = r.status; err.body = body;
       throw err;
     }
@@ -315,7 +315,7 @@
     if (r.status === 409 && (body.error === 'device_replaced' || body.error === 'device_required')) {
       BF.showDeviceReplaced();
     }
-    if (!r.ok) { const err = new Error(body.message || body.error || 'request failed');
+    if (!r.ok) { const err = new Error(body.message || body.error || 'Something went wrong.');
                  err.code = body.error; err.status = r.status; err.body = body; throw err; }
     return body;
   };
@@ -504,11 +504,19 @@
   BF.ai = makeAI();
 
   // Turn an API error into something a writer can act on.
+  /* The last thing standing between a failed request and a writer's screen.
+     It used to hand back whatever the wire said, so a Stripe refusal with no
+     body printed the words "request failed" on the page of somebody trying to
+     cancel their subscription. An error code is not a sentence: anything
+     arriving here without a space in it was written for a program. */
   BF.explain = function (e) {
     if (!e) return "Something went wrong.";
     if (e.code === 'out_of_credits' || e.code === 'no_plan') return e.message;
-    if (e.status === 502) return "Couldn't get an answer just now. Try again in a moment.";
-    return e.message || "Something went wrong.";
+    const m = String(e.message || '');
+    if (e.status === 502) return /\s/.test(m) ? m
+      : "Couldn't get an answer just now. Try again in a moment.";
+    if (!m || !/\s/.test(m)) return "Something went wrong. Nothing was lost. Try again.";
+    return m;
   };
 
   // -------------------------------------------------------------------- mode --

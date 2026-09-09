@@ -25,6 +25,31 @@ export default async function handler(req, res) {
   if (auth.error) return send(res, auth.status, { error: auth.error });
   const { db, user, profile } = auth;
 
+  /* Every Stripe call below can refuse, and nothing here used to catch it. An
+     uncaught refusal is a bare 500 with no body, which the browser turns into
+     the string "request failed" and prints on the screen of somebody trying to
+     cancel their subscription. Stripe's own words go to the server log, where
+     they are useful; the writer gets a sentence. */
+  try {
+    return await route(req, res, { db, user, profile });
+  } catch (err) {
+    console.error('billing failed:', body_action(req), err && err.message);
+    return send(res, 502, {
+      error: 'billing_unavailable',
+      message: "Couldn't open the billing page just now. Nothing was charged or "
+             + 'changed. Try again in a moment.',
+      detail: (err && err.message) || String(err)
+    });
+  }
+}
+
+// Only for the log line above, so a failure says which action failed.
+function body_action(req) {
+  return (req.body && typeof req.body === 'object' && req.body.action) || 'unknown';
+}
+
+async function route(req, res, { db, user, profile }) {
+
   const body = await readBody(req);
   const site = process.env.SITE_URL || `https://${req.headers.host}`;
   const s = stripe();
@@ -42,8 +67,10 @@ export default async function handler(req, res) {
 
   // ------------------------------------------------------------ subscribe --
   if (body.action === 'checkout') {
-    track(db, user.id, 'checkout_started', { plan: body.interval === 'year' ? 'year' : 'month' });
+    // `body.interval` is not a field the client sends; this recorded "month"
+    // for every annual checkout ever started.
     const period = body.period === 'year' ? 'year' : 'month';
+    track(db, user.id, 'checkout_started', { plan: period });
     const price = PRICE()[period];
     if (!price) return send(res, 400, { error: 'unknown_plan' });
 
@@ -93,10 +120,19 @@ export default async function handler(req, res) {
   // cancelling means and takes an acknowledgement first; this only saves the
   // person hunting for the button once they have decided.
   if (body.action === 'cancel') {
+    /* Stripe requires the subscription to cancel, by id. Without it this call
+       is rejected outright, which is why pressing Continue to cancel returned
+       an error instead of a portal. If we do not have one on file the plain
+       portal is the honest fallback: it opens on their billing page rather
+       than pretending there is a subscription to end. */
+    const sub = profile.stripe_subscription_id;
     const session = await s.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${site}/settings.html?cancelled=1`,
-      flow_data: { type: 'subscription_cancel' }
+      ...(sub ? { flow_data: {
+        type: 'subscription_cancel',
+        subscription_cancel: { subscription: sub }
+      } } : {})
     });
     return send(res, 200, { url: session.url });
   }
