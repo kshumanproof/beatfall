@@ -107,9 +107,8 @@
         <!-- The last thing read before somebody hands over an address, and it
              used to say only how long the trial lasts, so a writer met their
              first credit without knowing they had any. Three facts and three
-             full stops; the longer version explained them, and explaining is
-             not what this line is for. It belongs to the trial path only, and
-             the script below takes it off the sign-in one. -->
+             full stops. It belongs to the trial path only, and the script
+             below takes it off the sign-in one. -->
         <p class="promise" id="promise">14-day trial. 25 credits. No card required.</p>
         <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
       </form>
@@ -146,16 +145,15 @@ if (startedTrial) {
   document.title = 'Start your trial \u00b7 Beatfall';
   document.getElementById('title').textContent = 'Start your 14 days';
   document.getElementById('sub').textContent =
-    "Your email, and we'll send a link. No password, no card.";
+    "Enter your email. We\u2019ll send a link. No password. No card.";
   document.getElementById('fineswap').textContent =
     'Already have an account? The same box works. We\u2019ll email you a link either way.';
 } else {
   /* A returning writer is not being sold a trial. Fourteen days and twenty-five
      credits answer "what am I signing up for", which is not the question
-     somebody pressing Sign in is asking, and a person who already has an
-     account being told about a trial is the page talking to the wrong one. It
-     sits in the shared markup so that it survives this script failing, because
-     the trial path is the one that would miss it. */
+     somebody pressing Sign in is asking. It sits in the shared markup so that
+     it survives this script failing, because the trial path is the one that
+     would miss it. */
   document.getElementById('promise').hidden = true;
 }
 
