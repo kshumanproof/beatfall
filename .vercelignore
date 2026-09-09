@@ -5,3 +5,6 @@ mobile/
 _to_delete/
 _testdata/
 handoff/
+
+# The offline UI suite. It runs against public/app.html and is never served.
+test/
