@@ -877,11 +877,28 @@ rather than assumed. The sign-in page says it on a phone: open that link on the
 computer you write on, and if you do open it here, ask for another from your
 computer and the account is already waiting.
 
-**What a phone sees, end to end.** The homepage, ungated. Start 14 days free,
-which is a real form. Email, link, done. Then the board at `/app` gives the
-gate, which now carries either "Start 14 days free" for somebody signed out or
-"your board is ready on a larger screen" for somebody signed in, plus a link
-back to the homepage.
+**The mobile web has three jobs, and Kris named them: explain the product, sign
+people up, and hand them the app.** All three are on it now.
+
+**What a phone sees, end to end.** The homepage, ungated, with a section about
+the phone app. Start 14 days free, which is a real form. Email, link sent, and
+THEN the app: the waiting-for-an-email screen is the only dead time this
+product gets and it is where the store buttons belong. Then the board at `/app`
+gives the gate, which carries either "Start 14 days free" for somebody signed
+out or "your board is ready on a larger screen" for somebody signed in, plus a
+link back to the homepage.
+
+`BF.appPitch({trial})` and `BF.storeButtons()` are the app pitch, in `app.js`,
+used by both the gate and sign-in. They carry their own styles, so a page just
+asks for them. **Do not write those buttons into a third file.** `trial` is
+which button they pressed on the homepage rather than a lookup, because the
+same box signs in and signs up on purpose and nothing at that moment knows
+whether the account is new. It changes one clause and both readings are true.
+
+**Download and open are the same button.** On the day the listings exist, an
+iOS universal link and an Android app link open the installed app and fall
+through to the store when it is absent. There is no "already have it" branch to
+write.
 
 `BF.APP_STORE` and `BF.PLAY_STORE` in `app.js` are empty. While they are, the
 buttons render in place but read "Coming to the App Store" and are spans, not

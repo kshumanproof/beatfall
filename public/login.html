@@ -92,6 +92,11 @@
           It signs in whichever device opens it, and the board needs a bigger screen
           than a phone. Opening it here is not a disaster: ask for another one from
           your computer and this account is already waiting.</div>
+        <!-- Filled by BF.appPitch() on a phone. The markup is not written here
+             because the same buttons are on the small-screen gate, and one
+             control written into two files is how the account pill came to say
+             two different things. -->
+        <div id="sentapp" hidden></div>
         <div class="sentacts">
           <button class="linky" id="resend" type="button">Send it again</button>
           <span class="dot">&middot;</span>
@@ -173,8 +178,17 @@ if (startedTrial) {
   if (BF.unconfigured) return;
   if (session) { location.href = '/app'; return; }
 
-  // Where to open the link, said once, only to the device that needs telling.
-  if (BF.isSmallScreen()) document.getElementById('sentphone').hidden = false;
+  /* Two things a phone is told once the link is on its way, and only a phone.
+     Where to open it, because the link signs in whichever device opens it. And
+     the app, because somebody standing there waiting for an email is the one
+     moment this product has their attention and nothing to show them, and the
+     phone app is the answer to "what do I do with Beatfall from here". */
+  if (BF.isSmallScreen()) {
+    document.getElementById('sentphone').hidden = false;
+    const app = document.getElementById('sentapp');
+    app.innerHTML = BF.appPitch({ trial: startedTrial });
+    app.hidden = false;
+  }
 
   const form  = document.getElementById('form');
   const go    = document.getElementById('go');

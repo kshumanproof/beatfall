@@ -684,17 +684,78 @@
       : '<span class="bf-store bf-store-soon" role="note">' + inner + '</span>';
   }
 
+  /* The store buttons live here rather than inside the gate, because they now
+     appear on two screens and this project has already paid twice for one
+     control being copied into a second file and then fixed in only one of
+     them. Any page that loads app.js can ask for them; the styles come with
+     them so the caller does not have to know they exist.
+
+     On the day the listings are real, note that a store link IS the open-it
+     link on both platforms: an iOS universal link and an Android app link open
+     the installed app and fall through to the listing when it is absent. So
+     "download" and "open" are the same button and need no branch. */
+  let storeCssIn = false;
+  function ensureStoreCss() {
+    if (storeCssIn) return;
+    storeCssIn = true;
+    const s = document.createElement('style');
+    s.textContent = [
+      // Neutral spacing: the gate adds its own below, the sign-in box wants less.
+      '.bf-gate-stores{display:flex;flex-direction:column;gap:10px;margin:14px 0 0}',
+      '.bf-apppitch{margin:16px 0 0;font-size:13.5px;line-height:1.6}',
+      '.bf-store{display:flex;align-items:center;gap:11px;text-decoration:none;',
+      '  padding:11px 16px;border-radius:9px;border:1px solid var(--ink,#2B2620);',
+      '  background:var(--ink,#2B2620);color:var(--card,#FDFBF6);min-height:52px}',
+      '.bf-store span{display:flex;flex-direction:column;line-height:1.15;text-align:left}',
+      '.bf-store small{font-size:10.5px;opacity:.72;letter-spacing:.02em}',
+      '.bf-store b{font-size:16px;font-weight:600;letter-spacing:-.01em}',
+      // Not a link yet, so it must not look like one you can press.
+      '.bf-store-soon{background:none;color:var(--ink-3,#726859);',
+      '  border-color:var(--rule,#E0D9CB);cursor:default}'
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
+  BF.storesLive = function () { return !!(BF.APP_STORE || BF.PLAY_STORE); };
+
+  BF.storeButtons = function () {
+    ensureStoreCss();
+    const soon = !BF.storesLive();
+    return '<div class="bf-gate-stores">'
+      + storeBtn('apple', BF.APP_STORE, 'App Store', soon ? 'Coming to the' : 'Download on the')
+      + storeBtn('play',  BF.PLAY_STORE, 'Google Play', soon ? 'Coming to' : 'Get it on')
+      + '</div>';
+  };
+
+  /* One sentence and the buttons, for the moment after somebody has asked for
+     a sign-in link on a phone. They are standing there waiting for an email,
+     which is the only dead time this product gets, and it is the right moment
+     to hand them the thing the phone is actually for.
+
+     `trial` is which button they pressed on the homepage, not a lookup: the
+     same box signs in and signs up on purpose, so nothing here knows whether
+     the account is new. What it changes is one clause, and both readings are
+     true either way. */
+  BF.appPitch = function (o) {
+    o = o || {};
+    const soon = !BF.storesLive();
+    return '<p class="bf-apppitch"><b>'
+      + (soon ? 'The phone app is coming.' : 'Get the app while you are here.')
+      + '</b> '
+      + (o.trial
+          ? 'Beatfall on a phone is for catching notes, not for moving cards around. '
+            + 'Say the line you just thought of and it is on your board when you sit down.'
+          : 'It puts a note straight onto one of your boards from wherever you are, '
+            + 'and the board is waiting when you sit down.')
+      + '</p>' + BF.storeButtons();
+  };
+
   BF.showSmallScreenGate = function (session) {
     if (document.getElementById('bf-gate')) return;
     BF.ready();
 
     const soon = !BF.APP_STORE && !BF.PLAY_STORE;
-    const storeBlock = function () {
-      return '<div class="bf-gate-stores">'
-        + storeBtn('apple', BF.APP_STORE, 'App Store', soon ? 'Coming to the' : 'Download on the')
-        + storeBtn('play',  BF.PLAY_STORE, 'Google Play', soon ? 'Coming to' : 'Get it on')
-        + '</div>';
-    };
+    const storeBlock = BF.storeButtons;
     const trialBlock = function () {
       return session
         ? '<p class="bf-gate-note">You’re signed in. Your board is ready whenever you '
@@ -765,16 +826,10 @@
       '  font-weight:600;line-height:1.22;letter-spacing:-.017em;margin:0 0 16px}',
       '.bf-gate-body{font-size:15px;line-height:1.62;color:var(--ink-2,#5C5349);margin:0 0 16px}',
       '.bf-gate-body b{color:var(--ink,#2B2620);font-weight:600}',
-      '.bf-gate-stores{display:flex;flex-direction:column;gap:10px;margin:26px 0 18px}',
-      '.bf-store{display:flex;align-items:center;gap:11px;text-decoration:none;',
-      '  padding:11px 16px;border-radius:9px;border:1px solid var(--ink,#2B2620);',
-      '  background:var(--ink,#2B2620);color:var(--card,#FDFBF6);min-height:52px}',
-      '.bf-store span{display:flex;flex-direction:column;line-height:1.15;text-align:left}',
-      '.bf-store small{font-size:10.5px;opacity:.72;letter-spacing:.02em}',
-      '.bf-store b{font-size:16px;font-weight:600;letter-spacing:-.01em}',
-      // Not a link yet, so it must not look like one you can press.
-      '.bf-store-soon{background:none;color:var(--ink-3,#726859);',
-      '  border-color:var(--rule,#E0D9CB);cursor:default}',
+      // The .bf-store rules used to sit here. They moved to ensureStoreCss()
+      // when the sign-in page started showing the same buttons. Only the
+      // spacing this screen wants stays behind.
+      '#bf-gate .bf-gate-stores{margin:26px 0 18px}',
       // The one thing on this screen that is an offer rather than an apology,
       // so it is the only filled control on it.
       '.bf-gate-go{display:block;text-align:center;text-decoration:none;',

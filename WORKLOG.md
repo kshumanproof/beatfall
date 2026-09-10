@@ -2862,3 +2862,61 @@ no overflow at either.
 The homepage still hardcodes its own "coming to the App Store and Google Play"
 line, because it does not load `app.js` and cannot read those two constants.
 Two places to change on the day the listings go live, and both are commented.
+
+## 10 September 2026 (fifth pass): The app pitch, at the moment it lands
+
+Kris signed up on his own phone with a fresh address, got the link, and said
+the missing piece: it should prompt anybody, new or existing, to get the app.
+His framing of what the mobile web is for, and it is the right one to hold:
+**explain the product, sign people up, hand them the app.**
+
+The first two shipped an hour ago. The third was only on the gate, which is the
+screen somebody reaches by being turned away.
+
+### Where it goes
+
+The waiting-for-an-email screen. Somebody who has just handed over an address
+is standing there with nothing to do, which is the only dead time this product
+gets, and "what do I do with Beatfall from a phone" is exactly the question in
+their head. So the sign-in page, once the link is away and only on a phone,
+carries the app pitch and the two store buttons under it.
+
+### One copy of those buttons, not three
+
+They were written inside the gate. Putting a second set into `login.html` is
+how the account pill came to say three different things, so they moved out
+first: `BF.storeButtons()` and `BF.appPitch({trial})` in `app.js`, and
+`ensureStoreCss()` injects their styles once so a caller does not have to know
+they exist. The gate now asks for the same function. Neutral spacing lives with
+the buttons and the gate adds its own on top.
+
+`trial` is which button they pressed on the homepage, not a lookup. The same
+box signs in and signs up on purpose, so nothing at that moment knows whether
+the account is new. It changes one clause:
+
+- pressed Start 14 days free: Beatfall on a phone is for catching notes, not
+  for moving cards around. Say the line you just thought of and it is on your
+  board when you sit down.
+- pressed Sign in: it puts a note straight onto one of your boards from
+  wherever you are, and the board is waiting when you sit down.
+
+Both are true of either person. The point is that the second one already has
+boards and should not be greeted as though this were all new.
+
+### One thing that needs no code
+
+Download and open are the same button. An iOS universal link and an Android app
+link open the installed app and fall through to the listing when it is absent,
+so the new-versus-existing branch Kris was expecting on that half does not need
+writing. Fill in `BF.APP_STORE` and `BF.PLAY_STORE` and both cases work.
+
+### Testing
+
+22 mobile checks, up from 18. The new ones: the pitch appears on a phone once
+the link is sent, both store buttons are there, the shared styles arrive with
+them, a new signup and a returning writer get different clauses, and a desktop
+signup is not shown phone store buttons at all.
+
+Everything else still passes: 81 flows, 55 regression, 18 money, 22 proxy, 16
+gate, 12 hook, 6 clean. The gate was re-run at all four device profiles after
+its stylesheet was split.
