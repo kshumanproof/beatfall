@@ -355,8 +355,8 @@ async function load(days) {
       <td><span class="pill ${pill}">${esc(u.plan)}</span>${u.status ? `<div class="muted">${esc(u.status)}</div>` : ''}</td>
       <td class="muted">${BF.when(u.created_at)}</td>
       <td class="muted">${BF.when(u.last_seen_at)}</td>
-      <td class="num">${u.projects}</td>
-      <td class="num">${u.cards}</td>
+      <td class="num">${u.real_projects}</td>
+      <td class="num">${u.real_cards}</td>
       <td class="num">${u.calls}</td>
       <td class="num">${u.credits}<span class="muted"> / ${
         u.allowance >= 1000000 ? '&infin;' : u.allowance}</span></td>

@@ -81,6 +81,15 @@ export async function requireUser(req, options = {}) {
     const { data: made } = await db.from('profiles')
       .insert({ id: user.id, email: user.email }).select().single();
     profile = made;
+    /* The insert's error was discarded and there is no on-conflict here, unlike
+       the database trigger. A first request that races that trigger loses the
+       primary-key race, gets back null, and the very next line dereferences it:
+       a brand-new writer's first ever call to Beatfall answers with a crash. */
+    if (!profile) {
+      const { data: raced } = await db.from('profiles').select('*').eq('id', user.id).single();
+      profile = raced;
+    }
+    if (!profile) return { error: 'profile_unavailable', status: 503 };
     /* This is a fallback, not the normal path, and the comment here used to say
        otherwise. `handle_new_user` fires on auth.users and writes both the
        profile row and a `signed_up` event, so by the time this runs the row is
@@ -93,11 +102,21 @@ export async function requireUser(req, options = {}) {
   // new calendar month → credits reset, topped-up credits carry over
   const startOfMonth = new Date(); startOfMonth.setUTCDate(1);
   startOfMonth.setUTCHours(0, 0, 0, 0);
+  /* The reset is conditional in the database, not just in this `if`. Filtered
+     on the id alone, two requests landing together on the first of the month
+     both saw last month's period_start, and the second one wrote credits_used
+     back to zero after the first had already spent against it. Now only one of
+     them can match, and the loser re-reads rather than keeping a stale row. */
   if (new Date(profile.period_start) < startOfMonth) {
     const { data: rolled } = await db.from('profiles')
       .update({ period_start: startOfMonth.toISOString(), credits_used: 0 })
-      .eq('id', user.id).select().single();
-    profile = rolled || profile;
+      .eq('id', user.id).lt('period_start', startOfMonth.toISOString())
+      .select().maybeSingle();
+    if (rolled) profile = rolled;
+    else {
+      const { data: fresh } = await db.from('profiles').select('*').eq('id', user.id).single();
+      profile = fresh || profile;
+    }
   }
 
   if (options.webDevice !== false) {
@@ -175,6 +194,91 @@ export function spend(profile, ent, n) {
   if (fromMonthly) patch.credits_used  = (profile.credits_used  || 0) + fromMonthly;
   if (fromBanked)  patch.credits_extra = (profile.credits_extra || 0) - fromBanked;
   return patch;
+}
+
+/* Applying a spend, safely against itself.
+
+   `spend()` composes an ABSOLUTE new balance from the profile the request read
+   at the start. Two calls in flight both read the same starting figure and both
+   write the same ending figure, so one credit pays for both - and twenty
+   parallel calls with one credit left all ran, all passed the check, and all
+   wrote the same number.
+
+   This applies the patch only if the row still holds the values it was computed
+   from, and starts again from a fresh read when it does not. No new database
+   objects and no migration: the condition is the values themselves.
+
+   Returns {ok:true, profile} once applied, or {ok:false, reason} when the
+   balance genuinely will not cover it. */
+export async function charge(db, userId, profile, ent, n) {
+  if (!n || n <= 0) return { ok: true, profile };
+
+  let current = profile, entitled = ent;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const patch = spend(current, entitled, n);
+    if (!patch) return { ok: false, reason: 'insufficient' };
+    if (!Object.keys(patch).length) return { ok: true, profile: current, took: {monthly: 0, banked: 0} };
+    // Which bucket each credit came out of, so it can go back to the same one.
+    const took = {
+      monthly: Math.min(n, entitled.monthlyLeft),
+      banked:  Math.max(0, n - entitled.monthlyLeft)
+    };
+
+    const { data, error } = await db.from('profiles').update(patch)
+      .eq('id', userId)
+      .eq('credits_used',  current.credits_used  || 0)
+      .eq('credits_extra', current.credits_extra || 0)
+      .select('*').maybeSingle();
+    if (data) return { ok: true, profile: data, took };
+    /* No row and no error means the condition did not match: somebody moved the
+       balance, so read it again and work the charge out from there. An ERROR is
+       a different thing entirely - the write may well have landed and the reply
+       was lost - and retrying that would charge twice. */
+    if (error) return { ok: false, reason: 'unavailable' };
+
+    // Somebody else moved the balance between the read and the write. Take the
+    // new one and work out the charge again from there.
+    const { data: fresh } = await db.from('profiles')
+      .select('*').eq('id', userId).single();
+    if (!fresh) return { ok: false, reason: 'unavailable' };
+    current = fresh;
+    entitled = entitlement(fresh);
+  }
+  return { ok: false, reason: 'busy' };
+}
+
+/* Putting credits back, for work that was charged and then did not happen.
+
+   The charge has to be applied BEFORE the upstream call, because a check at the
+   start and a debit at the end lets twenty parallel requests all pass the check
+   and all do the work. That trade brings its own duty: if the work then fails,
+   the credits go back. Same compare-and-set as charge(), for the same reason. */
+export async function refund(db, userId, took) {
+  const fromMonthly = Math.max(0, (took && took.monthly) || 0);
+  const fromBanked  = Math.max(0, (took && took.banked)  || 0);
+  if (!fromMonthly && !fromBanked) return { ok: true };
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data: row } = await db.from('profiles')
+      .select('credits_used, credits_extra').eq('id', userId).single();
+    if (!row) return { ok: false };
+
+    /* Each bucket gets back exactly what came out of it. Refunding the total
+       into whichever bucket had room looked equivalent and is not: a bought
+       credit that comes back as a monthly one has quietly become a credit that
+       expires on the 1st, and the writer paid for one that never does. */
+    const patch = {
+      credits_used:  Math.max(0, (row.credits_used || 0) - fromMonthly),
+      credits_extra: (row.credits_extra || 0) + fromBanked
+    };
+    const { data } = await db.from('profiles').update(patch)
+      .eq('id', userId)
+      .eq('credits_used',  row.credits_used  || 0)
+      .eq('credits_extra', row.credits_extra || 0)
+      .select('id').maybeSingle();
+    if (data) return { ok: true };
+  }
+  return { ok: false };
 }
 
 export function send(res, status, body) {

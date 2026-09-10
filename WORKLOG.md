@@ -1953,3 +1953,454 @@ own step rather than riding along with nine other changes.
 
 No project data, placement rule, import parsing, database schema or API payload
 shape changed. The only API change is which methods a closed account may call.
+
+
+## 2026-09-09 (later) - Cancelling worked, and Stripe stopped dropping people somewhere strange
+
+Kris tested the billing flow by hand, which is how both of these were found.
+
+### Continue to cancel returned "request failed"
+
+Two faults, stacked, and the second hid the first.
+
+Stripe requires the subscription being cancelled, by id. `flow_data` carried
+only `{ type: 'subscription_cancel' }`, so the call was rejected outright. That
+control has never worked; nobody had pressed it.
+
+And nothing in `api/billing.js` caught anything. An uncaught Stripe refusal is a
+bare 500 with no body, and `BF.api` prints its own last-resort string when there
+is nothing to show, so a writer trying to cancel their subscription read the
+words "request failed" and the real reason never left the server.
+
+The cancel flow names the subscription now, and falls back to the plain portal
+when there is no subscription on file rather than pretending there is one to
+end. The whole endpoint has a net under it: Stripe's words go to the log, the
+writer gets a sentence, and the response says nothing was charged or changed.
+
+`BF.explain` is the last thing between a failed request and somebody's screen,
+and it used to hand back whatever the wire said. An error code is not a
+sentence: anything arriving without a space in it is now replaced with one.
+
+Also in that file: `checkout_started` read `body.interval`, a field the client
+does not send, so every annual checkout ever started was recorded as monthly.
+
+### Stripe handed people back to a page that exists nowhere else
+
+Every return url pointed at `/settings.html`, the standalone full-page settings
+screen. Kris cancelled on Stripe, pressed Go back to Beatfall, and landed on a
+version of the app he had never seen, with a different account menu, and had to
+press Board to get home. It is also the page whose copy contradicted the product
+until this morning, and the duplication is why it drifted in the first place.
+
+All six return urls go to `/app` now, which is where somebody paying or
+cancelling was trying to get to anyway. The query says what happened and the app
+says it back, in the strip the low-credit notice already uses, with a blue
+ground rather than gold because a completed payment is not something missing.
+The query is taken off the address so a refresh does not repeat it.
+
+Returning from the portal is the one case that says nothing on the way in.
+Coming back means they were there, not what they did, so it waits for
+`/api/account` and then states whatever is now true: cancelled and running until
+a date, or subscribed with the next payment named. Guessing would have meant
+telling somebody who changed their mind that they had cancelled.
+
+This leaves `settings.html` reachable only from Admin. It is out of the customer
+path entirely, which is the first half of collapsing the two settings screens
+into one.
+
+### Testing
+
+- `api/billing.js` and the inline application script both parse.
+- No `settings.html` remains in any Stripe return url.
+- Em dashes stay at zero.
+- `billingReturn()` runs after the boot awaits, so the module-level `let` it
+  sets is past its temporal dead zone, the same check the credit marks needed.
+
+### Still true, and worth stating because Kris asked
+
+Cancelling does not close anything immediately. `cancel_at_period_end` leaves
+the subscription active, `entitlement` still returns the paid plan, and the
+boards stay open until the period ends. The new strip says so in as many words.
+
+
+## 2026-09-10 - The audit, and what it turned up underneath the writing
+
+Kris asked for a full pass: new user, existing user, admin, board, notes,
+characters, downloads, billing, credits. 52 product flows and 45 regression
+checks were driven against the real `public/app.html`, and all eight API
+endpoints plus the schema were read line by line. The product itself came
+through well. What did not was the layer under it.
+
+Everything below is fixed. The one item that cannot be fixed from here is first.
+
+### KRIS'S ACTION: run `supabase/schema.sql` again
+
+`create policy "own profile edit" on public.profiles for update using (auth.uid() = id);`
+
+That said the row must be yours and never said which columns of it you may
+touch, and Supabase grants the signed-in role UPDATE on this schema by default.
+Anyone signed in could open a console and set their own `credits_extra`,
+`plan`, `subscription_status` and `is_admin`. Admin then opens `/admin`, which
+holds every other writer's email, plan and cancel reason. The same shape on
+`events`, where an INSERT policy made `cleanProps` advice rather than a wall:
+the allowlist exists so that table can never hold a sentence somebody wrote,
+and that is a promise in the Privacy Policy.
+
+The new block at the foot of the file revokes both and keeps the select side
+intact, which is what realtime needs for the device-takeover notice. Nothing
+legitimate wrote to either table from the browser; every write already goes
+through the server with the service key. Safe to re-run, like the rest.
+
+**Until that runs, nothing else in this entry matters much.**
+
+### The writing help was free for anyone who noticed
+
+A multi-turn feature bills once by sending a session id, and the browser chose
+it. The server only asked whether it had seen that id before, so the same word
+on every request made everything after the first action free, forever. Worse,
+a usage row carried the id even for the free actions, so placing one note paid
+for every import afterwards.
+
+Three bounds, none of which change the protocol the client already speaks: the
+earlier call must be the same KIND, so a conversation cannot pay for an import;
+it must be RECENT, because no real conversation spans a day; and one payment
+covers at most twenty turns, because the longest thing here is a ten-question
+interview and unlimited is not a number. A free call now records no session id
+at all.
+
+`COST[kind] ?? 1` also never fired its default: `COST` is an object literal, so
+`COST['toString']` is a function rather than undefined, and a non-numeric cost
+skipped the balance check, the dedupe and the debit together. An unknown kind
+is refused now rather than priced at a guess.
+
+### Twenty calls at once were paid for by one credit
+
+The balance was read at the start of a request and written back as a finished
+number at the end. Twenty parallel calls with one credit left all read the same
+figure, all ran, and all wrote the same figure. `charge()` in `core.js` applies
+the patch only if the row still holds the values it was computed from, and
+starts again from a fresh read when it does not. No migration: the condition is
+the values themselves.
+
+The same shape of bug sat in the month rollover, where two requests landing
+together on the first both reset `credits_used` to zero and the second erased
+what the first had spent. That update is conditional in the database now too.
+
+### There was no ceiling on what one request could cost
+
+The per-call limit capped each message at sixty thousand characters and never
+capped how many messages. Two hundred of them is roughly three dollars of spend
+for one credit, and the comment above it said a runaway request could not cost
+a fortune. The budget is the whole call now, spent from the last turn backwards
+so the oldest fall off first, with a ceiling on the count as well.
+
+### Deleting an account left the card being charged
+
+Delete removed the writer and never told Stripe. The subscription went on
+billing, with no account left to cancel from, and the profile row took the
+customer and subscription ids with it, so afterwards there was nothing to look
+it up by. Cancelling comes first now, a failure to cancel stops the deletion
+rather than proceeding quietly, and the result of the delete is checked instead
+of success being reported regardless. That last one meant a writer could clear
+their browser believing they were gone while every project stayed in the
+database.
+
+### The top-up could be free, doubled, or taken and not given
+
+No check that the payment succeeded, so a delayed method that later failed
+still handed over the credits. No guard against being told twice, and Stripe
+redelivers on any error. And a missing account answered "fine", so Stripe never
+retried and the customer paid for nothing.
+
+The receipt is written first now, carrying Stripe's own event id, and the unique
+index on that column is what makes a redelivery bounce. A missing account
+answers 503 so Stripe tries again.
+
+### A card that asks for verification ate the rest of the trial
+
+`plan: live && plan ? plan : (... : 'none')`. A subscription created
+`incomplete`, which is what happens when a bank wants verification, is not live
+and not trialing, so this wrote `none`. A writer on day three who started
+checkout and did not finish the bank's step lost the other eleven days that
+instant, permanently. Nothing here lowers a plan any more;
+`customer.subscription.deleted` has its own case and remains the only thing
+that ends one.
+
+### Nobody could get all of their work out
+
+Two doors and both leaked. The PDF carried the board, the outline, the cast and
+everything set aside, and skipped Other Notes entirely, while the cover page
+COUNTED them: a writer read "12 notes" on the front of a file containing none
+of them. And the account export, commented "everything a person has, in one
+file", omitted the characters column, which is the file the deletion warning
+email tells people to download.
+
+The PDF has an Other notes section grouped the way the Notes screen groups it.
+The export carries `characters`, and the sample and origin fields with it.
+
+### The six-month cleanup would have deleted your own account
+
+It exempted live subscriptions and unexpired trials, and checked neither
+`is_admin` nor `is_internal`. An owner has no subscription and a trial date long
+past. It also counted an account as warned whether or not the mail actually
+went, so with no mail key set it reported warnings it had never sent and then
+deleted those accounts thirty days later. Both fixed, with a separate
+`could_not_warn` count, and the batch is ordered oldest-first so a backlog
+drains instead of handing back the same rows.
+
+### Things the app said that were not true
+
+The past-due notice claimed the writing help was off. `entitlement` counts
+`past_due` as paid, so nothing is switched off while the bank is retried.
+
+The admin dashboard filtered owner accounts out of one calculation and not the
+others, so credits-per-user and cost-per-user - the two figures the page exists
+to produce - counted QA accounts. In a cohort of ten that is not noise, it is
+the answer. The percentile was biased one rank high, so with ten active writers
+the "90th percentile" was simply the heaviest one and the allowance would have
+been set from it. The People table also showed sample-inclusive project and
+card counts, so every writer looked like they had done a board's worth of work
+before writing anything, while the real pair was computed, sent and never used.
+
+### The product itself
+
+**A note could not be edited.** Its type could change, it could be sent to a
+beat, taken off a beat or deleted. Its words could not be changed, here or
+anywhere in the app: a typo in an imported note was permanent unless the writer
+deleted it and retyped it. Same pencil and same behaviour as a board card.
+
+**"Send to a beat" turned it into a card and never said so.** Filing a note
+UNDER a beat, so it stays a note, existed only as a drag inside the Outline. Two
+different actions, named for what they do, both offered where a writer is
+looking at their notes.
+
+**The trial ended without a word.** Day fourteen arrived and the first anyone
+heard of it was a locked screen. Two moments now, a week out and two days out,
+each shown once ever, neither blocking anything. The two-day one says what
+happens to the boards and offers the plans.
+
+**A failing save had no way out.** Eleven grey pixels and a retry every five
+seconds, forever, with a crash cushion being written that nothing ever read. A
+minute of failures now raises one strip that says nothing has been lost and
+hands over everything in the tab as a file. The retry continues underneath.
+
+**A brand-new writer's first request could crash.** The fallback profile insert
+discarded its error and the next line dereferenced the null. A first call that
+raced the database trigger answered with a stack trace.
+
+### Testing
+
+102 checks pass: 45 regression and 57 product flows, both against the real
+`public/app.html` rather than a copy. `test/flows.js` joins `test/drive.js` in
+the repository. New coverage this pass: note editing and the two beat actions,
+the Other notes section in the PDF, both trial warnings and their once-ever
+behaviour, and the rescue strip after fourteen failed saves.
+
+Every touched file parses. Em dashes remain zero across the pages, `app.js`,
+`theme.css`, `api/` and now `schema.sql`, which had three from before that rule
+was audited there.
+
+### One thing worth recording about the tooling
+
+The working copy of `app.html` used for this pass turned out to be missing the
+Stripe-return work committed earlier the same night: the bridge that reads files
+off the machine had been handing back a snapshot one write behind. It was caught
+by comparing the function lists of the two copies before committing, and the
+missing work was restored rather than overwritten. Anything edited across that
+bridge should be compared, not trusted, before it is written back.
+
+No placement rule, import parse, structure logic or database column changed.
+
+
+## 2026-09-10 (second pass) - Auditing the audit
+
+Kris asked for the whole aggressive pass again, against the fixed code, before
+pushing. That was the right instinct: the most likely place for a new bug is
+whatever was changed an hour ago, and the pass found nine real ones in the
+morning's own fixes. Two of them were worse than what they replaced.
+
+### The two fixes that cancelled each other out
+
+The session ceiling was inert. One change stopped free calls recording a session
+id, so a paid call could not be seeded by a free one. Another counted the rows
+carrying that id to cap how many turns one payment covers. Together the count
+could never exceed one, the ceiling never fired, and one credit bought unlimited
+writing help for eight hours. Better than "forever", which is what it replaced,
+and not what the comment above it claimed.
+
+The real shape: ask whether this session was ever PAID for, which is the
+question that stops a free `place` buying an import, and count every row to
+enforce the ceiling. The free rows carry the id again, because the count needs
+them; what closes the hole is `credits > 0` on the lookup, not the absence of an
+id on the row.
+
+### Charging after the work is not metering
+
+`charge()` made the debit conditional on the balance it was computed from, and
+the comment said that closed the parallel-spend hole. It did not. The check was
+at the start and the debit at the end, so twenty requests with one credit left
+all passed the check, all called Anthropic, and all got an answer; the
+compare-and-set then fixed the number while nineteen calls' worth of spend had
+already happened.
+
+The charge is taken BEFORE the upstream call now. A request that cannot pay
+never reaches Anthropic. That trade brings a duty: `refund()` puts the credits
+straight back when the work fails, on both the upstream-error and network paths.
+
+`refund()` had a bug of its own on first writing. It put the whole amount back
+into whichever bucket had room, so a bought credit could return as a monthly
+one - a credit that never expires quietly becoming one that dies on the 1st.
+`charge()` reports which bucket each credit came from and the refund honours it.
+
+And `charge()` treated a lost reply as a failed condition and retried, which
+would charge twice. An error and a non-matching condition are different things
+now.
+
+### Other faults in the morning's work
+
+- The whole-call input budget filled from the newest message backwards and could
+  stop on an assistant turn. Anthropic refuses a conversation that opens on the
+  assistant, so a long thread broke permanently with a 502 and no way back. The
+  front is trimmed to the first user turn.
+- An empty message in that loop discarded every older turn behind it.
+- The cleanup job's new exclusions were applied in JavaScript after the limit,
+  so the skipped rows are the oldest and hold the same batch slots on every run.
+  Enough of them at the head and the batch never reaches an account that needs
+  warning, which is the failure the morning's fix was written to prevent. They
+  are query filters now.
+- `delete_account` classified an already-cancelled subscription by error code.
+  Stripe answers that with a plain 400, not `resource_missing`, so a writer who
+  cancelled through the portal was told to cancel before deleting - which they
+  had done and could not do again. They could never delete their account. It
+  reads the subscription's status before deciding, and if the delete then fails
+  it no longer says "nothing was removed" when the subscription has just been
+  cancelled.
+- The top-up receipt-before-grant made a transient database failure permanent:
+  the receipt said granted, the credits never arrived, and every retry was
+  suppressed. A duplicate key is now distinguished from a database that did not
+  answer, and the second returns 503 so Stripe tries again.
+- `Stripe` was imported dynamically in `account.js`, which Vercel's bundler does
+  not reliably trace. Static import.
+
+### And in the client
+
+- The rescue bar never came down. Saving recovered, the counter reset, and the
+  bar went on saying Beatfall could not reach your projects for the rest of the
+  session - while silencing the credit warning, both Stripe messages and the
+  trial notice, because it outranks all three. It is removed on the first
+  successful save, and dismissing it now sticks rather than returning five
+  seconds later.
+- The failure counter ran per project rather than per attempt, so an import that
+  made twelve projects tripped the ceiling on its first failed round.
+- `trialRamp` wrote its once-ever flag before knowing whether the notice
+  appeared. A writer coming back from a cancelled checkout saw "Checkout
+  cancelled", which holds the foot of the window, and burned their one week's
+  warning without seeing it - the person that happens to being exactly the
+  person deciding whether to pay. The flag is spent only when a bar exists, and
+  it is keyed to the account rather than the browser.
+- A trial that ended hours ago announced that it ends today: `Math.ceil` of a
+  small negative is negative zero, and negative zero is not less than zero.
+- `bareShelf()` inferred the placeholder from having no id, and merely opening
+  the dashboard saved it and gave it one. Every branch built on it then stopped
+  working, which is how naming a first script left an Untitled beside it - the
+  exact outcome the morning's comment said it prevented. The placeholder says so
+  on itself now, and gets a baseline fingerprint so an untouched one is never
+  written to the database at all, which is what this file has always claimed
+  about it. `takePlaceholder()` also clears it from the save queue, or it was
+  written to the server after being dropped from the shelf.
+- Shift+Enter in a note edit welded two lines into one word, because the commit
+  reads textContent. Every Enter commits, as on a board card.
+- Changing a note's type never reached the server. `renderNotes()` does not
+  save, and that was the one control in the row that did not go through
+  something that does.
+- The new PDF notes section put each note through `slotBox`, which is built for
+  a beat card: fixed height, first seven lines, cut mid-word. A research note is
+  not a sentence. That section flows now and prints every word, and says which
+  beat a note is filed under, which the screen said and the page did not.
+
+### Testing
+
+116 checks pass: 55 regression and 61 product flows, both against the real
+`public/app.html`. Everything above has a check on it, including the ones that
+are only visible in sequence: a warning suppressed by another strip is not
+counted as said, the rescue bar comes down when saving returns, the shelf is
+still known to be bare after the placeholder saves, and a hundred-word note
+survives the PDF whole.
+
+### Still not covered
+
+The server. All eight endpoints were read twice and changed, and none of them
+have been run. The charge-before-work reordering in particular wants one real
+conversation and one real import against the live database before it is trusted,
+and `cleanup.js` should be run once with `?dry=1` because its new query filters
+use PostgREST `or()` syntax that has not been executed.
+
+
+## 2026-09-10 (third pass) - Running the server, at last
+
+Kris asked, before pushing: will the app still work? The honest answer was that
+the client had 116 checks on it and the server had been read twice and run
+never. So the server got run.
+
+`test/server/` holds a stand-in for the Supabase client - the chained builder,
+`{data, error}` rather than throwing, and `maybeSingle()` returning a null row
+rather than an error when nothing matched, which is exactly what the new
+compare-and-set debit depends on. Each suite copies the real endpoint and swaps
+two things: `requireUser`, which needs a live Supabase and a token, and the
+database handle. Everything else in those files is the shipped code.
+
+74 server checks, all passing:
+
+- **credits (18).** A charge applies and comes out of the month first; one that
+  spans both buckets takes the month before the bought credits and reports the
+  split honestly; an empty account is refused and nothing is taken; a lost race
+  retries against the new balance and charges exactly once; a lost REPLY is not
+  retried as a conflict, because that would charge twice; twenty requests
+  against one credit produce exactly one success and a balance that never passes
+  the allowance; and a refund puts each credit back in the bucket it came from.
+- **the AI proxy (22).** A conversation succeeds, costs one credit, reports the
+  real balance and writes a usage row. The rest of a session is free. Placing a
+  note is free AND does not pay for an import reusing its session. A
+  conversation does not pay for an import. An empty account is refused BEFORE
+  the model is called. An upstream failure and a network failure each give the
+  credits back. An unknown action is refused rather than priced at a guess. A
+  long thread never opens on the assistant, and an empty turn does not discard
+  the history behind it.
+- **the project gate (16).** Paid, trial, past-due and owner accounts all load
+  their projects and none of them is told the boards are closed - which is the
+  failure that would have locked out a paying writer. A lapsed account reads its
+  work, is told the boards are closed, is told it was a plan rather than a
+  trial, and gets its projects back, which is what makes the per-board PDF
+  possible; its writes and deletes are refused. An expired trial is called a
+  trial. And the export carries the characters.
+- **the Stripe webhook (12).** A paid pack grants once and writes one receipt; a
+  redelivery grants nothing and is accepted rather than retried forever; an
+  unpaid session and a nonsense amount grant nothing; an unmatched customer gets
+  a 503 so Stripe tries again rather than a 200 that loses the money. A
+  subscription created `incomplete` does not end the trial or move its date, and
+  a genuine cancellation still does.
+- **the cleanup job (6).** On a dry run nothing is deleted, the owner and the QA
+  account are never even scanned, the paying account is skipped, exactly one
+  abandoned account is acted on, and it reports how many it could not warn.
+
+### One thing was changed rather than shipped untested
+
+The morning's cleanup query used a PostgREST `or()` with a `not.in` inside it,
+to keep live subscriptions out of the batch. That syntax cannot be exercised
+here, and a nightly cron that silently errors is worse than the backlog it was
+avoiding: an owner or QA account is idle forever by nature and belongs in the
+query, but a subscriber idle for five months is not a row that sits at the head
+of the queue permanently. The two `.eq()` filters stay, the subscription check
+went back into the loop, and the reason is written above it.
+
+### Where it still is not proof
+
+The fake is not Postgres. Row-level security, column defaults, foreign keys and
+PostgREST's own grammar are outside it, so a filter these suites accept can
+still be refused by the real server. Stripe and Anthropic are stubbed at the
+boundary, so what is tested is how these files behave given an answer, not
+whether it is the answer those services would give.
+
+Total across everything: 190 checks. 116 on the client, 74 on the server.
+
+Also: the last em dash in the repository was in `package.json`'s description.

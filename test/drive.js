@@ -265,6 +265,153 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  // ------------------------------------------ the trial says goodbye
+  {
+    const soon = Object.assign({}, TRIAL,
+      {trial_ends_at: new Date(Date.now() + 5 * 86400000).toISOString()});
+    const { page } = await open(browser, {account: soon, projects: [board('Night Haul', 3)]});
+    const said = await page.evaluate(() => {
+      const b = document.getElementById('lowstrip');
+      return b ? b.textContent : '';
+    });
+    check('a week out, the trial says how long is left', /5 days left/.test(said), said || 'nothing');
+    const twice = await page.evaluate(() => {
+      const b = document.getElementById('lowstrip'); if (b) b.remove();
+      trialRamp(ME);
+      return !!document.getElementById('lowstrip');
+    });
+    check('and does not say it again', twice === false);
+
+    // the flag must not be spent when the notice could not be shown
+    const notBurned = await page.evaluate(() => {
+      const email = 'other@example.com';
+      Object.keys(localStorage).filter(k => k.indexOf('beatfall.trialsaid') === 0)
+        .forEach(k => localStorage.removeItem(k));
+      // something else is already holding the foot of the window
+      sayStrip('<b>Checkout cancelled.</b>', 'good');
+      trialRamp({email, trialing: true,
+        trial_ends_at: new Date(Date.now() + 5 * 86400000).toISOString()});
+      const burned = !!localStorage.getItem('beatfall.trialsaid.week.' + email);
+      document.getElementById('lowstrip').remove();
+      trialRamp({email, trialing: true,
+        trial_ends_at: new Date(Date.now() + 5 * 86400000).toISOString()});
+      const shownNow = !!document.getElementById('lowstrip');
+      return {burned, shownNow};
+    });
+    check('a warning that could not be shown is not counted as said',
+      notBurned.burned === false, JSON.stringify(notBurned));
+    check('and it appears at the next chance', notBurned.shownNow === true,
+      JSON.stringify(notBurned));
+
+    const expired = await page.evaluate(() => {
+      const b = document.getElementById('lowstrip'); if (b) b.remove();
+      trialRamp({email: 'x@y.z', trialing: true,
+        trial_ends_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString()});
+      return !!document.getElementById('lowstrip');
+    });
+    check('a trial that already ended does not say it ends today', expired === false);
+    await page.close();
+  }
+
+  {
+    const last = Object.assign({}, TRIAL,
+      {trial_ends_at: new Date(Date.now() + 1.2 * 86400000).toISOString()});
+    const { page } = await open(browser, {account: last, projects: [board('Night Haul', 3)]});
+    const said = await page.evaluate(() => {
+      const b = document.getElementById('lowstrip');
+      return {text: b ? b.textContent : '',
+              plans: b ? [...b.querySelectorAll('button')].some(x => /See the plans/.test(x.textContent)) : false};
+    });
+    check('two days out it says what happens to the boards',
+      /trial ends/.test(said.text) && /download any board/.test(said.text), said.text || 'nothing');
+    check('and offers the plans', said.plans === true);
+    await page.close();
+  }
+
+  // ------------------------------------------ a save that will not land
+  {
+    const { page, errors } = await open(browser, {account: PAID, projects: [board('Night Haul', 9)]});
+    const rescue = await page.evaluate(async () => {
+      BF.saveProject = async () => { throw Object.assign(new Error('nope'), {status: 500}); };
+      const p = P(); p.name = 'Night Haul edited'; dirty.add(p);
+      for (let i = 0; i < 14; i++) { try { await flush(); } catch (e) {} }
+      const bar = document.getElementById('rescue');
+      return {up: !!bar, text: bar ? bar.textContent : '',
+              offers: bar ? [...bar.querySelectorAll('button')].map(b => b.textContent) : []};
+    });
+    check('a save that keeps failing eventually offers a way out', rescue.up === true,
+      'no rescue strip after fourteen failures');
+    check('it says nothing has been lost', /has been lost|Nothing you have written/.test(rescue.text),
+      rescue.text.slice(0, 120));
+    check('and hands over a copy', rescue.offers.some(o => /Download a copy/.test(o)),
+      JSON.stringify(rescue.offers));
+    check('no page errors while saving fails', errors.length === 0, errors.join('\n'));
+
+    // and it comes down again when saving comes back
+    const recovered = await page.evaluate(async () => {
+      BF.saveProject = async p => Object.assign({}, p, {id: p.id || 'srv1', updated_at: new Date().toISOString()});
+      const p = P(); p.name = 'Night Haul back'; dirty.add(p);
+      await flush();
+      await new Promise(r => setTimeout(r, 60));
+      return {bar: !!document.getElementById('rescue'), fails: saveFails};
+    });
+    check('and comes down when saving works again', recovered.bar === false,
+      JSON.stringify(recovered));
+    check('and stops counting failures', recovered.fails === 0, JSON.stringify(recovered));
+    await page.close();
+  }
+
+  // ------------------------------------------ dismissing it means dismissed
+  {
+    const { page } = await open(browser, {account: PAID, projects: [board('Night Haul', 9)]});
+    const stayed = await page.evaluate(async () => {
+      BF.saveProject = async () => { throw Object.assign(new Error('nope'), {status: 500}); };
+      const p = P(); p.name = 'edited'; dirty.add(p);
+      for (let i = 0; i < 14; i++) { try { await flush(); } catch (e) {} }
+      const bar = document.getElementById('rescue');
+      [...bar.querySelectorAll('button')].find(b => /Hide this/.test(b.textContent)).click();
+      for (let i = 0; i < 6; i++) { try { await flush(); } catch (e) {} }
+      return !!document.getElementById('rescue');
+    });
+    check('hiding the rescue bar keeps it hidden', stayed === false,
+      'it came back on the next retry');
+    await page.close();
+  }
+
+  // ------------------------------------------ the placeholder stays known
+  {
+    const { page } = await open(browser, {account: TRIAL, projects: []});
+    const survives = await page.evaluate(() => {
+      const before = bareShelf();
+      // what happens the moment the placeholder reaches the server
+      state.projects[0].id = 'srv-placeholder';
+      const after = bareShelf();
+      return {before, after};
+    });
+    check('the shelf is still known to be bare after the placeholder saves',
+      survives.before === true && survives.after === true, JSON.stringify(survives));
+
+    const clean = await page.evaluate(() => {
+      dirty.clear();
+      save();
+      return dirty.size;
+    });
+    check('and an untouched placeholder is never queued for saving', clean === 0,
+      'it was queued, which is how it reached the database');
+
+    const noGhost = await page.evaluate(() => {
+      dirty.add(state.projects[0]);
+      const pr = blankProject('The Spillway', 'stc');
+      takePlaceholder(pr);
+      return {projects: state.projects.map(p => p.name), queued: dirty.size};
+    });
+    check('replacing it leaves exactly one project', noGhost.projects.length === 1,
+      JSON.stringify(noGhost));
+    check('and nothing queued to write the ghost anyway', noGhost.queued === 0,
+      JSON.stringify(noGhost));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

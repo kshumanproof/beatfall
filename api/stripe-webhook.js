@@ -55,16 +55,54 @@ export default async function handler(req, res) {
       case 'checkout.session.completed': {
         const s = event.data.object;
         if (s.mode === 'payment' && s.metadata?.topup) {
-          const profile = await byCustomer(s.customer);
-          if (profile) {
-            await db.from('profiles')
-              .update({ credits_extra: (profile.credits_extra || 0) + Number(s.metadata.topup) })
-              .eq('id', profile.id);
-            await db.from('events').insert({
-              user_id: profile.id, name: 'credits_purchased',
-              props: { credit_amount: Number(s.metadata.topup) }
-            });
+          /* This block gave credits away three different ways.
+
+             It never checked the money arrived: a delayed payment method
+             completes the session as unpaid, and the credits went out anyway.
+             It had no guard against being told twice, and Stripe deliberately
+             redelivers on any error, so one pack could be credited twice. And
+             when it could not find the account it answered "fine", so Stripe
+             never tried again and the customer paid for nothing.
+
+             The order below is the fix. The receipt is written FIRST, carrying
+             Stripe's own event id, and the unique index on that column is what
+             makes a redelivery bounce: if the insert fails we are already done,
+             so the credits are not granted a second time. */
+          const amount = Number(s.metadata.topup);
+          if (s.payment_status !== 'paid') {
+            console.warn('topup ignored, not paid:', s.id, s.payment_status);
+            break;
           }
+          if (!Number.isInteger(amount) || amount <= 0 || amount > 10000) {
+            console.error('topup ignored, bad amount:', s.id, s.metadata.topup);
+            break;
+          }
+          const profile = await byCustomer(s.customer);
+          if (!profile) {
+            // Not found is not finished. Fail loudly so Stripe retries while
+            // the profile catches up, instead of charging somebody for nothing.
+            console.error('topup has no matching account yet:', s.customer);
+            return res.status(503).send('no matching account');
+          }
+          const { error: seen } = await db.from('events').insert({
+            user_id: profile.id, name: 'credits_purchased', event_id: event.id,
+            props: { credit_amount: amount }
+          });
+          if (seen) {
+            /* A duplicate key means this exact Stripe event has been handled and
+               the credits are already on the account: finished, say so.
+               Anything else is a database that did not answer, and treating
+               that as "already done" would be the original bug wearing a hat -
+               the customer pays and receives nothing. Fail so Stripe retries. */
+            const duplicate = seen.code === '23505'
+              || /duplicate key|already exists/i.test(seen.message || '');
+            if (duplicate) { console.warn('topup already applied:', event.id); break; }
+            console.error('topup receipt failed, no credits granted:', seen.message);
+            return res.status(503).send('receipt failed');
+          }
+          await db.from('profiles')
+            .update({ credits_extra: (profile.credits_extra || 0) + amount })
+            .eq('id', profile.id);
         }
         break;
       }
@@ -82,7 +120,17 @@ export default async function handler(req, res) {
         await db.from('profiles').update({
           stripe_subscription_id: sub.id,
           subscription_status: sub.status,
-          plan: live && plan ? plan : (sub.status === 'trialing' ? (plan || 'trial') : 'none'),
+          /* A subscription that is merely not live yet is not a cancelled one.
+             A card that asks for verification is created `incomplete`, and this
+             used to write 'none' the moment it appeared: a writer on day three
+             who started checkout and did not finish the bank's step lost the
+             other eleven days of their trial that instant, permanently.
+
+             Nothing here may lower a plan. `customer.subscription.deleted` is
+             the one place a plan ends, and it has its own case below. */
+          plan: live && plan ? plan
+              : (sub.status === 'trialing' ? (plan || 'trial')
+              : (profile.plan && profile.plan !== 'none' ? profile.plan : 'none')),
           current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           cancel_at_period_end: !!sub.cancel_at_period_end,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString()

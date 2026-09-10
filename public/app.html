@@ -1631,6 +1631,9 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   box-shadow:0 -8px 24px -18px rgba(58,48,36,.6);
 }
 .lowstrip b{font-weight:600}
+/* The same strip, for something that went right rather than something running
+   out. Gold is the colour of missing; a completed payment is not missing. */
+.lowstrip.good{background:var(--blue-soft);border-top-color:var(--rule)}
 .lowstrip .btn{margin-left:auto}
 .lowstrip .btn + .btn{margin-left:0}
 @media (max-width:760px){ .lowstrip{padding:12px 16px} .lowstrip .btn{margin-left:0} }
@@ -3381,11 +3384,84 @@ async function flush(){
       setSaved(e && e.status === 401 ? "signed out" : "not saved, retrying");
     }
   }
+  // One count per round, not per project. It sat inside the loop, so an import
+  // that created twelve projects tripped the ceiling on its first failed
+  // attempt, about a second in, and announced that it had been trying a while.
+  if (retry) saveFails++;
   flushing = false;
+  if (!retry){
+    saveFails = 0;
+    /* And the bar comes DOWN. Without this it announced that Beatfall could not
+       reach your projects for the rest of the session, long after the wifi came
+       back - and while it was up it silenced the credit warning, both Stripe
+       messages and the trial notice, because it outranks all three. */
+    const bar = document.getElementById("rescue");
+    if (bar) bar.remove();
+    rescueUp = false; rescueHidden = false;
+  }
   if (dirty.size){
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, retry ? 5000 : 0);
+    // Retrying forever behind eleven grey pixels is not a plan. After a minute
+    // of failures, offer the writer their work as a file.
+    if (saveFails >= SAVE_FAILS_BEFORE_RESCUE) offerRescue();
   }
+}
+
+/* A save that keeps failing used to be a small grey line and an endless retry,
+   with no next state and no way for the writer to get their work out. There is
+   a crash cushion written to this browser on every successful save, and nothing
+   ever read it back.
+
+   This is the way out: after a minute of failed attempts, one strip that says
+   plainly what is happening and hands over everything in the tab as a file. The
+   retry continues underneath, because it usually does come back. */
+const SAVE_FAILS_BEFORE_RESCUE = 12;
+let saveFails = 0, rescueUp = false, rescueHidden = false;
+
+function offerRescue(){
+  // Dismissing it has to stick until saving actually works again. It used to
+  // come straight back on the next retry tick, every five seconds.
+  if (rescueHidden || rescueUp || document.getElementById("rescue")) return;
+  rescueUp = true;
+  // This outranks whatever else is down there. Two fixed bars at the foot of
+  // the window sit on top of one another, and of the three this is the one a
+  // writer needs to read.
+  const other = document.getElementById("lowstrip");
+  if (other) other.remove();
+
+  const bar = document.createElement("div");
+  bar.className = "lowstrip"; bar.id = "rescue";
+  bar.innerHTML = "<b>Beatfall can't reach your projects.</b> Nothing you have written has "
+    + "been lost, and it is still trying. Keep this tab open, and take a copy in the "
+    + "meantime if you would rather not wait.";
+
+  const get = document.createElement("button");
+  get.className = "btn btn-primary"; get.textContent = "Download a copy";
+  get.addEventListener("click", () => {
+    try {
+      commitOutlineBoxes();
+      const blob = new Blob([JSON.stringify({
+        rescued_at: new Date().toISOString(),
+        note: "A copy of everything open in Beatfall when saving stopped working.",
+        projects: state.projects.map(projectPayload)
+      }, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "beatfall-recovery.json"; a.click();
+      URL.revokeObjectURL(url);
+      get.textContent = "Downloaded";
+    } catch (e) { get.textContent = "Couldn't build that"; }
+  });
+
+  const hide = document.createElement("button");
+  hide.className = "btn"; hide.textContent = "Hide this";
+  hide.addEventListener("click", () => {
+    bar.remove(); rescueUp = false; rescueHidden = true;
+  });
+
+  bar.appendChild(get); bar.appendChild(hide);
+  document.body.appendChild(bar);
 }
 window.addEventListener("beforeunload", e => {
   commitOutlineBoxes();
@@ -3478,9 +3554,23 @@ function projectFromRow(r, keepLocalId){
 async function load(){
   const rows = await BF.loadProjects();
   const projects = rows.map(r => projectFromRow(r));
-  if (!projects.length) projects.push(blankProject("Untitled", "stc"));
+  /* The placeholder says so on itself. Working it out from "has no id" looked
+     equivalent and was not: merely opening the dashboard calls save(), the
+     placeholder had no baseline fingerprint so it counted as changed, and a
+     second later it had a server id. Everything that asks bareShelf() then
+     quietly stopped working, which is how a writer naming their first script
+     ended up with an Untitled sitting beside it forever.
+
+     The baseline below is the other half. With one, a placeholder nobody has
+     typed into is not dirty, so it never reaches the database at all - which is
+     what this file has always claimed about it. */
+  if (!projects.length){
+    const blank = blankProject("Untitled", "stc");
+    blank.placeholder = true;
+    projects.push(blank);
+  }
   state = {projects, activeId: projects[0].id || projects[0].localId, view: "slate"};
-  projects.forEach(p => { if (p.id) savedFingerprints.set(p, projectFingerprint(p)); });
+  projects.forEach(p => savedFingerprints.set(p, projectFingerprint(p)));
   uid = 1 + projects.reduce((m,pr) =>
     Math.max(m, (pr.cards||[]).reduce((n,c) => Math.max(n, c.id||0), 0)), 0);
   return rows.length;
@@ -4649,7 +4739,7 @@ function commitIntake(){
        Untitled nobody created sitting on the shelf next to the one they just
        named. It has no id, no cards and no name the writer chose, so the new
        project takes its place rather than queueing behind it. */
-    if (bareShelf()) state.projects[0] = pr;
+    if (bareShelf()) takePlaceholder(pr);
     else state.projects.push(pr);
     state.activeId = pr.localId;
     BF.track("project_created", {format: v.structure, sample: false});
@@ -5090,6 +5180,53 @@ async function exportPDF(which){
     newPage();
     actHeading("Set aside");
     parked.forEach(c => slotBox({id: "__aside", name: "Set aside", fn: "", act: 0}, [c]));
+  }
+
+  /* Other notes. The cover page has always COUNTED these and the document has
+     never printed them, so a writer read "12 notes" on the front of a file that
+     did not contain a single one of them. Everything the importer keeps that is
+     not a beat lives here: the dialogue, the research, the character details.
+     Grouped by type, the way the Notes screen groups them, so the page reads
+     the same as the screen it came from. */
+  const shelved = proj.cards.filter(c => c.slot === "__shelf");
+  if (shelved.length){
+    newPage();
+    actHeading("Other notes");
+    /* Flowing text, not card boxes. slotBox is built for a beat card: a fixed
+       height and the first seven lines. A beat card is a sentence, and these are
+       not - a research note or a run of dialogue goes well past that, and it was
+       being cut mid-word with nothing on the page to say so, while the cover
+       went on counting all of them. Nothing a writer typed gets trimmed here. */
+    const WIDTH = PW - M * 2 - 14;
+    SHELVES.forEach(kind => {
+      const items = shelved.filter(c => shelfKind(c) === kind);
+      if (!items.length) return;
+
+      if (y + 34 > PH - M) newPage();
+      doc.setFont("courier", "bold").setFontSize(8).setTextColor(120);
+      doc.text((KINDS[kind] || "Note").toUpperCase() + "  \u00b7  " + items.length, M, y);
+      doc.setDrawColor(225).setLineWidth(.5).line(M, y + 5, PW - M, y + 5);
+      y += 18;
+
+      items.forEach(c => {
+        doc.setFont("courier", "normal").setFontSize(9).setTextColor(60);
+        doc.splitTextToSize(String(c.text || ""), WIDTH).forEach(ln => {
+          if (y > PH - M - 12){ newPage(); }
+          doc.text(ln, M + 14, y);
+          y += 12;
+        });
+        // Where it sits, if the writer filed it. The screen says this and the
+        // page did not.
+        if (c.attachedTo){
+          if (y > PH - M - 12) newPage();
+          doc.setFont("courier", "normal").setFontSize(7.5).setTextColor(150);
+          doc.text("filed under " + slotName(proj.structure, c.attachedTo), M + 14, y);
+          y += 11;
+        }
+        y += 7;
+      });
+      y += 6;
+    });
   }
 
   const fname = (proj.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase()
@@ -5661,7 +5798,7 @@ document.getElementById("loadsample").addEventListener("click", () => {
     proj.createdFrom = "sample";
     // Same as a new project: on a bare account the example takes the
     // placeholder's place rather than sitting next to an Untitled nobody made.
-    if (bareShelf()) state.projects[0] = proj;
+    if (bareShelf()) takePlaceholder(proj);
     else state.projects.push(proj);
   }
   // Only ever refill the example itself, and only when it is still the example.
@@ -7044,7 +7181,7 @@ document.getElementById("revgo").addEventListener("click", () => {
       // On a brand-new account the shelf holds only the placeholder load()
       // made. The imported project takes its place rather than arriving beside
       // an Untitled nobody created.
-      if (bareShelf()) state.projects[0] = target;
+      if (bareShelf()) takePlaceholder(target);
       else state.projects.push(target);
       newProjects++;
       state.activeId = target.id || target.localId;
@@ -8148,28 +8285,89 @@ function renderNotes(){
         row.appendChild(off);
       }
 
+      /* A note could have its type changed, be sent to a beat, be taken off a
+         beat, or be deleted. Its WORDS could not be changed, here or anywhere
+         else in the app: a typo in an imported note was permanent unless the
+         writer deleted it and typed it again as a new one. Same pencil and same
+         behaviour as a board card, so there is one way to edit a piece of text
+         in Beatfall rather than two. */
+      const edit = document.createElement("button");
+      edit.className = "btn"; edit.textContent = "Edit";
+      edit.setAttribute("data-tip", "Change the wording of this note.");
+      const textEl = el.querySelector(".t");
+      edit.addEventListener("click", () => {
+        // No toggle branch here: pressing the button moves focus, which fires
+        // the field's own blur and commits first, so a second press is always a
+        // fresh edit rather than a Done.
+        textEl.setAttribute("contenteditable", "true");
+        textEl.focus();
+        document.getSelection().selectAllChildren(textEl);
+      });
+      textEl.addEventListener("blur", () => {
+        textEl.setAttribute("contenteditable", "false");
+        const v = textEl.textContent.trim();
+        if (v && v !== c.text){ snapshot(); c.text = v; save(); render(); }
+        else if (!v) textEl.textContent = c.text;
+      });
+      textEl.addEventListener("keydown", e => {
+        // Every Enter, not just the unshifted one. The commit reads textContent,
+        // which has no idea a line break happened, so "he leaves" and "she
+        // stays" came back as one run-together word.
+        if (e.key === "Enter"){ e.preventDefault(); textEl.blur(); }
+        if (e.key === "Escape"){ textEl.textContent = c.text; textEl.blur(); }
+      });
+      row.appendChild(edit);
+
       const kindSel = document.createElement("select");
       kindSel.setAttribute("data-tip", "Change how this note is grouped.");
       kindSel.innerHTML = SHELVES.map(k =>
         '<option value="' + k + '"' + (k === kind ? " selected" : "") + ">" + esc(KINDS[k]) + "</option>").join("");
       kindSel.addEventListener("change", () => {
-        snapshot(); c.kind = kindSel.value; renderNotes();
+        // renderNotes() alone does not save, and every other control in this row
+        // reaches save() one way or another. Regrouping a note and closing the
+        // tab lost the change, without even the unsaved-work warning.
+        snapshot(); c.kind = kindSel.value; save(); renderNotes();
       });
       row.appendChild(kindSel);
 
-      const toBeat = document.createElement("select");
-      toBeat.setAttribute("data-tip", "Create a card in the beat you choose.");
-      toBeat.innerHTML = '<option value="">Send to a beat&hellip;</option>'
+      /* Two different things, and until now only one of them was reachable
+         here under a name that described neither.
+
+         "Send to a beat" CONVERTED the note into a beat card: it stopped being
+         a note and appeared on the board. Filing a note UNDER a beat, so it
+         stays a note and sits beneath the card as supporting material, existed
+         only as a drag inside the Outline. The interface knew the difference
+         and the label did not, so both are named for what they do and both are
+         offered in the place a writer is looking at their notes. */
+      const toCard = document.createElement("select");
+      toCard.setAttribute("data-tip",
+        "Turn this note into a card on the board. It stops being a note.");
+      toCard.innerHTML = '<option value="">Turn into a beat card&hellip;</option>'
         + STRUCTURES[proj.structure].slots.map(x =>
             '<option value="' + x.id + '">' + esc(x.name) + "</option>").join("");
-      toBeat.addEventListener("change", () => {
-        if (!toBeat.value) return;
+      toCard.addEventListener("change", () => {
+        if (!toCard.value) return;
         snapshot();
-        c.slot = toBeat.value; c.kind = "beat"; c.pinned = true;
+        c.slot = toCard.value; c.kind = "beat"; c.pinned = true;
         delete c.attachedTo;
         settle(proj); renderNotes(); render();
       });
-      row.appendChild(toBeat);
+      row.appendChild(toCard);
+
+      const fileUnder = document.createElement("select");
+      fileUnder.setAttribute("data-tip",
+        "Keep this as a note, filed under a beat as supporting material.");
+      fileUnder.innerHTML = '<option value="">File under a beat&hellip;</option>'
+        + STRUCTURES[proj.structure].slots.map(x =>
+            '<option value="' + x.id + '"' + (x.id === c.attachedTo ? " selected" : "")
+            + ">" + esc(x.name) + "</option>").join("");
+      fileUnder.addEventListener("change", () => {
+        if (!fileUnder.value) return;
+        snapshot();
+        c.attachedTo = fileUnder.value;
+        save(); renderNotes(); render();
+      });
+      row.appendChild(fileUnder);
 
       const del = document.createElement("button");
       del.className = "btn"; del.textContent = "Delete";
@@ -8389,8 +8587,23 @@ function renderScore(t){
    row of zeros about it is the app telling a writer they are behind on work
    they have not started. */
 function bareShelf(){
-  return state.projects.length === 1 && !state.projects[0].id
-    && !state.projects[0].cards.length;
+  const p = state.projects[0];
+  return state.projects.length === 1 && !!p && !!p.placeholder
+    && !p.cards.length && p.name === "Untitled";
+}
+
+/* Taking the placeholder's place, rather than queueing behind it.
+
+   Replacing the array entry is not enough on its own: if the placeholder had
+   already been queued for saving it stays in `dirty`, and flush() walks that
+   set rather than the project list, so it would be written to the server after
+   being dropped from the shelf - a project nobody made, appearing on the next
+   load. */
+function takePlaceholder(pr){
+  const old = state.projects[0];
+  dirty.delete(old);
+  savedFingerprints.delete(old);
+  state.projects[0] = pr;
 }
 
 function renderSlate(){
@@ -9428,6 +9641,9 @@ function showLoadFailure(){
   // The shell has something true on it now, so the page can be shown.
   BF.ready();
 
+  // Anything Stripe handed back on the way in.
+  billingReturn();
+
   // Who am I? Shows the credit count straight away rather than only after the
   // first AI call, and reveals the admin link for the one account that has it.
   let seenBefore = false;
@@ -9439,6 +9655,23 @@ function showLoadFailure(){
     }
     seenBefore = !!me.has_history;
     paintWho(me);
+
+    /* Back from the billing portal, where they may have cancelled, resubscribed,
+       changed a card or looked and left. Now that the account has answered, say
+       whichever of those is true rather than guessing on the way in. */
+    if (billingBack){
+      const when = me.current_period_end
+        ? new Date(me.current_period_end).toLocaleDateString(undefined,
+            {month: "long", day: "numeric", year: "numeric"}) : null;
+      if (me.cancel_at_period_end)
+        sayStrip("<b>Your plan is cancelled.</b> Everything keeps working "
+          + (when ? "until " + when : "to the end of this billing period")
+          + ", and nothing is deleted after that. You can resubscribe any time.", "good");
+      else if (me.plan === "beatfall")
+        sayStrip("<b>You're subscribed.</b> Everything is open"
+          + (when ? ", and your next payment is " + when : "") + ".", "good");
+    }
+    trialRamp(me);
     if (!me.unlimited && typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance,
                     banked: me.credits_banked || 0});
@@ -9594,13 +9827,122 @@ BF.onCredits = function (c) {
   if (left <= last) lowStrip(left);
 };
 
+/* The trial used to end without a word.
+
+   Day fourteen arrived and the first a writer heard of it was a locked screen,
+   two weeks into organising a script. There is a countdown in Settings and
+   nowhere a person actually looks.
+
+   Two moments, not a drumbeat: a week in, and two days out. Each is shown once
+   ever, so somebody who has read it is not told again every time they open a
+   board, and neither one blocks anything. The email can follow when the mail
+   design is done; this is the half that does not need one. */
+function trialRamp(me){
+  if (!me || !me.trialing || !me.trial_ends_at) return;
+  const left = new Date(me.trial_ends_at) - Date.now();
+  // Math.ceil of a small negative is -0, and -0 < 0 is false, so a trial that
+  // ended three hours ago used to announce that it ends today.
+  if (left <= 0) return;
+  const days = Math.ceil(left / 86400000);
+
+  const mark = days <= 2 ? "last" : days <= 7 ? "week" : null;
+  if (!mark) return;
+  /* Keyed to the account, not just the browser: two trialing writers sharing a
+     laptop would otherwise share one warning, and the second would get none. */
+  const key = "beatfall.trialsaid." + mark + "." + ((me.email || "").toLowerCase());
+  try { if (localStorage.getItem(key)) return; } catch (e) {}
+
+  const when = days <= 0 ? "today" : days === 1 ? "tomorrow" : "in " + days + " days";
+
+  const bar = sayStrip(mark === "last"
+    ? "<b>Your trial ends " + when + ".</b> Your boards stay exactly as they are and "
+      + "nothing is deleted, but you won't be able to add to them without a plan. "
+      + "You can download any board as a PDF at any time."
+    : "<b>" + days + " days left of your trial.</b> Nothing changes until then, and "
+      + "there is no card on file to charge.", "good");
+
+  /* The flag is spent HERE, and only if the notice actually appeared. It used
+     to be written before the attempt, and sayStrip returns null whenever
+     something else already holds the foot of the window - so a writer who came
+     back from Stripe to a "Checkout cancelled" strip burned their one week's
+     warning without ever seeing it. The person that happens to is exactly the
+     person weighing up whether to pay. */
+  if (!bar) return;
+  try { localStorage.setItem(key, "1"); } catch (e) {}
+
+  if (mark === "last"){
+    const go = document.createElement("button");
+    go.className = "btn btn-primary"; go.textContent = "See the plans";
+    go.addEventListener("click", () => { bar.remove(); openSettings("plan"); });
+    bar.insertBefore(go, bar.querySelector(".btn"));
+  }
+}
+
+/* Coming back from Stripe.
+
+   Checkout, the top-up and the billing portal all used to return to
+   /settings.html, a full-page settings screen reachable from nowhere else in
+   the product: after cancelling, a writer landed on an unfamiliar version of
+   Beatfall with a different account menu and had to press Board to get home.
+   They land on their own dashboard now. This says what happened when it
+   happened, and takes the query off the address so a refresh does not say it
+   twice.
+
+   What it will not do is assert something it cannot know. Returning from the
+   billing portal means they were there, not what they did, so that case waits
+   for the account to load and then states whatever is now true. */
+let billingBack = false;
+
+function billingReturn(){
+  const q = new URLSearchParams(location.search);
+  const checkout = q.get("checkout"), topup = q.get("topup"), back = q.get("billing");
+  if (!checkout && !topup && !back) return;
+  history.replaceState({}, "", location.pathname);
+
+  if (checkout === "done")
+    return sayStrip("<b>You're set.</b> Your plan is active and this month's credits are on "
+      + "your account.", "good");
+  if (checkout === "cancelled")
+    return sayStrip("<b>Checkout cancelled.</b> Nothing was charged.", "good");
+  if (topup === "done")
+    return sayStrip("<b>Credits added.</b> Bought credits never expire, and they are spent "
+      + "after each month's allowance.", "good");
+
+  // Back from the portal. Wait for the account, then say what is true of it.
+  billingBack = true;
+}
+
+/* One bar at the foot of the window, and only one. Three things want that slot
+   - the credit warning, this, and the rescue offer when saving has stopped
+   working - and they are all fixed to the bottom, so two of them at once sit on
+   top of each other. The rescue bar outranks both of the others, because a
+   writer whose work is not saving does not need to be told about credits.
+
+   It also returns what it made. Without that, a caller adding a button to
+   "the strip" could find somebody else's strip and put its button in there. */
+function sayStrip(html, kind){
+  if (document.getElementById("rescue")) return null;
+  if (document.getElementById("lowstrip")) return null;
+  const bar = document.createElement("div");
+  bar.className = "lowstrip" + (kind ? " " + kind : "");
+  bar.id = "lowstrip";
+  bar.innerHTML = html;
+  const ok = document.createElement("button");
+  ok.className = "btn"; ok.textContent = "Got it";
+  ok.addEventListener("click", () => bar.remove());
+  bar.appendChild(ok);
+  document.body.appendChild(bar);
+  return bar;
+}
+
 /* One strip, once per credit period, dismissible. A person who has decided to
    ride it out should not be asked again every time they open a project. */
 function lowStrip(left){
   const period = (ME && ME.period_start) || "now";
   let seen = null;
   try { seen = localStorage.getItem("beatfall.lowseen"); } catch (e) {}
-  if (seen === period || document.getElementById("lowstrip")) return;
+  if (seen === period || document.getElementById("lowstrip")
+      || document.getElementById("rescue")) return;
 
   const bar = document.createElement("div");
   bar.className = "lowstrip"; bar.id = "lowstrip";

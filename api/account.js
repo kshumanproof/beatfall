@@ -3,6 +3,7 @@
 // destructive things a person is entitled to do: take their data out, and
 // delete the lot.
 // ============================================================================
+import Stripe from 'stripe';
 import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE,
          PRICE_MONTH, PRICE_YEAR, track } from './_lib/core.js';
 
@@ -82,7 +83,11 @@ export default async function handler(req, res) {
     // Everything a person has, in one file, no questions asked.
     if (body.action === 'export') {
       const { data: projects } = await db.from('projects')
-        .select('name, structure, brief, cards, outline, created_at, updated_at')
+        // `characters` belongs here. It is its own column precisely so the
+        // project form cannot wipe it, and leaving it out of the one file
+        // called "everything a person has" lost every character sheet on the
+        // path designed to prevent exactly that.
+        .select('name, structure, brief, cards, outline, characters, is_sample, created_from, created_at, updated_at')
         .eq('user_id', user.id).order('sort_order');
       return send(res, 200, {
         exported_at: new Date().toISOString(),
@@ -91,10 +96,75 @@ export default async function handler(req, res) {
       });
     }
 
-    // Deleting the auth user cascades to profile, projects, usage and events.
+    /* Deleting the auth user cascades to the profile, the projects and the
+       usage rows. Two things it did not do, and both mattered.
+
+       It never told Stripe. A writer with a live subscription deleted their
+       account and the card went on being charged every month, with no account
+       left to cancel from - and because the profile row goes with them, the
+       customer and subscription ids go too, so afterwards there is nothing to
+       look it up by. Cancelling comes first, and a failure to cancel stops the
+       deletion rather than proceeding quietly.
+
+       And it reported success whatever happened. If the delete failed, the
+       writer cleared their browser believing they were gone while every project
+       stayed in the database. */
     if (body.action === 'delete_account' && body.confirm === user.email) {
+      /* Ask Stripe what the subscription IS before trying to end it.
+         Classifying by error code did not work: Stripe answers a cancel on an
+         already-cancelled subscription with a plain 400, not resource_missing,
+         so a writer who cancelled through the portal and then came here was
+         refused with "cancel it first, then delete" - which they had already
+         done and could not do again. They could never delete their account. */
+      let cancelled = false;
+      if (profile.stripe_subscription_id) {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const stop = async () => {
+          let status = null;
+          try {
+            const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+            status = sub && sub.status;
+          } catch (e) {
+            // Not at Stripe at all: nothing to end, carry on.
+            if (e && (e.code === 'resource_missing' || e.statusCode === 404)) return true;
+            console.error('could not read subscription before delete:', e && e.message);
+            return false;
+          }
+          if (['canceled', 'incomplete_expired'].includes(status)) return true;
+          try {
+            await stripe.subscriptions.cancel(profile.stripe_subscription_id);
+            cancelled = true;
+            return true;
+          } catch (e) {
+            console.error('could not cancel before delete:', e && e.message);
+            return false;
+          }
+        };
+        if (!await stop()) {
+          return send(res, 502, {
+            error: 'cancel_failed',
+            message: "Your subscription couldn't be reached just now, so nothing has been "
+                   + 'deleted and nothing has changed. Try again in a moment.'
+          });
+        }
+      }
+      // Written before the row it points at disappears.
       track(db, user.id, 'account_deleted');
-      await db.auth.admin.deleteUser(user.id);
+      const { error: delErr } = await db.auth.admin.deleteUser(user.id);
+      if (delErr) {
+        console.error('account delete failed:', delErr.message);
+        // If the subscription was just cancelled, "nothing was removed" is not
+        // true and the writer needs to know which half happened.
+        return send(res, 500, {
+          error: 'delete_failed',
+          message: cancelled
+            ? "Your subscription has been cancelled, but the account itself couldn't be "
+              + 'deleted just now. Nothing you wrote has been removed. Try again in a '
+              + 'moment, or write to contact@beatfall.app.'
+            : "Your account couldn't be deleted just now. Nothing was removed. "
+              + 'Try again in a moment, or write to contact@beatfall.app.'
+        });
+      }
       return send(res, 200, { ok: true });
     }
 

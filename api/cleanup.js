@@ -75,15 +75,39 @@ export default async function handler(req, res) {
   const now = Date.now();
   const dry = req.query?.dry === '1';
 
+  /* Two columns had to join this query. An owner account has no subscription
+     and a trial date long in the past, so nothing here protected it: your own
+     account, and any QA account, was six quiet months from being deleted along
+     with everything in it.
+
+     The order also matters now. Without it a backlog past the batch size can
+     hand back the same arbitrary rows every run, so the accounts at the far end
+     are never reached. Oldest first, so the queue actually drains. */
+  /* The two exclusions that never age out are in the QUERY, and that is not a
+     tidiness point. Filtering after the limit means the skipped rows are the
+     oldest ones, so they hold the same batch slots on every run: an owner or a
+     QA account is idle forever by nature, and enough of them at the head means
+     the batch never reaches an account that needs warning.
+
+     A live subscription is still checked below rather than in the query. It
+     would need a `not.in` inside an `or`, and that is syntax this has no way to
+     exercise before it runs: a cron that silently errors every night is worse
+     than a theoretical backlog, and a subscriber idle for five months is not a
+     row that sits at the head forever the way an owner does.
+
+     The ordering matters either way. Oldest first, so the queue drains. */
   const { data: stale, error } = await db.from('profiles')
-    .select('id, email, last_seen_at, subscription_status, trial_ends_at')
+    .select('id, email, last_seen_at, subscription_status, trial_ends_at, is_admin, is_internal')
     .lt('last_seen_at', new Date(now - WARN_AFTER).toISOString())
+    .eq('is_admin', false).eq('is_internal', false)
+    .order('last_seen_at', { ascending: true })
     .limit(BATCH);
   if (error) return send(res, 500, { error: 'read_failed' });
 
-  const warned = [], deleted = [], skipped = [];
+  const warned = [], deleted = [], skipped = [], unwarnable = [];
 
   for (const p of stale || []) {
+    if (p.is_admin || p.is_internal) { skipped.push(p.id); continue; }
     if (LIVE.includes(p.subscription_status || '')) { skipped.push(p.id); continue; }
     if (p.trial_ends_at && new Date(p.trial_ends_at) > new Date()) { skipped.push(p.id); continue; }
 
@@ -104,14 +128,28 @@ export default async function handler(req, res) {
       .select('id').eq('user_id', p.id).eq('name', 'deletion_warned').limit(1);
     if (already && already.length) { skipped.push(p.id); continue; }
 
-    if (!dry && await warn(db, p)) {
+    /* `warned.push` used to sit outside this branch. With no mail key set,
+       warn() returns false without sending anything, no deletion_warned event
+       is ever written, and the job reported every one of them as warned - then
+       deleted them thirty days later, having told nobody. An account that could
+       not be warned is counted separately and is NOT counted as warned. */
+    if (dry) { warned.push(p.id); continue; }
+    if (await warn(db, p)) {
       await db.from('events').insert({ user_id: p.id, name: 'deletion_warned' });
+      warned.push(p.id);
+    } else {
+      unwarnable.push(p.id);
     }
-    warned.push(p.id);
+  }
+
+  if (unwarnable.length) {
+    console.error('cleanup could not warn', unwarnable.length,
+                  'accounts. Check RESEND_API_KEY and MAIL_FROM.');
   }
 
   return send(res, 200, {
     ok: true, dry,
+    could_not_warn: unwarnable.length,
     scanned: (stale || []).length,
     warned: warned.length, deleted: deleted.length, skipped: skipped.length
   });

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Beatfall — database schema
+-- Beatfall database schema
 -- Paste this whole file into the Supabase SQL editor and run it once.
 -- ============================================================================
 
@@ -48,7 +48,7 @@ end $$;
 
 -- ---------------------------------------------------------------- projects --
 -- One row per script. The board is stored as JSON because the client already
--- holds it that way — this keeps one save path instead of a table per entity.
+-- holds it that way. This keeps one save path instead of a table per entity.
 create table if not exists public.projects (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users on delete cascade,
@@ -148,7 +148,7 @@ create trigger projects_touch before update on public.projects
 -- ------------------------------------------- how many cards, without reading
 -- The admin dashboard needs to know how much work a person has done. It has no
 -- business knowing what that work SAYS. This column is maintained by the
--- database so the operator can count cards without ever selecting their text —
+-- database so the operator can count cards without ever selecting their text,
 -- which is what makes the "we don't read your material" clause in the Terms a
 -- fact about the system rather than a promise about behaviour.
 alter table public.projects add column if not exists card_count int not null default 0;
@@ -245,3 +245,36 @@ alter table public.events enable row level security;
 -- saved: anything else living in there would be silently wiped the first time
 -- a writer edited their logline.
 alter table public.projects add column if not exists characters jsonb not null default '[]'::jsonb;
+
+-- ============================================================================
+-- Closing the browser's write access (10 Sep 2026)
+--
+-- `own profile edit` said "this row must be yours" and never said which columns
+-- of it you may touch, and Supabase grants the signed-in role UPDATE on tables
+-- in this schema by default. So anyone signed in could open a console and set
+-- their own credits_extra, plan, subscription_status and is_admin. Admin then
+-- opens /admin, which holds every other writer's email.
+--
+-- The same shape on `events`: the allowlist in core.js exists so that table can
+-- never hold a sentence somebody wrote, which is a promise in the Privacy
+-- Policy, and an INSERT policy made the allowlist advice rather than a wall.
+--
+-- Nothing legitimate is lost. Every write to either table already goes through
+-- the server with the service key; the browser only ever READS its own profile,
+-- which is what the realtime device-takeover notice needs and what it keeps.
+--
+-- Safe to re-run.
+-- ============================================================================
+
+revoke update, insert, delete on public.profiles from anon, authenticated;
+revoke insert, update, delete on public.events   from anon, authenticated;
+
+-- The select side is unchanged and still needed: realtime delivers the
+-- device-takeover notice through it.
+drop policy if exists "own profile edit" on public.profiles;
+drop policy if exists "own events"       on public.events;
+
+-- Belt as well as braces. If a future grant is handed back by accident, these
+-- keep the row-level rules honest rather than relying on the grant alone.
+create policy "own profile edit" on public.profiles for update
+  using (auth.uid() = id) with check (auth.uid() = id);

@@ -91,10 +91,18 @@ export default async function handler(req, res) {
   // ---- the numbers that decide the tiers ---------------------------------
   // Owner accounts are unmetered, so including them would drag the percentiles
   // that decide the customer allowance.
-  const active = rows.filter(r => r.calls > 0 && !r.owner);
+  // `owner` is you. `internal` is you AND any QA account, which is what the
+  // is_internal column exists for. Filtering only the first meant two test
+  // accounts hammering imports set the percentiles the credit allowance is read
+  // from, in a cohort of ten.
+  const active = rows.filter(r => r.calls > 0 && !r.internal);
   const spends = active.map(r => r.cost_usd).sort((a, b) => a - b);
   const creds  = active.map(r => r.credits).sort((a, b) => a - b);
-  const pct = (arr, p) => arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p))] : 0;
+  // Nearest-rank is ceil(n*p) - 1. With floor(n*p) the index is one too high
+  // whenever n*p lands on a whole number, so with ten active writers the "90th
+  // percentile" was simply the heaviest one, and the cap would be set from it.
+  const pct = (arr, p) => arr.length
+    ? arr[Math.min(arr.length - 1, Math.max(0, Math.ceil(arr.length * p) - 1))] : 0;
 
   const eventCounts = {};
   (events || []).forEach(e => { eventCounts[e.name] = (eventCounts[e.name] || 0) + 1; });
