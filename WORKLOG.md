@@ -2736,3 +2736,36 @@ display names and the admin data feed. Nothing executed anywhere.
 Unchanged from the last entry, and none of it can be done without a real
 account: one real conversation, one real import, `?dry=1` on cleanup, and a
 cancel-then-delete cycle.
+
+## 10 September 2026 (third pass): The four checks ran
+
+Kris ran all four against a real account and reported the system works. That
+closes the item that has been at the foot of every entry since the server was
+first written.
+
+- one real conversation
+- one real import
+- `?dry=1` on cleanup
+- a cancel-then-delete cycle
+
+**What this changes.** Every previous entry ended by saying the server had been
+read, reasoned about and covered by suites, and never once run against real
+Supabase, real Stripe or the real Anthropic API. The charge-before-work
+reordering, the compare-and-set debit, the receipt-first top-up, the delete that
+cancels the subscription first, and the cleanup query's PostgREST syntax were
+all in that category. They are not any more.
+
+The cleanup query is the one worth calling out on its own. The suites use a
+stand-in for the Supabase client, so PostgREST's own grammar was outside them by
+construction, and a nightly cron that silently errors is worse than the backlog
+it was avoiding. `?dry=1` against the real database is the only thing that could
+have told us, and it did.
+
+**What is still not proven.** The four checks are not everything on the live
+list. Buying a $6 pack has still never fired the top-up webhook for real, a
+declining card has never produced a live `past_due`, seven of the nine
+structures have never been run against real notes, and the one-active-device
+takeover has never been watched happening between two real browsers. Those are
+smaller and none of them is load-bearing the way the four were.
+
+Nothing was changed in this entry. It is a record that the gate is open.

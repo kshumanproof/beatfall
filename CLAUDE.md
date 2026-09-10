@@ -110,8 +110,11 @@ it.**
 What the suite does not cover: anything against real Supabase, real Stripe or
 the real Anthropic API. The fake database is not Postgres, so row-level
 security, column defaults, foreign keys and PostgREST's own grammar are all
-outside it. Four checks still need a real account: one conversation, one
-import, `?dry=1` on cleanup, and a cancel-then-delete cycle.
+outside it. A filter these suites accept can still be refused by the real
+server, which is why the cleanup job should be run once with `?dry=1` after any
+change to its query. The four checks that closed this gap the first time, on
+10 Sep, were one conversation, one import, `?dry=1` on cleanup, and a
+cancel-then-delete cycle; they passed.
 
 `admin.html` and `settings.html` are NOT in the stub, so a check written
 against `app.html` says nothing about them. That is how both went on quoting a
@@ -324,27 +327,28 @@ Rewritten 10 Sep 2026 against what is actually true. Most of the original list
 is done; what remains is mostly things that cannot be proved from a keyboard
 here.
 
-**Still open, and it is the real gate**
+**Still open**
 
-1. **Four checks that need a real account.** Nothing on the server has ever run
-   against real Supabase, real Stripe or the real Anthropic API. The suites use
-   a stand-in database and stub both services at the boundary, so what is tested
-   is how the code behaves given an answer, not whether it is the answer those
-   services would give. Needed: one real conversation, one real import, `?dry=1`
-   on cleanup with `CRON_SECRET`, and a cancel-then-delete cycle on a throwaway
-   account. *(Kris's action. This is the largest remaining unknown.)*
-2. **Billing edges, live.** `4000 0000 0000 0341` for past_due; the $6 top-up
+1. **Billing edges, live.** `4000 0000 0000 0341` for past_due; the $6 top-up
    webhook has still never fired for real; resend `subscription.updated` to
    backfill a renewal date. The webhook has 12 checks against a fake Stripe and
    0 against Stripe.
-3. **Seven of nine structures have never run against real notes.** They all
+2. **Seven of nine structures have never run against real notes.** They all
    render and all carry cards through a structure switch, which is structural,
    not judgement. Short film first.
-4. **Tester pack.** Invitation, what to try first, an honest known-issues note,
+3. **Tester pack.** Invitation, what to try first, an honest known-issues note,
    how to send feedback.
-5. **Device takeover, second browser, live.** The logic is in `api/session.js`
+4. **Device takeover, second browser, live.** The logic is in `api/session.js`
    and `requireUser`; it has never been watched happening between two real
    browsers.
+
+**The big one is closed.** On 10 Sep Kris ran all four of the checks that needed
+a real account: one conversation, one import, `?dry=1` on cleanup, and a
+cancel-then-delete cycle. Until then nothing on the server had ever touched real
+Supabase, real Stripe or the real Anthropic API, which put the charge-before-work
+reordering, the compare-and-set debit, the receipt-first top-up, the delete that
+cancels first, and the cleanup query's PostgREST syntax all in the same
+unverified bucket. They work. Do not re-raise this as an open item.
 
 **Done since this list was written**
 
