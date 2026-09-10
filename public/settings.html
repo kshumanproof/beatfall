@@ -308,7 +308,7 @@ const PERIODS = [
   const next = new Date(me.period_start); next.setUTCMonth(next.getUTCMonth() + 1);
   document.getElementById('resets').textContent = 'resets ' + next.toLocaleDateString(undefined,{month:'long',day:'numeric'});
 
-  const LABEL = { conversation:'conversations', import:'notes files read', ideas:'idea sets',
+  const LABEL = { conversation:'conversations', import:'note imports', ideas:'idea sets',
                   logline:'logline sessions', place:'notes placed', route:'notes routed' };
   document.getElementById('kinds').innerHTML = Object.keys(me.by_kind || {}).length
     ? Object.entries(me.by_kind).map(([k,v]) =>

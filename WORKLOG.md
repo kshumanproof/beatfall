@@ -2467,3 +2467,117 @@ each cost, and an account that has spent nothing says so rather than showing an
 empty box.
 
 Everything else still passes: 55 regression, 22 proxy, 16 gate.
+
+## 10 September 2026: Pricing, and three changes that were not on disk
+
+### The allowance moved
+
+A paid month carries 100 credits, not 150. A pack is 40 for $6, not 50. The
+dollar prices did not move: $12 a month, $99 a year, $6 a pack.
+
+Kris's reasoning, in his words: the middle ground between letting a writer feel
+unlimited and opening a second path of revenue through the packs. Somebody
+burning through 100 in a month is relying on this, and a person relying on it
+will buy capacity rather than ration themselves.
+
+The pack is deliberately not smaller. At 100 for $12 a plan credit is twelve
+cents and a pack credit is fifteen, so a pack still cannot undercut the plan,
+which is the whole reason it is priced above it. At 30 a heavy month would make
+the same person buy twice, and two purchase decisions is where goodwill goes.
+
+Nothing in Stripe changed and nothing needed to. The pack size is stamped onto
+the checkout session when the writer clicks, and the webhook grants whatever
+that session says. A checkout opened before the change still pays out 50, which
+is correct: that is the number that person was shown.
+
+### The numbers now come from one place
+
+This is the part worth keeping. The allowance was typed by hand into four HTML
+files, so changing it was a copy hunt, and the sales page had already drifted
+from what accounts were actually being given.
+
+- `api/_lib/core.js` is the only place the numbers are written.
+- `/api/config` is public and unauthenticated, and now carries a `pricing`
+  object alongside the Supabase keys. `billing.html` is a signed-out page, so
+  it cannot ask `/api/account` what a plan costs; this is why it went on
+  advertising an old allowance.
+- `billing.html` prints today's numbers into the HTML and overwrites them from
+  `/api/config` on load. It is correct with no JavaScript, correct before the
+  fetch, and correct after. If the fetch fails the printed numbers stand, which
+  is the right failure for a sales page.
+- `app.html` gained `planCredits()`; `settings.html` reads `me.plans` and
+  `me.topup_credits`. Both fall back to a printed number only until
+  `/api/account` answers.
+- `terms.html` keeps its numbers as plain text on purpose. It is the contract,
+  and a contract should not shift under the reader while they are reading it.
+
+The low-credit marks needed nothing. They were already written as a share of
+the allowance, so they moved from 30-and-10 to 20-and-7 on their own. That is
+what that block was for.
+
+### Three changes from 9 September were not in the file
+
+`WORKLOG.md` said the beat picker, the credit ledger and the `import` label
+were done. `api/account.js` had its half of the ledger. `public/app.html` had
+none of it: no `pickbeat`, no `ledger()`, and the counter still read "notes
+files read".
+
+So the worklog described a build that did not exist, and a push would have
+shipped app.html without either feature while everyone believed otherwise. The
+tests survived, which is the only reason it was caught: `flows.js` still
+carried the assertions, and they failed the moment the suite was run against
+the file on disk.
+
+All three were rebuilt from those tests. The picker sits in the proposal action
+row at every confidence and lists every beat; the two branches that used to say
+"or place it now:" and draw nothing now point at it by name. The ledger is back
+in Settings, Usage, filtered to `credits > 0`. The counter says "note imports".
+
+**The rule this produces, for whoever reads this next: rebuild `test/stub.html`
+from the app.html on disk and run the suite against that before trusting any
+claim in this file, including a claim made by the session that just wrote it.**
+The worklog records intent. Only the tests record what shipped.
+
+### A monthly payer is now shown the annual plan
+
+The annual card was dead text for anybody already subscribed: the cheaper plan
+displayed to a monthly payer with no button and no reason. It now carries a
+live "Switch to annual", the saving in dollars, and a sentence saying the
+allowance does not change, so nobody switches expecting more credits. It routes
+through the Stripe portal, which prorates. A second checkout would leave them
+paying for two plans.
+
+It is deliberately NOT offered at the out-of-credits moment. Annual carries the
+same 100 credits a month as monthly, so answering "I am out" with "prepay for a
+year" sells somebody a thing that does not solve what they came with, at the
+moment they are least inclined to trust the offer. The place for it is the one
+screen where a person is already thinking about what they pay.
+
+Hidden from annual subscribers, from anyone mid-cancellation, and from trials.
+Nothing records which interval a subscription is on, and the renewal date says
+it without a migration: inside five weeks is monthly. If the date is missing we
+say nothing, which fails toward silence rather than toward selling somebody the
+plan they already have.
+
+### Testing
+
+202 checks. 81 client flows (up from 73), 55 regression, 22 proxy, 18 money,
+16 gate, 12 hook, 6 clean.
+
+Eight new flow checks cover the annual offer in both directions: shown to a
+monthly payer with the right saving and the right allowance sentence, hidden
+from annual, hidden from cancelling, hidden from a trial while both plans stay
+choosable.
+
+Four money and proxy checks had hardcoded 150 and failed on the pricing change
+for the only reason a test must never fail: the test was the thing out of date.
+They read the allowance from `PLANS` now. The `PAID` fixture in `flows.js` had
+a fixed renewal date of 1 October, which would have quietly changed meaning as
+real time passed it and then failed on a day nobody had touched the code. It is
+relative now.
+
+### Still not exercised
+
+Nothing here has run against real Supabase, real Stripe or the real Anthropic
+API. The fake database is not Postgres. One conversation, one import, `?dry=1`
+on cleanup and a cancel-then-delete cycle still need a real account.
