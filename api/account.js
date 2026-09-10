@@ -16,8 +16,13 @@ export default async function handler(req, res) {
     const ent = entitlement(profile);
 
     const since = new Date(profile.period_start).toISOString();
+    // `created_at` and `session_id` join the select so the account can show a
+    // writer WHEN each credit went and stop several turns of one conversation
+    // reading as several charges.
     const { data: rows } = await db.from('usage')
-      .select('kind, credits, cost_micros').eq('user_id', user.id).gte('created_at', since);
+      .select('kind, credits, cost_micros, session_id, created_at')
+      .eq('user_id', user.id).gte('created_at', since)
+      .order('created_at', { ascending: false });
 
     const byKind = {};
     (rows || []).forEach(r => {
@@ -59,6 +64,17 @@ export default async function handler(req, res) {
       credits_banked: ent.banked,           // bought, never expires, spent last
       period_start: profile.period_start,
       by_kind: byKind,
+      /* What each credit was spent on, newest first.
+
+         "119 of 150 used" is a number a writer can do nothing with. This is the
+         itemised version: the free actions are left out because they cost
+         nothing and would bury the ones that did, and only the turn that was
+         actually charged appears, so a ten-question interview is one line at
+         two credits rather than ten lines that appear to be free. */
+      spend: (rows || [])
+        .filter(r => (r.credits || 0) > 0)
+        .slice(0, 100)
+        .map(r => ({ kind: r.kind, credits: r.credits, at: r.created_at })),
       projects: projectCount || 0,
       has_history: (everUsed || 0) > 0,
       topup_credits: TOPUP_CREDITS,

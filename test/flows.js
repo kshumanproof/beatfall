@@ -401,6 +401,84 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  // ------------------------------------------ placing it yourself
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const shown = await page.evaluate(() => {
+      pending = {text: 'he returns home, beaten', options: []};
+      paintCandidates([
+        {id:'lost', name:'All Is Lost', conf:94, why:'something is lost'},
+        {id:'dark', name:'Dark Night', conf:88, why:'the consequence'}
+      ], true);
+      const sel = document.getElementById('pickbeat');
+      return {there: !!sel, options: sel ? sel.options.length : 0,
+              first: sel ? sel.options[0].textContent : ''};
+    });
+    check('the picker is offered even when Beatfall is confident', shown.there === true);
+    check('and lists every beat, not just the two guesses', shown.options === 16,
+      'options: ' + shown.options + ' (1 label + 15 beats)');
+    check('and says what it is for', /Place it myself/.test(shown.first), shown.first);
+
+    const placed = await page.evaluate(() => {
+      document.getElementById('note').value = 'he returns home, beaten';
+      pending = {text: 'he returns home, beaten', options: []};
+      const sel = document.getElementById('pickbeat');
+      sel.value = 'last';
+      sel.dispatchEvent(new Event('change'));
+      const card = P().cards.find(c => /returns home/.test(c.text));
+      return card ? {slot: card.slot, pinned: card.pinned} : null;
+    });
+    check('choosing a beat puts the card exactly there',
+      placed && placed.slot === 'last', JSON.stringify(placed));
+    // Not pinned, deliberately: it behaves exactly as accepting a suggestion
+    // does. Pinning only a hand-placed card would put a gold edge on it and
+    // teach a distinction nobody asked for.
+    check('and behaves the same as accepting a suggestion', placed && placed.pinned === false,
+      JSON.stringify(placed));
+    check('no page errors placing by hand', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // ------------------------------------------ the credit ledger
+  {
+    const acct = Object.assign({}, PAID, {spend: [
+      {kind:'import', credits:2, at:new Date().toISOString()},
+      {kind:'conversation', credits:1, at:new Date(Date.now()-3*3600*1000).toISOString()},
+      {kind:'character', credits:2, at:new Date(Date.now()-40*3600*1000).toISOString()}
+    ]});
+    const { page, errors } = await open(browser, [board('Night Haul', 6)], acct);
+    const led = await page.evaluate(() => {
+      openSettings('usage');
+      const l = document.querySelector('.ledger');
+      return {there: !!l, rows: document.querySelectorAll('.lrow').length,
+              text: l ? l.textContent : ''};
+    });
+    check('the usage pane carries a credit log', led.there === true);
+    check('with one line per charge', led.rows === 3, 'rows: ' + led.rows);
+    check('naming what each one was',
+      /Reading in a notes file/.test(led.text) && /A character interview/.test(led.text),
+      led.text.slice(0, 200));
+    const costs = await page.evaluate(() =>
+      [...document.querySelectorAll('.lrow .lcost')].map(e => e.textContent.trim()));
+    check('and what each one cost', costs.join('|') === '2 credits|1 credit|2 credits',
+      JSON.stringify(costs));
+    check('no page errors on the usage pane', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // an account that has spent nothing says so rather than showing an empty box
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)],
+      Object.assign({}, PAID, {spend: []}));
+    const empty = await page.evaluate(() => {
+      openSettings('usage');
+      return (document.querySelector('.ledger') || {}).textContent || '';
+    });
+    check('an unspent account says so plainly', /Nothing has used a credit/.test(empty),
+      empty.slice(0, 120));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

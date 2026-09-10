@@ -2404,3 +2404,66 @@ whether it is the answer those services would give.
 Total across everything: 190 checks. 116 on the client, 74 on the server.
 
 Also: the last em dash in the repository was in `package.json`'s description.
+
+
+## 2026-09-10 - Place it myself, and where the credits went
+
+Kris, on a screenshot of his own Final Image being offered All Is Lost at 94%:
+"we should add a place the card myself button... beatfall/claude may be right,
+but some people are going to want to place things where they want."
+
+### The picker only appeared when Beatfall could not decide
+
+`paintCandidates` builds a beat chooser in exactly one branch: the one where
+there are no options at all. Below the confidence bar it writes "or place it
+now:" and then never draws the picker that phrase promises. Above the bar, at
+94%, the row holds the two guesses and nothing else.
+
+So the one moment a writer is most likely to disagree - Beatfall confident and
+wrong - is the moment it removes the way to say so. Their only outs were Set it
+aside or Cancel, both of which mean not putting the note on the board at all.
+That is the product arguing with somebody about their own script, and it
+contradicts the line on the homepage: it asks before it guesses.
+
+The chooser lives in the proposal's action row now, beside Set it aside for
+now, because those are the two shapes of the same sentence: not one of those.
+It is there whatever the confidence, it lists every beat in the current
+structure, and it is rebuilt on each proposal because a structure change
+underneath a stale list would place cards on beats that no longer exist. Bound
+once, or the fourth note placed by hand would place four cards.
+
+Placing by hand behaves exactly as accepting a suggestion does, `pinned` and
+all. Pinning only the hand-placed ones would put a gold edge on them and teach
+a distinction nobody asked for.
+
+### Where the credits went
+
+"119 of 150 used" tells a writer they are running out and nothing about why.
+Settings, Usage now carries the itemised version underneath the counts: what
+each charge was, when, and what it cost, newest first.
+
+Two decisions inside it. Free actions are left out, because placing notes is
+most of what happens and it would bury the lines that actually cost something -
+the panel is called Where the credits went and it answers that question only.
+And only the turn that was really charged appears, so a ten-question character
+interview is one line at two credits rather than ten lines that look free. That
+falls out of the data: `usage` rows for the free turns of a session carry zero
+credits, and the filter is `credits > 0`.
+
+`/api/account` grew `spend`: kind, credits and timestamp for up to a hundred
+charges this period. No project id, because `usage` does not carry one and
+adding a column for a reporting nicety is not worth a migration.
+
+`import` in the usage labels was "notes files read", which reads like a
+sentence fragment in a column of counts. It is "note imports".
+
+### Testing
+
+73 client flow checks, up from 61. The new ones: the picker is present when
+Beatfall is confident, lists all fifteen beats rather than the two guesses,
+places the card exactly where it was told, and behaves as accepting a
+suggestion does. The ledger shows one line per charge, names each one, prints
+each cost, and an account that has spent nothing says so rather than showing an
+empty box.
+
+Everything else still passes: 55 regression, 22 proxy, 16 gate.
