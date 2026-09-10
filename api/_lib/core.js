@@ -22,7 +22,7 @@ const OWNER_ALLOWANCE = 1000000;   // effectively unlimited, without Infinity in
 // before they have used the product once.
 export const PLANS = {
   trial:    { name: 'Trial',    credits: 25,  price: 0  },
-  beatfall: { name: 'Beatfall', credits: 150, price: 12 },
+  beatfall: { name: 'Beatfall', credits: 100, price: 12 },
   owner:    { name: 'Owner',    credits: OWNER_ALLOWANCE, price: 0 },
   none:     { name: 'No plan',  credits: 0,   price: 0  }
 };
@@ -31,10 +31,13 @@ export const PAID_PLAN   = 'beatfall';
 export const PRICE_MONTH = 12;
 export const PRICE_YEAR  = 99;
 // A top-up is priced ABOVE the subscription rate on purpose. The plan is
-// 150 for $12, eight cents a credit; a pack is 50 for $6, twelve cents. Selling
-// packs cheaper than the plan teaches people to skip the plan and makes the
-// $12 look like the worse deal, which is what 100 for $6 was doing.
-export const TOPUP_CREDITS = 50;
+// 100 for $12, twelve cents a credit; a pack is 40 for $6, fifteen cents.
+// Selling packs cheaper than the plan teaches people to skip the plan and
+// makes the $12 look like the worse deal, which is what 100 for $6 was doing.
+// The pack is deliberately not smaller than this: at 30 a heavy month would
+// make the same person buy twice, and two purchase decisions is where
+// goodwill goes.
+export const TOPUP_CREDITS = 40;
 export const TOPUP_PRICE   = 6;
 
 // A credit is one piece of work, not one message. A conversation costs the

@@ -1,5 +1,6 @@
 import handler from './api/claude.real.js';
-import { entitlement } from './api/_lib/core.js';
+import { entitlement, PLANS, PAID_PLAN } from './api/_lib/core.js';
+const ALL = PLANS[PAID_PLAN].credits;   // not a typed 150, see money.js
 import { makeDb } from './fakedb.js';
 
 const out = [];
@@ -39,7 +40,7 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   check('and costs one credit', db.state.profile.credits_used === 1, JSON.stringify(db.state.profile));
   check('the answer comes back', r.body && typeof r.body.text === 'string', JSON.stringify(r.body).slice(0,100));
   check('and the balance it reports is the real one',
-    r.body.credits_left === 149, 'reported ' + (r.body||{}).credits_left);
+    r.body.credits_left === ALL - 1, 'reported ' + (r.body||{}).credits_left);
   check('a usage row is written', db.state.usage.length === 1, JSON.stringify(db.state.usage));
 }
 
@@ -76,7 +77,7 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
 
 // ---------- out of credits, before any model call
 {
-  const db = makeDb(paid({credits_used:150}));
+  const db = makeDb(paid({credits_used:ALL}));
   let reached = false;
   globalThis.fetch = async () => { reached = true; throw new Error('should never run'); };
   const r = await call(db, {kind:'conversation', input:'hello'});

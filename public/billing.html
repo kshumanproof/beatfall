@@ -108,12 +108,14 @@
 
   <div class="plain">
     <div class="h">The short version</div>
-    <p>$12 a month, or $99 a year. Fourteen days free first, no card.</p>
+    <p>$<b data-bf="price_month">12</b> a month, or $<b data-bf="price_year">99</b> a year.
+      Fourteen days free first, no card.</p>
     <p>Adding and organizing notes never uses credits. Credits are only for the writing help:
       conversations about an empty beat, idea sets, and reading in a notes file.</p>
-    <p>On a plan you get 150 credits a month. They reset on the 1st. You can buy 50 more for
-      $6, and bought credits never expire.</p>
-    <p>The free trial carries 25 credits, which is enough to read in a notes file and still
+    <p>On a plan you get <b data-bf="plan_credits">100</b> credits a month. They reset on the
+      1st. You can buy <b data-bf="topup_credits">40</b> more for
+      $<b data-bf="topup_price">6</b>, and bought credits never expire.</p>
+    <p>The free trial carries <b data-bf="trial_credits">25</b> credits, which is enough to read in a notes file and still
       have twenty conversations about empty beats. Everything else about the trial is the
       full product.</p>
     <p>If you stop paying, the boards close. Nothing is deleted, and you can download all of
@@ -126,23 +128,25 @@
   <div class="cards">
     <div class="card2">
       <div class="k">Monthly</div>
-      <div class="n">$12</div>
+      <div class="n">$<span data-bf="price_month">12</span></div>
       <div class="s">a month, billed every month. Cancel whenever you like.</div>
     </div>
     <div class="card2">
       <div class="k">Yearly</div>
-      <div class="n">$99</div>
-      <div class="s">a year, billed once. Saves $45 against paying monthly.</div>
+      <div class="n">$<span data-bf="price_year">99</span></div>
+      <div class="s">a year, billed once. Saves $<span data-bf="year_saving">45</span> against
+        paying monthly.</div>
     </div>
     <div class="card2">
       <div class="k">Extra credits</div>
-      <div class="n">$6</div>
-      <div class="s">for 50 credits, whenever you want them. Never expire.</div>
+      <div class="n">$<span data-bf="topup_price">6</span></div>
+      <div class="s">for <span data-bf="topup_credits">40</span> credits, whenever you want
+        them. Never expire.</div>
     </div>
   </div>
 
   <p>New accounts get <strong>14 days free with no card required</strong>, and
-    <strong>25 credits</strong> to spend during them. We do not ask for a card to start, so
+    <strong><span data-bf="trial_credits">25</span> credits</strong> to spend during them. We do not ask for a card to start, so
     nothing charges you by surprise at the end of the trial: if you do not pick a plan, the
     trial simply ends. Adding and organizing notes is free on the trial exactly as it is on a
     plan, so running the credits down does not close the board.</p>
@@ -168,8 +172,9 @@
     <tr><td><b>Reading in a notes file</b><br>However long the file is</td><td><b>2 credits</b></td></tr>
   </table>
 
-  <p>150 credits is a lot of work. If you had a conversation about every beat of a Save the Cat
-    board you would spend fifteen. The trial's 25 covers reading in a file and a first pass at
+  <p><span data-bf="plan_credits">100</span> credits is a lot of work. If you had a conversation
+    about every beat of a Save the Cat board you would spend fifteen. The trial's
+    <span data-bf="trial_credits">25</span> covers reading in a file and a first pass at
     the holes it leaves.</p>
 
   <h2 id="two">3</h2>
@@ -179,7 +184,8 @@
 
   <table>
     <tr><th></th><th>Comes with your plan</th><th>Credits you buy</th></tr>
-    <tr><td><b>How many</b></td><td>150 a month</td><td>50 per $6 pack</td></tr>
+    <tr><td><b>How many</b></td><td><span data-bf="plan_credits">100</span> a month</td>
+      <td><span data-bf="topup_credits">40</span> per $<span data-bf="topup_price">6</span> pack</td></tr>
     <tr><td><b>When they arrive</b></td><td>The 1st of each month</td><td>Immediately</td></tr>
     <tr><td><b>Do they expire</b></td><td>Yes. Whatever is left on the 1st is gone</td>
       <td><b>No. Ever.</b></td></tr>
@@ -260,5 +266,35 @@
   <p class="totop"><a href="#top">Back to the top</a></p>
 
 </div>
+
+<script>
+/* Every number on this page is written into the HTML at the value it has
+   today, so the page is correct with no JavaScript at all and correct before
+   this runs. Then we ask the server what it actually bills and write that in
+   over the top. A price change is one edit in core.js; this page follows it
+   without anybody having to remember that this page exists.
+
+   If the fetch fails the printed numbers stand. That is the right failure:
+   a sales page that shows last month's price is better than one showing
+   blanks. */
+(async function () {
+  try {
+    const r = await fetch('/api/config');
+    if (!r.ok) return;
+    const p = (await r.json()).pricing;
+    if (!p) return;
+
+    const say = { ...p };
+    if (p.price_month && p.price_year) {
+      say.year_saving = (p.price_month * 12) - p.price_year;
+    }
+
+    document.querySelectorAll('[data-bf]').forEach(el => {
+      const v = say[el.getAttribute('data-bf')];
+      if (v !== undefined && v !== null && v !== '') el.textContent = v;
+    });
+  } catch (e) { /* printed numbers stand */ }
+})();
+</script>
 </body>
 </html>

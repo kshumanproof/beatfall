@@ -16,10 +16,19 @@ function board(name, filled, extra = {}) {
   }, extra);
 }
 
+/* Dates here are relative on purpose. This fixture used to carry a fixed
+   1 October, which meant every test that depends on "how far away is the
+   renewal" would quietly change meaning as real time passed it, and then start
+   failing on a day nobody had touched the code. The allowance comes from the
+   same place the app does, so moving the plan does not break the suite. */
+const inDays = n => new Date(Date.now() + n * 86400000).toISOString();
+const ALLOW = 100;
+
 const PAID = {email:'w@example.com', display_name:'Writer', plan:'beatfall', unlimited:false,
-  trialing:false, credits_left:150, credits_allowance:150, credits_banked:0,
-  current_period_end:'2026-10-01T00:00:00Z', has_history:true,
-  plans:{beatfall:{credits:150,price:12}}, price_month:12, price_year:99};
+  trialing:false, credits_left:ALLOW, credits_allowance:ALLOW, credits_banked:0,
+  current_period_end:inDays(21), has_history:true, cancel_at_period_end:false,
+  plans:{beatfall:{credits:ALLOW,price:12}}, price_month:12, price_year:99,
+  topup_credits:40, topup_price:6};
 
 const results = [];
 function check(name, ok, detail) {
@@ -476,6 +485,68 @@ async function open(browser, projects, account = PAID) {
     });
     check('an unspent account says so plainly', /Nothing has used a credit/.test(empty),
       empty.slice(0, 120));
+    await page.close();
+  }
+
+  /* --------------------------------------- pointing a monthly payer at annual
+     The annual card used to be dead text for anybody already subscribed: the
+     cheaper plan was shown to a monthly payer with no way to take it and no
+     reason given. Nothing records which interval a subscription is on, so the
+     renewal date is the tell, and these cases pin both directions of that
+     guess. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      openSettings('plan');
+      const b = document.getElementById('s-toyear');
+      return {there: !!b, text: document.querySelector('.plans').textContent};
+    });
+    check('a monthly subscriber is offered the annual plan', seen.there === true);
+    check('and told what switching saves', /saves \$45 a year/.test(seen.text),
+      seen.text.slice(0, 240));
+    check('and told the allowance does not change', /Same 100 credits a month/.test(seen.text),
+      seen.text.slice(0, 240));
+    check('no page errors on the plan pane', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // Somebody already paying yearly must never be sold the plan they are on.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)],
+      Object.assign({}, PAID, {current_period_end: inDays(300)}));
+    const seen = await page.evaluate(() => {
+      openSettings('plan');
+      return !!document.getElementById('s-toyear');
+    });
+    check('an annual subscriber is not offered annual', seen === false);
+    await page.close();
+  }
+
+  // Nor somebody on the way out: that is a retention pitch, not a price one.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)],
+      Object.assign({}, PAID, {cancel_at_period_end: true}));
+    const seen = await page.evaluate(() => {
+      openSettings('plan');
+      return !!document.getElementById('s-toyear');
+    });
+    check('a cancelling subscriber is not offered annual', seen === false);
+    await page.close();
+  }
+
+  // A trial has not chosen anything yet, so both plans stay on offer as plans.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)],
+      Object.assign({}, PAID, {plan:'trial', trialing:true,
+        trial_ends_at: inDays(5), current_period_end: null}));
+    const seen = await page.evaluate(() => {
+      openSettings('plan');
+      return {upsell: !!document.getElementById('s-toyear'),
+              choose: document.querySelectorAll('[data-period]').length};
+    });
+    check('a trial is not offered a switch', seen.upsell === false);
+    check('and is still offered both plans to choose from', seen.choose === 2,
+      'buttons: ' + seen.choose);
     await page.close();
   }
 

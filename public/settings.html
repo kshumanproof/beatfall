@@ -178,7 +178,7 @@
       <div class="plans" id="plans"></div>
       <div class="row" style="margin-top:16px">
         <button class="btn" id="portal">Manage billing</button>
-        <button class="btn" id="topup">Add 50 credits for $6</button>
+        <button class="btn" id="topup">Add credits</button>
         <span class="muted">Cancelling, changing card and switching between monthly and annual all happen on Stripe's own pages.</span>
       </div>
     </div>
@@ -291,6 +291,12 @@ const PERIODS = [
     cr.hidden = false;
   }
 
+  // The top-up button carries the real pack size and price, from the server.
+  if (me.topup_credits && me.topup_price) {
+    document.getElementById('topup').textContent =
+      `Add ${me.topup_credits} credits for $${me.topup_price}`;
+  }
+
   // ---- usage
   const pct = me.unlimited ? 0
     : (me.credits_allowance ? Math.min(100, Math.round(me.credits_used / me.credits_allowance * 100)) : 0);
@@ -321,7 +327,7 @@ const PERIODS = [
     note.className = 'note info';
     const ends = new Date(me.trial_ends_at).toLocaleDateString(undefined,
       { month:'long', day:'numeric' });
-    note.innerHTML = `<b>You're on the free trial \u2014 ${days} day${days===1?'':'s'} left, `
+    note.innerHTML = `<b>You're on the free trial. ${days} day${days===1?'':'s'} left, `
       + `through ${ends}.</b> `
       + `No card on file. Pick a plan whenever you're ready; your boards carry over either way.`;
   } else if (me.plan === 'none') {
@@ -354,24 +360,51 @@ const PERIODS = [
         + 'Manage billing to keep the writing help on. Nothing else is affected.';
     } else {
       note.className = 'note info';
-      note.innerHTML = '<b>You\'re subscribed. Thank you \u2014 genuinely.</b> '
+      note.innerHTML = '<b>You\'re subscribed. Thank you.</b> '
         + `${me.credits_allowance} credits a month, and everything on the board stays free.`
         + (when ? ` Renews <b>${when}</b>.` : '');
     }
   }
 
-  const paid = (me.plans && me.plans.beatfall) || { credits: 150 };
+  /* Every number on this page comes from the server. A price change should be
+     one edit in core.js, not a hunt through four HTML files, which is how the
+     old hardcoded 150s and 50s got out of step with what the account was
+     actually being given. */
+  const paid = (me.plans && me.plans.beatfall) || { credits: me.credits_allowance || 0 };
   const subscribed = me.plan === 'beatfall' || me.unlimited;
 
-  document.getElementById('plans').innerHTML = PERIODS.map((p, i) => `
+  const money = n => '$' + n;
+  const PRICED = [
+    { ...PERIODS[0], price: money(me.price_month || 12) },
+    { ...PERIODS[1], price: money(me.price_year  || 99) }
+  ];
+
+  /* Same test as the in-app version of this screen: nothing records whether a
+     subscription is monthly or yearly, and the renewal date says it without a
+     migration. Inside five weeks is monthly. No date, or a date further out,
+     and we say nothing rather than offer somebody the plan they already have. */
+  const onMonthly = (function () {
+    if (!subscribed || me.unlimited || me.plan !== 'beatfall') return false;
+    if (me.cancel_at_period_end || !me.current_period_end) return false;
+    const days = (new Date(me.current_period_end) - Date.now()) / 86400000;
+    return days > 0 && days <= 40;
+  })();
+  const yearSaves = (me.price_month || 12) * 12 - (me.price_year || 99);
+
+  document.getElementById('plans').innerHTML = PRICED.map((p, i) => `
     <div class="plan ${subscribed ? '' : (i === 1 ? 'current' : '')}">
       <h3>${p.label}</h3>
       <div class="price">${p.price} ${p.per} · ${paid.credits} credits a month</div>
       <div class="what">${p.note}</div>
       ${subscribed
-        ? '<button class="btn" disabled>Manage below</button>'
+        ? (onMonthly && p.key === 'year'
+            ? `<button class="btn btn-primary" id="toyear">Switch to annual</button>
+               <div class="what" style="margin-top:8px">You are paying monthly. Switching
+                 saves $${yearSaves} a year. Same ${paid.credits} credits a month either way.</div>`
+            : '<button class="btn" disabled>Manage below</button>')
         : `<button class="btn ${i === 1 ? 'btn-primary' : ''}" data-period="${p.key}">Choose ${p.label.toLowerCase()}</button>`}
     </div>`).join('');
+
 
   document.querySelectorAll('[data-period]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true; b.innerHTML = '<span class="spinner"></span>Opening…';
@@ -393,6 +426,13 @@ const PERIODS = [
   };
   document.getElementById('portal').addEventListener('click', openStripe('portal'));
   document.getElementById('topup').addEventListener('click', openStripe('topup'));
+  /* Switching an existing subscription happens in Stripe's portal, which
+     prorates what they have already paid. A second checkout would leave them
+     paying for two plans. This binding sits below openStripe on purpose: it
+     was above it, and a const is not usable before the line that defines it,
+     so the whole settings screen threw before it finished drawing. */
+  const toYear = document.getElementById('toyear');
+  if (toYear) toYear.addEventListener('click', openStripe('portal'));
 
   // ---- name
   document.getElementById('saveName').addEventListener('click', async (e) => {
