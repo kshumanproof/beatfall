@@ -2581,3 +2581,158 @@ relative now.
 Nothing here has run against real Supabase, real Stripe or the real Anthropic
 API. The fake database is not Postgres. One conversation, one import, `?dry=1`
 on cleanup and a cancel-then-delete cycle still need a real account.
+
+## 10 September 2026 (second pass): The audit found nine, and one of them was mine
+
+Kris asked for a full adversarial pass before anyone else touches this: new
+user, existing user, admin, board, notes, characters, downloads, billing,
+credits. Everything below was driven in a headless browser against the real
+files, never a copy of them.
+
+### First, the two things worth knowing before the findings
+
+**The test suite could not be run from a clean clone.** `node mkstub.js` failed
+on its first line: the root `package.json` says `"type": "module"` and all three
+suites use `require`. So the one instruction at the top of the last entry, the
+one that says rebuild the stub and run the suite before trusting anything in
+this file, did not work as written. `test/package.json` declares those three
+files CommonJS. It is four lines and it is the most important change here,
+because it is the one that protects the rest.
+
+**The deployed site was byte-identical to the working copy.** Given what
+happened on 9 September, this was checked rather than assumed: the live
+`app.html` was hashed in ten line-range chunks and every chunk matched, along
+with line count and function count, and the same for `app.js`, `admin.html`,
+`settings.html`, `billing.html`, `index.html`, `login.html` and `theme.css`.
+The apparent byte difference is JavaScript's `length` counting UTF-16 units
+against Node counting bytes, which is exactly the number of non-ASCII
+characters in each file. Worth knowing the check is cheap, because it is not.
+
+The database lockdown from the morning entry is live. With the public anon key,
+`PATCH` and `DELETE` on `profiles` and `INSERT` on `events` all answer `42501
+permission denied for table`, which is the grant being gone rather than a
+policy refusing the row. Selects answer `[]`. Every endpoint refuses without a
+session and `/api/cleanup` refuses without the secret.
+
+### The fixes
+
+**Settings and Admin quoted a monthly price to people who do not pay it.** Both
+carried the literal string `Beatfall - $12 a month`, so an annual subscriber was
+told the wrong figure about their own money, and a price change would not have
+reached either page. This is the same defect fixed in `app.html` on 9 September,
+where the comment above it explains the reasoning; the fix landed in one of the
+three files that has this line. All three now say the thing that is true either
+way and then the renewal date, and all three read `cancel_at_period_end` so
+somebody on the way out is told when it ends rather than when it renews. If one
+of the three changes again, change all three.
+
+**`billing.html` named a warning ladder the app stopped using.** It said 30 left
+and 10 left. The app warns at 20 and 7 on a plan and 5 and 2 on a trial, because
+those marks are a share of the allowance and moved on their own when the
+allowance did. That is the good half of the last entry working exactly as
+designed, and the page that documents it was still holding the old literals.
+
+Rather than typing in two new literals that will rot the same way, `lowMark`
+and `lastMark` moved into `core.js` beside the constants they are computed from,
+`/api/config` sends all four marks, and `billing.html` prints them through the
+`data-bf` mechanism it already uses for every other number. The printed
+fallbacks are correct, so the page is right with no JavaScript, right before the
+fetch and right after it, which is the rule that block was written to follow.
+
+The client keeps its own copy of those two formulas on purpose: the account pill
+has to be right before `/api/account` answers. Two copies, and the comment above
+each now says so.
+
+**The same sentence put the credit count in the wrong corner.** It said bottom
+left. The pill was measured at the top right. It moved to the top bar when the
+header was rebuilt and this sentence did not follow it.
+
+**A character interview showed as a raw slug.** The `LABEL` map in `paneUsage`
+had every charged kind except `character`, so the summary read "2 character"
+directly above a ledger row reading "A character interview". Same spend, named
+twice, once in code.
+
+**"Comes back Invalid Date."** `paneUsage` did `new Date(ME.period_start)` with
+no guard, and `new Date(undefined)` renders those two words at the writer.
+`ledgerWhen()` twenty lines below already guarded its date. A missing period
+start now drops the clause and keeps the count, which is the half that is still
+true. The schema has a `not null default` so this was never reproduced live;
+the guard is one line and the failure mode is machine language on a billing
+screen.
+
+**Admin's pricing fallback still carried the old pack.** `topup_credits: 50`,
+under a comment calling it "the current figures". `/api/admin` does send
+`pricing`, so it only fires against an older deploy, which is precisely when
+nobody is watching.
+
+**A long unbroken run of characters pushed the whole page sideways.** At 150
+characters the board was fine; at 200 the document went to 1606px in a 1280px
+window, because `.icard` could not shrink below its longest word and that set
+the column's minimum width. `overflow-wrap:anywhere` rather than `break-word`,
+deliberately: only `anywhere` affects the min-content size, which is the part
+that was widening the board. Checked at 150, 200, 400 and 2000, and ordinary
+card text is untouched.
+
+**Sort my notes was live over an empty box.** Pressing it did nothing, which is
+the right behaviour and the wrong appearance. It is off until there are words.
+Only `countDump()` and the read itself touch `disabled` and they never run
+together.
+
+**Nothing said you could not afford the import until after you had pasted.** The
+sheet named the price and never the balance, so the way a writer found out was
+to paste a file, press the button and be told. Kris chose the version that warns
+without blocking: a line appears when the balance will not cover the read,
+saying nothing is charged for trying and the notes stay in the box, with Add
+credits beside it. The button still works and still gives the same answer. The
+link is blue rather than gold, because gold on this sheet means the action
+spends a credit and buying a pack does not.
+
+### One finding was mine, not the app's
+
+The first pass reported that Escape did not close five sheets. It does. Those
+sheets are children of `#scrim`, and `closeImport()` hides the scrim, so the
+child's own `hidden` stays false while it is invisible. The test asserted on the
+child. Measured on `offsetParent`, every sheet closes on Escape.
+
+Recording it because the shape recurs: **`hidden` on an element inside a hidden
+parent tells you nothing.** Assert on what the writer can see.
+
+### Left alone on purpose
+
+`index.html` hardcodes $12 and $99 and reads `/api/config` only for the session
+check. The numbers are correct today. Wiring pricing into the one page every
+stranger loads first is more risk than the problem, and the day to do it is the
+day before a price moves, not now.
+
+A project named only whitespace renders a blank tab and a blank header. It is
+not reachable: the intake refuses a blank name and so does the rename. Data
+robustness, not a live fault.
+
+`dumpgo`'s `finally` block overwrites the "Try again" label the `catch` sets, so
+that label has never been seen. Real, three lines from code changed here, and
+not on the approved list. Left for Kris to say yes to.
+
+### Testing
+
+210 checks pass, unchanged: 81 flows, 55 regression, 18 money, 22 proxy, 16
+gate, 12 hook, 6 clean. The previous entry totalled these as 202; they add to
+210.
+
+On top of that, roughly 460 checks were written for this pass across text
+handling and injection, the new-user path, notes, characters, the board and all
+nine structures, drag and drop, downloads, billing and credits, the error and
+locked screens, the outline and import, keyboard access and resilience, and the
+standalone pages including `admin.html` and `settings.html`, which no suite had
+ever covered. Every fix above has a check on it: the pill in five account
+states across all three pages, the marks with and without a server answer, the
+overflow at four lengths, the balance line at four balances, and the reset date
+with and without a period start.
+
+Hostile markup was put through project names, card text, notes, character names,
+display names and the admin data feed. Nothing executed anywhere.
+
+### Still not exercised
+
+Unchanged from the last entry, and none of it can be done without a real
+account: one real conversation, one real import, `?dry=1` on cleanup, and a
+cancel-then-delete cycle.

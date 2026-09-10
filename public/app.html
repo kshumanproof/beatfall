@@ -657,6 +657,12 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   padding:15px 17px 17px;box-shadow:var(--shadow);cursor:grab;position:relative;
   font-family:var(--mono);font-size:13px;line-height:1.62;color:var(--ink);
   transition:box-shadow .15s ease,transform .15s ease;
+  /* A run of about 150 characters with no space in it - a file path, a URL
+     with no slashes left in it, a writer holding a key down - used to set the
+     column's minimum width and push the whole page sideways. `anywhere`
+     rather than `break-word` on purpose: only `anywhere` lets the box shrink
+     below its longest word, which is the part that was widening the board. */
+  overflow-wrap:anywhere;
 }
 .icard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .icard.dragging{opacity:.4;cursor:grabbing}
@@ -2119,6 +2125,16 @@ footer{
          the button rewrites its own label while it works, so a chip on it gets
          wiped and a sentence does not. -->
     <p class="sheet-note" id="dumpcost" style="margin-top:-8px"></p>
+    <!-- The price has always been on this sheet. Whether the writer can pay it
+         has not, so the way you found out you had none left was to paste a
+         file, press the button and be told. Nothing is blocked here: the
+         button still works and still gives the same answer, this only says it
+         before the typing rather than after. -->
+    <p class="sheet-note" id="dumpshort" hidden style="margin-top:-8px;color:var(--gold-ink)">
+      <span id="dumpshorttext"></span>
+      <!-- Blue, not gold. Gold on this sheet means "this spends a credit", and
+           buying a pack does not spend one. -->
+      <button type="button" class="linky" id="dumptopup" style="padding:0">Add credits</button></p>
     <p class="sheet-note" style="margin-top:-8px">Your notes stay private and are never used to
       train a model.
       <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
@@ -5964,8 +5980,40 @@ function openImport(intoNew, prefill){
   dumptext.value = prefill || "";
   plan = null;
   countDump();
+  paintImportBalance();
   dumptext.focus();
 }
+
+/* Read on every open rather than written once at load, because the balance
+   moves while the app is up and /api/account may not have answered the first
+   time this sheet was built. Silence is the safe default: if we do not know
+   the balance, we do not say anything about it. */
+function paintImportBalance(){
+  const line = document.getElementById("dumpshort");
+  const text = document.getElementById("dumpshorttext");
+  if (!line || !text) return;
+  const left = ME && !ME.unlimited && ME.credits_left != null ? ME.credits_left : null;
+  if (left === null || left >= CREDIT.import){ line.hidden = true; return; }
+  text.textContent = (left === 0
+    ? "You have no credits left, so this read will be refused."
+    : "You have " + left + " credit" + (left === 1 ? "" : "s") + " left and this read costs "
+      + CREDIT.import + ", so it will be refused.")
+    + " Nothing is charged for trying, and your notes stay in the box.";
+  line.hidden = false;
+}
+
+document.getElementById("dumptopup").addEventListener("click", async ev => {
+  const b = ev.currentTarget, was = b.textContent;
+  b.disabled = true; b.textContent = "Opening…";
+  try {
+    const {url} = await BF.api("/api/billing",
+      {method: "POST", body: JSON.stringify({action: "topup"})});
+    location.href = url;
+  } catch (e) {
+    b.disabled = false; b.textContent = was;
+    document.getElementById("dumpcount").textContent = BF.explain(e);
+  }
+});
 function closeImport(){ scrim.hidden = true; if (dumpCtl) dumpCtl.abort(); }
 
 document.getElementById("dump").addEventListener("click", () => openImport(false));
@@ -6004,6 +6052,12 @@ function countDump(){
   const words = dumptext.value.trim().split(/\s+/).filter(Boolean).length;
   document.getElementById("dumpcount").textContent =
     words ? words.toLocaleString() + (words === 1 ? " word" : " words") : "nothing yet";
+  /* Sort my notes was live over an empty box. Pressing it did nothing, which
+     is the right behaviour and the wrong appearance: a button that looks
+     ready and then ignores you reads as broken. It is off until there is
+     something to read. Only countDump() and the read itself touch `disabled`,
+     and they never run at the same time. */
+  document.getElementById("dumpgo").disabled = !words;
 }
 dumptext.addEventListener("input", countDump);
 
@@ -9119,14 +9173,25 @@ function ledger(){
 }
 
 function paneUsage(){
+  /* Every charged kind needs a line here. `character` was missing, so the
+     summary read "2 character" directly above a ledger row reading "A
+     character interview" - the same spend, named twice, once in code. */
   const LABEL = {conversation: "conversations", import: "note imports", ideas: "idea sets",
-                 logline: "logline sessions", place: "notes placed", route: "notes routed"};
+                 logline: "logline sessions", character: "character interviews",
+                 place: "notes placed", route: "notes routed"};
   const monthly = ME.credits_allowance || 0;
   const usedM   = Math.min(ME.credits_used || 0, monthly);
   const leftM   = ME.credits_monthly_left != null ? ME.credits_monthly_left : Math.max(0, monthly - usedM);
   const banked  = ME.credits_banked || 0;
   const pct = ME.unlimited ? 0 : (monthly ? Math.min(100, Math.round(usedM / monthly * 100)) : 0);
-  const next = new Date(ME.period_start); next.setUTCMonth(next.getUTCMonth() + 1);
+  /* "Comes back" is half a sentence without a date to finish it, and
+     `new Date(undefined)` finishes it with the words "Invalid Date". The
+     count either side of it is still true, so a missing period start drops
+     the clause rather than printing machine language at the writer.
+     `ledgerWhen()`, twenty lines down, already guards its date this way. */
+  const start = ME.period_start ? new Date(ME.period_start) : null;
+  const next  = start && !isNaN(start.getTime()) ? new Date(start) : null;
+  if (next) next.setUTCMonth(next.getUTCMonth() + 1);
   const kinds = Object.keys(ME.by_kind || {}).length
     ? Object.entries(ME.by_kind).map(([k, v]) =>
         '<div class="kind"><b>' + v.count + "</b>" + esc(LABEL[k] || k) + "</div>").join("")
@@ -9143,9 +9208,11 @@ function paneUsage(){
       + (ME.unlimited ? "unlimited" : monthly) + " credits</span></div>"
     + '<div class="usebar"><i class="' + (pct >= 100 ? "full" : pct >= 80 ? "warn" : "")
       + '" style="width:' + pct + '%"></i></div>'
-    + '<div class="muted">' + (leftM === 0 && !ME.unlimited
-        ? "All used. Comes back " : (leftM + " left. Comes back "))
-      + next.toLocaleDateString(undefined, {month: "long", day: "numeric"}) + ".</div>"
+    + '<div class="muted">'
+      + (leftM === 0 && !ME.unlimited ? "All used." : (leftM + " left."))
+      + (next ? " Comes back "
+          + next.toLocaleDateString(undefined, {month: "long", day: "numeric"}) + "." : "")
+      + "</div>"
 
     + (ME.unlimited ? "" :
         '<div class="bank' + (banked ? "" : " empty") + '">'

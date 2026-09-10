@@ -1,0 +1,6 @@
+{
+  "name": "beatfall-test",
+  "private": true,
+  "type": "commonjs",
+  "description": "The root package.json declares type=module. These three suites are CommonJS and use require(), so without this file `node mkstub.js` fails on its first line and the suite cannot be run from a clean clone. Nothing here is installed or shipped; test/node_modules holds playwright only."
+}

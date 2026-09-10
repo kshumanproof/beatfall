@@ -279,9 +279,11 @@ async function load(days) {
   ].map(([c,n,l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
 
   const c = d.credits_per_active_user, m = d.cost_per_active_user_usd;
-  // Falls back to the current figures only so an older deployed API doesn't
-  // blank the card. The server is the source of truth.
-  const pr = d.pricing || { month: 12, year: 99, topup_credits: 50, topup_price: 6 };
+  // Falls back only so an older deployed API doesn't blank the card. The
+  // server is the source of truth, and these numbers have to be kept level
+  // with core.js or the fallback quietly reports last month's pricing: this
+  // said 50 for a while after the pack became 40.
+  const pr = d.pricing || { month: 12, year: 99, topup_credits: 40, topup_price: 6 };
   document.getElementById('caps').innerHTML = `
     <div class="cap"><h3>Credits per active user</h3>
       <div><span>Median</span><b>${c.median}</b></div>
@@ -405,9 +407,19 @@ async function paintWho(){
   document.getElementById('whoname').textContent  = name;
   document.getElementById('whoemail').textContent = me.email || '';
   document.getElementById('avatarini').textContent = (name.trim()[0] || '?').toUpperCase();
+  /* Not "$12 a month". An annual subscriber pays $99 and was being quoted a
+     price they do not pay, and nothing on the account records which interval
+     they chose. Says what is true either way, then the renewal date. Same
+     line as the board and Settings: if one changes, change all three. */
+  const renews = me.current_period_end
+    ? new Date(me.current_period_end).toLocaleDateString(undefined,
+        {month: 'short', day: 'numeric', year: 'numeric'})
+    : null;
   document.getElementById('whoplan').textContent =
       me.unlimited            ? 'Owner · no limits'
-    : me.plan === 'beatfall'  ? 'Beatfall · $12 a month'
+    : me.plan === 'beatfall'  ? ('Beatfall' + (me.cancel_at_period_end
+        ? (renews ? ' · ends ' + renews : ' · ending')
+        : (renews ? ' · renews ' + renews : '')))
     : (me.plan === 'trial' && me.trialing) ? 'Free trial'
     : 'No plan';
   // The owner allowance is a stand-in for infinity, so don't print it.

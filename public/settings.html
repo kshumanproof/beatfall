@@ -280,9 +280,21 @@ const PERIODS = [
   document.getElementById('whoname').textContent  = who;
   document.getElementById('whoemail').textContent = me.email || '';
   document.getElementById('avatarini').textContent = (who.trim()[0] || '?').toUpperCase();
+  /* This used to read "Beatfall - $12 a month" for everybody on a plan,
+     including the people paying $99 a year, who were being quoted a price
+     they do not pay. Nothing on the account says which interval they chose,
+     so rather than guess a figure this says the one thing true either way,
+     and then the date their money next moves. Same line as the board's
+     account pill: if one changes, change both. */
+  const renews = me.current_period_end
+    ? new Date(me.current_period_end).toLocaleDateString(undefined,
+        {month: 'short', day: 'numeric', year: 'numeric'})
+    : null;
   document.getElementById('whoplan').textContent =
       me.unlimited           ? 'Owner \u00b7 no limits'
-    : me.plan === 'beatfall' ? 'Beatfall \u00b7 $12 a month'
+    : me.plan === 'beatfall' ? ('Beatfall' + (me.cancel_at_period_end
+        ? (renews ? ' \u00b7 ends ' + renews : ' \u00b7 ending')
+        : (renews ? ' \u00b7 renews ' + renews : '')))
     : (me.plan === 'trial' && me.trialing) ? 'Free trial'
     : 'No plan';
   if (!me.unlimited) {

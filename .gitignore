@@ -9,3 +9,10 @@ _transfer.zip
 _testdata/
 _to_delete/
 handoff/
+
+# Built by test/mkstub.js from public/app.html every run. A committed copy of
+# app.html is exactly how the repo ends up with two of them and nobody knows
+# which one shipped.
+test/app.html
+test/stub.html
+test/server/api/

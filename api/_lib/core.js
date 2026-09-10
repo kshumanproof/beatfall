@@ -40,6 +40,22 @@ export const PRICE_YEAR  = 99;
 export const TOPUP_CREDITS = 40;
 export const TOPUP_PRICE   = 6;
 
+// The two low-credit marks, as a SHARE of whatever allowance they are applied
+// to. 30 and 10 were set against the 150 a paid month used to carry, and a
+// flat 30 fired the low warning on a trial that had never spent anything. So
+// the marks are the fifth and the fifteenth those numbers always meant: at 100
+// they are 20 and 7, at the trial's 25 they are 5 and 2.
+//
+// The client carries its own copy of this in app.html, deliberately, because
+// the pill has to be right before /api/account answers. These live here so
+// that billing.html - a signed-out page that cannot ask what a plan costs -
+// can print the real marks instead of the two numbers that were typed into it
+// in front of an allowance that has since moved. Keep the two in step.
+export const LOW_NOTICE  = 30;
+export const LAST_NOTICE = 10;
+export const lowMark  = a => Math.min(LOW_NOTICE,  Math.max(1, Math.round(a * 0.20)));
+export const lastMark = a => Math.min(LAST_NOTICE, Math.max(1, Math.round(a * 0.07)));
+
 // A credit is one piece of work, not one message. A conversation costs the
 // same whether it takes two questions or five. Charging per turn would teach
 // writers to answer in three words to save money, which wrecks the input the

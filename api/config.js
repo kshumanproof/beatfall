@@ -14,7 +14,7 @@
 // cannot disagree. Nothing here is a secret.
 // ============================================================================
 import { PLANS, PAID_PLAN, PRICE_MONTH, PRICE_YEAR,
-         TOPUP_CREDITS, TOPUP_PRICE } from './_lib/core.js';
+         TOPUP_CREDITS, TOPUP_PRICE, lowMark, lastMark } from './_lib/core.js';
 
 export default function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -29,7 +29,13 @@ export default function handler(req, res) {
       price_month:   PRICE_MONTH,
       price_year:    PRICE_YEAR,
       topup_credits: TOPUP_CREDITS,
-      topup_price:   TOPUP_PRICE
+      topup_price:   TOPUP_PRICE,
+      // The warning ladder, so the sales page stops naming marks the app
+      // stopped using. It said 30 and 10 while the app warned at 20 and 7.
+      low_mark:        lowMark(PLANS[PAID_PLAN].credits),
+      last_mark:       lastMark(PLANS[PAID_PLAN].credits),
+      trial_low_mark:  lowMark(PLANS.trial.credits),
+      trial_last_mark: lastMark(PLANS.trial.credits)
     }
   }));
 }
