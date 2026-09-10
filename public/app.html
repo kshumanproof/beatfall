@@ -3541,6 +3541,11 @@ window.addEventListener("focus", refreshOnReturn);
    that work is newer than the server's. */
 let refreshing = false;
 async function refreshOnReturn(){
+  /* `state` is null until load() runs, and load() does not run behind the
+     small-screen gate, the device-setup failure or the load failure. This is
+     bound to window focus, so on a phone it threw every time the writer came
+     back to the tab. Nothing visible broke, which is why it went unnoticed. */
+  if (!state) return;
   if (refreshing || dirty.size || !state.projects.length) return;
   if (document.visibilityState === "hidden") return;
   refreshing = true;
@@ -7445,6 +7450,10 @@ function growOutline(ta){
    Walks the DOM rather than tracking state, because the boxes ARE the state
    while the outline is on screen. */
 function commitOutlineBoxes(){
+  // Bound to beforeunload and visibilitychange, both of which fire behind the
+  // small-screen gate, where load() has never run and there is no state to
+  // commit. Same null as refreshOnReturn, reached by a different door.
+  if (!state) return;
   const proj = P();
   if (!proj) return false;
   let changed = false;

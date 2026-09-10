@@ -835,12 +835,24 @@ A phone gets the app, not the board. Kris's reasoning: the web app is a spatial
 thing, there is no honest way to drag cards around a 390px column, and a
 writer's first impression should not be a cramped version of the real product.
 
-**Which pages are gated is decided by which pages load `app.js`** — index,
-login, settings and admin do; Privacy, Terms and How billing works do not, and
-must not. They are documents, they are linked from emails and store listings,
-people open them on phones, and a privacy policy you cannot read on the device
-in your hand is worse than useless. Adding `app.js` to a legal page would gate
-it silently, so don't.
+**Which pages are gated is MOSTLY decided by which pages load `app.js`** — the
+app, settings, admin, help and 404 do; Privacy, Terms and How billing works do
+not, and must not. They are documents, they are linked from emails and store
+listings, people open them on phones, and a privacy policy you cannot read on
+the device in your hand is worse than useless. Adding `app.js` to a legal page
+would gate it silently, so don't.
+
+**Two exceptions, and both are the point of the mobile experience (10 Sep).**
+The marketing homepage does not load `app.js` at all any more, so a phone gets
+the real homepage. And sign-in loads `app.js` because it needs Supabase, but
+opts out with `BF.init({ gate: false })`.
+
+That second one was a leak, not a decision. A writer who heard about Beatfall
+and typed it into their phone read the whole pitch, pressed Start 14 days free,
+and hit the gate, which had no signup on it and two buttons reading "coming
+soon". Every tappable thing on that screen was Privacy, Terms, billing and a
+mailto. The board genuinely needs a bigger screen. Creating an account does
+not, and the phone is where somebody hears about this and goes looking.
 
 **Two conditions, both required.** `min(innerWidth, innerHeight) < 700` measured
 on the SHORTER side, so a rotated phone is still a phone: a width-only check
@@ -852,15 +864,42 @@ dragging a desktop window to half height throws up a download prompt.
 744 is an iPad Mini's short side, so every iPad passes and 600-class Android
 tablets do not. Verified against fourteen real device sizes in `vgate.js`.
 
-**Sign-in is deliberately not blocked.** The gate is drawn AFTER `BF.init()`,
-so `detectSessionInUrl` has already redeemed any magic link. Magic links get
-opened on phones constantly and the link is single-use: refusing to process it
-would burn it and lose the account permanently. Tap the link on the sofa and
-the laptop is already signed in.
+**The gate is drawn AFTER `BF.init()`**, so `detectSessionInUrl` has already
+redeemed any magic link. Magic links get opened on phones constantly and the
+link is single-use: refusing to process it would burn it and lose the account
+permanently.
+
+One correction to what this file used to say: tapping the link on the sofa does
+NOT sign the laptop in. Sessions are per browser. It signs in the phone and
+spends the link, and the laptop then needs its own. That is fine, because the
+account now exists and a second link is one box away, but it has to be said
+rather than assumed. The sign-in page says it on a phone: open that link on the
+computer you write on, and if you do open it here, ask for another from your
+computer and the account is already waiting.
+
+**What a phone sees, end to end.** The homepage, ungated. Start 14 days free,
+which is a real form. Email, link, done. Then the board at `/app` gives the
+gate, which now carries either "Start 14 days free" for somebody signed out or
+"your board is ready on a larger screen" for somebody signed in, plus a link
+back to the homepage.
 
 `BF.APP_STORE` and `BF.PLAY_STORE` in `app.js` are empty. While they are, the
 buttons render in place but read "Coming to the App Store" and are spans, not
-links. Fill them in and they become real buttons with no other change.
+links. Fill them in and they become real buttons, the gate's copy stops saying
+the app is coming, and the store block moves ABOVE the trial button because
+whichever thing a person can actually use should be first. All of that hangs
+off those two constants. The homepage's phone section is the one place that
+does not, because it does not load `app.js`: flip its "Coming to the App Store
+and Google Play" line in the same commit.
+
+**Two defects fixed in the gate on 10 Sep**, both of which were a comment
+overstating what the code did. `overflow:hidden` on the root element does not
+stop a phone scrolling, measured at 387px behind the gate; the body has to be
+pinned too. And the comment said nothing behind the gate was reachable by a
+stray tab press, while Tab walked straight into the covered sign-in field and
+its submit button. Body children other than the gate are `inert` and
+`aria-hidden` now. Covering something is not removing it, and a screen reader
+never saw the cover at all.
 
 ## Import parse: the Night Haul test (3 Sep 2026)
 

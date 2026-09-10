@@ -88,6 +88,10 @@
       <div id="sent" class="note info" hidden>
         <b>Check your email.</b> We've sent a sign-in link to <span id="sentTo"></span>.
         It works once and lasts an hour. You can close this tab.
+        <div id="sentphone" hidden><b>Open that link on the computer you write on.</b>
+          It signs in whichever device opens it, and the board needs a bigger screen
+          than a phone. Opening it here is not a disaster: ask for another one from
+          your computer and this account is already waiting.</div>
         <div class="sentacts">
           <button class="linky" id="resend" type="button">Send it again</button>
           <span class="dot">&middot;</span>
@@ -158,12 +162,19 @@ if (startedTrial) {
 }
 
 (async function () {
-  const session = await BF.init();
+  /* A phone gets this form, not the gate. It used to get the gate, and the
+     gate has no signup on it, so a writer who heard about Beatfall and typed
+     it into their phone could read the entire pitch and then not be able to
+     start. The board needs a bigger screen. An account does not.
+
+     They still cannot USE the board here, and the gate says so on /app. What
+     they can do is exist by the time they sit down at a computer. */
+  const session = await BF.init({ gate: false });
   if (BF.unconfigured) return;
-  // A phone gets the gate instead of the form. init() has already redeemed any
-  // magic link in the URL, so nothing is lost by stopping here.
-  if (BF.isSmallScreen()) return;
   if (session) { location.href = '/app'; return; }
+
+  // Where to open the link, said once, only to the device that needs telling.
+  if (BF.isSmallScreen()) document.getElementById('sentphone').hidden = false;
 
   const form  = document.getElementById('form');
   const go    = document.getElementById('go');

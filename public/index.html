@@ -54,6 +54,12 @@
   .trust-list{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
   .trust-item{padding:25px 28px 25px 0}.trust-item+.trust-item{border-left:1px solid var(--rule);padding-left:28px}.trust-item b{display:block;font-family:var(--serif);font-size:20px;margin-bottom:6px}.trust-item span{display:block;font-size:14px;line-height:1.55;color:var(--ink-3)}
   .price-wrap{background:var(--blue);color:var(--on-blue)}
+  .phone{border-top:1px solid var(--rule-soft);background:var(--surface)}
+  .phone-in{max-width:1180px;margin:0 auto;padding:66px 28px}
+  .phone-in h2{font-size:30px;line-height:1.15;letter-spacing:-.02em;margin:0 0 16px}
+  .phone-in p{max-width:62ch;margin:0 0 14px;color:var(--ink-2);line-height:1.65}
+  .phone-soon{font-size:14px;color:var(--ink-3)}
+  @media (max-width:760px){.phone-in{padding:48px 20px}}
   .price{max-width:1180px;margin:0 auto;padding:54px 28px;display:grid;grid-template-columns:1fr auto;gap:50px;align-items:center}
   .price h2{color:var(--on-blue);font-size:clamp(33px,4vw,48px);line-height:1.05;margin:0 0 9px}.price p{font-family:var(--serif);font-size:18px;line-height:1.5;margin:0;color:var(--on-blue);opacity:.85}.price strong{color:var(--gold-soft)}
   .price .btn{background:var(--card);color:var(--blue);border-color:var(--card);min-width:190px;padding:13px 22px;text-align:center;text-decoration:none}.price .btn:hover{background:var(--surface)}
@@ -110,6 +116,24 @@
       <div class="trust-item"><b>Your words stay your words.</b><span>Beatfall organizes your material. It does not rewrite your screenplay.</span></div>
       <div class="trust-item"><b>Uncertainty stays visible.</b><span>If a placement is not clear, Beatfall asks or leaves the note aside.</span></div>
       <div class="trust-item"><b>Your writing isn’t used to train AI.</b><span>Your projects are private to your account and can be exported or deleted.</span></div>
+    </div>
+  </section>
+
+  <!-- The phone app was invisible here until a visitor hit the small-screen
+       gate, which is a strange place to learn a product exists. It is written
+       as a plain fact rather than a pre-order: no fake buttons, and nothing
+       here promises a date. When the listings are live, this becomes two real
+       links, and the same switch is BF.APP_STORE and BF.PLAY_STORE in app.js.
+       Flip both together. -->
+  <section class="phone">
+    <div class="phone-in">
+      <p class="section-k">On your phone</p>
+      <h2>The idea arrives before the desk does.</h2>
+      <p>Beatfall&rsquo;s phone app is for catching notes, not for moving cards around a
+        screen that small. Say the line you just thought of, choose the script it
+        belongs to, and it is waiting on your board when you sit down.</p>
+      <p class="phone-soon">Coming to the App Store and Google Play. The board stays
+        where it belongs, on a real screen.</p>
     </div>
   </section>
 

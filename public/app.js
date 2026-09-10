@@ -43,7 +43,9 @@
     try { document.documentElement.classList.remove('booting'); } catch (e) {}
   };
 
-  BF.init = async function () {
+  // `opts.gate === false` lets one page opt out of the small-screen gate.
+  // Sign-in is the only caller and the reason is in the comment below.
+  BF.init = async function (opts) {
     try {
       config = await fetch('/api/config').then(r => r.json());
     } catch (e) {
@@ -65,8 +67,15 @@
     /* The gate goes here and nowhere earlier. detectSessionInUrl has already
        run by this point, so a magic link tapped on a phone has been redeemed
        and the account exists before we tell anybody the screen is too small.
-       Blocking first would burn a single-use link and lose the signup. */
-    if (BF.isSmallScreen()) {
+       Blocking first would burn a single-use link and lose the signup.
+
+       And sign-in opts out of it entirely. Gating that page meant a writer who
+       typed beatfall.app into their phone read the whole pitch, pressed Start
+       14 days free, and hit a wall with no signup on it and two buttons that
+       said "coming soon". The board genuinely needs a bigger screen. Creating
+       an account does not, and the phone is where somebody hears about this
+       and goes looking. */
+    if (BF.isSmallScreen() && !(opts && opts.gate === false)) {
       BF.showSmallScreenGate(BF.session);
       return BF.session;
     }
@@ -680,6 +689,21 @@
     BF.ready();
 
     const soon = !BF.APP_STORE && !BF.PLAY_STORE;
+    const storeBlock = function () {
+      return '<div class="bf-gate-stores">'
+        + storeBtn('apple', BF.APP_STORE, 'App Store', soon ? 'Coming to the' : 'Download on the')
+        + storeBtn('play',  BF.PLAY_STORE, 'Google Play', soon ? 'Coming to' : 'Get it on')
+        + '</div>';
+    };
+    const trialBlock = function () {
+      return session
+        ? '<p class="bf-gate-note">You’re signed in. Your board is ready whenever you '
+          + 'open Beatfall on a larger screen.</p>'
+        : '<a class="bf-gate-go" href="/login.html?start=1">Start 14 days free</a>'
+          + '<p class="bf-gate-note">No card required. You can sign up here and open the '
+          + 'board on a computer when you are ready. The board itself needs a bigger '
+          + 'screen than this one, so there isn’t a cramped version of it here.</p>';
+    };
     const el = document.createElement('div');
     el.id = 'bf-gate';
     el.innerHTML =
@@ -695,21 +719,26 @@
       +     'it never writes your script.</p>'
 
       +   '<p class="bf-gate-body"><b>On a phone, Beatfall is for catching ideas.</b> '
-      +     'Get the app and the note you have standing in a car park is waiting on your board '
-      +     'when you sit down.</p>'
+      +     (soon
+              ? 'The app is coming, and the note you think of standing in a car park will be '
+                + 'waiting on your board when you sit down.'
+              : 'Get the app and the note you have standing in a car park is waiting on your '
+                + 'board when you sit down.') + '</p>'
 
-      +   '<div class="bf-gate-stores">'
-      +     storeBtn('apple', BF.APP_STORE, 'App Store', soon ? 'Coming to the' : 'Download on the')
-      +     storeBtn('play',  BF.PLAY_STORE, 'Google Play', soon ? 'Coming to' : 'Get it on')
-      +   '</div>'
+      /* Signed out, this screen used to end the visit. Every tappable thing on
+         it was Privacy, Terms, billing and a mailto, so somebody who came to
+         start a trial had nowhere to go. Sign-in is not gated any more, so the
+         offer that brought them here is on the page they landed on.
 
-      +   (session
-            ? '<p class="bf-gate-note">You’re signed in. Your board is ready whenever you '
-              + 'open Beatfall on a larger screen.</p>'
-            : '<p class="bf-gate-note">The full board needs a bigger screen than this one, so '
-              + 'there isn’t a cramped version of it here.</p>')
+         The order of the next two blocks is decided by whether the stores are
+         live, because whichever one a person can actually use should be first.
+         While the buttons are inert notices, putting them above the only live
+         control on the screen buries it under two things that do nothing.
+         Filling in the two constants flips the order with everything else. */
+      +   (soon ? trialBlock() + storeBlock() : storeBlock() + trialBlock())
 
       +   '<div class="bf-gate-links">'
+      +     '<a href="/">About Beatfall</a><span>&middot;</span>'
       +     '<a href="/privacy.html">Privacy</a><span>&middot;</span>'
       +     '<a href="/terms.html">Terms</a><span>&middot;</span>'
       +     '<a href="/billing.html">How billing works</a><span>&middot;</span>'
@@ -746,6 +775,12 @@
       // Not a link yet, so it must not look like one you can press.
       '.bf-store-soon{background:none;color:var(--ink-3,#726859);',
       '  border-color:var(--rule,#E0D9CB);cursor:default}',
+      // The one thing on this screen that is an offer rather than an apology,
+      // so it is the only filled control on it.
+      '.bf-gate-go{display:block;text-align:center;text-decoration:none;',
+      '  padding:14px 18px;border-radius:9px;min-height:52px;box-sizing:border-box;',
+      '  background:var(--blue,#2C5C8F);color:#fff;font-size:16px;font-weight:600;',
+      '  letter-spacing:-.01em;margin:0 0 12px}',
       '.bf-gate-note{font-size:13.5px;line-height:1.55;color:var(--ink-3,#726859);margin:0 0 30px}',
       '.bf-gate-links{display:flex;flex-wrap:wrap;gap:9px;align-items:baseline;',
       '  font-size:13px;padding-top:20px;border-top:1px solid var(--rule,#E0D9CB)}',
@@ -757,9 +792,25 @@
 
     document.head.appendChild(css);
     document.body.appendChild(el);
-    // Nothing behind it should scroll, and nothing behind it should be
-    // reachable by a stray tab press either.
+
+    /* Both of these used to be one line and a comment that overstated it.
+       `overflow:hidden` on the root element does not hold a phone: the page
+       behind still scrolled, measured at 387px on an iPhone profile. It is the
+       body that scrolls there, and pinning it is what actually stops it. */
     document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+
+    /* And the comment claimed nothing behind the gate was reachable by a stray
+       tab press, which was never true: Tab walked straight into the covered
+       sign-in field and its submit button. Covering something is not the same
+       as removing it, and a screen reader never saw the cover at all. */
+    Array.prototype.forEach.call(document.body.children, function (child) {
+      if (child === el) return;
+      child.inert = true;                          // ignored where unsupported
+      child.setAttribute('aria-hidden', 'true');
+    });
   };
 
   BF.money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);

@@ -2769,3 +2769,96 @@ takeover has never been watched happening between two real browsers. Those are
 smaller and none of them is load-bearing the way the four were.
 
 Nothing was changed in this entry. It is a record that the gate is open.
+
+## 10 September 2026 (fourth pass): What a phone actually gets
+
+Kris asked what happens when somebody types beatfall.app into a mobile browser,
+and said he believed it mirrored the homepage, drove people to the app, and had
+been built so a new signup could not get away. Two of those three were not true.
+
+Everything below was driven in a real phone profile: 390 by 844, touch on,
+`pointer: coarse`, against the real pages rather than a copy.
+
+### What was there
+
+**The homepage was never gated.** Gating is decided by which pages load
+`app.js`, and the homepage stopped loading it when the app moved to `app.html`.
+So a phone got the full marketing homepage, which holds up well at 390px with
+no sideways scroll and no errors. It said nothing about a phone app anywhere.
+
+**The gate appeared one tap later, and it was a dead end.** Start 14 days free
+goes to `/login.html?start=1`, which is gated. Every tappable thing on that
+screen was Privacy, Terms, How billing works and a mailto. The two store
+buttons are correctly inert while the listings do not exist, so the complete
+set of things a visitor could do was read four links and leave.
+
+So the belief that a signup could not get away was the wrong way round. The
+sign-in form was on that page the whole time, underneath the gate. The best
+visitor Beatfall gets, somebody who heard about it and typed it into their
+phone, read a good pitch and left with nothing.
+
+### The fix, and why it is small
+
+The pieces were already built. The gate is drawn after `BF.init()` precisely so
+a magic link tapped on a phone is redeemed before anybody is told the screen is
+too small, and the gate already had the right words for a signed-in visitor.
+The only thing wrong was that it covered the one page that should not have it.
+
+`BF.init({ gate: false })` opts a page out. Sign-in is the only caller. The
+board still gates, because the board is a spatial thing and that decision has
+not changed. An account is not spatial.
+
+The gate itself now carries the offer that brought somebody there: Start 14
+days free when signed out, the existing "your board is ready on a larger
+screen" when signed in, and a link back to the homepage either way. While the
+stores are inert notices the trial button sits ABOVE them, because burying the
+only live control under two things that do nothing is the wrong order; filling
+in `BF.APP_STORE` and `BF.PLAY_STORE` flips it back, along with the copy.
+
+The sign-in page tells a phone where to open the link. Worth being exact,
+because this file has been wrong about it: tapping the link on the phone signs
+in the PHONE and spends the link. It does not sign in the laptop. The account
+exists after that, so a second link from the computer costs nothing, and the
+copy says so rather than leaving somebody thinking they have broken it.
+
+And the homepage has a section about the phone app, which it never had. Written
+as a plain fact with no fake buttons and no date.
+
+### Three defects found while in there
+
+**The scroll lock did not hold.** `overflow:hidden` on the root element is not
+enough on a phone: the page behind the gate still scrolled, measured at 387px.
+The body is pinned as well now.
+
+**Tab walked straight through the gate** into the covered sign-in field and its
+submit button, while the comment directly above the line claimed nothing behind
+it was reachable by a stray tab press. Every body child other than the gate is
+`inert` and `aria-hidden` now. Covering something is not removing it, and a
+screen reader never saw the cover at all.
+
+**`state` is null until `load()` runs, and `load()` does not run behind the
+gate.** `refreshOnReturn` is bound to window focus and `commitOutlineBoxes` to
+`beforeunload` and `visibilitychange`, so both threw every time a phone visitor
+came back to the tab. Nothing visible broke, which is why it survived. Both
+guard for it now. This one is older than this pass and fires on the
+device-setup failure and the load-failure screens too.
+
+### Testing
+
+18 mobile checks, all passing, in a phone profile with touch: the homepage is
+not gated and names the app, Start 14 days free reaches a real form, a phone
+can request a link and is told where to open it, the board still gates, the
+gate offers a way to start and a way home, the page behind no longer scrolls,
+Tab cannot reach it, the button lands on the form, a signed-in phone is told
+its board is waiting rather than being sold a trial again, and no page errors
+anywhere in that sequence.
+
+Everything else still passes: 81 flows, 55 regression, 18 money, 22 proxy, 16
+gate, 12 hook, 6 clean. The homepage's new section fits 390px and 1440px with
+no overflow at either.
+
+### Not done
+
+The homepage still hardcodes its own "coming to the App Store and Google Play"
+line, because it does not load `app.js` and cannot read those two constants.
+Two places to change on the day the listings go live, and both are commented.
