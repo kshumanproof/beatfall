@@ -22,6 +22,14 @@ beat costs nothing; a wrong one costs trust. AI placements gate on confidence �
 - **Less, not more.** Shorter answers. No caveats he didn't ask for.
 - **When he decides, execute.** Don't re-litigate a settled decision.
 - **When he says he's handling something, stop raising it.**
+- **Don't hand him a document at the end of a conversation.** "I don't need the
+  list. I need you to know it." Build the thing, report briefly in chat. The
+  exception is `WORKLOG.md`, which is the record for the next session rather
+  than something for him to read.
+
+**Priority order, 10 Sep 2026:** get the web app right, then mobile sync, then
+peripherals. Email design is deferred. Mobile work stays out of scope until he
+says otherwise, which is a change from the 2 Sep direction note further down.
 
 ## Hard constraints
 
@@ -31,34 +39,91 @@ beat costs nothing; a wrong one costs trust. AI placements gate on confidence �
 - **He runs commands in the VS Code terminal, which is Windows PowerShell.**
   `&&` is a parse error there. Chain with `;` instead, and give the whole
   command on one line ready to paste.
+- **End every work session by handing him that command**, add, commit and push
+  on one line. Not "you can commit now". The command, ready to paste.
 - **Never ask for or handle an API key, secret, or service_role key.** Keys go
   from the source site straight into Vercel's env box. Never screenshot one.
 - I don't create his accounts, enter payment details, or deploy for him.
 - Deliver files with `SendUserFile` → `device_commit_files`. Never base64 patches.
 
-## Current state (2 Sep 2026)
+## Current state (10 Sep 2026)
 
 Deployed at beatfall-beta.vercel.app. Auth, database, billing and the AI
-pipeline work end to end. Stripe is in test mode. Domain not pointed. No writer
-outside Kris has used it. Design pass done; handoff sent to a designer and an
-engineer for review — feedback pending.
+pipeline work end to end. Stripe is in test mode. `beatfall.app` is bought and
+not pointed. No writer outside Kris has used it.
 
-Stack: one 4,900-line `public/index.html` (no build step), seven Vercel
-serverless functions in `api/`, Supabase Postgres with row-level security,
-Claude Haiku 4.5 behind a metered server-side proxy, Stripe Checkout + portal.
+**Which file is which.** `public/app.html` is the application, about 10,000
+lines, no build step. `public/index.html` is the marketing homepage and nothing
+else. Older sections of this file predate that split and say `index.html` when
+they mean the app; read them that way. `public/app.js` is the platform layer
+(`BF`) that every signed-in page loads, and loading it is also what puts a page
+behind the small-screen gate.
 
-Pricing: 14-day card-free trial, then $12/mo or $99/yr, 150 credits a month.
-Placing notes is free forever. A whole conversation is 1 credit, an import 2.
+Nine Vercel functions in `api/`: account, admin, billing, claude, cleanup,
+config, projects, session, stripe-webhook. Supabase Postgres with row-level
+security, Claude Haiku 4.5 behind a metered server-side proxy, Stripe Checkout
+and portal.
+
+Pricing: 14-day card-free trial, then $12/mo or $99/yr, **100 credits a month**,
+top-up **40 credits for $6**. Placing notes is free forever. A conversation is
+1 credit, an import 2, a character interview 2.
+
+**Every one of those numbers lives in `api/_lib/core.js` and nowhere else.**
+`/api/config` is public and serves them to signed-out pages; `/api/account`
+serves them to signed-in ones. If you are about to type a price or an allowance
+into an HTML file, you are about to reintroduce a bug that has now been fixed
+three times. The one deliberate exception is `terms.html`, which keeps plain
+text because a contract should not shift under the reader.
 
 ## Verifying a change
 
-There is no test suite. `/home/claude/mkstub.js` builds an offline copy of
-`index.html` with `BF` stubbed and the real jsPDF, and the `v*.js` Playwright
-scripts drive the real UI headlessly. Run them after any board change. They
-catch structural breakage, not judgement.
+**There is a test suite, and it is the only thing that records what shipped.**
+`WORKLOG.md` records intent. Three features were written up as finished on
+9 September and were not in the file; the suite is what caught it.
 
-The model is non-deterministic — two identical import runs move a beat or two.
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js
+    node flows.js
+
+    cd test/server
+    node setup.js
+    node money.js ; node proxy.js ; node gate.js ; node hook.js ; node clean.js
+
+210 checks. `mkstub.js` stubs only the three external script tags in the real
+`app.html`, so what runs is the shipped code and never a copy of it. The server
+suites copy the real endpoint files and swap exactly two things, `requireUser`
+and the database handle. **Never re-implement logic inside a test to observe
+it**: that is how a fold rule once went four rounds without the shipped number
+moving.
+
+Both need `playwright` and a Chromium; `test/package.json` exists because the
+root `package.json` declares `type: module` and these suites are CommonJS.
+`test/stub.html` and `test/app.html` are generated and gitignored, so a second
+copy of app.html cannot get into the repo.
+
+Rebuild the stub from the app.html on disk and run the suite **before trusting
+any claim in `WORKLOG.md`, including one made by the session that just wrote
+it.**
+
+What the suite does not cover: anything against real Supabase, real Stripe or
+the real Anthropic API. The fake database is not Postgres, so row-level
+security, column defaults, foreign keys and PostgREST's own grammar are all
+outside it. Four checks still need a real account: one conversation, one
+import, `?dry=1` on cleanup, and a cancel-then-delete cycle.
+
+`admin.html` and `settings.html` are NOT in the stub, so a check written
+against `app.html` says nothing about them. That is how both went on quoting a
+monthly price to annual subscribers after the board stopped.
+
+The model is non-deterministic: two identical import runs move a beat or two.
 No single run proves anything.
+
+Anything in older sections that names a `/home/claude/v*.js` or `/tmp/v*.js`
+script is describing a check that ran in a throwaway workspace and is not in
+the repo. The reasoning in those sections is still good; the file paths are
+gone.
 
 ## Direction change: mobile companion (2 Sep 2026)
 
@@ -255,50 +320,65 @@ Measured against our own grounds:
 
 ## Before ten writers touch it
 
-Ordered. Everything in the first group changes whether the test is worth running.
+Rewritten 10 Sep 2026 against what is actually true. Most of the original list
+is done; what remains is mostly things that cannot be proved from a keyboard
+here.
 
-**Blocks the test**
-1. Re-run `supabase/schema.sql` — `api/admin.js` is deployed against a
-   `card_count` column a trigger maintains. If the SQL hasn't been re-run, the
-   admin dashboard is failing. File is idempotent. *(Kris's action)*
-2. Push the audit fixes (PDF export repair, dead code, stale comments). *(Kris)*
-3. **Instrument events.** The app records exactly one client event:
-   `first_run_choice`. The test would produce impressions, not data. Need
-   `import_done` (notes in, beats filled), `card_placed`, `conversation_started`,
-   `conversation_carded`, `ideas_used`, `project_created`, `board_returned`.
-   `events` table and `BF.track` already exist.
-4. Tester pack — invitation, what to try first, honest known-issues note, how to
-   send feedback.
+**Still open, and it is the real gate**
 
-**Would distort the results**
-5. Phone layout. At 390px the page scrolls to 491px; the project name prints on
-   top of the beat tally; the capture field squeezes to ~11 characters. Board and
-   cards are fine — it's the header and the dock. Fix, or scope the test to
-   desktop deliberately. *(needs Kris's call)*
-6. Out of credits says nothing. Only signal is a red number inside a closed
-   popover; "Ask what's missing" stays offered and fails when clicked.
-7. A failing save is invisible. Over the 400KB cap the client retries every 5s
-   forever behind an 11px grey "not saved — retrying". ~400 long notes reaches it.
-   A 401 hard-redirects to login, taking unsaved work with it.
-8. Nothing happens after an import finishes — no pointer at the widest gap.
-9. The trial ends silently on day 14. No email, no warning.
+1. **Four checks that need a real account.** Nothing on the server has ever run
+   against real Supabase, real Stripe or the real Anthropic API. The suites use
+   a stand-in database and stub both services at the boundary, so what is tested
+   is how the code behaves given an answer, not whether it is the answer those
+   services would give. Needed: one real conversation, one real import, `?dry=1`
+   on cleanup with `CRON_SECRET`, and a cancel-then-delete cycle on a throwaway
+   account. *(Kris's action. This is the largest remaining unknown.)*
+2. **Billing edges, live.** `4000 0000 0000 0341` for past_due; the $6 top-up
+   webhook has still never fired for real; resend `subscription.updated` to
+   backfill a renewal date. The webhook has 12 checks against a fake Stripe and
+   0 against Stripe.
+3. **Seven of nine structures have never run against real notes.** They all
+   render and all carry cards through a structure switch, which is structural,
+   not judgement. Short film first.
+4. **Tester pack.** Invitation, what to try first, an honest known-issues note,
+   how to send feedback.
+5. **Device takeover, second browser, live.** The logic is in `api/session.js`
+   and `requireUser`; it has never been watched happening between two real
+   browsers.
 
-**Verify, don't build**
-10. A conversation costs 1 credit, not 5, on the live build. Written, never
-    confirmed against production.
-11. Seven of nine structures never run against real notes. Short film first.
-12. Billing edges: `4000 0000 0000 0341` → past_due; the $6 top-up webhook has
-    never fired; resend `subscription.updated` to backfill the renewal date.
-13. Second browser; `/admin.html` refuses a non-admin account.
-14. Export the JSON and read it; then delete a throwaway account. Do this last.
+**Done since this list was written**
+
+- `supabase/schema.sql` has been re-run. Verified live on 10 Sep: with the
+  public anon key, `PATCH` and `DELETE` on `profiles` and `INSERT` on `events`
+  all answer `42501 permission denied`, which is the grant being gone rather
+  than a policy refusing the row.
+- Events are instrumented. 25 `BF.track` call sites, including
+  `import_started` / `import_completed` / `import_failed`, `project_created`,
+  `placed_by_hand`, `placement_suggested`, `character_interview_started`,
+  `ask_missing_used`, `export_used` and the onboarding funnel.
+- Out of credits says so, in three places: the pill goes gold at the low mark,
+  a strip appears at the last mark, the server answers where the writer is
+  standing, and since 10 Sep the import sheet says up front when the balance
+  will not cover the read.
+- A failing save is visible. A minute of failures raises a strip that says
+  nothing has been lost and hands over the whole tab as a file, and the strip
+  comes down when saving recovers.
+- The trial does not end silently. Two notices, a week out and two days out,
+  each shown once ever, keyed to the account rather than the browser.
+- Phone layout is answered by the small-screen gate rather than fixed: a phone
+  gets the app, not the board. See that section.
+- `/admin.html` refuses a non-admin: the request 401s and the page shows its
+  denied state with no figures drawn.
+- The audit fixes are pushed, twice over.
 
 **Decided, not forgotten**
-15. Settings modal doesn't trap focus (tabbing escapes it). Escape works.
-16. Board wrapping — four beats per row at 1440px, a fifth misses by six pixels.
-    Card 262→250 would fit five. Design question, not a bug.
-17. The mark — four candidates drawn, none adopted, with the designer.
-18. Pre-launch legal cleanup — **Kris owns this and has said so. Do not raise it.**
-19. Go live: domain, Stripe live mode, Anthropic spend cap, sign-in email design.
+
+- Settings does not trap focus, though Escape closes it and every sheet.
+- Board wrapping: four beats per row at 1440px, a fifth misses by six pixels.
+  Card 262 to 250 would fit five. Design question, not a bug.
+- Pre-launch legal cleanup. **Kris owns this and has said so. Do not raise it.**
+- Go live: point the domain, Stripe live mode, Anthropic spend cap, sign-in
+  email design. Email design is deferred by Kris as of 10 Sep.
 
 **Ten-writer test stays pinned at the bottom** until Kris says otherwise.
 
@@ -377,8 +457,12 @@ had the room once the tagline left.
 
 ## Copy rule: no em dashes (2 Sep 2026)
 
-Kris asked for none anywhere, and there are none: every page, `app.js` and
-`theme.css` are at zero, comments included. Do not reintroduce them.
+Kris asked for none anywhere, and there are none. The audited set has grown as
+each new place turned out to have some: every page, `app.js`, `theme.css`, then
+`api/` and `supabase/schema.sql` on 10 Sep, then `package.json`'s own
+description. Check with `grep -c "—"` on every file you touch and expect 0.
+"Anywhere" includes comments, and it includes this file from 10 Sep forward,
+though the older sections above still carry them.
 
 **I reintroduced seven of them on 3 Sep and Kris caught it.** They crept in
 through new copy written in a conversational register, which is exactly how a
@@ -441,8 +525,9 @@ place, because it is spread across six files.
 
 ### Two buckets
 
-- **Monthly** = plan.credits (150). Resets on the 1st. Whatever is left of it
-  evaporates. It is what `credits_used` counts against.
+- **Monthly** = plan.credits (100 since 10 Sep, 150 before that). Resets on the
+  1st. Whatever is left of it evaporates. It is what `credits_used` counts
+  against.
 - **Banked** = `credits_extra`. Bought. Never renews, never expires, and is
   only touched once the month's allowance is gone.
 
@@ -459,15 +544,27 @@ which walks the spillover and asserts a new month still reads 150.
 
 ### Pricing
 
-Pack is **50 credits for $6**, down from 100. Not a cost decision: measured
-cost is about a penny a credit, so 100/$6 was still 80% margin. It is an
-anchoring decision. The plan is 150 for $12 (8c a credit); a pack at 100/$6
-was 6c, ie CHEAPER than subscribing, which taught people to skip the plan.
-50/$6 is 12c, so the plan is plainly the better deal.
+**Current, 10 Sep 2026: the plan is 100 credits for $12, the pack is 40 for $6.**
+The dollar prices have never moved. Everything below is why the shape is what
+it is, and the reasoning survived the change even though both numbers did not.
 
-Measured with `/home/claude/cost.js` and `cost2.js`, which drive the real
-flows with a fake `ai_sample` and size the actual payloads: a 3-turn
-conversation is $0.0064, a 200-note import is $0.0333.
+A pack is priced ABOVE the subscription rate on purpose. At 100 for $12 a plan
+credit is twelve cents and a pack credit is fifteen, so the pack cannot undercut
+the plan. It used to be able to: a pack at 100 for $6 was six cents, CHEAPER
+than subscribing, which taught people to skip the plan. That is what the pack
+first shrinking to 50 and then to 40 was correcting.
+
+The pack is deliberately not smaller than 40. At 30 a heavy month would make the
+same person buy twice, and two purchase decisions is where goodwill goes.
+
+None of this was a cost decision. Measured cost is about a penny a credit: a
+3-turn conversation is $0.0064 and a 200-note import is $0.0333, sized against
+the real payloads. Even the old 100 for $6 was 80% margin.
+
+Kris's reasoning for the 150 to 100 move, in his words: the middle ground
+between letting a writer feel unlimited and opening a second path of revenue
+through the packs. Somebody burning through 100 in a month is relying on this,
+and a person relying on it will buy capacity rather than ration themselves.
 
 ### Warnings
 
@@ -475,10 +572,28 @@ Counted DOWN in credits, never up in percent. "Eight left" is actionable;
 "95% used" is not. Kris proposed 95%; that is 8 credits, one evening, too late
 to be a warning.
 
-- **30 left** a gold count rides on the Account pill. No interruption.
-- **10 left** one strip above the dock, dismissible, once per credit period
+**The two marks are a SHARE of the allowance, not fixed numbers.** 30 and 10
+were set against the 150 a paid month used to carry, and a flat 30 fired the low
+warning on a trial that had not spent anything, so a writer's first ever screen
+told them they were nearly out. They are the fifth and the fifteenth those
+numbers always meant, whichever is lower: **at 100 that is 20 and 7, at the
+trial's 25 it is 5 and 2**, and at the old 150 it is still exactly 30 and 10.
+This is why moving the allowance did not need the warning code touched.
+
+- **low mark** a gold count rides on the Account pill, top right. No
+  interruption.
+- **last mark** one strip above the dock, dismissible, once per credit period
   (`beatfall.lowseen` in localStorage, keyed to `period_start`).
 - **0** the message comes from the server where the writer is standing.
+
+`lowMark` and `lastMark` live in `api/_lib/core.js`, and `/api/config` serves
+all four figures so `billing.html` can print the real ones. `app.html` keeps its
+own copy of the two formulas on purpose, because the pill has to be right before
+`/api/account` answers. Two copies, deliberately, and a comment on each saying
+so. If you change the shares, change both.
+
+Documenting these as literals is how `billing.html` came to advertise 30 and 10
+for a day after the app had moved to 20 and 7. Print them, do not type them.
 
 ### Access when a plan ends
 
@@ -613,12 +728,26 @@ Two things to know before editing it.
 **Every number on the plan card comes from `/api/admin`**, in the `pricing`
 object built from `core.js`. The top-up used to be hardcoded in the template,
 which is why it went on saying 100 for $6 after the pack became 50. Nothing on
-that card should be a literal again.
+that card should be a literal again. There is one fallback literal left, the
+`d.pricing || {...}` that keeps an older deployed API from blanking the card;
+it carried the old 50 for a day, so if the pack moves, move that too.
 
-**The account pill is duplicated CSS.** `index.html` does not load `theme.css`,
-so `.acct`, `.avatar` and the `.pop*` rules live inline in index, admin AND
-settings. Change one, change all three. The admin copy drops the Admin row (you
-are standing on it) and the product-tour item, and adds Board.
+**The account pill is duplicated THREE WAYS, and the duplication is not only
+CSS.** `app.html` does not load `theme.css`, so `.acct`, `.avatar` and the
+`.pop*` rules live inline in the app, admin AND settings. The admin copy drops
+the Admin row (you are standing on it) and the product-tour item, and adds
+Board.
+
+**The JavaScript that fills it is duplicated the same three ways**, and that is
+the more expensive half. On 9 Sep the board's version was fixed to stop reading
+"Beatfall - $12 a month" at people paying $99 a year; the other two were not
+touched, and went on saying it until 10 Sep. All three now build the same
+string: the plan, then `ends` or `renews` and the date, from
+`current_period_end` and `cancel_at_period_end`.
+
+**Change one, change all three.** And note that the offline suite builds its
+stub from `app.html` only, so a check on the board's pill proves nothing about
+the other two. That is exactly how this one survived.
 
 The owner allowance is `1000000`, a stand-in for infinity. Anywhere it could
 reach a screen it prints as an infinity sign instead.
@@ -1407,9 +1536,16 @@ Held down by `/home/claude/voutline2.js`.
 floating halfway up. Fixed children (the capture dock, `.acct`, every scrim)
 are out of flow and unaffected.
 
-The account pill stays fixed bottom-left. The footer reserves an 84px band at
-its foot for exactly that, so scrolling to the bottom lands the pill in a space
-left for it rather than on top of the brand.
+**Superseded, and worth knowing because two other files repeated it.** The
+account pill was fixed bottom-left when this was written, and the footer
+reserved an 84px band at its foot so scrolling to the bottom landed the pill in
+a space left for it rather than on top of the brand. The pill moved into the top
+bar when the header was rebuilt on 3 September (see "Characters, and the top
+bar"), and it is top RIGHT now, in the third group of that bar.
+
+Nothing followed it. `billing.html` went on telling writers the low-credit count
+appears "bottom left" for a week, and this paragraph is why. If a control moves,
+grep the pages and this file for where it was.
 
 ## Scoreboard cell copy (2 Sep 2026)
 
