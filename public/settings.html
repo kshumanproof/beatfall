@@ -177,7 +177,13 @@
       <h2>Your data</h2>
       <div class="row">
         <button class="btn" id="export">Download everything</button>
-        <span class="muted">Every project, card and note as a single JSON file. No conditions.</span>
+        <!-- This is the escape hatch, not a reading copy, and the difference
+             is worth one sentence. A PDF cannot be loaded back into anything,
+             so as a way of leaving with your work it would be worse than
+             useless. The readable version is the board export, per script. -->
+        <span class="muted">Every project, card and note as a single JSON file, so nothing is
+          locked in. No conditions. For something to read or send, export a board as a PDF from
+          the project itself.</span>
       </div>
     </div>
 

@@ -77,6 +77,22 @@ export default function Capture() {
     setTally(counts);
   }, []);
 
+  /* Pull down on the list to sync by hand.
+   *
+   * Deliberately NOT a Send button. A Send button says notes might not go
+   * unless you press it, which is the one thing this app must never imply:
+   * they always go, and they are safe before they do. This is the same pull
+   * that means "check again" everywhere else, and it does both halves of the
+   * errand at once, sends what is waiting and clears what the desk has
+   * already sorted. */
+  const [pulling, setPulling] = useState(false);
+  const pull = useCallback(async () => {
+    setPulling(true);
+    try { await runSync(); } catch (e) {}
+    await refresh();
+    setPulling(false);
+  }, [refresh]);
+
   useEffect(() => { refresh(); }, [refresh]);
 
   /* Sync runs when there is a reason to, never on a timer. Launch, and coming
@@ -188,7 +204,7 @@ export default function Capture() {
         >
           <Text style={s.scriptRail}>TO</Text>
           <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
-            {script ? String(script.name).toUpperCase() : 'Not filed yet'}
+            {script ? String(script.name).toUpperCase() : 'No script yet'}
           </Text>
           <Text style={s.scriptGo}>Change</Text>
         </Pressable>
@@ -237,10 +253,27 @@ export default function Capture() {
       </View>
 
       {/* -------------------------------------------------------- recent -- */}
+      {/* Send appears ONLY when something is genuinely waiting. A button that
+          sits there permanently would say notes need sending, and they do not:
+          they go on their own, and they are safe on this phone before they do.
+          When it appears it means something is still here, which is worth
+          seeing. No confirmation behind it, because pressing Send already
+          answered that question. */}
       <View style={s.railHead}>
         <Text style={s.rail}>ON THIS PHONE</Text>
         <View style={s.hair} />
-        {rows.length > 0 && <Text style={s.railHint}>hold to delete</Text>}
+        {SYNC_ENABLED && tally.waiting > 0 ? (
+          <Pressable onPress={pull} disabled={pulling} hitSlop={10}
+            style={({ pressed }) => [s.send, pressed && s.scriptDown]}
+            accessibilityRole="button"
+            accessibilityLabel={`Send ${tally.waiting} waiting notes now`}>
+            <Text style={s.sendText}>
+              {pulling ? 'Sending' : tally.waiting + ' waiting \u00b7 Send'}
+            </Text>
+          </Pressable>
+        ) : rows.length > 0 ? (
+          <Text style={s.railHint}>hold to delete</Text>
+        ) : null}
       </View>
 
       <FlatList
@@ -248,6 +281,8 @@ export default function Capture() {
         keyExtractor={(r) => r.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        refreshing={pulling}
+        onRefresh={SYNC_ENABLED ? pull : undefined}
         contentContainerStyle={[s.list, { paddingBottom: inset.bottom + 28 }]}
         ListEmptyComponent={
           <Text style={s.empty}>
@@ -263,7 +298,7 @@ export default function Capture() {
                 <Text style={s.stamp}>{when(item.created_at)}</Text>
                 {item.project_name
                   ? <Text style={s.stamp} numberOfLines={1}>· {String(item.project_name).toUpperCase()}</Text>
-                  : <Text style={s.pend}>· not filed</Text>}
+                  : <Text style={s.pend}>· no script</Text>}
                 {stuck(item) && <Text style={s.pend}>· waiting to sync</Text>}
               </View>
             </View>
@@ -354,6 +389,9 @@ const sheet = (c) => StyleSheet.create({
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, marginTop: 26, marginBottom: 12 },
   rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
   railHint: { fontFamily: font.sans, fontSize: 10.5, color: c.ink4 },
+  send: { backgroundColor: c.blueSoft, borderWidth: 1, borderColor: c.blue,
+    borderRadius: radius.ctl, paddingHorizontal: 11, paddingVertical: 6 },
+  sendText: { fontFamily: font.sansSemi, fontSize: 11.5, color: c.blueInk },
   hair: { flex: 1, height: 1, backgroundColor: c.ruleSoft },
 
   list: { paddingHorizontal: 20, gap: 10 },

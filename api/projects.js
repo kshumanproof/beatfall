@@ -23,7 +23,22 @@ export default async function handler(req, res) {
         && new URL(req.url, 'http://x').searchParams.get('list') === '1';
   } catch (e) {}
 
-  const auth = await requireUser(req, slim ? { webDevice: false } : undefined);
+  /* Starting a NEW script is exempt from the lock as well, for the same
+     reason. The lock exists so two browsers cannot save over each other's
+     board; a create has no existing row to save over. Without this, naming a
+     script on a phone came back "device_required", because the phone is not a
+     browser holding the desk's editing claim and never should be.
+
+     The body is read before auth here on purpose: whether this is a create
+     decides which auth rules apply. readBody caches nothing the auth needs. */
+  let body = null;
+  let creating = false;
+  if (req.method === 'POST') {
+    body = await readBody(req);
+    creating = !!(body && body.project && !body.project.id);
+  }
+
+  const auth = await requireUser(req, (slim || creating) ? { webDevice: false } : undefined);
   if (auth.error) return send(res, auth.status, { error: auth.error });
   const { db, user, profile } = auth;
 
@@ -79,7 +94,7 @@ export default async function handler(req, res) {
 
   // --------------------------------------------------------------- write --
   if (req.method === 'POST') {
-    const body = await readBody(req);
+    if (!body) body = await readBody(req);
     const p = body.project;
     if (!p || typeof p !== 'object') return send(res, 400, { error: 'bad_request' });
 

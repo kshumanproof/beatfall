@@ -6054,10 +6054,18 @@ function paintImportBalance(){
     : "You have " + left + " credit" + (left === 1 ? "" : "s") + " left and this read costs "
       + CREDIT.import + ", so it will be refused.")
     + " Nothing is charged for trying, and your notes stay in the box.";
+  /* A writer on a trial who runs dry should be shown the plan, not a credit
+     pack. A pack is the right answer for a subscriber having a heavy month; on
+     a trial it is a worse deal offered at the exact moment somebody is deciding
+     whether this thing is worth paying for. */
+  const buy = document.getElementById("dumptopup");
+  if (buy) buy.textContent = (ME && ME.trialing) ? "See plans" : "Add credits";
   line.hidden = false;
 }
 
 document.getElementById("dumptopup").addEventListener("click", async ev => {
+  // On a trial this is a signpost, not a purchase.
+  if (ME && ME.trialing){ location.href = "/settings.html#plan"; return; }
   const b = ev.currentTarget, was = b.textContent;
   b.disabled = true; b.textContent = "Opening…";
   try {
@@ -6164,13 +6172,31 @@ function pendingGroups(){
    specific and different every morning. */
 const HELLO = "Howdy.";
 
-// Which notes have already been offered, so returning to a tab does not
-// re-ask about the same batch.
-let offered = new Set();
+/* WHEN THE GREETING IS ALLOWED TO INTERRUPT.
+ *
+ * Kris's rule, and it is the right one: a fresh sign in, or a gap of more than
+ * twelve hours. That is the shape of the thing this feature is for, coming
+ * back to the desk the morning after. Any other time the notes simply appear
+ * on the dashboard and the writer finds them when they look.
+ *
+ * The alternative was a dialog every time a tab regained focus, which turns
+ * the one good moment of this feature into a toll booth on the way back from
+ * every other tab. */
+const SEEN_KEY = "beatfall.desk.seen";
+const QUIET_FOR = 12 * 60 * 60 * 1000;
+
+function deskWasHereRecently(){
+  try {
+    const t = Number(localStorage.getItem(SEEN_KEY));
+    return !!t && (Date.now() - t) < QUIET_FOR;
+  } catch (e) { return false; }
+}
+function markDeskHere(){
+  try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {}
+}
 
 function showPhoneHello(){
   if (!PENDING.length) return;
-  PENDING.forEach(c => offered.add(c.id));
   const groups = pendingGroups();
   const n = PENDING.length;
   const g = groups.length;
@@ -6276,13 +6302,13 @@ async function recheckCaptures(){
   if (lookingAgain || document.hidden) return;
   lookingAgain = true;
   try {
-    const before = PENDING.length;
     await loadCaptures();
     if (state && state.view === "slate") renderSlate();
-    // Only greet about notes this tab has not already offered, and never over
-    // something the writer already has open.
-    const fresh = PENDING.filter(c => !offered.has(c.id));
-    if (fresh.length && scrim.hidden && PENDING.length !== before) showPhoneHello();
+    /* No greeting here, ever. Coming back to a tab you left open is not
+       arriving, and a dialog in front of somebody who was mid-thought two
+       minutes ago is an interruption dressed as a welcome. The count on the
+       dashboard is the whole notification. */
+    markDeskHere();
   } catch (e) {}
   lookingAgain = false;
 }
@@ -7530,9 +7556,17 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
       // A failed read used to fall through to the built-in matcher without saying
       // so, which looked exactly like a successful one. It says so now.
       document.getElementById("dumpcount").innerHTML =
-        "<b>Couldn't read that file.</b> Nothing was added. Your text is still above. "
-        + "Try again, or split it into two files."
-        + (e && e.code === "out_of_credits" ? " (You're out of credits this month.)" : "");
+        /* Being out of credits is not a failure to read, and saying "try
+           again, or split it into two files" to somebody who cannot afford
+           the read sends them round in a circle doing the one thing that
+           cannot work. Two different events, two different sentences. */
+        (e && (e.code === "out_of_credits" || e.code === "no_plan")
+          ? "<b>" + esc(BF.explain(e)) + "</b> Nothing was charged and your notes are "
+            + "still in the box. " + (ME && ME.trialing
+                ? "Picking a plan opens this straight away."
+                : "Credits reset on the 1st.")
+          : "<b>Couldn't read that file.</b> Nothing was added. Your text is still above. "
+            + "Try again, or split it into two files.");
       go.disabled = false; go.textContent = "Try again"; stop.hidden = true; dumpCtl = null;
       return;
     }finally{
@@ -9831,7 +9865,7 @@ function paneData(){
     + '<p class="pane-sub">Yours to take, whenever you want it.</p>'
     + '<div id="paneflash" hidden></div>'
     + row("Download everything",
-        "Every project, card and note as a single JSON file.",
+        "Every project, card and note as a single JSON file, so nothing is locked in. For something to read or send, export a board as a PDF from the project itself.",
         '<button class="btn" id="s-export">Download</button>')
     + row("Who can see your writing",
         "The database locks your work to your account, and our normal admin tools can count "
@@ -10202,10 +10236,11 @@ function showLoadFailure(){
      not open at all when there is nothing waiting. */
   await loadCaptures();
   renderSlate();
-  if (PENDING.length){
+  if (PENDING.length && !deskWasHereRecently()){
     showPhoneHello();
     BF.track("phone_notes_offered", {count: PENDING.length});
   }
+  markDeskHere();
 })();
 
 /* This sheet opens twice over: once by itself on an empty account, and any

@@ -210,7 +210,7 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
                 accessibilityRole="button"
                 accessibilityState={{ selected: !current }}
               >
-                <Text style={[s.name, s.nameNone, !current && s.nameOn]}>NOT FILED YET</Text>
+                <Text style={[s.name, s.nameNone, !current && s.nameOn]}>NO SCRIPT YET</Text>
                 {!current && <Text style={s.tick}>Currently</Text>}
               </Pressable>
             }
