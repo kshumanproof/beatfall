@@ -6336,6 +6336,28 @@ async function recheckCaptures(){
 document.addEventListener("visibilitychange", () => { if (!document.hidden) recheckCaptures(); });
 window.addEventListener("focus", recheckCaptures);
 
+/* AND A CHECK WHILE YOU ARE SITTING THERE.
+ *
+ * The events above only fire when you LEAVE and come back. A writer who sends
+ * from their phone while the dashboard is open in front of them never leaves,
+ * so nothing fires, and the count sits at whatever it was until they think to
+ * press F5. Pressing Send on a phone and watching a desktop not react is the
+ * feature failing in the one moment somebody is watching it work.
+ *
+ * Narrow on purpose. Only while the tab is actually visible, only while the
+ * dashboard is the view being looked at, and stopped the moment either stops
+ * being true. That is a request every twenty seconds for the few minutes
+ * somebody is looking at a dashboard, and none at all the rest of the day. */
+const WATCH_EVERY = 20000;
+let watchTimer = null;
+function watchForNotes(){
+  clearInterval(watchTimer);
+  watchTimer = setInterval(() => {
+    if (document.hidden || !state || state.view !== "slate"){ clearInterval(watchTimer); watchTimer = null; return; }
+    recheckCaptures();
+  }, WATCH_EVERY);
+}
+
 document.getElementById("phonelater").addEventListener("click", () => {
   BF.track("phone_notes_deferred", {count: PENDING.length});
   closeImport();
@@ -9147,6 +9169,10 @@ function renderSlate(){
   // How far along one script is, and whether it has gone cold, are facts about
   // that script. They belong on its own page, not on the shelf of all of them.
   renderScore({empty});
+
+  // The dashboard is the only view that shows the phone's queue, so it is the
+  // only view that watches for it.
+  if (typeof watchForNotes === "function" && !document.hidden) watchForNotes();
 
   /* Grouped by what they are: features with features, television with
      television. The headings only appear when there is more than one group -

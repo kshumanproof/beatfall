@@ -77,21 +77,37 @@ export default function Capture() {
     setTally(counts);
   }, []);
 
-  /* Pull down on the list to sync by hand.
+  /* SEND.
    *
-   * Deliberately NOT a Send button. A Send button says notes might not go
-   * unless you press it, which is the one thing this app must never imply:
-   * they always go, and they are safe before they do. This is the same pull
-   * that means "check again" everywhere else, and it does both halves of the
-   * errand at once, sends what is waiting and clears what the desk has
-   * already sorted. */
-  const [pulling, setPulling] = useState(false);
-  const pull = useCallback(async () => {
-    setPulling(true);
-    try { await runSync(); } catch (e) {}
+   * A pull-to-refresh works, but only if you already know it is there, which
+   * is not a thing to build a product's one deliberate action on. This is a
+   * button, it floats above everything, and it is the trigger.
+   *
+   * It appears only when something is genuinely waiting. A Send button sitting
+   * there permanently would say notes need sending, and they do not: they go
+   * on their own, and they are safe on this phone before they do. When it
+   * appears, it means something really is still here. */
+  const [sending, setSending] = useState(false);
+  const [justSent, setJustSent] = useState(0);
+  const [everSent, setEverSent] = useState(false);
+  const send = useCallback(async () => {
+    if (sending) return;
+    setSending(true);
+    let r = null;
+    try { r = await runSync(); } catch (e) {}
     await refresh();
-    setPulling(false);
-  }, [refresh]);
+    if (r && r.sent) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      setEverSent(true);
+      setJustSent(r.sent);
+      setTimeout(() => setJustSent(0), 4000);
+    } else if (r && !r.ok) {
+      Alert.alert('Not sent yet',
+        "Beatfall couldn't reach the server, so your notes are still here and nothing is lost. "
+        + 'They will go on their own as soon as you have signal.');
+    }
+    setSending(false);
+  }, [refresh, sending]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -101,8 +117,13 @@ export default function Capture() {
   useEffect(() => {
     if (!SYNC_ENABLED) return undefined;
     let gone = false;
-    const go = () => runSync().then(() => { if (!gone) refresh(); });
+    const go = () => runSync().then((r) => {
+      if (gone) return;
+      if (r && r.sent) setEverSent(true);
+      refresh();
+    });
     go();
+    store.sentTally().then((n) => { if (!gone && n > 0) setEverSent(true); });
     const stop = watchForeground();
     return () => { gone = true; stop(); };
   }, [refresh]);
@@ -253,27 +274,10 @@ export default function Capture() {
       </View>
 
       {/* -------------------------------------------------------- recent -- */}
-      {/* Send appears ONLY when something is genuinely waiting. A button that
-          sits there permanently would say notes need sending, and they do not:
-          they go on their own, and they are safe on this phone before they do.
-          When it appears it means something is still here, which is worth
-          seeing. No confirmation behind it, because pressing Send already
-          answered that question. */}
       <View style={s.railHead}>
-        <Text style={s.rail}>ON THIS PHONE</Text>
+        <Text style={s.rail}>WAITING TO SEND</Text>
         <View style={s.hair} />
-        {SYNC_ENABLED && tally.waiting > 0 ? (
-          <Pressable onPress={pull} disabled={pulling} hitSlop={10}
-            style={({ pressed }) => [s.send, pressed && s.scriptDown]}
-            accessibilityRole="button"
-            accessibilityLabel={`Send ${tally.waiting} waiting notes now`}>
-            <Text style={s.sendText}>
-              {pulling ? 'Sending' : tally.waiting + ' waiting \u00b7 Send'}
-            </Text>
-          </Pressable>
-        ) : rows.length > 0 ? (
-          <Text style={s.railHint}>hold to delete</Text>
-        ) : null}
+        {rows.length > 0 && <Text style={s.railHint}>hold to delete</Text>}
       </View>
 
       <FlatList
@@ -281,13 +285,16 @@ export default function Capture() {
         keyExtractor={(r) => r.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        refreshing={pulling}
-        onRefresh={SYNC_ENABLED ? pull : undefined}
         contentContainerStyle={[s.list, { paddingBottom: inset.bottom + 28 }]}
+        /* Two different empties, two different sentences. Nothing caught yet
+           is not the same as everything caught and safely home, and telling a
+           writer "nothing captured yet" ten seconds after they sent four notes
+           reads as though the notes are gone. */
         ListEmptyComponent={
           <Text style={s.empty}>
-            Nothing captured yet. Whatever you type up there lands here and stays
-            here, signal or no signal.
+            {everSent
+              ? 'Nothing waiting. Everything you have caught is on your account, ready to sort at your desk.'
+              : 'Nothing caught yet. Whatever you type up there lands here and stays here, signal or no signal.'}
           </Text>
         }
         renderItem={({ item }) => (
@@ -305,6 +312,27 @@ export default function Capture() {
           </Pressable>
         )}
       />
+
+      {SYNC_ENABLED && tally.waiting > 0 && (
+        <Pressable
+          onPress={send}
+          disabled={sending}
+          style={({ pressed }) => [s.fab, { bottom: inset.bottom + 18 }, pressed && s.fabDown]}
+          accessibilityRole="button"
+          accessibilityLabel={`Send ${tally.waiting} notes to your account`}
+        >
+          <Text style={s.fabText}>
+            {sending ? 'Sending\u2026'
+                     : 'Send ' + tally.waiting + ' note' + (tally.waiting === 1 ? '' : 's')}
+          </Text>
+        </Pressable>
+      )}
+
+      {justSent > 0 && (
+        <View style={[s.done, { bottom: inset.bottom + 18 }]} accessibilityLiveRegion="polite">
+          <Text style={s.doneText}>{justSent} sent. Waiting at your desk.</Text>
+        </View>
+      )}
 
       <ScriptSheet
         visible={picking}
@@ -389,9 +417,23 @@ const sheet = (c) => StyleSheet.create({
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, marginTop: 26, marginBottom: 12 },
   rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
   railHint: { fontFamily: font.sans, fontSize: 10.5, color: c.ink4 },
-  send: { backgroundColor: c.blueSoft, borderWidth: 1, borderColor: c.blue,
-    borderRadius: radius.ctl, paddingHorizontal: 11, paddingVertical: 6 },
-  sendText: { fontFamily: font.sansSemi, fontSize: 11.5, color: c.blueInk },
+  /* Bottom LEFT on purpose. Bottom right is where a thumb rests and where
+     every other app puts a compose or a destructive button, and in development
+     it is also where Expo parks its own control. */
+  fab: {
+    position: 'absolute', left: 20, backgroundColor: c.blue,
+    borderRadius: 24, paddingHorizontal: 20, minHeight: 46, justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 }, elevation: 5,
+  },
+  fabDown: { backgroundColor: c.blueInk },
+  fabText: { fontFamily: font.sansSemi, fontSize: 14.5, color: c.onBlue },
+  done: {
+    position: 'absolute', left: 20, backgroundColor: c.sageSoft,
+    borderWidth: 1, borderColor: c.sage,
+    borderRadius: 24, paddingHorizontal: 18, minHeight: 46, justifyContent: 'center',
+  },
+  doneText: { fontFamily: font.sansMed, fontSize: 13.5, color: c.sage },
   hair: { flex: 1, height: 1, backgroundColor: c.ruleSoft },
 
   list: { paddingHorizontal: 20, gap: 10 },

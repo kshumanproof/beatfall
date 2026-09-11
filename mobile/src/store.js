@@ -153,6 +153,10 @@ export async function pending() {
   );
 }
 
+/* Everything in this table is now, by definition, still waiting: a sent note
+   is deleted rather than kept. Left as its own function because the two
+   questions are different questions and one of them may stop being the other. */
+
 export async function counts() {
   const db = await open();
   const a = await db.getFirstAsync('SELECT COUNT(*) AS n FROM captures WHERE deleted = 0');
@@ -160,35 +164,28 @@ export async function counts() {
   return { total: a?.n || 0, waiting: b?.n || 0 };
 }
 
-/* Notes the desk has finished with.
+/* Called once the server has CONFIRMED a batch, and the confirmation is the
+ * whole point: only ids the server named come out of here.
  *
- * The server's list of what is still waiting is the truth. Any note this phone
- * has already sent, which is no longer on that list, has been sorted onto a
- * board or thrown away at the desk, and it has no business still sitting here:
- * "on this phone" would slowly become a pile of things already dealt with,
- * which is exactly the jumbled note file Beatfall exists to end.
- *
- * Unsent notes are never touched by this. They have not been anywhere yet. */
-export async function pruneSettled(stillWaiting) {
-  const db = await open();
-  const keep = (stillWaiting || []).map(String);
-  if (!keep.length) {
-    await db.runAsync('DELETE FROM captures WHERE synced_at IS NOT NULL AND deleted = 0');
-    return;
-  }
-  const holes = keep.map(() => '?').join(',');
-  await db.runAsync(
-    `DELETE FROM captures WHERE synced_at IS NOT NULL AND deleted = 0 AND id NOT IN (${holes})`,
-    ...keep
-  );
-}
-
-// Called by the sync layer once the server has confirmed a batch.
-export async function markSynced(ids, when = Date.now()) {
+ * They are deleted, not marked. This phone is not an archive. Its job is that
+ * nothing is lost between having a thought and getting to a desk, and the
+ * moment a note is on the account that job is done. Keeping it here as well
+ * turns "on this phone" into a second pile to read through, which is the
+ * jumbled note file this whole product exists to end. */
+export async function forgetSent(ids) {
   if (!ids || !ids.length) return;
   const db = await open();
   const holes = ids.map(() => '?').join(',');
-  await db.runAsync(`UPDATE captures SET synced_at = ? WHERE id IN (${holes})`, when, ...ids);
-  // Once a tombstone is on the server, the row has done its job.
-  await db.runAsync('DELETE FROM captures WHERE deleted = 1 AND synced_at IS NOT NULL');
+  await db.runAsync(`DELETE FROM captures WHERE id IN (${holes})`, ...ids);
+}
+
+// How many have ever made it home from this phone. Only used to tell an empty
+// list apart from a list that emptied itself, which are different sentences.
+export async function sentTally() {
+  const v = await getItem('sent.count');
+  return Number(v) || 0;
+}
+export async function addSent(n) {
+  if (!n) return;
+  await setItem('sent.count', String((await sentTally()) + n));
 }
