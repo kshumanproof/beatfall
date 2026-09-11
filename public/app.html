@@ -1892,10 +1892,14 @@ footer{
   font-family:var(--sans);font-size:11.5px;color:var(--blue);text-align:left;
   text-decoration:underline;text-underline-offset:2px}
 .cardask:hover{color:var(--blue-ink)}
-.revask{display:inline-block;margin-top:5px;background:none;border:0;padding:0;cursor:pointer;
+.revacts{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.revask{background:none;border:0;padding:0;cursor:pointer;
   font-family:var(--sans);font-size:11.5px;color:var(--blue);
   text-decoration:underline;text-underline-offset:2px}
 .revask:hover{color:var(--blue-ink)}
+.revput{font-family:var(--sans);font-size:11.5px;padding:4px 7px;color:var(--ink-2);
+  border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
+  max-width:200px}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
@@ -3998,9 +4002,9 @@ function cardEl(c){
     const settle = document.createElement("button");
     settle.className = "cardask";
     settle.type = "button";
-    settle.textContent = "Where does this go?";
+    settle.textContent = "Did we get it wrong?";
     settle.setAttribute("data-tip",
-      "Talk it through. A few questions about what happens in it, then it can be placed.");
+      "Talk it through. A few questions about what happens in it, then it is placed properly.");
     marksCost(settle, "conversation");
     settle.addEventListener("click", e => { e.stopPropagation(); askAboutNote(c.text); });
     el.appendChild(settle);
@@ -7535,31 +7539,70 @@ function renderReview(){
                     :  n.runner ? ", the runner up for it"
                                 : ", only " + n.conf + "% sure")
         :           "→ Set aside, an event but not clearly any one beat";
-      /* A note that ends up nowhere used to stop here, and the writer was left
-         holding a sentence the app had declined to place with nothing to do
-         about it. It cannot open the conversation from this sheet without
-         throwing away the rest of the batch, so it says where the way out is
-         instead. */
-      /* A note the reader could not place stops here unless it is given a way
-         forward. The conversation opens over this sheet, on its own scrim, so
-         the rest of the batch is still here when it closes, and the sharpened
-         wording comes back into this row and is placed again. Placing is free,
-         so the writer pays for the conversation and nothing else. */
+      /* TWO WAYS TO ARGUE WITH A PLACEMENT, AND ONE OF THEM IS FREE.
+       *
+       * The first label here was "Where does this go?", which is the app
+       * asking the writer the question the app is supposed to answer. Beatfall
+       * decides where a note goes; if it got it wrong, it says so and offers
+       * to work it out properly. Hence the wording.
+       *
+       * And the dropdown, which matters more. Talking it through costs a
+       * credit, and until now that was the ONLY route from a stranded note to
+       * a beat, which quietly turned "placing notes is free and always will
+       * be" into a thing with an asterisk on it. Choosing the beat yourself is
+       * free, instant, and sits right beside the paid option.
+       *
+       * The conversation opens over this sheet, on its own scrim, so the rest
+       * of the batch is still here when it closes. */
       const stranded = n.kind !== "beat" || (!n.beat && !n.declared);
+      const opts = '<option value="">Or put it somewhere yourself</option>'
+        + S.slots.map(x => '<option value="' + esc(x.id) + '"'
+            + (n.beat === x.id ? " selected" : "") + ">" + esc(x.name) + "</option>").join("")
+        + '<option value="__shelf">Other notes</option>'
+        + '<option value="__none">Set aside</option>';
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"
         + '<span class="txt">' + esc(n.text)
         + '<span class="dest" style="display:block">' + esc(dest) + "</span>"
-        + (stranded ? '<button type="button" class="revask">Where does this go?</button>' : "")
-        + "</span>";
+        + '<span class="revacts">'
+        +   (stranded ? '<button type="button" class="revask">Did we get it wrong?</button>' : "")
+        +   '<select class="revput" aria-label="Place this note yourself">' + opts + "</select>"
+        + "</span></span>";
       row.querySelector("input").addEventListener("change", e => {
         n.keep = e.target.checked;
         row.classList.toggle("off", !n.keep);
         updateRevCount();
       });
+      /* Placing it by hand. Free, and it overrides whatever the reader
+         decided: the writer looking at their own note is the better authority
+         and always was. */
+      row.querySelector(".revput").addEventListener("change", e => {
+        const v = e.target.value;
+        if (!v) return;
+        /* These three shapes are exactly what the apply step reads. A note is
+           bound for the board when its kind is "beat", and then its slot is
+           n.beat or Set aside; anything else goes to the note shelf. Clearing
+           maybe and full matters: a half placement left on the row would drag
+           the note back to Set aside behind the writer's decision. */
+        delete n.maybe; delete n.full; delete n.split; delete n.runner;
+        n.conf = 0;
+        if (v === "__shelf"){
+          n.beat = null;
+          if (n.kind === "beat") n.kind = "structural";
+        } else if (v === "__none"){
+          n.beat = null; n.kind = "beat";
+        } else {
+          n.kind = "beat"; n.beat = v; n.declared = true;
+        }
+        n.keep = true;
+        renderReview();
+      });
+
       const revask = row.querySelector(".revask");
       if (revask){
         marksCost(revask, "conversation");
+        revask.setAttribute("data-tip",
+          "Talk it through. A few questions about what happens in it, then it is placed properly.");
         revask.addEventListener("click", () => askAboutNote(n.text, async (sharper) => {
           n.text = sharper;
           n.kind = "beat";
@@ -8816,9 +8859,9 @@ function renderNotes(){
        * question has been answered. */
       if (!isAttached(c, proj)){
         const settle = document.createElement("button");
-        settle.className = "btn"; settle.textContent = "Where does this go?";
+        settle.className = "btn"; settle.textContent = "Did we get it wrong?";
         settle.setAttribute("data-tip",
-          "Talk it through. A few questions about what happens in it, then it can be placed.");
+          "Talk it through. A few questions about what happens in it, then it is placed properly.");
         marksCost(settle, "conversation");
         settle.addEventListener("click", () => askAboutNote(c.text));
         row.appendChild(settle);
