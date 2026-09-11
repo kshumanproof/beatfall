@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { palette, radius, font } from './theme';
+import { Lockup } from './Mark';
 import { SYNC_ENABLED } from './config';
 import * as store from './store';
 
@@ -42,7 +43,7 @@ function when(ms) {
 
 // Every note is unsynced for the first moment of its life, and saying so on
 // every card turns the normal case into an alarm. A note is only worth
-// flagging once it has had a fair chance to go and hasn't — then it is news.
+// flagging once it has had a fair chance to go and hasn't, then it is news.
 const STUCK_AFTER = 3 * 60 * 1000;
 const stuck = (row) =>
   SYNC_ENABLED && !row.synced_at && Date.now() - row.created_at > STUCK_AFTER;
@@ -70,7 +71,7 @@ export default function Capture() {
 
   // The whole contract of this app, in one function: write to disk, and only
   // then tell the writer it is kept. If the insert throws, say so loudly and
-  // do NOT clear the field — the words on screen are the last copy.
+  // do NOT clear the field: the words on screen are the last copy.
   const keep = async () => {
     const text = draft.trim();
     if (!text || saving) return;
@@ -118,7 +119,7 @@ export default function Capture() {
     >
       {/* -------------------------------------------------------- header -- */}
       <View style={s.head}>
-        <Text style={s.mark}>beat<Text style={s.markBlue}>fall</Text></Text>
+        <Lockup scheme={scheme} size={26} />
         <View style={s.grow} />
         <Tally c={c} tally={tally} />
       </View>
@@ -227,8 +228,6 @@ const sheet = (c) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14,
   },
-  mark: { fontFamily: font.serif, fontSize: 21, color: c.ink, letterSpacing: -0.3 },
-  markBlue: { color: c.blue },
   grow: { flex: 1 },
 
   tally: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },

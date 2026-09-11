@@ -3,7 +3,7 @@
 // than a mobile website: a note typed in a parking garage with no signal has
 // to still be there tomorrow.
 //
-// So the rule is absolute — a capture is written to disk BEFORE the screen
+// So the rule is absolute: a capture is written to disk BEFORE the screen
 // says it was captured. The network is never in that path. Sync is something
 // that happens to a note later; it is not how a note comes into existence.
 //
@@ -34,8 +34,39 @@ export async function init() {
     );
     CREATE INDEX IF NOT EXISTS captures_pending
       ON captures (synced_at, created_at);
+
+    -- Somewhere to keep the signed-in session and the server's public
+    -- settings. Deliberately the SAME SQLite file rather than a second
+    -- storage library: AsyncStorage would be another native dependency to
+    -- install, keep in step with the Expo SDK, and explain to anybody setting
+    -- this up, and it would buy nothing this table does not already do.
+    CREATE TABLE IF NOT EXISTS kv (
+      k  TEXT PRIMARY KEY,
+      v  TEXT
+    );
   `);
   return db;
+}
+
+// ------------------------------------------------------------------- kv --
+// Supabase wants a storage object shaped like this, so it is shaped like this.
+export async function getItem(k) {
+  const db = await open();
+  const row = await db.getFirstAsync('SELECT v FROM kv WHERE k = ?', k);
+  return row ? row.v : null;
+}
+
+export async function setItem(k, v) {
+  const db = await open();
+  await db.runAsync(
+    'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v',
+    k, String(v)
+  );
+}
+
+export async function removeItem(k) {
+  const db = await open();
+  await db.runAsync('DELETE FROM kv WHERE k = ?', k);
 }
 
 // A client-side id, generated before the note is saved. The server takes this

@@ -14,7 +14,7 @@ your phone (free, in the App Store and on Google Play). Your phone and this
 computer have to be on the same Wi-Fi.
 
 ```
-cd beatfall-mobile
+cd mobile
 npm install          # once, and after any change to package.json
 npx expo start
 ```
@@ -40,7 +40,7 @@ Capture, and nothing else — but capture properly:
 - Light and dark follow the phone's own setting.
 - Hold a note to throw it away.
 
-Not built yet: signing in, and sending the notes to your project on the web app.
+Not built yet: sending the notes to your project on the web app.
 `SYNC_ENABLED` in `src/config.js` is `false`, and while it is, the app says
 nothing about syncing — claiming notes are "waiting to sync" when there is
 nowhere for them to go would be a lie on the first screen a writer ever sees.
@@ -50,8 +50,11 @@ nowhere for them to go would be a lie on the first screen a writer ever sees.
 ```
 index.js              entry point
 app.json              app name, icons, bundle ids, splash
-src/App.js            fonts, theme, boot
-src/Capture.js        the one screen
+src/App.js            fonts, theme, boot, and which screen you get
+src/SignIn.js         email, then a six digit code. Never a magic link.
+src/supabase.js       the auth client, with its session kept in SQLite
+src/Capture.js        the capture screen
+src/Mark.js           the mark, the wordmark and the lockup, as SVG
 src/store.js          the local SQLite store — the durability promise
 src/store.web.js      memory-only stand-in, used ONLY by `expo export --platform web`
 src/theme.js          the palette, copied from the web app's theme.css
@@ -64,11 +67,25 @@ assets/               icons and splash
 written twice. Change one, change the other, or the two halves of Beatfall stop
 looking like one product.
 
+## The lockup
+
+`src/Mark.js` is not a phone-flavoured version of the logo. The mark is the same
+SVG the website draws, coordinate for coordinate, and the wordmark is
+`beatfall-wordmark.svg` from the brand pack: Newsreader SemiBold outlined to
+paths, so the letters cannot drift with a font that failed to load. Both are
+drawn in one `<Svg>` so they sit on one baseline.
+
+It needs `react-native-svg`, which Expo Go already carries:
+
+```
+npx expo install react-native-svg
+```
+
 ## The icons are placeholders
 
 Paper, a rule, and the wordmark's own `b`. They exist because an app will not
-install without an icon. Replace all six files in `assets/` when the real mark
-arrives; `tools/mkicon.py` regenerates them if you want a different letter.
+install without an icon. Replace all six files in `assets/` with the lockup;
+`tools/mkicon.py` regenerates them if you want a different letter.
 
 ## Getting it into the stores
 

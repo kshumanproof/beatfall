@@ -9,6 +9,10 @@
   --rule:#E0D9CB; --rule-soft:#EDE7DA;
   --blue:#2C5C8F; --blue-soft:#EAEFF5; --blue-ink:#1E4269; --on-blue:#FFFFFF;
   --gold:#7B5A13; --gold-soft:#F4EEDF; --gold-hair:#D9C08A;
+  /* The lockup's own two colours. Deliberately NOT --blue and --gold:
+     the mark is a drawn object with its own palette, and the buttons
+     must not move when the logo does. Measured off the artwork. */
+  --mark-blue:#264A7E; --mark-gold:#BF9551;
   --gold-ink:#5C420D; --on-gold:#FFFFFF;
   --sage:#4A7358; --sage-soft:#E7EEE9;
   --red:#8C2F2F; --red-soft:#F6E7E7;
@@ -26,6 +30,7 @@
     --rule:#3A342C; --rule-soft:#2E2923;
     --blue:#8FB6DE; --blue-soft:#20303E; --blue-ink:#B9D3F0; --on-blue:#14181C;
     --gold:#D9BC77; --gold-soft:#2B2517; --gold-hair:#7E6C3E;
+    --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
     --gold-ink:#EBD5A2; --on-gold:#14181C;
     --sage:#8CB79A; --sage-soft:#1E2A22;
     --red:#D98A8A; --red-soft:#2C1C1C;
@@ -39,6 +44,7 @@
   --rule:#3A342C; --rule-soft:#2E2923;
   --blue:#8FB6DE; --blue-soft:#20303E; --blue-ink:#B9D3F0; --on-blue:#14181C;
   --gold:#D9BC77; --gold-soft:#2B2517; --gold-hair:#7E6C3E;
+  --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
   --gold-ink:#EBD5A2; --on-gold:#14181C;
   --sage:#8CB79A; --sage-soft:#1E2A22;
   --red:#D98A8A; --red-soft:#2C1C1C;
@@ -60,11 +66,28 @@ button{font-family:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
 
 /* The mark and the name travel together. Drawn inline so it inherits the
-   palette in dark mode and costs no request. */
-.brand{display:inline-flex;align-items:baseline;gap:5px;text-decoration:none;color:var(--ink)}
-.mark{height:24px;width:auto;flex:0 0 auto}
+   palette in dark mode and costs no request.
+
+   ONE number sets the lockup: --wm, the size the name is set at. The mark's
+   height, the space between them and the drop that lands the cards on the
+   wordmark's foot all follow from it, and the three ratios below are measured
+   off the artwork, not chosen. Never set .mark height or .brand gap directly
+   again; set --wm on the .brand and let these do the arithmetic. Six different
+   hand-tuned pairs were how the two halves drifted out of proportion. */
+.brand{
+  --wm:24px;
+  display:inline-flex;align-items:baseline;gap:calc(var(--wm) * .0974);
+  text-decoration:none;color:var(--ink);
+}
+.mark{
+  height:calc(var(--wm) * .9406);width:auto;flex:0 0 auto;
+  /* Baseline alignment puts the mark's bottom EDGE on the baseline, but the
+     artwork hangs the lowest card level with the foot of the a and the e,
+     which sit a shade below it. */
+  position:relative;top:calc(var(--wm) * .0315);
+}
 .wordmark{
-  font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:-.014em;
+  font-family:var(--serif);font-weight:600;font-size:var(--wm);letter-spacing:normal;
   margin:0;text-decoration:none;color:var(--ink);line-height:1;
 }
 .wordmark span{color:var(--blue)}
@@ -76,14 +99,11 @@ button{font-family:inherit;color:inherit}
 .topbar-in{max-width:1560px;margin:0 auto;padding:0 28px;height:76px;
   display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .topbar-in .right{margin-left:auto;display:flex;gap:18px;align-items:center}
-.topbar-in>.brand{gap:8px}
-.topbar-in>.brand .mark{height:29px}
-.topbar-in>.brand .wordmark{font-size:34px;letter-spacing:-.018em}
+.topbar-in>.brand{--wm:34px}
 
 @media(max-width:760px){
   .topbar-in{height:auto;min-height:68px;padding:10px 16px;gap:12px;flex-wrap:nowrap}
-  .topbar-in>.brand .mark{height:31px}
-  .topbar-in>.brand .wordmark{font-size:26px}
+  .topbar-in>.brand{--wm:26px}
   .topbar-in>.slug{display:none}
   .topbar-in .right{gap:8px}
   .topbar-in .right .btn:not(.btn-primary){display:none}

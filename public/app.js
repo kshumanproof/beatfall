@@ -169,9 +169,11 @@
       '.bf-ended-card{width:min(100%,500px);box-sizing:border-box;padding:34px 36px 30px;',
       'background:var(--card,#FDFBF6);border:1px solid var(--rule,#DED6C8);border-radius:12px;',
       'box-shadow:0 22px 70px rgba(20,16,10,.3)}',
-      '.bf-ended-brand{display:flex;align-items:center;gap:3px;font-family:var(--serif,Newsreader,Georgia,serif);',
-      'font-size:31px;font-weight:650;letter-spacing:-.025em;line-height:1}',
-      '.bf-ended-brand svg{width:29px;height:40px;flex:0 0 auto}',
+      '.bf-ended-brand{--wm:31px;display:flex;align-items:baseline;gap:calc(var(--wm) * .0974);',
+      'font-family:var(--serif,Newsreader,Georgia,serif);',
+      'font-size:var(--wm);font-weight:600;letter-spacing:normal;line-height:1}',
+      '.bf-ended-brand svg{height:calc(var(--wm) * .9406);width:auto;flex:0 0 auto;',
+      '  position:relative;top:calc(var(--wm) * .0315)}',
       '.bf-ended-word{color:var(--ink,#2B2620)}',
       '.bf-ended-word>span{color:var(--blue,#2C5C8F)}',
       '.bf-ended-tag{margin:5px 0 27px!important;font-family:var(--serif,Newsreader,Georgia,serif);',
@@ -659,13 +661,13 @@
   };
 
   const MARK = '<svg viewBox="14 8 36 50.5" width="44" height="61" aria-hidden="true">'
-    + '<g stroke="#7B5A13" stroke-width="1.4" stroke-linecap="round">'
-    + '<path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/></g>'
-    + '<rect x="15" y="22.6" width="34" height="6.95" rx="1.6" fill="#7B5A13"'
-    + ' transform="rotate(-12 32 26.08)"/>'
-    + '<rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/>'
-    + '<rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/>'
-    + '<rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="#2C5C8F"/></svg>';
+    + '<g stroke="var(--mark-gold,#BF9551)" stroke-width=".58" stroke-linecap="round">'
+    + '<path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g>'
+    + '<rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold,#BF9551)"'
+    + ' transform="rotate(-13 31.6 26.08)"/>'
+    + '<rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue,#264A7E)"/>'
+    + '<rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue,#264A7E)"/>'
+    + '<rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue,#264A7E)"/></svg>';
 
   const STORE_ICON = {
     apple: '<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">'
@@ -769,8 +771,8 @@
     el.id = 'bf-gate';
     el.innerHTML =
         '<div class="bf-gate-in">'
-      +   '<div class="bf-gate-mark">' + MARK + '</div>'
-      +   '<div class="bf-gate-word">Beat<span>fall</span></div>'
+      +   '<div class="bf-gate-brand">' + MARK
+      +     '<span class="bf-gate-word">Beat<span>fall</span></span></div>'
       +   '<p class="bf-gate-tag">Where your story falls into place.</p>'
 
       +   '<h1>Your notes already know the story. They’re just in the wrong order.</h1>'
@@ -816,9 +818,12 @@
       "  font-family:var(--sans,'Instrument Sans',system-ui,sans-serif);",
       '  -webkit-font-smoothing:antialiased}',
       '.bf-gate-in{max-width:30rem;margin:0 auto;padding:44px 22px 56px}',
-      '.bf-gate-mark{line-height:0;margin-bottom:10px}',
-      ".bf-gate-word{font-family:var(--serif,Newsreader,Georgia,serif);font-size:34px;",
-      '  font-weight:600;letter-spacing:-.02em;line-height:1}',
+      '.bf-gate-brand{--wm:34px;display:flex;align-items:baseline;',
+      '  gap:calc(var(--wm) * .0974);line-height:0}',
+      '.bf-gate-brand svg{height:calc(var(--wm) * .9406);width:auto;flex:0 0 auto;',
+      '  position:relative;top:calc(var(--wm) * .0315)}',
+      ".bf-gate-word{font-family:var(--serif,Newsreader,Georgia,serif);font-size:var(--wm);",
+      '  font-weight:600;letter-spacing:normal;line-height:1}',
       '.bf-gate-word span{color:var(--blue,#2C5C8F)}',
       '.bf-gate-tag{font-family:var(--serif,Newsreader,Georgia,serif);font-style:italic;',
       '  font-size:15px;color:var(--ink-3,#726859);margin:6px 0 30px}',

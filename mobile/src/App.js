@@ -1,5 +1,5 @@
 // ============================================================================
-// Beatfall for phones — the capture sidekick.
+// Beatfall for phones: the capture sidekick.
 //
 // This is not a small board and it never will be. Rearranging index cards is a
 // desk activity; catching an idea before it evaporates is not. The web app owns
@@ -23,13 +23,20 @@ import CourierPrime_400Regular from '@expo-google-fonts/courier-prime/400Regular
 
 import { palette } from './theme';
 import * as store from './store';
+import { currentSession, onAuth } from './supabase';
 import Capture from './Capture';
+import SignIn from './SignIn';
 
 export default function App() {
   const scheme = useColorScheme();
   const c = palette(scheme);
   const [ready, setReady] = useState(false);
   const [broken, setBroken] = useState(null);
+  /* undefined while we are still finding out, then a session or null. The
+     three states are deliberate: showing the sign-in screen to somebody who
+     turns out to be signed in, for the half second it takes to read the
+     session off disk, is a flash of the wrong screen every single launch. */
+  const [session, setSession] = useState(undefined);
 
   const [fonts] = useFonts({
     Newsreader_600SemiBold,
@@ -40,7 +47,17 @@ export default function App() {
   });
 
   useEffect(() => {
-    store.init().then(() => setReady(true)).catch((e) => setBroken(String(e?.message || e)));
+    let drop = null;
+    store.init()
+      .then(async () => {
+        setReady(true);
+        // The store has to be open before either of these: the session lives
+        // in it, and so does the cached copy of the server's public settings.
+        setSession(await currentSession());
+        drop = await onAuth(setSession);
+      })
+      .catch((e) => setBroken(String(e?.message || e)));
+    return () => { if (drop) drop(); };
   }, []);
 
   // If the local store cannot open there is no honest way to run: the promise
@@ -59,7 +76,7 @@ export default function App() {
     );
   }
 
-  if (!fonts || !ready) {
+  if (!fonts || !ready || session === undefined) {
     return (
       <View style={{ flex: 1, backgroundColor: c.ground, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={c.blue} />
@@ -70,7 +87,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Capture />
+      {session ? <Capture /> : <SignIn />}
     </SafeAreaProvider>
   );
 }

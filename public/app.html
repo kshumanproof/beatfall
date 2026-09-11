@@ -36,6 +36,8 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
   --rule:#E0D9CB;
   --rule-soft:#EDE7DA;
   --blue:#2C5C8F;          /* what you can touch */
+  --mark-blue:#264A7E;     /* the logo's own blue, measured off the artwork */
+  --mark-gold:#BF9551;     /* and its own gold. Not --gold: buttons must not move */
   --blue-soft:#EAEFF5;
   --blue-ink:#1E4269;
   --on-blue:#FFFFFF;
@@ -97,6 +99,7 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
     --rule:#3A342C;
     --rule-soft:#2E2923;
     --blue:#8FB6DE;
+    --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
     --blue-soft:#20303E;
     --blue-ink:#B9D3F0;
     --on-blue:#14181C;
@@ -131,6 +134,7 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
   --rule:#3A342C;
   --rule-soft:#2E2923;
   --blue:#8FB6DE;
+  --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
   --blue-soft:#20303E;
   --blue-ink:#B9D3F0;
   --on-blue:#14181C;
@@ -203,11 +207,16 @@ header{
    bottom of the lowest card, and a replaced element's baseline is its bottom
    edge, so baseline alignment does the whole job, no magic offsets that drift
    the moment either size changes. */
-.brand{display:inline-flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--ink)}
-.mark{height:29px;width:auto;flex:0 0 auto}
+.brand{
+  --wm:34px;
+  display:inline-flex;align-items:baseline;gap:calc(var(--wm) * .0974);
+  text-decoration:none;color:var(--ink);
+}
+.mark{height:calc(var(--wm) * .9406);width:auto;flex:0 0 auto;
+  position:relative;top:calc(var(--wm) * .0315)}
 .wordmark{
-  font-family:var(--serif);font-weight:600;font-size:34px;
-  letter-spacing:-.018em;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
+  font-family:var(--serif);font-weight:600;font-size:var(--wm);
+  letter-spacing:normal;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
   line-height:1;
 }
 .wordmark span{color:var(--blue)}
@@ -1836,12 +1845,9 @@ footer{
 /* The lockup, then the line under it. A tagline belongs beneath the name it
    describes, not beside the mark competing with it. */
 .foot-brand{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
-.foot-brand .wordmark{font-size:22px;letter-spacing:-.014em}
-.foot-brand .mark{height:26px}
-.foot-brand .brand{gap:6px}
+.foot-brand .brand{--wm:22px}
 .setbrand{padding:0 13px 2px}
-.setbrand .wordmark{font-size:19px;letter-spacing:-.013em}
-.setbrand .mark{height:23px}
+.setbrand .brand{--wm:19px}
 .foot-tag{
   font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink-3);
   line-height:1.4;
@@ -1944,8 +1950,7 @@ footer{
   .avatar{padding:0;height:38px;width:38px;justify-content:center;border-radius:50%}
   .avatar .lbl,.avatar .cv{display:none}
   .avatar .ini{width:36px;height:36px}
-  .wordmark{font-size:26px}
-  .mark{height:31px}
+  .brand{--wm:26px}
   .slate-wrap,.outline-wrap{padding-left:16px;padding-right:16px}
   .pcard{width:100%}
   .pop,.pop.wide{width:min(300px,calc(100vw - 32px))}
@@ -1972,16 +1977,7 @@ footer{
          mode and costs no request. -->
     <div class="lead">
     <a class="brand" href="/app" title="Beatfall">
-      <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
-        <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
-          <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
-        </g>
-        <rect x="15" y="22.6" width="34" height="6.95" rx="1.6"
-              fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
-        <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-        <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-        <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-      </svg>
+      <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
       <span class="wordmark">Beat<span>fall</span></span>
     </a>
 
@@ -2542,16 +2538,7 @@ footer{
       <!-- The lockup, not a bare word. Same markup as the header and the
            footer, so all three stay one thing. -->
       <a class="brand setbrand" href="/app" title="Beatfall">
-        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
-          <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
-            <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
-          </g>
-          <rect x="15" y="22.6" width="32.8" height="6.95" rx="1.6"
-                fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
-          <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-          <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-          <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-        </svg>
+        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
         <span class="wordmark">Beat<span>fall</span></span>
       </a>
     </div>
@@ -2575,16 +2562,7 @@ footer{
            here is how the two versions drift apart and one starts looking
            wrong. -->
       <a class="brand" href="/app" title="Beatfall">
-        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
-          <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
-            <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
-          </g>
-          <rect x="15" y="22.6" width="32.8" height="6.95" rx="1.6"
-                fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
-          <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-          <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-          <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-        </svg>
+        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
         <span class="wordmark">Beat<span>fall</span></span>
       </a>
       <div class="foot-tag">Where your story falls into place.</div>
@@ -9688,16 +9666,7 @@ function showLocked(why){
     <div class="locked">
       <div class="locked-in">
         <a class="brand" href="/app" title="Beatfall">
-          <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false">
-            <g stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round">
-              <path d="M27.3 14.0v5.1"/><path d="M30.2 9.5v7.7"/><path d="M33.2 13.3v3.6"/>
-            </g>
-            <rect x="15" y="22.6" width="34" height="6.95" rx="1.6"
-                  fill="var(--gold)" transform="rotate(-12 32 26.08)"/>
-            <rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-            <rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-            <rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--blue)"/>
-          </svg>
+          <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
           <span class="wordmark">Beat<span>fall</span></span>
         </a>
         <h1>${trial ? "Your free trial has ended." : "Your plan has ended."}</h1>
