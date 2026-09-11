@@ -4,7 +4,7 @@
 // The board is stored as JSON on a single row per project. The client already
 // holds it that way, so this stays one code path instead of a table per card.
 // ============================================================================
-import { requireUser, entitlement, send, readBody } from './_lib/core.js';
+import { requireUser, entitlement, send, readBody, markWorkDay } from './_lib/core.js';
 
 const MAX_PROJECTS = 60;
 const MAX_BYTES    = 400_000;   // a very large board is ~40kb; this is generous
@@ -127,7 +127,10 @@ export default async function handler(req, res) {
       const { data, error } = await db.from('projects')
         .update(row).eq('id', p.id).eq('user_id', user.id).select();
       if (error) return send(res, 500, { error: 'save_failed' });
-      if (data && data.length) return send(res, 200, { project: data[0] });
+      // Editing a board is working on the script. The browser sends its own
+      // local date; a line written at eleven at night is tonight's work.
+      if (data && data.length) { markWorkDay(db, user.id, body.day);
+                                 return send(res, 200, { project: data[0] }); }
       return send(res, 404, {
         error: 'not_found', message: 'This project no longer exists.'
       });
@@ -144,6 +147,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await db.from('projects').insert(row).select().single();
     if (error) return send(res, 500, { error: 'save_failed' });
+    markWorkDay(db, user.id, body.day);
     return send(res, 200, { project: data });
   }
 

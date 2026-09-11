@@ -177,8 +177,8 @@
       '  background-image:url("/brand/lockup-dark.png")}}',
       '.bf-brand .brandtag{display:block;width:calc(var(--wm) * 4.254);max-width:100%;',
       '  aspect-ratio:513.95 / 32.656;background-color:currentColor;',
-      '  -webkit-mask:url("/brand/tagline.svg") no-repeat left center/contain;',
-      '  mask:url("/brand/tagline.svg") no-repeat left center/contain}',
+      '  -webkit-mask:var(--tagline-src, url("/brand/tagline.svg")) no-repeat left center/contain;',
+      '  mask:var(--tagline-src, url("/brand/tagline.svg")) no-repeat left center/contain}',
       '.bf-ended-brand{--wm:31px;margin:0 0 27px;color:var(--ink-3,#726859)}',
       '.bf-ended-brand .brandtag{margin-top:calc(var(--wm) * .1481)}',
       '#bf-device-ended h1{margin:0 0 14px;font-family:var(--serif,Newsreader,Georgia,serif);',
@@ -474,8 +474,15 @@
   };
 
   BF.saveProject = async function (project) {
+    /* `day` is the BROWSER's local date, and it travels with every save so the
+       server can record that this was a day the writer worked. A server that
+       decided this from UTC would tell somebody in Georgia writing at eleven
+       at night that they had skipped a day and started again tomorrow. */
+    const d = new Date();
+    const day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+              + '-' + String(d.getDate()).padStart(2, '0');
     const { project: saved } = await BF.api('/api/projects', {
-      method: 'POST', body: JSON.stringify({ project })
+      method: 'POST', body: JSON.stringify({ project, day })
     });
     return saved;
   };
@@ -821,8 +828,8 @@
       '  background-image:url("/brand/lockup-dark.png")}}',
       '.bf-brand .brandtag{display:block;width:calc(var(--wm) * 4.254);max-width:100%;',
       '  aspect-ratio:513.95 / 32.656;background-color:currentColor;',
-      '  -webkit-mask:url("/brand/tagline.svg") no-repeat left center/contain;',
-      '  mask:url("/brand/tagline.svg") no-repeat left center/contain}',
+      '  -webkit-mask:var(--tagline-src, url("/brand/tagline.svg")) no-repeat left center/contain;',
+      '  mask:var(--tagline-src, url("/brand/tagline.svg")) no-repeat left center/contain}',
       '.bf-gate-brand{--wm:34px;margin:0 0 30px;color:var(--ink-3,#726859)}',
       '.bf-gate-brand .brandtag{margin-top:calc(var(--wm) * .1481)}',
       '#bf-gate h1{font-family:var(--serif,Newsreader,Georgia,serif);font-size:27px;',

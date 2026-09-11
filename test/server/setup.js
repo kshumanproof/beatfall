@@ -18,6 +18,7 @@ const swap = (from, to, extra = s => s) => {
 swap('../../api/claude.js',         'api/claude.real.js');
 swap('../../api/projects.js',       'api/projects.real.js');
 swap('../../api/account.js',        'api/account.real.js');
+swap('../../api/captures.js',       'api/captures.real.js');
 swap('../../api/cleanup.js',        'api/cleanup.real.js');
 swap('../../api/stripe-webhook.js', 'api/hook.real.js', s =>
   s.replace("import Stripe from 'stripe';",

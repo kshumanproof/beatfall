@@ -1,16 +1,15 @@
 // ============================================================================
 // Build switches.
 //
-// SYNC_ENABLED is false because sync does not exist yet. That is not a
-// cosmetic flag: with no server to send to, a screen that says "3 waiting to
-// sync" is telling the writer their notes are stuck somewhere, which is a lie
-// that would cost trust on the first run. While this is false the app says
-// what is actually true, that the notes are on this phone, and every piece of
-// sync language stays off the screen.
+// SYNC_ENABLED turns on every piece of sync language on the screen: the count
+// of notes still waiting, the "waiting to sync" mark on a card. It was false
+// while there was no server to send to, because a screen that says "3 waiting
+// to sync" with nowhere to send them is a lie on the first run.
 //
-// Turning it on is the last line of the sync step, not the first.
+// It is true now. /api/captures exists, the phone posts to it, and the desk
+// picks the notes up.
 // ============================================================================
-export const SYNC_ENABLED = false;
+export const SYNC_ENABLED = true;
 
 // Where the phone will talk to. The same deployment that serves the web app;
 // the phone gets no endpoints of its own that a browser doesn't already have.

@@ -278,3 +278,55 @@ drop policy if exists "own events"       on public.events;
 -- keep the row-level rules honest rather than relying on the grant alone.
 create policy "own profile edit" on public.profiles for update
   using (auth.uid() = id) with check (auth.uid() = id);
+
+-- ============================================================================
+-- Notes caught on a phone, and the chain (11 Sep 2026)
+--
+-- A capture is not a card and it is not a note on a board. It is a sentence
+-- somebody said into their phone outside a restaurant, and its whole job is to
+-- survive until the writer is at a desk. It becomes a real note only when they
+-- sit down and sort it, which is why `sorted_at` exists and why nothing here
+-- touches the projects table on its own.
+--
+-- Safe to re-run.
+-- ============================================================================
+create table if not exists public.captures (
+  -- Made on the device before the note was saved, so re-sending a batch is
+  -- harmless: the second copy lands on the same row instead of a duplicate.
+  id            text primary key,
+  user_id       uuid not null references auth.users on delete cascade,
+  body          text not null,
+  -- Null is a real answer here. At dinner you should not have to decide which
+  -- script a thought belongs to, so a capture may arrive unfiled and get its
+  -- home at the desk. The name is kept beside the id because the phone shows
+  -- it offline, and because a project can be renamed or deleted later.
+  project_id    uuid references public.projects on delete set null,
+  project_name  text,
+  source        text not null default 'phone',
+  created_at    timestamptz not null,          -- when the writer said it
+  received_at   timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  sorted_at     timestamptz,                   -- set the moment the desk files it
+  deleted_at    timestamptz                    -- thrown away on the phone
+);
+create index if not exists captures_pending_idx
+  on public.captures (user_id, sorted_at, created_at);
+
+-- ------------------------------------------------------------- the chain --
+-- One row per day the writer changed something, wherever they changed it. It
+-- lived in one browser's local storage, which meant a new laptop wiped the
+-- streak and six notes caught at dinner counted for nothing. The day is a
+-- DATE, not a timestamp, and it is the writer's own local date sent by the
+-- client: a note at 11pm in Georgia is not tomorrow's work.
+create table if not exists public.work_days (
+  user_id uuid not null references auth.users on delete cascade,
+  day     date not null,
+  primary key (user_id, day)
+);
+
+-- Same rule as everything else here: every write goes through the server with
+-- the service key, and the browser gets nothing directly.
+alter table public.captures  enable row level security;
+alter table public.work_days enable row level security;
+revoke all on public.captures  from anon, authenticated;
+revoke all on public.work_days from anon, authenticated;

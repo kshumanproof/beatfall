@@ -2,10 +2,11 @@
 // The capture screen. It has one job and it must do it in two seconds:
 // the app opens, the cursor is already blinking, you type, you tap Keep.
 //
-// Everything else on this screen is subordinate to that. No project picker,
-// no tags, no structure, no board. Choosing where a note belongs is thinking,
-// and thinking is the thing you do not have time for when the idea arrives.
-// The writer sorts at a desk; the phone only has to not lose anything.
+// Everything else on this screen is subordinate to that. No tags, no
+// structure, no board. There is one script picker, and it is answered once and
+// then remembered, because deciding where a note belongs is thinking and
+// thinking is what you do not have time for when the idea arrives. Everything
+// else is sorted at a desk; the phone only has to not lose anything.
 // ============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -20,6 +21,7 @@ import { Lockup } from './Mark';
 import { SYNC_ENABLED } from './config';
 import * as store from './store';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
+import { runSync, watchForeground } from './sync';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -77,6 +79,18 @@ export default function Capture() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  /* Sync runs when there is a reason to, never on a timer. Launch, and coming
+     back to the foreground. Each run repaints the list afterwards so the
+     "waiting" marks are honest rather than one run out of date. */
+  useEffect(() => {
+    if (!SYNC_ENABLED) return undefined;
+    let gone = false;
+    const go = () => runSync().then(() => { if (!gone) refresh(); });
+    go();
+    const stop = watchForeground();
+    return () => { gone = true; stop(); };
+  }, [refresh]);
+
   // Open on whatever was used last. Failing that, on the only script there is,
   // because picking from a list of one is a question with no information in it.
   useEffect(() => {
@@ -108,6 +122,10 @@ export default function Capture() {
       setDraft('');
       await refresh();
       field.current?.focus();
+      /* Not awaited, and that is the point: the note is already on disk and
+         the screen has already said so. Sending it home is somebody else's
+         errand and must never sit between the writer and the next thought. */
+      if (SYNC_ENABLED) runSync().then(refresh).catch(() => {});
     } catch (e) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       Alert.alert(
@@ -161,7 +179,7 @@ export default function Capture() {
         >
           <Text style={s.scriptRail}>TO</Text>
           <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
-            {script ? script.name : 'Not filed yet'}
+            {script ? String(script.name).toUpperCase() : 'Not filed yet'}
           </Text>
           <Text style={s.scriptGo}>Change</Text>
         </Pressable>
@@ -188,9 +206,9 @@ export default function Capture() {
         </View>
 
         <View style={s.actions}>
-          <Text style={s.hint} numberOfLines={1}>
+          <Text style={s.hint} numberOfLines={2}>
             {ready
-              ? 'Kept on this phone the moment you tap.'
+              ? 'Kept the moment you tap.'
               : SYNC_ENABLED ? 'It syncs later. Type now.' : 'Type now, sort later.'}
           </Text>
           <Pressable
@@ -235,7 +253,7 @@ export default function Capture() {
               <View style={s.foot}>
                 <Text style={s.stamp}>{when(item.created_at)}</Text>
                 {item.project_name
-                  ? <Text style={s.stamp} numberOfLines={1}>· {item.project_name}</Text>
+                  ? <Text style={s.stamp} numberOfLines={1}>· {String(item.project_name).toUpperCase()}</Text>
                   : <Text style={s.pend}>· not filed</Text>}
                 {stuck(item) && <Text style={s.pend}>· waiting to sync</Text>}
               </View>
@@ -300,7 +318,7 @@ const sheet = (c) => StyleSheet.create({
   },
   scriptDown: { opacity: 0.7 },
   scriptRail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
-  scriptName: { flex: 1, fontFamily: font.sansMed, fontSize: 14, color: c.ink },
+  scriptName: { flex: 1, fontFamily: font.sansSemi, fontSize: 12.5, letterSpacing: 0.7, color: c.ink },
   scriptNone: { color: c.gold },
   scriptGo: { fontFamily: font.sansMed, fontSize: 12.5, color: c.blue },
   box: {

@@ -364,3 +364,42 @@ export function track(db, userId, name, props = {}, meta = {}) {
   if (meta.session_id) row.session_id = String(meta.session_id).slice(0, 64);
   db.from('events').insert(row).then(() => {}, () => {});
 }
+
+/* ------------------------------------------------------------- the chain --
+ * A day counts when the writer CHANGED something, and it counts wherever they
+ * changed it: a board edited at the desk, a note caught on a phone. It used to
+ * live in one browser's local storage, so a new laptop wiped the streak and a
+ * night of captures counted for nothing.
+ *
+ * The DAY is the writer's own local date, sent by whichever client did the
+ * work, because a line written at eleven at night in Georgia is tonight's
+ * work and not tomorrow's. A server that decided this from UTC would tell
+ * half the country they had skipped a day.
+ *
+ * Never awaited by anything that matters. A streak is a nudge; it does not get
+ * to fail a save.
+ */
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function localDay(v) {
+  const s = String(v || '').trim();
+  return DAY_RE.test(s) ? s : new Date().toISOString().slice(0, 10);
+}
+
+export function markWorkDay(db, userId, day) {
+  try {
+    db.from('work_days')
+      .upsert({ user_id: userId, day: localDay(day) }, { onConflict: 'user_id,day' })
+      .then(() => {}, () => {});
+  } catch (e) {}
+}
+
+/* The last 90 days the writer worked, newest first, as plain YYYY-MM-DD. The
+ * client turns this into a run and seven dots; the server does not need an
+ * opinion about what a streak is worth. */
+export async function workDays(db, userId, limit = 90) {
+  const { data } = await db.from('work_days')
+    .select('day').eq('user_id', userId)
+    .order('day', { ascending: false }).limit(limit);
+  return (data || []).map(r => String(r.day).slice(0, 10));
+}

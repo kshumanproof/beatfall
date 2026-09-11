@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette, radius, font } from './theme';
 import { fetchScripts, why } from './api';
@@ -79,19 +80,30 @@ export function useScripts() {
 export default function ScriptSheet({ visible, onClose, onPick, current, scheme, shelf }) {
   const c = palette(scheme);
   const s = sheet(c);
+  const inset = useSafeAreaInsets();
   const { scripts, busy, problem, reload } = shelf;
 
   const rows = scripts || [];
 
+  /* Full height, always. A sheet that grows with its contents is a different
+     size every time it opens, so the writer's thumb has to find the list
+     again on each use, and with two scripts on it there is nothing to pull
+     against to refresh. One shape, one place, every time. */
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={s.scrim} onPress={onClose} />
-      <View style={s.card}>
-        <View style={s.grab} />
-        <Text style={s.h}>Which script?</Text>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={[s.screen, { paddingTop: inset.top }]}>
+        <View style={s.bar}>
+          <Text style={s.h}>Which script?</Text>
+          <View style={s.grow} />
+          <Pressable onPress={reload} disabled={busy} hitSlop={12}
+            accessibilityRole="button" accessibilityLabel="Refresh the list">
+            <Text style={[s.act, busy && s.actOff]}>{busy ? 'Refreshing' : 'Refresh'}</Text>
+          </Pressable>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button">
+            <Text style={s.act}>Done</Text>
+          </Pressable>
+        </View>
 
-        {/* Only worth saying when it changes what the writer can do. A list
-            that is on screen and correct does not need an apology over it. */}
         {problem === 'offline' && rows.length > 0 && (
           <Text style={s.note}>
             No signal, so this is the list from last time. Notes save either way.
@@ -100,8 +112,8 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
         {problem && rows.length === 0 && !busy && (
           <Text style={s.bad}>
             {problem === 'offline'
-              ? "No signal, so your scripts can't be fetched yet. Pull down when you're back on."
-              : "Couldn't load your scripts: " + problem + ". Pull down to try again."}
+              ? "No signal, so your scripts can't be fetched yet. Try again when you're back on."
+              : "Couldn't load your scripts: " + problem + '.'}
           </Text>
         )}
 
@@ -113,7 +125,8 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
             keyExtractor={(r) => String(r.id)}
             refreshing={busy}
             onRefresh={reload}
-            contentContainerStyle={s.list}
+            style={s.grow}
+            contentContainerStyle={[s.list, { paddingBottom: inset.bottom + 28 }]}
             ListEmptyComponent={
               <Text style={s.empty}>
                 No scripts yet. Start one at your desk and it will be here next time
@@ -129,50 +142,52 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
                   accessibilityRole="button"
                   accessibilityState={{ selected: !!on }}
                 >
-                  <Text style={[s.name, on && s.nameOn]} numberOfLines={1}>{item.name}</Text>
+                  {/* Caps, as the web app sets a project title. A script is a
+                      title, not a sentence. */}
+                  <Text style={[s.name, on && s.nameOn]} numberOfLines={2}>
+                    {String(item.name || '').toUpperCase()}
+                  </Text>
                   {on && <Text style={s.tick}>Currently</Text>}
                 </Pressable>
               );
             }}
           />
         )}
-
-        <Pressable onPress={onClose} style={s.close} accessibilityRole="button">
-          <Text style={s.closeText}>Close</Text>
-        </Pressable>
       </View>
     </Modal>
   );
 }
 
 const sheet = (c) => StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: 'rgba(20,16,10,.45)' },
-  card: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '78%',
-    backgroundColor: c.surface, borderTopLeftRadius: radius.panel * 2,
-    borderTopRightRadius: radius.panel * 2, paddingHorizontal: 20, paddingBottom: 26,
-    borderTopWidth: 1, borderColor: c.rule,
+  screen: { flex: 1, backgroundColor: c.ground },
+  grow: { flex: 1 },
+  bar: {
+    flexDirection: 'row', alignItems: 'baseline', gap: 16,
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12,
+    borderBottomWidth: 1, borderColor: c.ruleSoft,
   },
-  grab: {
-    alignSelf: 'center', width: 38, height: 4, borderRadius: 2,
-    backgroundColor: c.rule, marginTop: 10, marginBottom: 14,
-  },
-  h: { fontFamily: font.serif, fontSize: 21, color: c.ink, marginBottom: 4 },
-  note: { fontFamily: font.sans, fontSize: 12.5, lineHeight: 19, color: c.ink3, marginTop: 6 },
-  bad:  { fontFamily: font.sans, fontSize: 12.5, lineHeight: 19, color: c.red, marginTop: 6 },
-  wait: { paddingVertical: 40 },
-  list: { paddingTop: 12, gap: 8 },
+  h: { fontFamily: font.serif, fontSize: 22, color: c.ink },
+  act: { fontFamily: font.sansMed, fontSize: 14, color: c.blue },
+  actOff: { color: c.ink4 },
+
+  note: { fontFamily: font.sans, fontSize: 12.5, lineHeight: 19, color: c.ink3,
+    paddingHorizontal: 20, paddingTop: 12 },
+  bad:  { fontFamily: font.sans, fontSize: 13, lineHeight: 20, color: c.red,
+    paddingHorizontal: 20, paddingTop: 14 },
+  wait: { paddingVertical: 44 },
+
+  list: { paddingHorizontal: 20, paddingTop: 14, gap: 8 },
   row: {
     backgroundColor: c.card, borderWidth: 1, borderColor: c.ruleSoft,
-    borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 14,
+    borderRadius: radius.card, paddingHorizontal: 15, paddingVertical: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   rowOn: { borderColor: c.blue, backgroundColor: c.blueSoft },
   rowDown: { opacity: 0.7 },
-  name: { flex: 1, fontFamily: font.sansMed, fontSize: 15, color: c.ink },
+  name: { flex: 1, fontFamily: font.sansSemi, fontSize: 13.5, letterSpacing: 0.7,
+    lineHeight: 19, color: c.ink },
   nameOn: { color: c.blueInk },
   tick: { fontFamily: font.sans, fontSize: 11, color: c.blue },
-  empty: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 21, color: c.ink3, paddingVertical: 10 },
-  close: { alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 20, marginTop: 6 },
-  closeText: { fontFamily: font.sansMed, fontSize: 14, color: c.ink3 },
+  empty: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 21, color: c.ink3,
+    paddingVertical: 10 },
 });

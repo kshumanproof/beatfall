@@ -13,6 +13,7 @@ without Supabase, Stripe or Anthropic.
     node gate.js         # api/projects.js and the export
     node hook.js         # api/stripe-webhook.js
     node clean.js        # api/cleanup.js on a dry run
+    node captures.js     # api/captures.js, the phone's notes
 
 ## How it works, and the one rule
 

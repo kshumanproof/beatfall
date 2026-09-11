@@ -81,6 +81,12 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   /* softened, not rounded away: paper keeps its edge, chrome loses its bite */
   --r-card:4px;            /* cards, gaps, inputs */
+  /* The tagline, inlined. A MASK rather than a picture so it takes the ink
+     colour of whatever it sits on, in either theme, and inline rather than a
+     file because a mask is subject to same-origin rules and silently
+     disappears anywhere the page is not served over http. */
+  --tagline-src:url("data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.9 7.3 513.95 32.66" fill="currentColor" role="img" aria-label="Where your story falls into place."><path transform="translate(0.16 32.88)" d="M 11.02 0 L 8.34 0 L 0.73 -25.25 L 3.14 -25.25 L 9.83 -3.25 L 16.81 -25.25 L 18.97 -25.25 L 25.91 -3.28 L 32.66 -25.25 L 35.05 -25.25 L 27.41 0 L 24.75 0 L 17.91 -21.52 Z M 11.02 0 "/><path transform="translate(35.93 32.88)" d="M 4.53 0 L 2.38 0 L 2.38 -25.25 L 4.53 -25.25 L 4.53 -15.12 C 5.28 -16.29 6.14 -17.14 7.11 -17.69 C 8.09 -18.23 9.21 -18.5 10.48 -18.5 C 11.61 -18.5 12.58 -18.24 13.41 -17.73 C 14.24 -17.23 14.9 -16.56 15.39 -15.72 C 15.83 -14.95 16.08 -14.14 16.16 -13.31 C 16.24 -12.49 16.28 -11.77 16.28 -11.16 L 16.28 0 L 14.12 0 L 14.12 -11.25 C 14.12 -12.81 13.86 -14.02 13.34 -14.89 C 12.66 -16.02 11.55 -16.58 10.03 -16.58 C 8.63 -16.58 7.47 -16.08 6.55 -15.09 C 5.91 -14.38 5.41 -13.41 5.06 -12.17 C 4.71 -10.94 4.53 -9.28 4.53 -7.19 Z M 4.53 0 "/><path transform="translate(54.43 32.88)" d="M 10.27 0.33 C 8.59 0.33 7.09 -0.08 5.78 -0.89 C 4.47 -1.71 3.44 -2.83 2.7 -4.25 C 1.96 -5.68 1.59 -7.28 1.59 -9.06 C 1.59 -10.74 1.94 -12.3 2.62 -13.73 C 3.32 -15.17 4.32 -16.32 5.61 -17.19 C 6.9 -18.06 8.44 -18.5 10.22 -18.5 C 11.89 -18.5 13.35 -18.13 14.59 -17.39 C 15.83 -16.65 16.81 -15.63 17.53 -14.33 C 18.26 -13.02 18.69 -11.52 18.83 -9.83 C 18.85 -9.65 18.86 -9.46 18.86 -9.27 C 18.86 -9.07 18.86 -8.88 18.86 -8.7 L 3.7 -8.7 C 3.77 -7.84 3.95 -7 4.23 -6.19 C 4.74 -4.78 5.52 -3.66 6.58 -2.83 C 7.64 -2 8.87 -1.59 10.27 -1.59 C 11.77 -1.59 13.02 -1.99 14.03 -2.8 C 15.04 -3.6 15.76 -4.57 16.19 -5.72 L 18.47 -5.72 C 18.11 -4.59 17.57 -3.57 16.84 -2.66 C 16.11 -1.75 15.2 -1.02 14.09 -0.48 C 12.99 0.05 11.71 0.33 10.27 0.33 Z M 3.84 -10.45 L 16.78 -10.45 C 16.71 -10.88 16.63 -11.27 16.56 -11.61 C 16.49 -11.96 16.36 -12.33 16.19 -12.7 C 15.66 -13.94 14.86 -14.89 13.8 -15.56 C 12.74 -16.24 11.57 -16.58 10.27 -16.58 C 8.93 -16.58 7.77 -16.24 6.77 -15.58 C 5.77 -14.92 5.01 -14.01 4.5 -12.84 C 4.34 -12.49 4.2 -12.09 4.08 -11.66 C 3.96 -11.23 3.88 -10.83 3.84 -10.45 Z M 3.84 -10.45 "/><path transform="translate(74.84 32.88)" d="M 10.09 -18.5 L 10.69 -18.5 L 10.69 -16.38 L 9.86 -16.38 C 8.12 -16.38 6.83 -15.85 5.98 -14.8 C 5.46 -14.13 5.08 -13.32 4.84 -12.36 C 4.61 -11.4 4.5 -10.24 4.5 -8.88 L 4.5 0 L 2.34 0 L 2.34 -18.17 L 4.5 -18.17 L 4.5 -15.45 C 5.69 -17.48 7.55 -18.5 10.09 -18.5 Z M 10.09 -18.5 "/><path transform="translate(85.56 32.88)" d="M 10.27 0.33 C 8.59 0.33 7.09 -0.08 5.78 -0.89 C 4.47 -1.71 3.44 -2.83 2.7 -4.25 C 1.96 -5.68 1.59 -7.28 1.59 -9.06 C 1.59 -10.74 1.94 -12.3 2.62 -13.73 C 3.32 -15.17 4.32 -16.32 5.61 -17.19 C 6.9 -18.06 8.44 -18.5 10.22 -18.5 C 11.89 -18.5 13.35 -18.13 14.59 -17.39 C 15.83 -16.65 16.81 -15.63 17.53 -14.33 C 18.26 -13.02 18.69 -11.52 18.83 -9.83 C 18.85 -9.65 18.86 -9.46 18.86 -9.27 C 18.86 -9.07 18.86 -8.88 18.86 -8.7 L 3.7 -8.7 C 3.77 -7.84 3.95 -7 4.23 -6.19 C 4.74 -4.78 5.52 -3.66 6.58 -2.83 C 7.64 -2 8.87 -1.59 10.27 -1.59 C 11.77 -1.59 13.02 -1.99 14.03 -2.8 C 15.04 -3.6 15.76 -4.57 16.19 -5.72 L 18.47 -5.72 C 18.11 -4.59 17.57 -3.57 16.84 -2.66 C 16.11 -1.75 15.2 -1.02 14.09 -0.48 C 12.99 0.05 11.71 0.33 10.27 0.33 Z M 3.84 -10.45 L 16.78 -10.45 C 16.71 -10.88 16.63 -11.27 16.56 -11.61 C 16.49 -11.96 16.36 -12.33 16.19 -12.7 C 15.66 -13.94 14.86 -14.89 13.8 -15.56 C 12.74 -16.24 11.57 -16.58 10.27 -16.58 C 8.93 -16.58 7.77 -16.24 6.77 -15.58 C 5.77 -14.92 5.01 -14.01 4.5 -12.84 C 4.34 -12.49 4.2 -12.09 4.08 -11.66 C 3.96 -11.23 3.88 -10.83 3.84 -10.45 Z M 3.84 -10.45 "/><path transform="translate(115.24 32.88)" d="M 5.2 7.08 L 2.22 7.08 L 2.22 5.12 L 4.2 5.12 C 4.97 5.12 5.54 5.01 5.91 4.78 C 6.27 4.55 6.6 4.07 6.89 3.34 L 8.2 -0.17 L 0.66 -18.17 L 3.05 -18.17 L 9.3 -2.91 L 14.8 -18.17 L 17.17 -18.17 L 8.97 4.08 C 8.63 4.97 8.24 5.63 7.78 6.06 C 7.33 6.5 6.88 6.77 6.44 6.89 C 5.99 7.02 5.58 7.08 5.2 7.08 Z M 5.2 7.08 "/><path transform="translate(133.18 32.88)" d="M 10.3 0.33 C 8.62 0.33 7.12 -0.08 5.81 -0.89 C 4.5 -1.71 3.47 -2.84 2.72 -4.27 C 1.97 -5.7 1.59 -7.34 1.59 -9.17 C 1.59 -10.95 1.97 -12.54 2.72 -13.94 C 3.47 -15.34 4.5 -16.45 5.81 -17.27 C 7.12 -18.09 8.62 -18.5 10.3 -18.5 C 11.99 -18.5 13.5 -18.09 14.81 -17.27 C 16.12 -16.45 17.16 -15.34 17.92 -13.94 C 18.68 -12.54 19.06 -10.95 19.06 -9.17 C 19.06 -7.36 18.69 -5.73 17.94 -4.3 C 17.19 -2.87 16.16 -1.74 14.84 -0.91 C 13.53 -0.08 12.02 0.33 10.3 0.33 Z M 10.3 -1.59 C 11.55 -1.59 12.66 -1.92 13.66 -2.58 C 14.66 -3.24 15.45 -4.15 16.03 -5.3 C 16.61 -6.44 16.91 -7.73 16.91 -9.17 C 16.91 -10.58 16.62 -11.84 16.05 -12.95 C 15.47 -14.07 14.69 -14.95 13.7 -15.59 C 12.71 -16.25 11.58 -16.58 10.3 -16.58 C 9.04 -16.58 7.91 -16.25 6.92 -15.59 C 5.94 -14.95 5.16 -14.07 4.59 -12.95 C 4.02 -11.84 3.73 -10.58 3.73 -9.17 C 3.73 -7.71 4.02 -6.41 4.59 -5.27 C 5.16 -4.12 5.94 -3.22 6.92 -2.56 C 7.91 -1.91 9.04 -1.59 10.3 -1.59 Z M 10.3 -1.59 "/><path transform="translate(153.86 32.88)" d="M 8.02 0.33 C 5.8 0.33 4.17 -0.6 3.11 -2.45 C 2.8 -3 2.57 -3.66 2.42 -4.42 C 2.29 -5.18 2.22 -6.05 2.22 -7.02 L 2.22 -18.17 L 4.38 -18.17 L 4.38 -6.92 C 4.38 -5.35 4.63 -4.13 5.16 -3.28 C 5.86 -2.16 6.97 -1.59 8.47 -1.59 C 9.86 -1.59 11.02 -2.09 11.95 -3.08 C 12.65 -3.85 13.16 -4.88 13.48 -6.16 C 13.8 -7.44 13.97 -9.05 13.97 -10.98 L 13.97 -18.17 L 16.11 -18.17 L 16.11 0 L 13.97 0 L 13.97 -3.05 C 12.55 -0.8 10.57 0.33 8.02 0.33 Z M 8.02 0.33 "/><path transform="translate(172.32 32.88)" d="M 10.09 -18.5 L 10.69 -18.5 L 10.69 -16.38 L 9.86 -16.38 C 8.12 -16.38 6.83 -15.85 5.98 -14.8 C 5.46 -14.13 5.08 -13.32 4.84 -12.36 C 4.61 -11.4 4.5 -10.24 4.5 -8.88 L 4.5 0 L 2.34 0 L 2.34 -18.17 L 4.5 -18.17 L 4.5 -15.45 C 5.69 -17.48 7.55 -18.5 10.09 -18.5 Z M 10.09 -18.5 "/><path transform="translate(193 32.88)" d="M 9.44 0.33 C 7.13 0.33 5.3 -0.21 3.92 -1.28 C 2.55 -2.36 1.73 -3.84 1.48 -5.72 L 3.67 -5.72 C 3.85 -4.45 4.41 -3.44 5.38 -2.7 C 6.33 -1.96 7.72 -1.59 9.53 -1.59 C 10.97 -1.59 12.1 -1.88 12.92 -2.44 C 13.75 -3 14.17 -3.8 14.17 -4.86 C 14.17 -5.72 13.91 -6.38 13.38 -6.84 C 12.84 -7.31 12.16 -7.67 11.31 -7.92 C 10.48 -8.18 9.59 -8.4 8.64 -8.58 C 7.85 -8.72 7.07 -8.89 6.3 -9.09 C 5.54 -9.3 4.85 -9.57 4.23 -9.91 C 3.62 -10.25 3.12 -10.7 2.75 -11.27 C 2.38 -11.83 2.19 -12.55 2.19 -13.44 C 2.19 -14.54 2.47 -15.47 3.03 -16.22 C 3.59 -16.97 4.36 -17.54 5.34 -17.92 C 6.32 -18.3 7.42 -18.5 8.64 -18.5 C 10.6 -18.5 12.2 -17.98 13.44 -16.95 C 14.68 -15.93 15.44 -14.57 15.72 -12.88 L 13.56 -12.88 C 13.36 -14.08 12.83 -15 11.97 -15.62 C 11.11 -16.26 10 -16.58 8.64 -16.58 C 7.3 -16.58 6.24 -16.32 5.47 -15.8 C 4.71 -15.29 4.33 -14.58 4.33 -13.67 C 4.33 -12.94 4.57 -12.37 5.06 -11.95 C 5.55 -11.55 6.19 -11.23 6.97 -11.02 C 7.75 -10.8 8.58 -10.6 9.47 -10.42 C 10.28 -10.27 11.09 -10.08 11.89 -9.86 C 12.7 -9.64 13.44 -9.35 14.11 -8.98 C 14.79 -8.62 15.32 -8.12 15.72 -7.48 C 16.11 -6.86 16.31 -6.05 16.31 -5.06 C 16.31 -3.45 15.72 -2.14 14.55 -1.16 C 13.37 -0.16 11.66 0.33 9.44 0.33 Z M 9.44 0.33 "/><path transform="translate(210.74 32.88)" d="M 10.22 0 L 7.91 0 C 7 0 6.24 -0.12 5.64 -0.38 C 5.04 -0.63 4.58 -1.09 4.28 -1.75 C 3.99 -2.41 3.84 -3.35 3.84 -4.56 L 3.84 -16.25 L 0.89 -16.25 L 0.89 -18.17 L 3.84 -18.17 L 3.84 -25.25 L 5.98 -25.25 L 5.98 -18.17 L 10.27 -18.17 L 10.27 -16.25 L 5.98 -16.25 L 5.98 -5 C 5.98 -4.31 6.03 -3.73 6.12 -3.27 C 6.23 -2.8 6.45 -2.47 6.8 -2.25 C 7.14 -2.03 7.68 -1.92 8.41 -1.92 L 10.22 -1.92 Z M 10.22 0 "/><path transform="translate(221.65 32.88)" d="M 10.3 0.33 C 8.62 0.33 7.12 -0.08 5.81 -0.89 C 4.5 -1.71 3.47 -2.84 2.72 -4.27 C 1.97 -5.7 1.59 -7.34 1.59 -9.17 C 1.59 -10.95 1.97 -12.54 2.72 -13.94 C 3.47 -15.34 4.5 -16.45 5.81 -17.27 C 7.12 -18.09 8.62 -18.5 10.3 -18.5 C 11.99 -18.5 13.5 -18.09 14.81 -17.27 C 16.12 -16.45 17.16 -15.34 17.92 -13.94 C 18.68 -12.54 19.06 -10.95 19.06 -9.17 C 19.06 -7.36 18.69 -5.73 17.94 -4.3 C 17.19 -2.87 16.16 -1.74 14.84 -0.91 C 13.53 -0.08 12.02 0.33 10.3 0.33 Z M 10.3 -1.59 C 11.55 -1.59 12.66 -1.92 13.66 -2.58 C 14.66 -3.24 15.45 -4.15 16.03 -5.3 C 16.61 -6.44 16.91 -7.73 16.91 -9.17 C 16.91 -10.58 16.62 -11.84 16.05 -12.95 C 15.47 -14.07 14.69 -14.95 13.7 -15.59 C 12.71 -16.25 11.58 -16.58 10.3 -16.58 C 9.04 -16.58 7.91 -16.25 6.92 -15.59 C 5.94 -14.95 5.16 -14.07 4.59 -12.95 C 4.02 -11.84 3.73 -10.58 3.73 -9.17 C 3.73 -7.71 4.02 -6.41 4.59 -5.27 C 5.16 -4.12 5.94 -3.22 6.92 -2.56 C 7.91 -1.91 9.04 -1.59 10.3 -1.59 Z M 10.3 -1.59 "/><path transform="translate(242.33 32.88)" d="M 10.09 -18.5 L 10.69 -18.5 L 10.69 -16.38 L 9.86 -16.38 C 8.12 -16.38 6.83 -15.85 5.98 -14.8 C 5.46 -14.13 5.08 -13.32 4.84 -12.36 C 4.61 -11.4 4.5 -10.24 4.5 -8.88 L 4.5 0 L 2.34 0 L 2.34 -18.17 L 4.5 -18.17 L 4.5 -15.45 C 5.69 -17.48 7.55 -18.5 10.09 -18.5 Z M 10.09 -18.5 "/><path transform="translate(253.75 32.88)" d="M 5.2 7.08 L 2.22 7.08 L 2.22 5.12 L 4.2 5.12 C 4.97 5.12 5.54 5.01 5.91 4.78 C 6.27 4.55 6.6 4.07 6.89 3.34 L 8.2 -0.17 L 0.66 -18.17 L 3.05 -18.17 L 9.3 -2.91 L 14.8 -18.17 L 17.17 -18.17 L 8.97 4.08 C 8.63 4.97 8.24 5.63 7.78 6.06 C 7.33 6.5 6.88 6.77 6.44 6.89 C 5.99 7.02 5.58 7.08 5.2 7.08 Z M 5.2 7.08 "/><path transform="translate(280.95 32.88)" d="M 6.06 0 L 3.91 0 L 3.91 -16.25 L 0.86 -16.25 L 0.86 -18.17 L 3.91 -18.17 L 3.91 -20.22 C 3.91 -23.57 5.43 -25.25 8.47 -25.25 L 10.66 -25.25 L 10.66 -23.33 L 8.94 -23.33 C 8.09 -23.33 7.4 -23.14 6.86 -22.78 C 6.33 -22.41 6.06 -21.64 6.06 -20.45 L 6.06 -18.17 L 10.66 -18.17 L 10.66 -16.25 L 6.06 -16.25 Z M 6.06 0 "/><path transform="translate(291.83 32.88)" d="M 7.78 0.33 C 5.99 0.33 4.51 -0.11 3.34 -0.98 C 2.18 -1.87 1.59 -3.15 1.59 -4.83 C 1.59 -5.73 1.78 -6.49 2.16 -7.11 C 2.53 -7.73 2.99 -8.24 3.55 -8.64 C 4.18 -9.08 4.89 -9.41 5.67 -9.64 C 6.45 -9.88 7.16 -10.06 7.78 -10.19 L 14.27 -11.48 C 14.24 -12.3 14.13 -13.02 13.94 -13.64 C 13.74 -14.27 13.44 -14.81 13.03 -15.25 C 12.24 -16.13 11 -16.58 9.33 -16.58 C 8.12 -16.58 7.05 -16.24 6.12 -15.56 C 5.2 -14.89 4.62 -14 4.41 -12.88 L 2.25 -12.88 C 2.45 -14.08 2.88 -15.1 3.55 -15.92 C 4.22 -16.75 5.07 -17.39 6.08 -17.83 C 7.1 -18.27 8.19 -18.5 9.36 -18.5 C 11.64 -18.5 13.38 -17.87 14.56 -16.61 C 15.8 -15.3 16.42 -13.39 16.42 -10.86 L 16.42 0 L 14.27 0 L 14.27 -3.41 C 13.67 -2.28 12.83 -1.4 11.75 -0.77 C 11.18 -0.41 10.55 -0.14 9.88 0.05 C 9.21 0.23 8.51 0.33 7.78 0.33 Z M 7.61 -1.59 C 8.71 -1.59 9.75 -1.83 10.72 -2.31 C 12.06 -2.96 12.99 -3.92 13.5 -5.2 C 14.01 -6.49 14.27 -7.98 14.27 -9.66 L 7.81 -8.31 C 7.26 -8.2 6.71 -8.05 6.17 -7.86 C 5.63 -7.67 5.16 -7.41 4.77 -7.08 C 4.45 -6.82 4.2 -6.5 4.02 -6.14 C 3.83 -5.77 3.73 -5.34 3.73 -4.83 C 3.73 -3.8 4.11 -3 4.86 -2.44 C 5.61 -1.88 6.52 -1.59 7.61 -1.59 Z M 7.61 -1.59 "/><path transform="translate(310.4 32.88)" d="M 7.7 0 L 6.06 0 C 4.84 0 3.91 -0.29 3.25 -0.88 C 2.6 -1.46 2.28 -2.58 2.28 -4.23 L 2.28 -25.25 L 4.44 -25.25 L 4.44 -4.56 C 4.44 -3.69 4.55 -3.02 4.77 -2.58 C 4.98 -2.14 5.57 -1.92 6.52 -1.92 L 7.7 -1.92 Z M 7.7 0 "/><path transform="translate(319.1 32.88)" d="M 7.7 0 L 6.06 0 C 4.84 0 3.91 -0.29 3.25 -0.88 C 2.6 -1.46 2.28 -2.58 2.28 -4.23 L 2.28 -25.25 L 4.44 -25.25 L 4.44 -4.56 C 4.44 -3.69 4.55 -3.02 4.77 -2.58 C 4.98 -2.14 5.57 -1.92 6.52 -1.92 L 7.7 -1.92 Z M 7.7 0 "/><path transform="translate(327.8 32.88)" d="M 9.44 0.33 C 7.13 0.33 5.3 -0.21 3.92 -1.28 C 2.55 -2.36 1.73 -3.84 1.48 -5.72 L 3.67 -5.72 C 3.85 -4.45 4.41 -3.44 5.38 -2.7 C 6.33 -1.96 7.72 -1.59 9.53 -1.59 C 10.97 -1.59 12.1 -1.88 12.92 -2.44 C 13.75 -3 14.17 -3.8 14.17 -4.86 C 14.17 -5.72 13.91 -6.38 13.38 -6.84 C 12.84 -7.31 12.16 -7.67 11.31 -7.92 C 10.48 -8.18 9.59 -8.4 8.64 -8.58 C 7.85 -8.72 7.07 -8.89 6.3 -9.09 C 5.54 -9.3 4.85 -9.57 4.23 -9.91 C 3.62 -10.25 3.12 -10.7 2.75 -11.27 C 2.38 -11.83 2.19 -12.55 2.19 -13.44 C 2.19 -14.54 2.47 -15.47 3.03 -16.22 C 3.59 -16.97 4.36 -17.54 5.34 -17.92 C 6.32 -18.3 7.42 -18.5 8.64 -18.5 C 10.6 -18.5 12.2 -17.98 13.44 -16.95 C 14.68 -15.93 15.44 -14.57 15.72 -12.88 L 13.56 -12.88 C 13.36 -14.08 12.83 -15 11.97 -15.62 C 11.11 -16.26 10 -16.58 8.64 -16.58 C 7.3 -16.58 6.24 -16.32 5.47 -15.8 C 4.71 -15.29 4.33 -14.58 4.33 -13.67 C 4.33 -12.94 4.57 -12.37 5.06 -11.95 C 5.55 -11.55 6.19 -11.23 6.97 -11.02 C 7.75 -10.8 8.58 -10.6 9.47 -10.42 C 10.28 -10.27 11.09 -10.08 11.89 -9.86 C 12.7 -9.64 13.44 -9.35 14.11 -8.98 C 14.79 -8.62 15.32 -8.12 15.72 -7.48 C 16.11 -6.86 16.31 -6.05 16.31 -5.06 C 16.31 -3.45 15.72 -2.14 14.55 -1.16 C 13.37 -0.16 11.66 0.33 9.44 0.33 Z M 9.44 0.33 "/><path transform="translate(355.03 32.88)" d="M 3.47 -22.38 C 3.03 -22.38 2.65 -22.53 2.33 -22.84 C 2.02 -23.16 1.86 -23.55 1.86 -24 C 1.86 -24.44 2.02 -24.8 2.33 -25.11 C 2.65 -25.42 3.03 -25.58 3.47 -25.58 C 3.91 -25.58 4.3 -25.42 4.61 -25.11 C 4.93 -24.8 5.09 -24.44 5.09 -24 C 5.09 -23.55 4.93 -23.16 4.61 -22.84 C 4.3 -22.53 3.91 -22.38 3.47 -22.38 Z M 4.53 0 L 2.38 0 L 2.38 -18.17 L 4.53 -18.17 Z M 4.53 0 "/><path transform="translate(361.95 32.88)" d="M 4.5 0 L 2.34 0 L 2.34 -18.17 L 4.5 -18.17 L 4.5 -15.12 C 5.25 -16.29 6.11 -17.14 7.08 -17.69 C 8.05 -18.23 9.17 -18.5 10.45 -18.5 C 11.58 -18.5 12.55 -18.24 13.38 -17.73 C 14.21 -17.23 14.87 -16.56 15.36 -15.72 C 15.8 -14.95 16.05 -14.14 16.12 -13.31 C 16.21 -12.49 16.25 -11.77 16.25 -11.16 L 16.25 0 L 14.09 0 L 14.09 -11.25 C 14.09 -12.81 13.83 -14.02 13.3 -14.89 C 12.62 -16.02 11.52 -16.58 10 -16.58 C 8.6 -16.58 7.44 -16.08 6.52 -15.09 C 5.88 -14.38 5.38 -13.41 5.03 -12.17 C 4.68 -10.94 4.5 -9.28 4.5 -7.19 Z M 4.5 0 "/><path transform="translate(379.85 32.88)" d="M 10.22 0 L 7.91 0 C 7 0 6.24 -0.12 5.64 -0.38 C 5.04 -0.63 4.58 -1.09 4.28 -1.75 C 3.99 -2.41 3.84 -3.35 3.84 -4.56 L 3.84 -16.25 L 0.89 -16.25 L 0.89 -18.17 L 3.84 -18.17 L 3.84 -25.25 L 5.98 -25.25 L 5.98 -18.17 L 10.27 -18.17 L 10.27 -16.25 L 5.98 -16.25 L 5.98 -5 C 5.98 -4.31 6.03 -3.73 6.12 -3.27 C 6.23 -2.8 6.45 -2.47 6.8 -2.25 C 7.14 -2.03 7.68 -1.92 8.41 -1.92 L 10.22 -1.92 Z M 10.22 0 "/><path transform="translate(390.77 32.88)" d="M 10.3 0.33 C 8.62 0.33 7.12 -0.08 5.81 -0.89 C 4.5 -1.71 3.47 -2.84 2.72 -4.27 C 1.97 -5.7 1.59 -7.34 1.59 -9.17 C 1.59 -10.95 1.97 -12.54 2.72 -13.94 C 3.47 -15.34 4.5 -16.45 5.81 -17.27 C 7.12 -18.09 8.62 -18.5 10.3 -18.5 C 11.99 -18.5 13.5 -18.09 14.81 -17.27 C 16.12 -16.45 17.16 -15.34 17.92 -13.94 C 18.68 -12.54 19.06 -10.95 19.06 -9.17 C 19.06 -7.36 18.69 -5.73 17.94 -4.3 C 17.19 -2.87 16.16 -1.74 14.84 -0.91 C 13.53 -0.08 12.02 0.33 10.3 0.33 Z M 10.3 -1.59 C 11.55 -1.59 12.66 -1.92 13.66 -2.58 C 14.66 -3.24 15.45 -4.15 16.03 -5.3 C 16.61 -6.44 16.91 -7.73 16.91 -9.17 C 16.91 -10.58 16.62 -11.84 16.05 -12.95 C 15.47 -14.07 14.69 -14.95 13.7 -15.59 C 12.71 -16.25 11.58 -16.58 10.3 -16.58 C 9.04 -16.58 7.91 -16.25 6.92 -15.59 C 5.94 -14.95 5.16 -14.07 4.59 -12.95 C 4.02 -11.84 3.73 -10.58 3.73 -9.17 C 3.73 -7.71 4.02 -6.41 4.59 -5.27 C 5.16 -4.12 5.94 -3.22 6.92 -2.56 C 7.91 -1.91 9.04 -1.59 10.3 -1.59 Z M 10.3 -1.59 "/><path transform="translate(420.71 32.88)" d="M 11.02 -18.5 C 12.61 -18.5 14 -18.09 15.19 -17.28 C 16.38 -16.48 17.31 -15.37 17.97 -13.95 C 18.63 -12.55 18.97 -10.93 18.97 -9.09 C 18.97 -7.27 18.63 -5.64 17.97 -4.22 C 17.31 -2.79 16.38 -1.68 15.19 -0.88 C 14 -0.07 12.61 0.33 11.02 0.33 C 9.69 0.33 8.48 0.01 7.39 -0.62 C 6.3 -1.27 5.35 -2.19 4.53 -3.38 L 4.53 7.08 L 2.38 7.08 L 2.38 -18.17 L 4.53 -18.17 L 4.53 -14.8 C 5.32 -15.96 6.27 -16.87 7.36 -17.52 C 8.45 -18.17 9.67 -18.5 11.02 -18.5 Z M 10.83 -16.58 C 9.61 -16.58 8.52 -16.25 7.56 -15.59 C 6.6 -14.95 5.85 -14.06 5.3 -12.94 C 4.74 -11.81 4.47 -10.53 4.47 -9.09 C 4.47 -7.66 4.74 -6.38 5.3 -5.25 C 5.85 -4.11 6.6 -3.22 7.56 -2.56 C 8.52 -1.91 9.61 -1.59 10.83 -1.59 C 12.05 -1.59 13.12 -1.92 14.02 -2.58 C 14.91 -3.24 15.6 -4.14 16.08 -5.28 C 16.57 -6.41 16.81 -7.69 16.81 -9.09 C 16.81 -10.51 16.57 -11.78 16.08 -12.91 C 15.6 -14.03 14.91 -14.92 14.02 -15.58 C 13.12 -16.24 12.05 -16.58 10.83 -16.58 Z M 10.83 -16.58 "/><path transform="translate(441.33 32.88)" d="M 7.7 0 L 6.06 0 C 4.84 0 3.91 -0.29 3.25 -0.88 C 2.6 -1.46 2.28 -2.58 2.28 -4.23 L 2.28 -25.25 L 4.44 -25.25 L 4.44 -4.56 C 4.44 -3.69 4.55 -3.02 4.77 -2.58 C 4.98 -2.14 5.57 -1.92 6.52 -1.92 L 7.7 -1.92 Z M 7.7 0 "/><path transform="translate(450.03 32.88)" d="M 7.78 0.33 C 5.99 0.33 4.51 -0.11 3.34 -0.98 C 2.18 -1.87 1.59 -3.15 1.59 -4.83 C 1.59 -5.73 1.78 -6.49 2.16 -7.11 C 2.53 -7.73 2.99 -8.24 3.55 -8.64 C 4.18 -9.08 4.89 -9.41 5.67 -9.64 C 6.45 -9.88 7.16 -10.06 7.78 -10.19 L 14.27 -11.48 C 14.24 -12.3 14.13 -13.02 13.94 -13.64 C 13.74 -14.27 13.44 -14.81 13.03 -15.25 C 12.24 -16.13 11 -16.58 9.33 -16.58 C 8.12 -16.58 7.05 -16.24 6.12 -15.56 C 5.2 -14.89 4.62 -14 4.41 -12.88 L 2.25 -12.88 C 2.45 -14.08 2.88 -15.1 3.55 -15.92 C 4.22 -16.75 5.07 -17.39 6.08 -17.83 C 7.1 -18.27 8.19 -18.5 9.36 -18.5 C 11.64 -18.5 13.38 -17.87 14.56 -16.61 C 15.8 -15.3 16.42 -13.39 16.42 -10.86 L 16.42 0 L 14.27 0 L 14.27 -3.41 C 13.67 -2.28 12.83 -1.4 11.75 -0.77 C 11.18 -0.41 10.55 -0.14 9.88 0.05 C 9.21 0.23 8.51 0.33 7.78 0.33 Z M 7.61 -1.59 C 8.71 -1.59 9.75 -1.83 10.72 -2.31 C 12.06 -2.96 12.99 -3.92 13.5 -5.2 C 14.01 -6.49 14.27 -7.98 14.27 -9.66 L 7.81 -8.31 C 7.26 -8.2 6.71 -8.05 6.17 -7.86 C 5.63 -7.67 5.16 -7.41 4.77 -7.08 C 4.45 -6.82 4.2 -6.5 4.02 -6.14 C 3.83 -5.77 3.73 -5.34 3.73 -4.83 C 3.73 -3.8 4.11 -3 4.86 -2.44 C 5.61 -1.88 6.52 -1.59 7.61 -1.59 Z M 7.61 -1.59 "/><path transform="translate(468.59 32.88)" d="M 10.27 0.33 C 8.59 0.33 7.09 -0.08 5.78 -0.89 C 4.47 -1.71 3.44 -2.84 2.7 -4.27 C 1.96 -5.7 1.59 -7.34 1.59 -9.17 C 1.59 -10.95 1.96 -12.54 2.7 -13.94 C 3.44 -15.34 4.47 -16.45 5.78 -17.27 C 7.09 -18.09 8.59 -18.5 10.27 -18.5 C 12.22 -18.5 13.89 -17.98 15.28 -16.95 C 16.68 -15.93 17.58 -14.57 18 -12.88 L 15.69 -12.88 C 15.35 -14 14.7 -14.89 13.72 -15.56 C 12.74 -16.24 11.59 -16.58 10.27 -16.58 C 9 -16.58 7.88 -16.25 6.89 -15.61 C 5.91 -14.97 5.14 -14.1 4.58 -12.98 C 4.02 -11.87 3.73 -10.6 3.73 -9.17 C 3.73 -7.69 4.02 -6.38 4.58 -5.25 C 5.14 -4.11 5.91 -3.22 6.89 -2.56 C 7.88 -1.91 9 -1.59 10.27 -1.59 C 11.69 -1.59 12.9 -1.98 13.89 -2.75 C 14.89 -3.52 15.52 -4.51 15.78 -5.72 L 18.14 -5.72 C 17.77 -3.88 16.86 -2.41 15.42 -1.31 C 13.98 -0.22 12.27 0.33 10.27 0.33 Z M 10.27 0.33 "/><path transform="translate(488.15 32.88)" d="M 10.27 0.33 C 8.59 0.33 7.09 -0.08 5.78 -0.89 C 4.47 -1.71 3.44 -2.83 2.7 -4.25 C 1.96 -5.68 1.59 -7.28 1.59 -9.06 C 1.59 -10.74 1.94 -12.3 2.62 -13.73 C 3.32 -15.17 4.32 -16.32 5.61 -17.19 C 6.9 -18.06 8.44 -18.5 10.22 -18.5 C 11.89 -18.5 13.35 -18.13 14.59 -17.39 C 15.83 -16.65 16.81 -15.63 17.53 -14.33 C 18.26 -13.02 18.69 -11.52 18.83 -9.83 C 18.85 -9.65 18.86 -9.46 18.86 -9.27 C 18.86 -9.07 18.86 -8.88 18.86 -8.7 L 3.7 -8.7 C 3.77 -7.84 3.95 -7 4.23 -6.19 C 4.74 -4.78 5.52 -3.66 6.58 -2.83 C 7.64 -2 8.87 -1.59 10.27 -1.59 C 11.77 -1.59 13.02 -1.99 14.03 -2.8 C 15.04 -3.6 15.76 -4.57 16.19 -5.72 L 18.47 -5.72 C 18.11 -4.59 17.57 -3.57 16.84 -2.66 C 16.11 -1.75 15.2 -1.02 14.09 -0.48 C 12.99 0.05 11.71 0.33 10.27 0.33 Z M 3.84 -10.45 L 16.78 -10.45 C 16.71 -10.88 16.63 -11.27 16.56 -11.61 C 16.49 -11.96 16.36 -12.33 16.19 -12.7 C 15.66 -13.94 14.86 -14.89 13.8 -15.56 C 12.74 -16.24 11.57 -16.58 10.27 -16.58 C 8.93 -16.58 7.77 -16.24 6.77 -15.58 C 5.77 -14.92 5.01 -14.01 4.5 -12.84 C 4.34 -12.49 4.2 -12.09 4.08 -11.66 C 3.96 -11.23 3.88 -10.83 3.84 -10.45 Z M 3.84 -10.45 "/><path transform="translate(508.56 32.88)" d="M 4.7 0.33 C 4.21 0.33 3.8 0.16 3.47 -0.16 C 3.14 -0.49 2.98 -0.89 2.98 -1.36 C 2.98 -1.8 3.15 -2.18 3.48 -2.5 C 3.83 -2.82 4.23 -2.98 4.7 -2.98 C 5.14 -2.98 5.51 -2.82 5.81 -2.5 C 6.12 -2.18 6.28 -1.8 6.28 -1.36 C 6.28 -0.89 6.12 -0.49 5.81 -0.16 C 5.51 0.16 5.14 0.33 4.7 0.33 Z M 4.7 0.33 "/></svg>");
+
   --r-ctl:5px;             /* buttons, chips, selects */
   --r-panel:9px;           /* modals, popovers, sheets, trays */
   --settle:180ms cubic-bezier(.2,.7,.3,1);
@@ -225,8 +231,8 @@ header{
 .brandtag{
   display:block;width:calc(var(--wm) * 4.254);max-width:100%;
   aspect-ratio:513.95 / 32.656;background-color:currentColor;
-  -webkit-mask:url("/brand/tagline.svg") no-repeat left center/contain;
-          mask:url("/brand/tagline.svg") no-repeat left center/contain;
+  -webkit-mask:var(--tagline-src) no-repeat left center/contain;
+          mask:var(--tagline-src) no-repeat left center/contain;
 }
 /* Baseline-aligned like the two texts it divides: a block's baseline is its
    bottom edge, so the rule runs from above the cap down to the baseline. */
@@ -1856,6 +1862,22 @@ footer{
 .foot-brand .brand{--wm:22px}
 .setbrand{padding:0 13px 2px}
 .brand.setbrand{--wm:19px}
+
+/* The pile from the phone. A row per script, because sorting is a per-script
+   errand: one board, one read, one look at the results. */
+.pgroup{display:flex;align-items:center;gap:12px;padding:13px 0;
+  border-top:1px solid var(--rule-soft)}
+.pgroup:first-child{border-top:0}
+.pgroup .pn{flex:1;min-width:0}
+.pgroup .pt{font-family:var(--sans);font-size:12.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+  overflow-wrap:anywhere}
+.pgroup .pc{font-family:var(--sans);font-size:12px;color:var(--ink-3);margin-top:2px}
+.pgroup select{font-family:var(--sans);font-size:12.5px;padding:7px 9px;
+  border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
+  color:var(--ink);max-width:190px}
+.pgroup .btn{flex:0 0 auto}
+.pnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:8px 0}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
@@ -2209,6 +2231,29 @@ footer{
       <button class="btn" id="logstop" hidden>Stop</button>
       <button class="btn btn-ghost" id="logclose">Back to the project</button>
       <span class="limitnote" id="loglimit"></span>
+    </div>
+  </div>
+
+  <!-- What came in from the phone. Two sheets: the greeting, which only ever
+       appears when there is something to say, and the pile, which is the
+       honest list and stays reachable from the dashboard whether or not the
+       greeting was answered. -->
+  <div class="sheet" id="sheetphone" hidden>
+    <div class="sheet-title" id="phonehi">Welcome back</div>
+    <p class="sheet-note" id="phonesum"></p>
+    <div class="sheet-acts">
+      <button class="btn" id="phonelater">Not now</button>
+      <button class="btn btn-primary" id="phonego">Sort them onto the board</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="sheetsort" hidden>
+    <div class="sheet-title">Notes from your phone</div>
+    <p class="sheet-note">One script at a time. Each batch goes through the same
+      read as a pasted file, and you see the results before your board changes.</p>
+    <div id="sortgroups"></div>
+    <div class="sheet-acts">
+      <button class="btn" id="sortclose">Close</button>
     </div>
   </div>
 
@@ -3347,9 +3392,17 @@ const dayStamp = (d) => {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
        + "-" + String(d.getDate()).padStart(2, "0");
 };
+/* The account's days first, this browser's as a fallback and a head start.
+   The chain used to live only in local storage, which meant a new laptop wiped
+   it and a night of captures on a phone counted for nothing. The server now
+   records a day whenever anything changes, wherever it changed, and the local
+   list is kept so an existing streak survives the move and so today shows
+   immediately rather than after the next page load. */
 function workedDays(){
+  let local = [];
   try { const a = JSON.parse(localStorage.getItem(DAYS_KEY) || "[]");
-        return Array.isArray(a) ? a : []; } catch(e){ return []; }
+        if (Array.isArray(a)) local = a; } catch(e){}
+  return local.concat(CHAIN_DAYS);
 }
 function markWorked(){
   const today = dayStamp();
@@ -5956,12 +6009,21 @@ let importIntoNew = false;
 // The structure a dashboard import settled on, applied to the project it makes.
 let importStructure = null;
 
+/* One sheet at a time inside the one scrim. Written once here because the
+   list of sheets grew and every place that showed one was hiding a different
+   subset of the others. */
+function showSheet(el){
+  scrim.hidden = false;
+  ["sheetpaste", "sheetreview", "sheetnew", "sheetphone", "sheetsort"].forEach(id => {
+    const x = document.getElementById(id);
+    if (x) x.hidden = (x !== el);
+  });
+}
+
 function openImport(intoNew, prefill){
   importIntoNew = !!intoNew;
   importDropped = false;
-  scrim.hidden = false;
-  sheetReview.hidden = true;
-  sheetPaste.hidden = false;
+  showSheet(sheetPaste);
   dumptext.value = prefill || "";
   plan = null;
   countDump();
@@ -5999,7 +6061,12 @@ document.getElementById("dumptopup").addEventListener("click", async ev => {
     document.getElementById("dumpcount").textContent = BF.explain(e);
   }
 });
-function closeImport(){ scrim.hidden = true; if (dumpCtl) dumpCtl.abort(); }
+function closeImport(){
+  scrim.hidden = true;
+  if (dumpCtl) dumpCtl.abort();
+  // A cancelled batch was never sorted, so it stays in the pile.
+  sortingIds = [];
+}
 
 document.getElementById("dump").addEventListener("click", () => openImport(false));
 document.getElementById("barimport").addEventListener("click", () => openImport(false));
@@ -6032,6 +6099,172 @@ marksCost(document.getElementById("captureimport"), "import");
     + "board changes.";
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !scrim.hidden) closeImport(); });
+
+/* ==========================================================================
+   What came in from the phone.
+
+   A capture is not a card yet. It is a sentence somebody said outside a
+   restaurant, and it stays a capture until the writer sits down and puts it on
+   a board with their own hands. Nothing in here writes to a board on its own.
+
+   The pile is the truth and the greeting is only an offer. Decline the
+   greeting and every note is still on the dashboard with a count on it, which
+   is the difference between a prompt and a trap.
+   ========================================================================== */
+let PENDING    = [];   // captures waiting, oldest first
+let CHAIN_DAYS = [];   // days worked, from the account rather than this browser
+let sortingIds = [];   // the batch currently in the importer's hands
+
+const sheetPhone = document.getElementById("sheetphone");
+const sheetSort  = document.getElementById("sheetsort");
+
+async function loadCaptures(){
+  try {
+    const r = await BF.api("/api/captures");
+    PENDING    = Array.isArray(r.captures) ? r.captures : [];
+    CHAIN_DAYS = Array.isArray(r.days) ? r.days : [];
+  } catch (e) {
+    // Not fatal in any way. The board is the product; this is an errand.
+    PENDING = []; CHAIN_DAYS = [];
+  }
+}
+
+/* Which board a batch belongs to. The phone stored a name alongside the id so
+   it could show something offline, but a board can be renamed or deleted since,
+   so the live shelf wins and the stored name is the fallback. */
+function groupName(key, stored){
+  if (!key) return "Not filed";
+  const p = state.projects.find(x => String(x.id) === String(key));
+  return (p && p.name) || stored || "A script you no longer have";
+}
+
+function pendingGroups(){
+  const by = new Map();
+  PENDING.forEach(c => {
+    const key = c.project_id ? String(c.project_id) : "";
+    if (!by.has(key)) by.set(key, {key, name: groupName(key, c.project_name), items: []});
+    by.get(key).items.push(c);
+  });
+  // Unfiled last: it is the one that needs a decision, and a decision should
+  // not be the first thing in the list.
+  return [...by.values()].sort((a, b) => (a.key ? 0 : 1) - (b.key ? 0 : 1));
+}
+
+// A greeting earns its place by being true and specific. It is not a joke, and
+// it is not shown at all when there is nothing waiting.
+function timeHello(){
+  const h = new Date().getHours();
+  if (h < 5)  return "Still up";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 22) return "Good evening";
+  return "Late one";
+}
+
+function showPhoneHello(){
+  if (!PENDING.length) return;
+  const groups = pendingGroups();
+  const n = PENDING.length;
+  const g = groups.length;
+  document.getElementById("phonehi").textContent = timeHello() + ".";
+  document.getElementById("phonesum").innerHTML =
+      "<b>" + n + " note" + (n === 1 ? "" : "s") + "</b> came in from your phone"
+    + (g === 1
+        ? " for <b>" + esc(groups[0].name) + "</b>."
+        : ", across <b>" + g + "</b> script" + (g === 1 ? "" : "s") + ".")
+    + " Nothing has touched a board. You choose where each one lands, one "
+    + "script at a time, and you see the results before anything changes.";
+  showSheet(sheetPhone);
+}
+
+function paintSortGroups(){
+  const box = document.getElementById("sortgroups");
+  const groups = pendingGroups();
+  if (!groups.length){
+    box.innerHTML = '<p class="pnone">Nothing waiting. Everything from your phone is on a board.</p>';
+    return;
+  }
+  const open = state.projects.filter(p => !p.is_sample);
+  box.innerHTML = groups.map(g => {
+    const n = g.items.length;
+    const count = n + " note" + (n === 1 ? "" : "s")
+                + " · " + costWords("import") + " to read";
+    /* An unfiled batch has to be told where to go, and the honest options are
+       every board on the shelf plus a new one. A batch that already names a
+       board needs no question asked. */
+    const pick = g.key ? "" :
+        '<select data-key="" aria-label="Where these notes go">'
+      + open.map(p => '<option value="' + esc(String(p.id || p.localId)) + '">'
+          + esc(p.name) + "</option>").join("")
+      + '<option value="__new__">A new script</option></select>';
+    return '<div class="pgroup" data-key="' + esc(g.key) + '">'
+      + '<div class="pn"><div class="pt">' + esc(g.name) + "</div>"
+      + '<div class="pc">' + count + "</div></div>"
+      + pick
+      + '<button class="btn btn-gold" data-sort="' + esc(g.key) + '">Sort these</button>'
+      + "</div>";
+  }).join("");
+}
+
+function showPhonePile(){
+  paintSortGroups();
+  showSheet(sheetSort);
+}
+
+/* Hand one batch to the importer. From here on it is the ordinary paste flow:
+   the same read, the same review, the same "you see it before your board
+   changes". Phone notes get no private door onto a board. */
+function sortGroup(key){
+  const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
+  if (!items.length) return;
+  sortingIds = items.map(c => c.id);
+  const text = items.map(c => c.body).join("\n");
+
+  if (!key){
+    const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+    const dest = sel ? sel.value : "__new__";
+    if (dest === "__new__"){ openImport(true, text); return; }
+    const p = state.projects.find(x => String(x.id || x.localId) === String(dest));
+    if (p){ state.activeId = p.id || p.localId; setView("board"); }
+    openImport(false, text);
+    return;
+  }
+  const p = state.projects.find(x => String(x.id) === String(key));
+  if (p){ state.activeId = p.id || p.localId; setView("board"); }
+  openImport(p ? false : true, text);
+}
+
+/* Called once the writer has actually added the notes to a board. Marking them
+   earlier would clear the pile for a batch that was then cancelled, and a
+   cleared pile is a lost note as far as the writer is concerned. */
+async function markSorted(){
+  if (!sortingIds.length) return;
+  const ids = sortingIds; sortingIds = [];
+  PENDING = PENDING.filter(c => !ids.includes(c.id));
+  try {
+    await BF.api("/api/captures", {method: "PATCH",
+      body: JSON.stringify({sorted: ids, day: dayStamp()})});
+  } catch (e) {
+    /* The board already has them, so re-showing them would be worse than
+       losing the tidy-up: the writer would sort the same notes twice. The
+       next load re-reads the server and self-corrects. */
+  }
+  // The dashboard is the pile's other home, so it has to stop showing a queue
+  // that is empty.
+  if (state && state.view === "slate") renderSlate();
+}
+
+document.getElementById("phonelater").addEventListener("click", () => {
+  BF.track("phone_notes_deferred", {count: PENDING.length});
+  closeImport();
+});
+document.getElementById("phonego").addEventListener("click", showPhonePile);
+document.getElementById("sortclose").addEventListener("click", closeImport);
+document.getElementById("sortgroups").addEventListener("click", e => {
+  const b = e.target.closest("[data-sort]");
+  if (b) sortGroup(b.getAttribute("data-sort"));
+});
+
 
 function countDump(){
   const words = dumptext.value.trim().split(/\s+/).filter(Boolean).length;
@@ -7378,6 +7611,9 @@ document.getElementById("revgo").addEventListener("click", () => {
   setView("board");
   save();                       // schedules the flush that persists all of them
   BF.track("import_completed", {item_count: added, count: newProjects});
+  // The notes are on a board now, so they leave the pile. Not a moment sooner:
+  // a cancelled batch has to still be waiting.
+  markSorted();
   markStage("real_project");
   if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }
   showSettled(firstMoves, added + " notes sorted"
@@ -8669,6 +8905,16 @@ function renderScore(t){
        that is the thing worth an hour tonight. It gets double width: a title is
        not a number and will not live in a number's column. */
     + nearly()
+    /* Only here when there is something in it. A cell that reads zero every
+       day is a reproach, and this one is not a target: it is a queue. */
+    + (PENDING.length
+        ? '<div class="score-cell phonecell" role="button" tabindex="0">'
+            + '<div class="score-n">' + PENDING.length + '<span class="of">'
+            + (PENDING.length === 1 ? "note" : "notes") + "</span></div>"
+            + '<div class="score-k">From your phone</div>'
+            + '<div class="score-note">Waiting to be sorted. Open them.</div>'
+          + "</div>"
+        : "")
     + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'
         + '<div class="score-n">' + ch.run + '<span class="of">'
         + (ch.run === 1 ? "day" : "days") + "</span></div>"
@@ -8686,6 +8932,14 @@ function renderScore(t){
     state.activeId = lead.p.id || lead.p.localId;
     setView("board");
   });
+
+  const phone = el.querySelector(".phonecell");
+  if (phone){
+    phone.addEventListener("click", showPhonePile);
+    phone.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); showPhonePile(); }
+    });
+  }
 }
 
 /* load() puts one blank Untitled in front of a brand-new writer so that P()
@@ -9887,7 +10141,18 @@ function showLoadFailure(){
   const bare = hadProjects === 0
     || (state.projects.length === 1 && !state.projects[0].cards.length
         && state.projects[0].name === "Untitled");
-  if (bare) showFirstRun(seenBefore ? "empty" : "welcome");
+  if (bare) return showFirstRun(seenBefore ? "empty" : "welcome");
+
+  /* What the phone sent while nobody was here. Read after the shelf, because
+     a batch names a board and the names come from the shelf. The greeting is
+     the last thing to open so it cannot land underneath anything, and it does
+     not open at all when there is nothing waiting. */
+  await loadCaptures();
+  renderSlate();
+  if (PENDING.length){
+    showPhoneHello();
+    BF.track("phone_notes_offered", {count: PENDING.length});
+  }
 })();
 
 /* This sheet opens twice over: once by itself on an empty account, and any
