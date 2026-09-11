@@ -1892,7 +1892,10 @@ footer{
   font-family:var(--sans);font-size:11.5px;color:var(--blue);text-align:left;
   text-decoration:underline;text-underline-offset:2px}
 .cardask:hover{color:var(--blue-ink)}
-.destway{display:block;margin-top:3px;color:var(--ink-4);font-style:normal}
+.revask{display:inline-block;margin-top:5px;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:11.5px;color:var(--blue);
+  text-decoration:underline;text-underline-offset:2px}
+.revask:hover{color:var(--blue-ink)}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
@@ -5596,7 +5599,7 @@ function closeAsk(){
 
 /* A fragment with nothing in it yet. Two or three questions to find out what
    actually happens, then it goes through normal placement like any other note. */
-async function askAboutNote(text){
+async function askAboutNote(text, onSettled){
   document.getElementById("askbeat").textContent = "Working out where this goes";
   askInput.value = "";
   document.getElementById("askdraft").hidden = true;
@@ -5604,7 +5607,7 @@ async function askAboutNote(text){
   openAsk("convo");
 
   if (!ai_sample){
-    thread = {slot: null, mode: "note", turns: [{role:"user",content:"x"}, {role:"assistant", content:
+    thread = {slot: null, mode: "note", onSettled, turns: [{role:"user",content:"x"}, {role:"assistant", content:
       "This part isn't available in this view. On your own: what happens in this "
       + "moment, who does it happen to, and what is different afterwards? Rewrite it with those in "
       + "and it'll place."}]};
@@ -5613,7 +5616,7 @@ async function askAboutNote(text){
   }
 
   const proj = P();
-  thread = {slot: null, mode: "note", turns: [{role: "user", content:
+  thread = {slot: null, mode: "note", onSettled, turns: [{role: "user", content:
       "A screenwriter typed this fragment into their board and it doesn't yet say enough to place:\n\n"
     + "\"" + text + "\"\n\n"
     + "STRUCTURE: " + STRUCTURES[proj.structure].label + "\nPROJECT: " + proj.name + "\n"
@@ -5737,8 +5740,15 @@ document.getElementById("draftgo").addEventListener("click", () => {
   const text = document.getElementById("drafttext").value.trim();
   if (!text || !thread) return;
   if (thread.mode === "note"){          // it's a beat now, so let it find its own home
+    /* Whoever opened the conversation gets the answer back. The import review
+       sheet uses this: it is still sitting there underneath, because the ask
+       has its own scrim, so the sharpened note goes into the row it came from
+       rather than being dropped into the capture bar behind a modal the writer
+       is still looking at. */
+    const back = thread.onSettled;
     thread = null;
     closeAsk();
+    if (back){ back(text); return; }
     input.value = text; growNote(); paintCaptureMore();
     propose();
     return;
@@ -7530,19 +7540,39 @@ function renderReview(){
          about it. It cannot open the conversation from this sheet without
          throwing away the rest of the batch, so it says where the way out is
          instead. */
+      /* A note the reader could not place stops here unless it is given a way
+         forward. The conversation opens over this sheet, on its own scrim, so
+         the rest of the batch is still here when it closes, and the sharpened
+         wording comes back into this row and is placed again. Placing is free,
+         so the writer pays for the conversation and nothing else. */
       const stranded = n.kind !== "beat" || (!n.beat && !n.declared);
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"
         + '<span class="txt">' + esc(n.text)
-        + '<span class="dest" style="display:block">' + esc(dest)
-        + (stranded ? '<span class="destway">Add it, then "Where does this go?" on the '
-                    + 'note will talk it through.</span>' : "")
-        + "</span></span>";
+        + '<span class="dest" style="display:block">' + esc(dest) + "</span>"
+        + (stranded ? '<button type="button" class="revask">Where does this go?</button>' : "")
+        + "</span>";
       row.querySelector("input").addEventListener("change", e => {
         n.keep = e.target.checked;
         row.classList.toggle("off", !n.keep);
         updateRevCount();
       });
+      const revask = row.querySelector(".revask");
+      if (revask){
+        marksCost(revask, "conversation");
+        revask.addEventListener("click", () => askAboutNote(n.text, async (sharper) => {
+          n.text = sharper;
+          n.kind = "beat";
+          delete n.maybe; delete n.full; delete n.split; delete n.runner;
+          n.beat = null; n.conf = 0;
+          renderReview();                       // show the new wording at once
+          try {
+            const picks = await smartProposal(sharper);
+            if (picks && picks.length){ n.beat = picks[0].id; n.conf = picks[0].conf; }
+          } catch (e) { /* it stays a beat with no home, which is still progress */ }
+          renderReview();
+        }));
+      }
       wrap.appendChild(row);
     });
     body.appendChild(wrap);
