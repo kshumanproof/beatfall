@@ -330,3 +330,20 @@ alter table public.captures  enable row level security;
 alter table public.work_days enable row level security;
 revoke all on public.captures  from anon, authenticated;
 revoke all on public.work_days from anon, authenticated;
+
+-- ============================================================================
+-- Trial credits follow the writer (11 Sep 2026)
+--
+-- Twelve credits left of the free twenty five, then you subscribe, and you
+-- have a hundred and twelve. The remainder is banked into credits_extra and
+-- the paid month starts at nothing used. Without this, subscribing before the
+-- trial ran out was a worse deal than burning it first, which is exactly the
+-- wrong thing for the product to teach.
+--
+-- This column is the once-only guard. customer.subscription.updated fires on
+-- every card change, price switch and renewal for the life of the account, and
+-- each one would otherwise hand out another month's leftovers.
+--
+-- Safe to re-run.
+-- ============================================================================
+alter table public.profiles add column if not exists trial_banked_at timestamptz;

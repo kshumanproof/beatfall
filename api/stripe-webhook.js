@@ -6,7 +6,7 @@
 // Vercel must not parse the body for us, or the signature check fails.
 // ============================================================================
 import Stripe from 'stripe';
-import { admin, PAID_PLAN } from './_lib/core.js';
+import { admin, PAID_PLAN, PLANS } from './_lib/core.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -117,6 +117,29 @@ export default async function handler(req, res) {
         // Recent Stripe API versions moved the period fields onto the line item.
         const item = sub?.items?.data?.[0];
         const periodEnd = sub.current_period_end || item?.current_period_end || null;
+
+        /* THE TRIAL CREDITS FOLLOW THE WRITER.
+         *
+         * Twelve credits left of the free twenty five, then you subscribe, and
+         * you have a hundred and twelve. Not seventy six.
+         *
+         * Without this, the trial's spend was still sitting in credits_used
+         * when the paid allowance arrived, so subscribing on day three
+         * silently charged the new month for a fortnight of trial reading, and
+         * subscribing before the trial ran out was a worse deal than burning
+         * it first. Beatfall should never make "use it or lose it" the
+         * rational move.
+         *
+         * Once only, and only on the way UP. `trial_banked_at` is the guard:
+         * customer.subscription.updated fires on every card change, price
+         * switch and renewal for the rest of the account's life, and every one
+         * of those would otherwise hand out another month's leftovers. */
+        const goingPaid = live && plan === PAID_PLAN && !profile.trial_banked_at
+          && !['active', 'past_due'].includes(profile.subscription_status || '');
+        const banked = goingPaid
+          ? Math.max(0, (PLANS.trial.credits || 0) - (profile.credits_used || 0))
+          : 0;
+
         await db.from('profiles').update({
           stripe_subscription_id: sub.id,
           subscription_status: sub.status,
@@ -134,8 +157,19 @@ export default async function handler(req, res) {
           current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           cancel_at_period_end: !!sub.cancel_at_period_end,
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString()
-                                       : profile.trial_ends_at
+                                       : profile.trial_ends_at,
+          ...(goingPaid ? {
+            credits_extra: (profile.credits_extra || 0) + banked,
+            // The paid month starts at nothing used. What the trial spent is
+            // already accounted for: only the REMAINDER was banked above.
+            credits_used: 0,
+            period_start: new Date().toISOString(),
+            trial_banked_at: new Date().toISOString()
+          } : {})
         }).eq('id', profile.id);
+        if (goingPaid && banked) await db.from('events').insert({
+          user_id: profile.id, name: 'trial_credits_banked', props: { count: banked }
+        });
         await db.from('events').insert({
           user_id: profile.id, name: 'subscription_' + sub.status, props: { plan }
         });

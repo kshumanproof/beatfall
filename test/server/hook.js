@@ -1,5 +1,13 @@
+process.env.STRIPE_PRICE_MONTHLY = 'price_month';
 import handler from './api/hook.real.js';
 import { makeDb } from './fakedb.js';
+import { PLANS } from './api/_lib/core.js';
+
+const TRIAL = PLANS.trial.credits;
+const live = (extra = {}) => ({ id:'evt_bank', type:'customer.subscription.created',
+  data:{object:{ id:'sub_1', customer:'cus_1', status:'active',
+    items:{data:[{price:{id:'price_month'}, current_period_end: 0}]},
+    cancel_at_period_end:false, ...extra }} });
 
 const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
@@ -75,6 +83,52 @@ const topup = (paid, amount, id='evt_1') => ({ id, type:'checkout.session.comple
     db.state.profile.plan === 'trial',
     "plan=" + db.state.profile.plan + "  <-- 'none' here loses the rest of the trial");
   check('and the trial date is untouched', db.state.profile.trial_ends_at === before);
+}
+
+/* ---------- the trial's leftovers follow the writer
+   Twelve left of the free twenty five, then subscribe, and you have a hundred
+   and twelve. If this ever breaks, subscribing before the trial runs out is a
+   worse deal than burning it first, which is the wrong lesson for the product
+   to teach and the kind of thing nobody notices for months. */
+{
+  const db = makeDb(P({credits_used: TRIAL - 12}));
+  await fire(db, live());
+  const p = db.state.profile;
+  check('subscribing banks what the trial had left', p.credits_extra === 12,
+    'extra=' + p.credits_extra + ' (expected 12)');
+  check('and the paid month starts at nothing used', p.credits_used === 0,
+    'used=' + p.credits_used + '  <-- the new month must not inherit the trial spend');
+  check('and the month is re-dated so it does not roll over immediately',
+    new Date(p.period_start) > new Date('2026-09-01T00:00:00Z'), p.period_start);
+}
+
+// ---------- a spent trial banks nothing, and never a negative
+{
+  const db = makeDb(P({credits_used: TRIAL + 4}));
+  await fire(db, live());
+  check('an overspent trial banks nothing rather than a negative',
+    db.state.profile.credits_extra === 0, 'extra=' + db.state.profile.credits_extra);
+}
+
+// ---------- and only once, ever
+{
+  const db = makeDb(P({credits_used: TRIAL - 12}));
+  await fire(db, live());
+  await fire(db, { ...live(), type:'customer.subscription.updated' });
+  await fire(db, { ...live(), type:'customer.subscription.updated' });
+  check('a card change later does not hand out the leftovers again',
+    db.state.profile.credits_extra === 12,
+    'extra=' + db.state.profile.credits_extra
+    + '  <-- updated fires on every renewal for the life of the account');
+}
+
+// ---------- somebody already paying is not re-banked
+{
+  const db = makeDb(P({plan:'beatfall', subscription_status:'active', credits_used: 40}));
+  await fire(db, { ...live(), type:'customer.subscription.updated' });
+  const p = db.state.profile;
+  check('an existing subscriber is left alone', p.credits_extra === 0 && p.credits_used === 40,
+    'extra=' + p.credits_extra + ' used=' + p.credits_used);
 }
 
 // ---------- a real cancellation still ends it

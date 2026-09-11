@@ -1886,6 +1886,13 @@ footer{
   color:var(--ink);max-width:190px}
 .pgroup .btn{flex:0 0 auto}
 .pnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:8px 0}
+/* The way out of a note that went nowhere. Quiet, because most cards do not
+   need it, and legible, because the ones that do are the frustrating ones. */
+.cardask{display:block;margin-top:9px;background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:11.5px;color:var(--blue);text-align:left;
+  text-decoration:underline;text-underline-offset:2px}
+.cardask:hover{color:var(--blue-ink)}
+.destway{display:block;margin-top:3px;color:var(--ink-4);font-style:normal}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
@@ -3981,6 +3988,20 @@ function cardEl(c){
     el.classList.add("dragging");
   });
   el.addEventListener("dragend", () => el.classList.remove("dragging"));
+
+  /* Set aside is the other place a note can strand: it got as far as the board
+     and no further. Same conversation, same reason. */
+  if (c.slot === "__none"){
+    const settle = document.createElement("button");
+    settle.className = "cardask";
+    settle.type = "button";
+    settle.textContent = "Where does this go?";
+    settle.setAttribute("data-tip",
+      "Talk it through. A few questions about what happens in it, then it can be placed.");
+    marksCost(settle, "conversation");
+    settle.addEventListener("click", e => { e.stopPropagation(); askAboutNote(c.text); });
+    el.appendChild(settle);
+  }
 
   el.querySelector(".pin").setAttribute("data-tip", c.pinned
     ? "Mark this placement as unsettled."
@@ -7482,10 +7503,19 @@ function renderReview(){
                     :  n.runner ? ", the runner up for it"
                                 : ", only " + n.conf + "% sure")
         :           "→ Set aside, an event but not clearly any one beat";
+      /* A note that ends up nowhere used to stop here, and the writer was left
+         holding a sentence the app had declined to place with nothing to do
+         about it. It cannot open the conversation from this sheet without
+         throwing away the rest of the batch, so it says where the way out is
+         instead. */
+      const stranded = n.kind !== "beat" || (!n.beat && !n.declared);
       row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"
         + '<span class="txt">' + esc(n.text)
-        + '<span class="dest" style="display:block">' + esc(dest) + "</span></span>";
+        + '<span class="dest" style="display:block">' + esc(dest)
+        + (stranded ? '<span class="destway">Add it, then "Where does this go?" on the '
+                    + 'note will talk it through.</span>' : "")
+        + "</span></span>";
       row.querySelector("input").addEventListener("change", e => {
         n.keep = e.target.checked;
         row.classList.toggle("off", !n.keep);
@@ -8721,6 +8751,27 @@ function renderNotes(){
          writer deleted it and typed it again as a new one. Same pencil and same
          behaviour as a board card, so there is one way to edit a piece of text
          in Beatfall rather than two. */
+      /* THE WAY OUT OF A NOTE THAT WENT NOWHERE.
+       *
+       * A vague note lands here labelled Open question and, until now, that was
+       * the end of the road: the writer was told their note did not say enough
+       * to place and given nothing to do about it. The conversation that works
+       * out what a fragment actually IS already existed, on the capture bar,
+       * and a note that arrived by import or from a phone could not reach it.
+       *
+       * Same conversation, same price, offered in the place a stranded note
+       * actually sits. Not offered for a note already filed under a beat: that
+       * question has been answered. */
+      if (!isAttached(c, proj)){
+        const settle = document.createElement("button");
+        settle.className = "btn"; settle.textContent = "Where does this go?";
+        settle.setAttribute("data-tip",
+          "Talk it through. A few questions about what happens in it, then it can be placed.");
+        marksCost(settle, "conversation");
+        settle.addEventListener("click", () => askAboutNote(c.text));
+        row.appendChild(settle);
+      }
+
       const edit = document.createElement("button");
       edit.className = "btn"; edit.textContent = "Edit";
       edit.setAttribute("data-tip", "Change the wording of this note.");
