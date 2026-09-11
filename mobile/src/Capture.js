@@ -65,7 +65,8 @@ export default function Capture() {
      do, and it is never a question the writer has to answer before typing. */
   const [script, setScript] = useState(null);
   const [picking, setPicking] = useState(false);
-  const { scripts } = useScripts();
+  const shelf = useScripts();
+  const scripts = shelf.scripts;
   const field = useRef(null);
 
   const refresh = useCallback(async () => {
@@ -246,6 +247,7 @@ export default function Capture() {
       <ScriptSheet
         visible={picking}
         scheme={scheme}
+        shelf={shelf}
         current={script}
         onPick={choose}
         onClose={() => setPicking(false)}
