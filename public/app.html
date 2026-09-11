@@ -36,8 +36,6 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
   --rule:#E0D9CB;
   --rule-soft:#EDE7DA;
   --blue:#2C5C8F;          /* what you can touch */
-  --mark-blue:#264A7E;     /* the logo's own blue, measured off the artwork */
-  --mark-gold:#BF9551;     /* and its own gold. Not --gold: buttons must not move */
   --blue-soft:#EAEFF5;
   --blue-ink:#1E4269;
   --on-blue:#FFFFFF;
@@ -99,7 +97,6 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
     --rule:#3A342C;
     --rule-soft:#2E2923;
     --blue:#8FB6DE;
-    --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
     --blue-soft:#20303E;
     --blue-ink:#B9D3F0;
     --on-blue:#14181C;
@@ -134,7 +131,6 @@ setTimeout(function(){document.documentElement.classList.remove("booting");},600
   --rule:#3A342C;
   --rule-soft:#2E2923;
   --blue:#8FB6DE;
-  --mark-blue:#8FB6DE; --mark-gold:#D9BC77;
   --blue-soft:#20303E;
   --blue-ink:#B9D3F0;
   --on-blue:#14181C;
@@ -207,19 +203,31 @@ header{
    bottom of the lowest card, and a replaced element's baseline is its bottom
    edge, so baseline alignment does the whole job, no magic offsets that drift
    the moment either size changes. */
-.brand{
-  --wm:34px;
-  display:inline-flex;align-items:baseline;gap:calc(var(--wm) * .0974);
-  text-decoration:none;color:var(--ink);
+/* THE LOCKUP. This is not drawn any more and it is not to be drawn again.
+   /brand/lockup.png is lifted straight out of the master artwork
+   "Where your story falls into place..svg", at the placement that file puts
+   the two halves in, and /brand/tagline.svg is that file's own tagline
+   outlines. Nothing here is a redrawing, an approximation or a taste call.
+
+   ONE number sizes it: --wm, the size the name is set at, kept so the old
+   per-placement sizes still mean what they meant. Height and width follow.
+   The tagline is a mask rather than an image so it takes the ink colour of
+   whatever it sits on, in either theme. */
+.brand{--wm:34px;display:inline-block;line-height:0;text-decoration:none}
+.brandmark{
+  display:block;height:calc(var(--wm) * .913);aspect-ratio:1545 / 342;
+  background:url("/brand/lockup.png") no-repeat left center/contain;
 }
-.mark{height:calc(var(--wm) * .9406);width:auto;flex:0 0 auto;
-  position:relative;top:calc(var(--wm) * .0315)}
-.wordmark{
-  font-family:var(--serif);font-weight:600;font-size:var(--wm);
-  letter-spacing:normal;margin:0;color:var(--ink);text-decoration:none;white-space:nowrap;
-  line-height:1;
+:root[data-theme="dark"] .brandmark{background-image:url("/brand/lockup-dark.png")}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .brandmark{background-image:url("/brand/lockup-dark.png")}
 }
-.wordmark span{color:var(--blue)}
+.brandtag{
+  display:block;width:calc(var(--wm) * 4.254);max-width:100%;
+  aspect-ratio:513.95 / 32.656;background-color:currentColor;
+  -webkit-mask:url("/brand/tagline.svg") no-repeat left center/contain;
+          mask:url("/brand/tagline.svg") no-repeat left center/contain;
+}
 /* Baseline-aligned like the two texts it divides: a block's baseline is its
    bottom edge, so the rule runs from above the cap down to the baseline. */
 .hsep{width:1px;height:28px;background:var(--rule);flex:0 0 auto;align-self:baseline}
@@ -1847,11 +1855,8 @@ footer{
 .foot-brand{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
 .foot-brand .brand{--wm:22px}
 .setbrand{padding:0 13px 2px}
-.setbrand .brand{--wm:19px}
-.foot-tag{
-  font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink-3);
-  line-height:1.4;
-}
+.brand.setbrand{--wm:19px}
+.foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--ink-4);margin-bottom:8px;
@@ -1977,8 +1982,7 @@ footer{
          mode and costs no request. -->
     <div class="lead">
     <a class="brand" href="/app" title="Beatfall">
-      <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
-      <span class="wordmark">Beat<span>fall</span></span>
+      <span class="brandmark"></span>
     </a>
 
     <div class="hsep"></div>
@@ -2538,8 +2542,7 @@ footer{
       <!-- The lockup, not a bare word. Same markup as the header and the
            footer, so all three stay one thing. -->
       <a class="brand setbrand" href="/app" title="Beatfall">
-        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
-        <span class="wordmark">Beat<span>fall</span></span>
+        <span class="brandmark"></span>
       </a>
     </div>
 
@@ -2562,10 +2565,9 @@ footer{
            here is how the two versions drift apart and one starts looking
            wrong. -->
       <a class="brand" href="/app" title="Beatfall">
-        <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
-        <span class="wordmark">Beat<span>fall</span></span>
+        <span class="brandmark"></span>
       </a>
-      <div class="foot-tag">Where your story falls into place.</div>
+      <span class="brandtag" role="img" aria-label="Where your story falls into place."></span>
     </div>
 
     <div class="foot-col">
@@ -9666,8 +9668,7 @@ function showLocked(why){
     <div class="locked">
       <div class="locked-in">
         <a class="brand" href="/app" title="Beatfall">
-          <svg class="mark" viewBox="14 8 36 50.5" aria-hidden="true" focusable="false"><g stroke="var(--mark-gold)" stroke-width=".58" stroke-linecap="round"><path d="M27.3 13.4v6.15"/><path d="M30.25 9v8.7"/><path d="M33.2 12.5v5.75"/></g><rect x="15" y="21.75" width="33.2" height="8.65" rx="1.8" fill="var(--mark-gold)" transform="rotate(-13 31.6 26.08)"/><rect x="15" y="34.2" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="42.3" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/><rect x="15" y="50.5" width="34" height="6.95" rx="1.6" fill="var(--mark-blue)"/></svg>
-          <span class="wordmark">Beat<span>fall</span></span>
+          <span class="brandmark"></span>
         </a>
         <h1>${trial ? "Your free trial has ended." : "Your plan has ended."}</h1>
         <p>The boards are closed, but nothing has been deleted. Everything you wrote

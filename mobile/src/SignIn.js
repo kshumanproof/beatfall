@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette, radius, font } from './theme';
-import { Lockup } from './Mark';
+import { LockupStacked } from './Mark';
 import { requestCode, submitCode } from './supabase';
 
 const looksLikeEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
@@ -93,8 +93,7 @@ export default function SignIn() {
         contentContainerStyle={[s.pad, { paddingTop: inset.top + 44, paddingBottom: inset.bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Lockup scheme={scheme} size={34} />
-        <Text style={s.tag}>Where your story falls into place.</Text>
+        <LockupStacked scheme={scheme} size={34} />
 
         {stage === 'email' ? (
           <>
@@ -204,7 +203,6 @@ const sheet = (c) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.ground },
   pad: { paddingHorizontal: 24 },
 
-  tag: { fontFamily: font.serif, fontSize: 15, fontStyle: 'italic', color: c.ink3, marginTop: 6 },
 
   h1: { fontFamily: font.serif, fontSize: 25, color: c.ink, letterSpacing: -0.35,
     lineHeight: 31, marginTop: 40 },

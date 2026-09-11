@@ -20,11 +20,6 @@ const light = {
   blueInk:   '#1E4269',
   onBlue:    '#FFFFFF',
   gold:      '#7B5A13',
-  // The lockup's own two colours, measured off the artwork. Kept apart
-  // from blue and gold on purpose: those two are interface colours and
-  // must not move when the logo does.
-  markBlue:  '#264A7E',
-  markGold:  '#BF9551',
   goldSoft:  '#F4EEDF',
   goldHair:  '#D9C08A',
   sage:      '#4A7358',
@@ -47,8 +42,6 @@ const dark = {
   blueInk:   '#B9D3F0',
   onBlue:    '#14181C',
   gold:      '#D9BC77',
-  markBlue:  '#8FB6DE',
-  markGold:  '#D9BC77',
   goldSoft:  '#2B2517',
   goldHair:  '#7E6C3E',
   sage:      '#8CB79A',
