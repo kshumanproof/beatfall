@@ -2271,8 +2271,8 @@ footer{
 
   <div class="sheet" id="sheetsort" hidden>
     <div class="sheet-title">Notes from your phone</div>
-    <p class="sheet-note">One script at a time. Each batch goes through the same
-      read as a pasted file, and you see the results before your board changes.</p>
+    <p class="sheet-note">One script at a time. Place them yourself for nothing, or have
+      them read and placed for you. Either way you see the results before your board changes.</p>
     <div id="sortgroups"></div>
     <div class="sheet-acts">
       <button class="btn" id="sortclose">Close</button>
@@ -6257,7 +6257,7 @@ function paintSortGroups(){
   box.innerHTML = groups.map(g => {
     const n = g.items.length;
     const count = n + " note" + (n === 1 ? "" : "s")
-                + " · " + costWords("import") + " to read";
+                + " · free by hand, or " + costWords("import") + " to have them read";
     /* An unfiled batch has to be told where to go, and the honest options are
        every board on the shelf plus a new one. A batch that already names a
        board needs no question asked. */
@@ -6270,7 +6270,8 @@ function paintSortGroups(){
       + '<div class="pn"><div class="pt">' + esc(g.name) + "</div>"
       + '<div class="pc">' + count + "</div></div>"
       + pick
-      + '<button class="btn btn-gold" data-sort="' + esc(g.key) + '">Sort these</button>'
+      + '<button class="btn" data-hand="' + esc(g.key) + '">Place them myself</button>'
+      + '<button class="btn btn-gold" data-sort="' + esc(g.key) + '">Read them for me</button>'
       + "</div>";
   }).join("");
 }
@@ -6278,6 +6279,46 @@ function paintSortGroups(){
 function showPhonePile(){
   paintSortGroups();
   showSheet(sheetSort);
+}
+
+/* PLACING A BATCH BY HAND, FOR NOTHING.
+ *
+ * The pile used to offer one button and it cost credits, which put the same
+ * asterisk on "placing notes is free" that the review rows had. This builds
+ * the review sheet directly out of the captures, with no read and no charge:
+ * one row per note, each with the same free dropdown, and the paid read still
+ * one click away on any row that turns out to need it. */
+function placeGroupByHand(key){
+  const target = destinationFor(key);
+  if (!target) return;
+  const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
+  if (!items.length) return;
+  sortingIds = items.map(c => c.id);
+
+  state.activeId = target.id || target.localId;
+  importIntoNew = false;
+  importStructure = null;
+  plan = [{
+    name: target.name, isCurrent: true, brief: {}, people: [],
+    // No kind, no beat, no confidence, because nothing has read them. Every
+    // row arrives honest: this is your note, tell me where it goes.
+    notes: items.map(c => ({ text: c.body, kind: "beat", beat: null, conf: 0, keep: true }))
+  }];
+  setView("board");
+  showSheet(sheetReview);
+  renderReview();
+}
+
+/* Which board a batch is bound for. A group that names one uses it; the
+   unfiled group uses whatever the writer picked in its dropdown, and
+   "__new__" means a project that does not exist yet, which only the read can
+   make, because it takes the name from the notes. */
+function destinationFor(key){
+  if (key) return state.projects.find(x => String(x.id) === String(key)) || null;
+  const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+  const dest = sel ? sel.value : "";
+  if (!dest || dest === "__new__") return null;
+  return state.projects.find(x => String(x.id || x.localId) === String(dest)) || null;
 }
 
 /* Hand one batch to the importer. From here on it is the ordinary paste flow:
@@ -6306,9 +6347,31 @@ function sortGroup(key){
 /* Called once the writer has actually added the notes to a board. Marking them
    earlier would clear the pile for a batch that was then cancelled, and a
    cleared pile is a lost note as far as the writer is concerned. */
-async function markSorted(){
+/* `kept` is the text of the notes that actually went somewhere.
+ *
+ * Without it this marked the WHOLE batch sorted the moment the import was
+ * applied, including rows the writer had unticked. Those notes then vanished
+ * from the pile having landed nowhere at all, which is losing somebody's work
+ * quietly, the worst way to lose it. Unticking means "not this one", not
+ * "throw it away".
+ *
+ * Matched on text because there is no id running through the importer: the
+ * reader splits and merges what it is given, so the rows on the review sheet
+ * are not one for one with the captures that made them. A capture counts as
+ * dealt with when its words are inside something that was kept. Matching
+ * loosely errs towards leaving a note in the pile, which is the safe way to
+ * be wrong. */
+async function markSorted(kept){
   if (!sortingIds.length) return;
-  const ids = sortingIds; sortingIds = [];
+  const flat = (t) => String(t || "").replace(/\s+/g, " ").trim().toLowerCase();
+  const keptText = (kept || []).map(flat).filter(Boolean);
+  const survived = keptText.length
+    ? PENDING.filter(c => sortingIds.includes(c.id)
+        && !keptText.some(k => k.includes(flat(c.body)) || flat(c.body).includes(k)))
+    : [];
+  const ids = sortingIds.filter(id => !survived.some(c => c.id === id));
+  sortingIds = [];
+  if (!ids.length){ if (state && state.view === "slate") renderSlate(); return; }
   PENDING = PENDING.filter(c => !ids.includes(c.id));
   try {
     await BF.api("/api/captures", {method: "PATCH",
@@ -6379,8 +6442,24 @@ document.getElementById("phonelater").addEventListener("click", () => {
 document.getElementById("phonego").addEventListener("click", showPhonePile);
 document.getElementById("sortclose").addEventListener("click", closeImport);
 document.getElementById("sortgroups").addEventListener("click", e => {
-  const b = e.target.closest("[data-sort]");
-  if (b) sortGroup(b.getAttribute("data-sort"));
+  const read = e.target.closest("[data-sort]");
+  if (read){ sortGroup(read.getAttribute("data-sort")); return; }
+  const hand = e.target.closest("[data-hand]");
+  if (!hand) return;
+  const key = hand.getAttribute("data-hand");
+  if (!destinationFor(key)){
+    /* Only reachable on the unfiled group with no existing script chosen.
+       Say which of the two things is missing rather than letting a button do
+       nothing when it is pressed. */
+    const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+    document.getElementById("sortgroups").insertAdjacentHTML("afterbegin",
+      '<p class="pnone" id="handwhy">A new script has to come from the read, because it takes '
+      + 'its name from the notes. Choose an existing script above to place these by hand.</p>');
+    setTimeout(() => { const w = document.getElementById("handwhy"); if (w) w.remove(); }, 6000);
+    if (sel) sel.focus();
+    return;
+  }
+  placeGroupByHand(key);
 });
 
 
@@ -7554,7 +7633,12 @@ function renderReview(){
        *
        * The conversation opens over this sheet, on its own scrim, so the rest
        * of the batch is still here when it closes. */
-      const stranded = n.kind !== "beat" || (!n.beat && !n.declared);
+      /* On EVERY row, not just the ones that went nowhere.
+         "Did we get it wrong?" is a question about a placement, so the rows
+         that most need it are the ones that HAVE a placement: a note sitting
+         on Cold Open at 100 per cent is exactly where a writer wants to say
+         no it isn't. Hiding it on placed rows was the control missing from
+         the only place it was named for. */
       const opts = '<option value="">Or put it somewhere yourself</option>'
         + S.slots.map(x => '<option value="' + esc(x.id) + '"'
             + (n.beat === x.id ? " selected" : "") + ">" + esc(x.name) + "</option>").join("")
@@ -7565,7 +7649,7 @@ function renderReview(){
         + '<span class="txt">' + esc(n.text)
         + '<span class="dest" style="display:block">' + esc(dest) + "</span>"
         + '<span class="revacts">'
-        +   (stranded ? '<button type="button" class="revask">Did we get it wrong?</button>' : "")
+        +   '<button type="button" class="revask">Did we get it wrong?</button>'
         +   '<select class="revput" aria-label="Place this note yourself">' + opts + "</select>"
         + "</span></span>";
       row.querySelector("input").addEventListener("change", e => {
@@ -7823,8 +7907,9 @@ document.getElementById("revgo").addEventListener("click", () => {
   save();                       // schedules the flush that persists all of them
   BF.track("import_completed", {item_count: added, count: newProjects});
   // The notes are on a board now, so they leave the pile. Not a moment sooner:
-  // a cancelled batch has to still be waiting.
-  markSorted();
+  // a cancelled batch has to still be waiting, and neither does a row the
+  // writer unticked, which went nowhere and is still theirs to deal with.
+  markSorted(plan.flatMap(st => st.notes.filter(n => n.keep).map(n => n.text)));
   markStage("real_project");
   if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }
   showSettled(firstMoves, added + " notes sorted"
@@ -10378,13 +10463,19 @@ function showLoadFailure(){
   const bare = hadProjects === 0
     || (state.projects.length === 1 && !state.projects[0].cards.length
         && state.projects[0].name === "Untitled");
-  if (bare) return showFirstRun(seenBefore ? "empty" : "welcome");
+  /* Read the pile BEFORE the empty-shelf greeting decides to take over.
+     A writer can sign up on their phone, catch four notes on the way home and
+     open the desktop for the first time with nothing on the shelf. That used
+     to return here, so the notes they had just caught were never loaded and
+     the dashboard said "Nothing on the shelf" over the top of them. */
+  await loadCaptures();
+
+  if (bare && !PENDING.length) return showFirstRun(seenBefore ? "empty" : "welcome");
 
   /* What the phone sent while nobody was here. Read after the shelf, because
      a batch names a board and the names come from the shelf. The greeting is
      the last thing to open so it cannot land underneath anything, and it does
      not open at all when there is nothing waiting. */
-  await loadCaptures();
   renderSlate();
   if (PENDING.length && !deskWasHereRecently()){
     showPhoneHello();

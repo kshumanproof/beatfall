@@ -95,6 +95,20 @@ export async function add(body, project) {
   const text = String(body || '').trim();
   if (!text) return null;
   const db = await open();
+
+  /* The same words, to the same script, in the last two minutes, is one note.
+   *
+   * A writer does not catch the identical sentence twice in a row on purpose.
+   * They press Keep again because the screen did not appear to react, and one
+   * hesitant thumb should not become three cards on a board. Two minutes is
+   * short enough that a deliberate repeat later in the evening still lands. */
+  const twin = await db.getFirstAsync(
+    'SELECT * FROM captures WHERE deleted = 0 AND body = ?'
+    + ' AND created_at > ? AND ifnull(project_id, \'\') = ifnull(?, \'\') LIMIT 1',
+    text, Date.now() - 120000, (project && project.id) || null
+  );
+  if (twin) return twin;
+
   const row = {
     id: newId(), body: text, created_at: Date.now(), synced_at: null, deleted: 0,
     project_id:   (project && project.id)   || null,

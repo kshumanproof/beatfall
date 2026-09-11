@@ -21,11 +21,19 @@ import { Lockup } from './Mark';
 import { SYNC_ENABLED } from './config';
 import * as store from './store';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
-import { runSync, watchForeground } from './sync';
+import { runSync } from './sync';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+/* A build stamp, in development only.
+ *
+ * Chasing a bug across a phone, a laptop and a live server, the single most
+ * expensive question is "is the thing in front of me even running the code we
+ * just changed". Metro serves a stale bundle often enough that guessing costs
+ * more than showing. `__DEV__` is false in a real build, so this never ships. */
+const BUILD = '11 Sep 20:20';
 
 const settle = () =>
   LayoutAnimation.configureNext(
@@ -44,12 +52,6 @@ function when(ms) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-// Every note is unsynced for the first moment of its life, and saying so on
-// every card turns the normal case into an alarm. A note is only worth
-// flagging once it has had a fair chance to go and hasn't, then it is news.
-const STUCK_AFTER = 3 * 60 * 1000;
-const stuck = (row) =>
-  SYNC_ENABLED && !row.synced_at && Date.now() - row.created_at > STUCK_AFTER;
 
 // ------------------------------------------------------------------ screen --
 export default function Capture() {
@@ -83,10 +85,8 @@ export default function Capture() {
    * is not a thing to build a product's one deliberate action on. This is a
    * button, it floats above everything, and it is the trigger.
    *
-   * It appears only when something is genuinely waiting. A Send button sitting
-   * there permanently would say notes need sending, and they do not: they go
-   * on their own, and they are safe on this phone before they do. When it
-   * appears, it means something really is still here. */
+   * It appears only when something is genuinely waiting, which is also the
+   * only state in which it would do anything. */
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(0);
   const [everSent, setEverSent] = useState(false);
@@ -104,29 +104,30 @@ export default function Capture() {
     } else if (r && !r.ok) {
       Alert.alert('Not sent yet',
         "Beatfall couldn't reach the server, so your notes are still here and nothing is lost. "
-        + 'They will go on their own as soon as you have signal.');
+        + 'Press Send again when you have signal.');
     }
     setSending(false);
   }, [refresh, sending]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  /* Sync runs when there is a reason to, never on a timer. Launch, and coming
-     back to the foreground. Each run repaints the list afterwards so the
-     "waiting" marks are honest rather than one run out of date. */
+  /* NOTHING SENDS BY ITSELF. Send is the only trigger, and it is a button.
+   *
+   * This used to sync on launch and on returning to the app, on the reasoning
+   * that a note should never sit stranded. In practice it meant the notes were
+   * gone before the writer could do anything with them: every relaunch, every
+   * reload, and on iOS every full screen modal, emptied the phone. A writer
+   * typed a note under one script, switched to another, and the first had
+   * already left.
+   *
+   * So: type, Keep, type, Keep, switch script, Keep again. They stay exactly
+   * where they are until Send is pressed. The button is sticky and impossible
+   * to miss while anything is waiting, which is what makes this safe. */
   useEffect(() => {
-    if (!SYNC_ENABLED) return undefined;
     let gone = false;
-    const go = () => runSync().then((r) => {
-      if (gone) return;
-      if (r && r.sent) setEverSent(true);
-      refresh();
-    });
-    go();
     store.sentTally().then((n) => { if (!gone && n > 0) setEverSent(true); });
-    const stop = watchForeground();
-    return () => { gone = true; stop(); };
-  }, [refresh]);
+    return () => { gone = true; };
+  }, []);
 
   /* Open on whatever was used last. Failing that, on the only script there is,
      because picking from a list of one is a question with no information in
@@ -282,6 +283,7 @@ export default function Capture() {
       {/* -------------------------------------------------------- recent -- */}
       <View style={s.railHead}>
         <Text style={s.rail}>WAITING TO SEND</Text>
+        {__DEV__ && <Text style={s.build}>build {BUILD}</Text>}
         <View style={s.hair} />
         {rows.length > 0 && <Text style={s.railHint}>hold to delete</Text>}
       </View>
@@ -312,7 +314,6 @@ export default function Capture() {
                 {item.project_name
                   ? <Text style={s.stamp} numberOfLines={1}>· {String(item.project_name).toUpperCase()}</Text>
                   : <Text style={s.pend}>· no script</Text>}
-                {stuck(item) && <Text style={s.pend}>· waiting to sync</Text>}
               </View>
             </View>
           </Pressable>
@@ -423,6 +424,7 @@ const sheet = (c) => StyleSheet.create({
   railHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, marginTop: 26, marginBottom: 12 },
   rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
   railHint: { fontFamily: font.sans, fontSize: 10.5, color: c.ink4 },
+  build: { fontFamily: font.mono, fontSize: 9.5, color: c.ink4 },
   /* Bottom LEFT on purpose. Bottom right is where a thumb rests and where
      every other app puts a compose or a destructive button, and in development
      it is also where Expo parks its own control. */

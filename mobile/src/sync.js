@@ -11,8 +11,6 @@
 // not poll. A timer that wakes up every thirty seconds to find no signal is a
 // battery cost with no upside.
 // ============================================================================
-import { AppState } from 'react-native';
-
 import { call } from './api';
 import * as store from './store';
 
@@ -69,24 +67,7 @@ export async function runSync() {
   return result;
 }
 
-/* Wake when the app comes back from the BACKGROUND. Not on every 'active'.
- *
- * iOS reports 'inactive' then 'active' for things that are not the writer
- * leaving and returning: a full screen modal being presented, the control
- * centre being pulled down, a notification banner. The script picker is a full
- * screen modal, so opening it looked exactly like coming back to the app, and
- * every note on the phone was quietly sent the moment somebody went to change
- * which script they were writing to. They then typed a second note under a
- * different title and the first one had vanished.
- *
- * Only background -> active counts. Returns its own unsubscribe so a screen
- * can mount this without leaking a listener across a sign out. */
-export function watchForeground() {
-  let was = AppState.currentState;
-  const sub = AppState.addEventListener('change', (next) => {
-    const cameBack = was === 'background' && next === 'active';
-    was = next;
-    if (cameBack) runSync();
-  });
-  return () => { try { sub.remove(); } catch (e) {} };
-}
+/* There is no automatic wake, on purpose. See the note in Capture.js: the app
+   sends when the writer presses Send and at no other time. Anything that fires
+   on its own empties the phone at a moment nobody chose, and the whole point
+   of the button is that the writer chose it. */

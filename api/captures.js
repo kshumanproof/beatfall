@@ -75,15 +75,46 @@ export default async function handler(req, res) {
     }
     if (!rows.length) return send(res, 200, { accepted: [] });
 
+    /* THE SAME NOTE TWICE IS ONE NOTE.
+     *
+     * A phone running an old build, a thumb pressing Keep again because the
+     * screen did not seem to react, a batch re-sent on a bad connection with
+     * fresh ids: all of them end with the identical sentence sitting on a
+     * writer's board three times. The phone guards this too, and the phone
+     * cannot be trusted to, because the phone is the thing that might be out
+     * of date.
+     *
+     * Narrow on purpose. Same words, same script, within two minutes, and a
+     * DIFFERENT id, because re-sending the same id is the idempotency this
+     * whole design rests on and must always be allowed. A writer who really
+     * does catch the same line twice an hour apart keeps both. */
+    const since = new Date(Date.now() - 120000).toISOString();
+    const { data: recent } = await db.from('captures')
+      .select('id,body,project_id')
+      .eq('user_id', user.id).gt('created_at', since);
+    const seen = new Map();
+    (recent || []).forEach(r => seen.set((r.project_id || '') + '\u0000' + r.body, r.id));
+    const fresh = rows.filter(r => {
+      const key = (r.project_id || '') + '\u0000' + r.body;
+      const holder = seen.get(key);
+      if (holder && holder !== r.id) return false;
+      seen.set(key, r.id);
+      return true;
+    });
+    // The dropped ones are still ACCEPTED: the phone must forget them, or it
+    // will offer to send the same twin again for ever.
+    const dropped = rows.filter(r => !fresh.includes(r)).map(r => r.id);
+    if (!fresh.length) return send(res, 200, { accepted: dropped });
+
     const { error } = await db.from('captures')
-      .upsert(rows, { onConflict: 'id' });
+      .upsert(fresh, { onConflict: 'id' });
     if (error) return send(res, 500, { error: 'write_failed' });
 
     // Catching a note is working on the script. The phone sends its own local
     // date because only the phone knows what day it is where the writer stands.
-    if (rows.some(r => !r.deleted_at)) markWorkDay(db, user.id, body.day);
+    if (fresh.some(r => !r.deleted_at)) markWorkDay(db, user.id, body.day);
 
-    return send(res, 200, { accepted: rows.map(r => r.id) });
+    return send(res, 200, { accepted: fresh.map(r => r.id).concat(dropped) });
   }
 
   // ------------------------------------------------- what is still waiting --

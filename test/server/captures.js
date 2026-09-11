@@ -97,6 +97,38 @@ const note = (id, extra={}) => ({id, body:'the dog knows first', created_at: Dat
     JSON.stringify(db.state.work_days));
 }
 
+// ---------- the same note twice is one note
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  await hit(db, {method:'POST', body:{captures:[note('c1', {body:'the dog knows first', project_id:'p1'})]}});
+  const r = await hit(db, {method:'POST', body:{captures:[note('c2', {body:'the dog knows first', project_id:'p1'})]}});
+  check('an identical note sent again moments later is not stored twice',
+    db.state.captures.length === 1,
+    db.state.captures.length + ' rows  <-- a hesitant thumb must not become two cards');
+  check('and the phone is still told to forget it, or it offers the twin for ever',
+    (r.body.accepted || []).includes('c2'), JSON.stringify(r.body));
+}
+
+// ---------- but re-sending the SAME id must always work
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  await hit(db, {method:'POST', body:{captures:[note('c1')]}});
+  const r = await hit(db, {method:'POST', body:{captures:[note('c1')]}});
+  check('re-sending the same id is still idempotent, not a duplicate refusal',
+    db.state.captures.length === 1 && (r.body.accepted || []).includes('c1'),
+    JSON.stringify(r.body) + ' rows=' + db.state.captures.length);
+}
+
+// ---------- the same words under a different script are two notes
+{
+  const db = makeDb(P(), {projects: [{id:'p1',user_id:'u1',name:'A'},{id:'p2',user_id:'u1',name:'B'}],
+                          captures: [], work_days: []});
+  await hit(db, {method:'POST', body:{captures:[note('c1', {body:'same line', project_id:'p1'})]}});
+  await hit(db, {method:'POST', body:{captures:[note('c2', {body:'same line', project_id:'p2'})]}});
+  check('the same line under two different scripts stays two notes',
+    db.state.captures.length === 2, db.state.captures.length + ' rows');
+}
+
 // ---------- limits
 {
   const db = makeDb(P(), {projects: mine, captures: [], work_days: []});

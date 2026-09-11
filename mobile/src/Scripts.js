@@ -216,8 +216,8 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
             }
             ListEmptyComponent={
               <Text style={s.empty}>
-                No scripts yet. Start one at your desk and it will be here next time
-                you open this.
+                No scripts yet. Press New up there to start one, or leave the note
+                unfiled and decide at your desk.
               </Text>
             }
             renderItem={({ item }) => {
