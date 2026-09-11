@@ -154,6 +154,11 @@ export default function Capture() {
     rememberScript(slim);
   };
 
+  /* Switching scripts changes nothing about the notes already on this phone.
+     Repainting when the picker closes is belt and braces: whatever the list
+     was showing, it now shows what is actually in the database. */
+  const closePicker = useCallback(() => { setPicking(false); refresh(); }, [refresh]);
+
   // The whole contract of this app, in one function: write to disk, and only
   // then tell the writer it is kept. If the insert throws, say so loudly and
   // do NOT clear the field: the words on screen are the last copy.
@@ -341,7 +346,7 @@ export default function Capture() {
         shelf={shelf}
         current={script}
         onPick={choose}
-        onClose={() => setPicking(false)}
+        onClose={closePicker}
       />
     </KeyboardAvoidingView>
   );

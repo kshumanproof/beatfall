@@ -69,11 +69,24 @@ export async function runSync() {
   return result;
 }
 
-/* Wake on foreground. Returns its own unsubscribe so a screen can mount this
-   without leaking a listener across a sign out. */
+/* Wake when the app comes back from the BACKGROUND. Not on every 'active'.
+ *
+ * iOS reports 'inactive' then 'active' for things that are not the writer
+ * leaving and returning: a full screen modal being presented, the control
+ * centre being pulled down, a notification banner. The script picker is a full
+ * screen modal, so opening it looked exactly like coming back to the app, and
+ * every note on the phone was quietly sent the moment somebody went to change
+ * which script they were writing to. They then typed a second note under a
+ * different title and the first one had vanished.
+ *
+ * Only background -> active counts. Returns its own unsubscribe so a screen
+ * can mount this without leaking a listener across a sign out. */
 export function watchForeground() {
-  const sub = AppState.addEventListener('change', (s) => {
-    if (s === 'active') runSync();
+  let was = AppState.currentState;
+  const sub = AppState.addEventListener('change', (next) => {
+    const cameBack = was === 'background' && next === 'active';
+    was = next;
+    if (cameBack) runSync();
   });
   return () => { try { sub.remove(); } catch (e) {} };
 }
