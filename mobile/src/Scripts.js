@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 import { palette, radius, font } from './theme';
-import { fetchScripts } from './api';
+import { fetchScripts, why } from './api';
 import * as store from './store';
 
 const CACHE = 'scripts.cache';
@@ -45,26 +45,41 @@ export function useScripts() {
       if (raw) setScripts(JSON.parse(raw));
     } catch (e) {}
     setBusy(true); setProblem(null);
+    /* try/finally, not try/catch alone. Anything that throws in here and gets
+       past the catch leaves busy stuck true, and busy stuck true is a spinner
+       that never stops: the writer is told to wait for something that already
+       failed. The finally is the only reason this screen can always be
+       recovered by pulling down. */
     try {
-      const fresh = await fetchScripts();
-      setScripts(fresh);
-      await store.setItem(CACHE, JSON.stringify(fresh));
-    } catch (e) {
-      if (e.status === 0) setProblem('offline');
-      else if (e.status === 401) setProblem('signedout');
-      else setProblem(e.message || 'failed');
+      let fresh = null;
+      try {
+        fresh = await fetchScripts();
+      } catch (e) {
+        setProblem(why ? why(e) : String((e && e.message) || 'failed'));
+      }
+      if (fresh) {
+        setScripts(fresh);
+        // Writing the cache is a convenience, not part of loading. It used to
+        // sit inside the same try, so a storage hiccup put "couldn't load your
+        // scripts" on top of a list that had loaded perfectly.
+        try { await store.setItem(CACHE, JSON.stringify(fresh)); } catch (e) {}
+      }
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
   return { scripts, busy, problem, reload: load };
 }
 
-export default function ScriptSheet({ visible, onClose, onPick, current, scheme }) {
+/* The shelf is loaded ONCE, by the screen that owns it, and handed down. Two
+   components each calling useScripts meant two requests on every open and two
+   sets of state disagreeing about whether it had worked. */
+export default function ScriptSheet({ visible, onClose, onPick, current, scheme, shelf }) {
   const c = palette(scheme);
   const s = sheet(c);
-  const { scripts, busy, problem, reload } = useScripts();
+  const { scripts, busy, problem, reload } = shelf;
 
   const rows = scripts || [];
 
@@ -75,14 +90,19 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme 
         <View style={s.grab} />
         <Text style={s.h}>Which script?</Text>
 
-        {problem === 'offline' && (
+        {/* Only worth saying when it changes what the writer can do. A list
+            that is on screen and correct does not need an apology over it. */}
+        {problem === 'offline' && rows.length > 0 && (
           <Text style={s.note}>
-            No signal, so this is the list from the last time you were online. Notes
-            still save either way.
+            No signal, so this is the list from last time. Notes save either way.
           </Text>
         )}
-        {problem && problem !== 'offline' && (
-          <Text style={s.bad}>Couldn't load your scripts. Pull down to try again.</Text>
+        {problem && rows.length === 0 && !busy && (
+          <Text style={s.bad}>
+            {problem === 'offline'
+              ? "No signal, so your scripts can't be fetched yet. Pull down when you're back on."
+              : "Couldn't load your scripts: " + problem + ". Pull down to try again."}
+          </Text>
         )}
 
         {scripts === null && busy ? (

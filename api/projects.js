@@ -10,7 +10,20 @@ const MAX_PROJECTS = 60;
 const MAX_BYTES    = 400_000;   // a very large board is ~40kb; this is generous
 
 export default async function handler(req, res) {
-  const auth = await requireUser(req);
+  /* ?list=1 is the shelf: id, name, structure. Nothing else.
+     It is exempt from the one-active-browser lock, and that is not a hole.
+     The lock exists so two browsers cannot both edit a board and overwrite
+     each other; reading a list of names cannot collide with anything. The
+     phone uses this and only this, and if it took part in the lock then
+     opening Beatfall on a phone would sign the writer out of the desk they
+     were sitting at, which is the opposite of what a capture app is for. */
+  let slim = false;
+  try {
+    slim = req.method === 'GET'
+        && new URL(req.url, 'http://x').searchParams.get('list') === '1';
+  } catch (e) {}
+
+  const auth = await requireUser(req, slim ? { webDevice: false } : undefined);
   if (auth.error) return send(res, auth.status, { error: auth.error });
   const { db, user, profile } = auth;
 
@@ -53,11 +66,7 @@ export default async function handler(req, res) {
        outline and every character sheet down a cell connection to render a
        list of names. The desktop still gets everything, because it opens a
        board the moment it has one. */
-    let cols = '*';
-    try {
-      const q = new URL(req.url, 'http://x').searchParams;
-      if (q.get('list') === '1') cols = 'id,name,structure,sort_order,is_sample';
-    } catch (e) {}
+    const cols = slim ? 'id,name,structure,sort_order,is_sample' : '*';
     const { data, error } = await db.from('projects')
       .select(cols).eq('user_id', user.id).order('sort_order', { ascending: true });
     if (error) return send(res, 500, { error: 'read_failed' });

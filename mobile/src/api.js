@@ -51,3 +51,15 @@ export async function fetchScripts() {
   const body = await call('/api/projects?list=1');
   return Array.isArray(body && body.projects) ? body.projects : [];
 }
+
+/* What actually went wrong, in one short line, for the writer AND for us.
+   A single sentence that never names the fault is a bug report nobody can
+   act on, and this runs on a device with no console attached. */
+export function why(e) {
+  if (!e) return 'unknown';
+  if (e.status === 0)   return 'offline';
+  if (e.status === 401) return 'signed out (401)';
+  if (e.status === 402) return 'plan closed (402)';
+  const bit = e.code || e.message || 'no detail';
+  return (e.status ? e.status + ' ' : '') + String(bit).slice(0, 90);
+}
