@@ -43,6 +43,9 @@
     color:var(--blue);text-decoration:underline;text-underline-offset:2px}
   .linky:hover{color:var(--ink)}
   .linky[disabled]{opacity:.5;cursor:default;text-decoration:none}
+  /* Six digits, set so they can be checked against the email at a glance. */
+  #codeform{margin:14px 0 4px}
+  #code{font-family:var(--mono);font-size:22px;letter-spacing:9px;text-align:center}
 </style>
 </head>
 <body>
@@ -73,16 +76,20 @@
   <div class="side">
     <div class="form">
       <h2 id="title">Sign in</h2>
-      <p class="sub" id="sub">We'll email you a link. No password to remember.</p>
+      <p class="sub" id="sub">We'll email you a six digit code. No password to remember.</p>
 
       <div id="err" class="note bad" hidden></div>
       <div id="sent" class="note info" hidden>
-        <b>Check your email.</b> We've sent a sign-in link to <span id="sentTo"></span>.
-        It works once and lasts an hour. You can close this tab.
-        <div id="sentphone" hidden><b>Open that link on the computer you write on.</b>
-          It signs in whichever device opens it, and the board needs a bigger screen
-          than a phone. Opening it here is not a disaster: ask for another one from
-          your computer and this account is already waiting.</div>
+        <b>Check your email.</b> A six digit code is on its way to <span id="sentTo"></span>.
+        It works once and lasts an hour.
+        <form id="codeform">
+          <label class="field">
+            <span>Code</span>
+            <input id="code" inputmode="numeric" autocomplete="one-time-code"
+                   maxlength="6" placeholder="000000" required>
+          </label>
+          <button class="btn btn-primary" id="verify" style="width:100%" type="submit">Sign me in</button>
+        </form>
         <!-- Filled by BF.appPitch() on a phone. The markup is not written here
              because the same buttons are on the small-screen gate, and one
              control written into two files is how the account pill came to say
@@ -110,10 +117,10 @@
              full stops. It belongs to the trial path only, and the script
              below takes it off the sign-in one. -->
         <p class="promise" id="promise">14-day trial. 25 credits. No card required.</p>
-        <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a link</button>
+        <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a code</button>
       </form>
 
-      <p class="fine" id="fineswap">New here? The same box works. We'll make your account when you click the link.</p>
+      <p class="fine" id="fineswap">New here? The same box works. We'll make your account when you type the code.</p>
 
       <p class="fine">By signing in you agree to the <a href="/terms.html">Terms</a> and the
          <a href="/privacy.html">Privacy Policy</a>. Your writing stays yours, nothing you write
@@ -175,7 +182,6 @@ if (startedTrial) {
      moment this product has their attention and nothing to show them, and the
      phone app is the answer to "what do I do with Beatfall from here". */
   if (BF.isSmallScreen()) {
-    document.getElementById('sentphone').hidden = false;
     const app = document.getElementById('sentapp');
     app.innerHTML = BF.appPitch({ trial: startedTrial });
     app.hidden = false;
@@ -205,10 +211,13 @@ if (startedTrial) {
 
   let lastEmail = '';
 
-  async function sendLink(email) {
-    const { error } = await BF.sb.auth.signInWithOtp({
-      email, options: { emailRedirectTo: location.origin + '/app' }
-    });
+  /* A code, not a link. A link has to leave the browser for a mail app and
+     find its way back, and on a phone it signs in whichever device opened it,
+     which is the wrong one about half the time. Six digits go the other way:
+     the reader carries them, so the session lands where they are standing.
+     The phone app does exactly this, from the same template. */
+  async function sendCode(email) {
+    const { error } = await BF.sb.auth.signInWithOtp({ email });
     if (error) throw error;
     note('requested');
   }
@@ -221,23 +230,59 @@ if (startedTrial) {
     go.disabled = true;
     go.innerHTML = '<span class="spinner"></span>Sending…';
     try {
-      await sendLink(email);
+      await sendCode(email);
       lastEmail = email;
       document.getElementById('sentTo').textContent = email;
       sent.hidden = false;
       form.hidden = true;
-      title.textContent = 'Link sent';
+      title.textContent = 'Check your email';
       sub.hidden = true;
+      document.getElementById('code').focus();
     } catch (e2) {
       err.textContent = (e2 && e2.message) || "Couldn't send that. Check the address and try again.";
       err.hidden = false;
     } finally {
       go.disabled = false;
-      go.textContent = 'Email me a link';
+      go.textContent = 'Email me a code';
     }
   });
 
-  // A link that never arrives, or an address typed wrong, used to leave the
+  const codeform = document.getElementById('codeform');
+  const codeEl   = document.getElementById('code');
+  const verify   = document.getElementById('verify');
+
+  codeEl.addEventListener('input', () => {
+    codeEl.value = codeEl.value.replace(/\D/g, '').slice(0, 6);
+  });
+
+  codeform.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = codeEl.value.replace(/\D/g, '');
+    if (token.length !== 6 || !lastEmail) return;
+    err.hidden = true;
+    verify.disabled = true;
+    verify.innerHTML = '<span class="spinner"></span>Signing in\u2026';
+    try {
+      const { error } = await BF.sb.auth.verifyOtp({
+        email: lastEmail, token, type: 'email'
+      });
+      if (error) throw error;
+      note('arrived');
+      location.href = '/app';
+      return;
+    } catch (e4) {
+      const raw = String((e4 && e4.message) || '').toLowerCase();
+      err.textContent = raw.includes('expired') || raw.includes('invalid')
+        ? "That code didn't work. It may have expired, or a digit is off. Ask for a new one."
+        : ((e4 && e4.message) || 'Something went wrong. Try again.');
+      err.hidden = false;
+      codeEl.select();
+    }
+    verify.disabled = false;
+    verify.textContent = 'Sign me in';
+  });
+
+  // A code that never arrives, or an address typed wrong, used to leave the
   // page with nothing on it but a reassuring message and no way forward.
   const resend = document.getElementById('resend');
   const resent = document.getElementById('resent');
@@ -245,7 +290,7 @@ if (startedTrial) {
     if (!lastEmail) return;
     resend.disabled = true; resent.hidden = true;
     try {
-      await sendLink(lastEmail);
+      await sendCode(lastEmail);
       resent.hidden = false;
       setTimeout(() => { resent.hidden = true; resend.disabled = false; }, 6000);
     } catch (e3) {
@@ -258,6 +303,7 @@ if (startedTrial) {
   document.getElementById('another').addEventListener('click', () => {
     sent.hidden = true;
     form.hidden = false;
+    codeEl.value = '';
     // Back to whichever heading this page arrived with, not always Sign in.
     title.textContent = startedTrial ? 'Start your 14 days' : 'Sign in';
     sub.hidden = false;
