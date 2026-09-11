@@ -47,8 +47,19 @@ export default async function handler(req, res) {
 
   // ---------------------------------------------------------------- read --
   if (req.method === 'GET') {
+    /* ?list=1 asks for the shelf, not the shelf's contents: id, name and
+       structure, nothing else. The phone needs this to draw a script picker,
+       and a writer with a dozen boards would otherwise pull every card, every
+       outline and every character sheet down a cell connection to render a
+       list of names. The desktop still gets everything, because it opens a
+       board the moment it has one. */
+    let cols = '*';
+    try {
+      const q = new URL(req.url, 'http://x').searchParams;
+      if (q.get('list') === '1') cols = 'id,name,structure,sort_order,is_sample';
+    } catch (e) {}
     const { data, error } = await db.from('projects')
-      .select('*').eq('user_id', user.id).order('sort_order', { ascending: true });
+      .select(cols).eq('user_id', user.id).order('sort_order', { ascending: true });
     if (error) return send(res, 500, { error: 'read_failed' });
     // `closed` is the client's cue to draw the locked screen over the shelf
     // rather than a board. It is only ever true with no plan at all.

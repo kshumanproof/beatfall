@@ -19,6 +19,7 @@ import { palette, radius, font } from './theme';
 import { Lockup } from './Mark';
 import { SYNC_ENABLED } from './config';
 import * as store from './store';
+import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -59,6 +60,12 @@ export default function Capture() {
   const [rows, setRows] = useState([]);
   const [tally, setTally] = useState({ total: 0, waiting: 0 });
   const [saving, setSaving] = useState(false);
+  /* Which script the next note goes to. Chosen once and then left alone: it
+     survives a force-quit because it lives in the same SQLite file the notes
+     do, and it is never a question the writer has to answer before typing. */
+  const [script, setScript] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const { scripts } = useScripts();
   const field = useRef(null);
 
   const refresh = useCallback(async () => {
@@ -69,6 +76,23 @@ export default function Capture() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Open on whatever was used last. Failing that, on the only script there is,
+  // because picking from a list of one is a question with no information in it.
+  useEffect(() => {
+    let gone = false;
+    lastScript().then((p) => { if (!gone && p) setScript(p); });
+    return () => { gone = true; };
+  }, []);
+  useEffect(() => {
+    if (!script && scripts && scripts.length === 1) choose(scripts[0]);
+  }, [scripts, script]);
+
+  const choose = (p) => {
+    const slim = p ? { id: p.id, name: p.name } : null;
+    setScript(slim);
+    rememberScript(slim);
+  };
+
   // The whole contract of this app, in one function: write to disk, and only
   // then tell the writer it is kept. If the insert throws, say so loudly and
   // do NOT clear the field: the words on screen are the last copy.
@@ -77,7 +101,7 @@ export default function Capture() {
     if (!text || saving) return;
     setSaving(true);
     try {
-      await store.add(text);
+      await store.add(text, script);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       settle();
       setDraft('');
@@ -122,6 +146,24 @@ export default function Capture() {
         <Lockup scheme={scheme} size={26} />
         <View style={s.grow} />
         <Tally c={c} tally={tally} />
+      </View>
+
+      {/* Where the next note is going. One line, always visible, one tap to
+          change. It sits above the box rather than below it so it is read
+          before the writer types, not discovered after. */}
+      <View style={s.pad}>
+        <Pressable
+          onPress={() => setPicking(true)}
+          style={({ pressed }) => [s.script, pressed && s.scriptDown]}
+          accessibilityRole="button"
+          accessibilityLabel={script ? `Filing under ${script.name}. Change script.` : 'Choose a script'}
+        >
+          <Text style={s.scriptRail}>TO</Text>
+          <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
+            {script ? script.name : 'Not filed yet'}
+          </Text>
+          <Text style={s.scriptGo}>Change</Text>
+        </Pressable>
       </View>
 
       {/* ------------------------------------------------------- capture -- */}
@@ -191,11 +233,22 @@ export default function Capture() {
               <Text style={s.body}>{item.body}</Text>
               <View style={s.foot}>
                 <Text style={s.stamp}>{when(item.created_at)}</Text>
+                {item.project_name
+                  ? <Text style={s.stamp} numberOfLines={1}>· {item.project_name}</Text>
+                  : <Text style={s.pend}>· not filed</Text>}
                 {stuck(item) && <Text style={s.pend}>· waiting to sync</Text>}
               </View>
             </View>
           </Pressable>
         )}
+      />
+
+      <ScriptSheet
+        visible={picking}
+        scheme={scheme}
+        current={script}
+        onPick={choose}
+        onClose={() => setPicking(false)}
       />
     </KeyboardAvoidingView>
   );
@@ -237,6 +290,17 @@ const sheet = (c) => StyleSheet.create({
   dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: c.goldHair, alignSelf: 'center' },
 
   pad: { paddingHorizontal: 20 },
+  script: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12,
+    paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.ruleSoft,
+    borderRadius: radius.ctl,
+  },
+  scriptDown: { opacity: 0.7 },
+  scriptRail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
+  scriptName: { flex: 1, fontFamily: font.sansMed, fontSize: 14, color: c.ink },
+  scriptNone: { color: c.gold },
+  scriptGo: { fontFamily: font.sansMed, fontSize: 12.5, color: c.blue },
   box: {
     backgroundColor: c.card, borderWidth: 1, borderColor: c.rule,
     borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12,

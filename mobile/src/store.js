@@ -45,6 +45,20 @@ export async function init() {
       v  TEXT
     );
   `);
+
+  /* Which script a note belongs to, and the name of it at the time.
+     Both, on purpose. The id is what the server files it under; the NAME is
+     what the phone shows in the list, and it has to still be there when the
+     writer is underground with no signal and the shelf cache is stale. A row
+     that can only say "project 4f2a" is a row the writer cannot check.
+
+     Added after the first build shipped, so it is an ALTER guarded by a look
+     at the existing columns rather than a bump in the CREATE above: phones
+     already carrying notes must not lose them to a schema change. */
+  const cols = await db.getAllAsync('PRAGMA table_info(captures)');
+  const has = (n) => cols.some((c) => c.name === n);
+  if (!has('project_id'))   await db.execAsync('ALTER TABLE captures ADD COLUMN project_id TEXT');
+  if (!has('project_name')) await db.execAsync('ALTER TABLE captures ADD COLUMN project_name TEXT');
   return db;
 }
 
@@ -77,16 +91,31 @@ function newId() {
   return `c_${Date.now().toString(36)}_${rand()}${rand()}`;
 }
 
-export async function add(body) {
+export async function add(body, project) {
   const text = String(body || '').trim();
   if (!text) return null;
   const db = await open();
-  const row = { id: newId(), body: text, created_at: Date.now(), synced_at: null, deleted: 0 };
+  const row = {
+    id: newId(), body: text, created_at: Date.now(), synced_at: null, deleted: 0,
+    project_id:   (project && project.id)   || null,
+    project_name: (project && project.name) || null,
+  };
   await db.runAsync(
-    'INSERT INTO captures (id, body, created_at, synced_at, deleted) VALUES (?, ?, ?, NULL, 0)',
-    row.id, row.body, row.created_at
+    'INSERT INTO captures (id, body, created_at, synced_at, deleted, project_id, project_name)'
+    + ' VALUES (?, ?, ?, NULL, 0, ?, ?)',
+    row.id, row.body, row.created_at, row.project_id, row.project_name
   );
   return row;
+}
+
+/* Move a note to a different script. Un-syncs it, same as an edit does: the
+   server's copy is now filed in the wrong place. */
+export async function refile(id, project) {
+  const db = await open();
+  await db.runAsync(
+    'UPDATE captures SET project_id = ?, project_name = ?, synced_at = NULL WHERE id = ?',
+    (project && project.id) || null, (project && project.name) || null, id
+  );
 }
 
 export async function edit(id, body) {
