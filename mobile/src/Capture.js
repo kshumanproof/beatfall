@@ -168,10 +168,11 @@ export default function Capture() {
       setDraft('');
       await refresh();
       field.current?.focus();
-      /* Not awaited, and that is the point: the note is already on disk and
-         the screen has already said so. Sending it home is somebody else's
-         errand and must never sit between the writer and the next thought. */
-      if (SYNC_ENABLED) runSync().then(refresh).catch(() => {});
+      /* Keep does NOT send. It used to, and the send was fast enough that the
+         note was gone before the Send button could appear, so the one control
+         this screen has never showed itself. Keep means kept; Send means sent.
+         Nothing is at risk in between: the note is on disk, and if the writer
+         never presses Send it goes on its own the next time the app opens. */
     } catch (e) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       Alert.alert(
