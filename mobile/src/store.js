@@ -160,6 +160,29 @@ export async function counts() {
   return { total: a?.n || 0, waiting: b?.n || 0 };
 }
 
+/* Notes the desk has finished with.
+ *
+ * The server's list of what is still waiting is the truth. Any note this phone
+ * has already sent, which is no longer on that list, has been sorted onto a
+ * board or thrown away at the desk, and it has no business still sitting here:
+ * "on this phone" would slowly become a pile of things already dealt with,
+ * which is exactly the jumbled note file Beatfall exists to end.
+ *
+ * Unsent notes are never touched by this. They have not been anywhere yet. */
+export async function pruneSettled(stillWaiting) {
+  const db = await open();
+  const keep = (stillWaiting || []).map(String);
+  if (!keep.length) {
+    await db.runAsync('DELETE FROM captures WHERE synced_at IS NOT NULL AND deleted = 0');
+    return;
+  }
+  const holes = keep.map(() => '?').join(',');
+  await db.runAsync(
+    `DELETE FROM captures WHERE synced_at IS NOT NULL AND deleted = 0 AND id NOT IN (${holes})`,
+    ...keep
+  );
+}
+
 // Called by the sync layer once the server has confirmed a batch.
 export async function markSynced(ids, when = Date.now()) {
   if (!ids || !ids.length) return;

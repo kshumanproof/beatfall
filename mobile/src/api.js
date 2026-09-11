@@ -52,6 +52,25 @@ export async function fetchScripts() {
   return Array.isArray(body && body.projects) ? body.projects : [];
 }
 
+/* What the server still has waiting. The phone uses this to clear notes the
+   desk has already dealt with, so "on this phone" stays a list of things that
+   have not been sorted yet rather than a growing archive. */
+export async function fetchWaiting() {
+  const body = await call('/api/captures');
+  return Array.isArray(body && body.captures) ? body.captures.map(c => c.id) : [];
+}
+
+/* Start a script from the phone. Name only, on purpose: at dinner, choosing a
+   structure is a desk decision and structures switch losslessly later. */
+export async function createScript(name) {
+  const body = await call('/api/projects', {
+    method: 'POST',
+    body: JSON.stringify({ project: { name: String(name || '').trim().slice(0, 200) || 'Untitled',
+                                      created_from: 'other' } }),
+  });
+  return body && body.project;
+}
+
 /* What actually went wrong, in one short line, for the writer AND for us.
    A single sentence that never names the fault is a bug report nobody can
    act on, and this runs on a device with no console attached. */

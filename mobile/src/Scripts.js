@@ -11,26 +11,35 @@
 // ============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View,
+  ActivityIndicator, Alert, FlatList, Modal, Pressable, StyleSheet, Text,
+  TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette, radius, font } from './theme';
-import { fetchScripts, why } from './api';
+import { fetchScripts, createScript, why } from './api';
 import * as store from './store';
 
 const CACHE = 'scripts.cache';
 const LAST  = 'scripts.last';
+const CHOSE = 'scripts.chose';
 
+/* Two different states, and conflating them is a bug the writer feels.
+   "No script yet" is the app not knowing. "Not filed" is the writer's
+   decision. Only the first one may be answered on their behalf, so the fact
+   that they have decided is recorded separately from what they decided. */
 export async function rememberScript(p) {
-  try { await store.setItem(LAST, JSON.stringify(p || null)); } catch (e) {}
+  try {
+    await store.setItem(LAST, JSON.stringify(p || null));
+    await store.setItem(CHOSE, '1');
+  } catch (e) {}
 }
 
 export async function lastScript() {
   try {
     const raw = await store.getItem(LAST);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
+    return { chosen: !!(await store.getItem(CHOSE)), project: raw ? JSON.parse(raw) : null };
+  } catch (e) { return { chosen: false, project: null }; }
 }
 
 /* The shelf. Disk first so the list is on screen immediately and correct
@@ -71,7 +80,18 @@ export function useScripts() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { scripts, busy, problem, reload: load };
+
+  /* A script started on the phone joins the list at once rather than after a
+     round trip, so the picker does not blink empty while the server catches up. */
+  const add = useCallback((p) => {
+    setScripts(prev => {
+      const next = [...(prev || []), {id: p.id, name: p.name, structure: p.structure}];
+      store.setItem(CACHE, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  return { scripts, busy, problem, reload: load, add };
 }
 
 /* The shelf is loaded ONCE, by the screen that owns it, and handed down. Two
@@ -81,9 +101,33 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
   const c = palette(scheme);
   const s = sheet(c);
   const inset = useSafeAreaInsets();
-  const { scripts, busy, problem, reload } = shelf;
+  const { scripts, busy, problem, reload, add } = shelf;
+
+  const [naming, setNaming] = useState(false);
+  const [name, setName]     = useState('');
+  const [making, setMaking] = useState(false);
 
   const rows = scripts || [];
+
+  /* Starting a script from the phone asks for a name and nothing else. A
+     structure is a desk decision, the app's default is a sound one, and
+     Beatfall switches structures without losing a beat, so making somebody
+     choose one in a car park buys nothing. */
+  const start = async () => {
+    const clean = name.trim();
+    if (!clean || making) return;
+    setMaking(true);
+    try {
+      const p = await createScript(clean);
+      if (p) { add(p); onPick({ id: p.id, name: p.name }); setNaming(false); setName(''); onClose(); }
+    } catch (e) {
+      Alert.alert('Could not start it',
+        e && e.status === 0
+          ? "No signal, so Beatfall couldn't create the script. Your note is safe either way, and you can file it when you're back on."
+          : (e && e.message) || 'Something went wrong.');
+    }
+    setMaking(false);
+  };
 
   /* Full height, always. A sheet that grows with its contents is a different
      size every time it opens, so the writer's thumb has to find the list
@@ -95,6 +139,10 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
         <View style={s.bar}>
           <Text style={s.h}>Which script?</Text>
           <View style={s.grow} />
+          <Pressable onPress={() => setNaming(v => !v)} hitSlop={12}
+            accessibilityRole="button" accessibilityLabel="Start a new script">
+            <Text style={s.act}>{naming ? 'Cancel' : 'New'}</Text>
+          </Pressable>
           <Pressable onPress={reload} disabled={busy} hitSlop={12}
             accessibilityRole="button" accessibilityLabel="Refresh the list">
             <Text style={[s.act, busy && s.actOff]}>{busy ? 'Refreshing' : 'Refresh'}</Text>
@@ -117,6 +165,30 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
           </Text>
         )}
 
+        {naming && (
+          <View style={s.namer}>
+            <TextInput
+              style={s.nameIn}
+              value={name}
+              onChangeText={setName}
+              placeholder="What is it called?"
+              placeholderTextColor={c.ink4}
+              autoFocus
+              autoCapitalize="words"
+              returnKeyType="done"
+              onSubmitEditing={start}
+              editable={!making}
+            />
+            <Pressable onPress={start} disabled={!name.trim() || making}
+              style={({ pressed }) => [s.mk, (!name.trim() || making) && s.mkOff, pressed && s.rowDown]}
+              accessibilityRole="button">
+              <Text style={[s.mkText, (!name.trim() || making) && s.mkTextOff]}>
+                {making ? 'Starting' : 'Start it'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         {scripts === null && busy ? (
           <View style={s.wait}><ActivityIndicator color={c.blue} /></View>
         ) : (
@@ -127,6 +199,21 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
             onRefresh={reload}
             style={s.grow}
             contentContainerStyle={[s.list, { paddingBottom: inset.bottom + 28 }]}
+            /* Not filing is a real answer, not a failure to answer. At dinner
+               the writer should be able to catch the thought and decide where
+               it belongs later, and the desk already knows how to sort an
+               unfiled pile. */
+            ListHeaderComponent={
+              <Pressable
+                onPress={() => { onPick(null); onClose(); }}
+                style={({ pressed }) => [s.row, s.rowNone, !current && s.rowOn, pressed && s.rowDown]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: !current }}
+              >
+                <Text style={[s.name, s.nameNone, !current && s.nameOn]}>NOT FILED YET</Text>
+                {!current && <Text style={s.tick}>Currently</Text>}
+              </Pressable>
+            }
             ListEmptyComponent={
               <Text style={s.empty}>
                 No scripts yet. Start one at your desk and it will be here next time
@@ -183,6 +270,18 @@ const sheet = (c) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   rowOn: { borderColor: c.blue, backgroundColor: c.blueSoft },
+  rowNone: { borderStyle: 'dashed', marginBottom: 8 },
+  nameNone: { color: c.ink3 },
+  namer: { flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 20, paddingTop: 14 },
+  nameIn: { flex: 1, fontFamily: font.sans, fontSize: 15, color: c.ink,
+    backgroundColor: c.card, borderWidth: 1, borderColor: c.rule,
+    borderRadius: radius.ctl, paddingHorizontal: 13, minHeight: 46 },
+  mk: { backgroundColor: c.blue, borderRadius: radius.ctl, paddingHorizontal: 18,
+    minHeight: 46, justifyContent: 'center' },
+  mkOff: { backgroundColor: c.ruleSoft },
+  mkText: { fontFamily: font.sansSemi, fontSize: 14, color: c.onBlue },
+  mkTextOff: { color: c.ink4 },
   rowDown: { opacity: 0.7 },
   name: { flex: 1, fontFamily: font.sansSemi, fontSize: 13.5, letterSpacing: 0.7,
     lineHeight: 19, color: c.ink },

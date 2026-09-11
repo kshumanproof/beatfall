@@ -13,7 +13,7 @@
 // ============================================================================
 import { AppState } from 'react-native';
 
-import { call } from './api';
+import { call, fetchWaiting } from './api';
 import * as store from './store';
 
 let running = false;
@@ -36,7 +36,13 @@ export async function runSync() {
   let result = { sent: 0, ok: false };
   try {
     const pending = await store.pending();
-    if (!pending.length) { result = { sent: 0, ok: true }; return result; }
+    if (!pending.length) {
+      // Nothing to send, but the desk may have sorted things since we last
+      // looked, and those notes should stop taking up room on the phone.
+      try { await store.pruneSettled(await fetchWaiting()); } catch (e) {}
+      result = { sent: 0, ok: true };
+      return result;
+    }
 
     const payload = pending.map((r) => ({
       id: r.id,
@@ -54,6 +60,8 @@ export async function runSync() {
 
     const accepted = Array.isArray(reply && reply.accepted) ? reply.accepted : [];
     if (accepted.length) await store.markSynced(accepted);
+    // And clear anything the desk has already finished with.
+    try { await store.pruneSettled(await fetchWaiting()); } catch (e) {}
     result = { sent: accepted.length, ok: true };
   } catch (e) {
     // Offline, signed out, server down. All the same answer here: leave the

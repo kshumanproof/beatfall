@@ -1279,6 +1279,14 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .score-n .of{font-size:17px;color:var(--ink-4);font-weight:500}
 .score-cell.gap .score-n{color:var(--gold)}
 .score-cell.quiet .score-n{color:var(--ink-3)}
+/* The one cell on the scoreboard that DOES something. Everything else here is
+   a fact you read, so this has to say plainly that it is not. */
+.score-cell.phonecell{cursor:pointer}
+.score-cell.phonecell .score-n{color:var(--gold)}
+.score-open{color:var(--blue);text-decoration:underline;text-underline-offset:2px}
+.score-cell.phonecell:hover{background:var(--blue-soft)}
+.score-cell.phonecell:hover .score-open{color:var(--blue-ink)}
+.score-cell.phonecell:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 .score-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
   letter-spacing:.14em;color:var(--ink-4);margin-top:9px;
@@ -6150,23 +6158,23 @@ function pendingGroups(){
   return [...by.values()].sort((a, b) => (a.key ? 0 : 1) - (b.key ? 0 : 1));
 }
 
-// A greeting earns its place by being true and specific. It is not a joke, and
-// it is not shown at all when there is nothing waiting.
-function timeHello(){
-  const h = new Date().getHours();
-  if (h < 5)  return "Still up";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  if (h < 22) return "Good evening";
-  return "Late one";
-}
+/* One word, the same one every time. A greeting that changes with the clock
+   is a small performance, and a small performance repeated daily becomes a
+   tic. What earns its place here is the sentence under it, which is true and
+   specific and different every morning. */
+const HELLO = "Howdy.";
+
+// Which notes have already been offered, so returning to a tab does not
+// re-ask about the same batch.
+let offered = new Set();
 
 function showPhoneHello(){
   if (!PENDING.length) return;
+  PENDING.forEach(c => offered.add(c.id));
   const groups = pendingGroups();
   const n = PENDING.length;
   const g = groups.length;
-  document.getElementById("phonehi").textContent = timeHello() + ".";
+  document.getElementById("phonehi").textContent = HELLO;
   document.getElementById("phonesum").innerHTML =
       "<b>" + n + " note" + (n === 1 ? "" : "s") + "</b> came in from your phone"
     + (g === 1
@@ -6253,6 +6261,33 @@ async function markSorted(){
   // that is empty.
   if (state && state.view === "slate") renderSlate();
 }
+
+/* A writer leaves Beatfall open on the desktop, goes out, catches four notes,
+   comes home and sits down. Nothing has navigated, so nothing has re-read the
+   server, and the dashboard would sit there showing a queue of zero until they
+   thought to press F5. Coming back to the tab is the same event as arriving,
+   so it does the same thing.
+
+   Not a timer. A poll every thirty seconds is a request a minute all day for
+   a thing that changes twice, and the answer only matters when somebody is
+   looking at it. */
+let lookingAgain = false;
+async function recheckCaptures(){
+  if (lookingAgain || document.hidden) return;
+  lookingAgain = true;
+  try {
+    const before = PENDING.length;
+    await loadCaptures();
+    if (state && state.view === "slate") renderSlate();
+    // Only greet about notes this tab has not already offered, and never over
+    // something the writer already has open.
+    const fresh = PENDING.filter(c => !offered.has(c.id));
+    if (fresh.length && scrim.hidden && PENDING.length !== before) showPhoneHello();
+  } catch (e) {}
+  lookingAgain = false;
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) recheckCaptures(); });
+window.addEventListener("focus", recheckCaptures);
 
 document.getElementById("phonelater").addEventListener("click", () => {
   BF.track("phone_notes_deferred", {count: PENDING.length});
@@ -6909,7 +6944,18 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     if (isStatement(n.text)) return;
     idx.push(i);
   });
-  if (!idx.length || idx.length > 90) return out;
+  /* A casting call needs a cast. With ONE note in the file the question this
+     prompt asks, "which note best satisfies this beat", has the same answer
+     for every beat, so the note wins whichever beat is asked about first and
+     all three readings agree because they are all making the same forced
+     choice. That produced "Cold Open, 100% sure" for a note with nothing in it
+     about openings, which is the worst kind of wrong: confident.
+
+     Below two candidates there is nothing to compare, so the note goes through
+     the ordinary per-note read instead, which is allowed to answer "no beat"
+     and reports a confidence it actually earned. This matters more now than it
+     did: notes arriving from a phone come one at a time. */
+  if (idx.length < 2 || idx.length > 90) return out;
 
   // Beats the writer declared are spoken for and are shown as such.
   const taken = {};
@@ -6951,7 +6997,13 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     + "weekend and keep the shop open\" is the writer telling you about the "
     + "character. The beat wants the moment that SHOWS it.\n"
     + "- Beats out of reach of this file stay empty. Most files do not fill a "
-    + "whole board and are not supposed to.\n\n"
+    + "whole board and are not supposed to.\n"
+    + "- The order the beats are listed in is not evidence. If a note would sit "
+    + "as well in several beats as in this one, that is a reason to answer null "
+    + "here, not a reason to give it to whichever beat asked first.\n"
+    + "- Do not spend a note on a beat because it is the only note you have. A "
+    + "short file that fills one beat and leaves the rest empty is the correct "
+    + "reading of a short file.\n\n"
     + "Reply with JSON only, one row per beat, every beat accounted for. n is the "
     + "note that takes the beat, alt the runner up, c how sure you are of n:\n"
     + "{\"beats\":[{\"id\":\"" + S.slots[0].id + "\",\"n\":0,\"alt\":null,\"c\":85}]}";
@@ -8912,7 +8964,8 @@ function renderScore(t){
             + '<div class="score-n">' + PENDING.length + '<span class="of">'
             + (PENDING.length === 1 ? "note" : "notes") + "</span></div>"
             + '<div class="score-k">From your phone</div>'
-            + '<div class="score-note">Waiting to be sorted. Open them.</div>'
+            + '<div class="score-note">Waiting to be sorted. '
+            + '<span class="score-open">Open them</span></div>'
           + "</div>"
         : "")
     + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'

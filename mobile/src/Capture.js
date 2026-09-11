@@ -91,20 +91,29 @@ export default function Capture() {
     return () => { gone = true; stop(); };
   }, [refresh]);
 
-  // Open on whatever was used last. Failing that, on the only script there is,
-  // because picking from a list of one is a question with no information in it.
+  /* Open on whatever was used last. Failing that, on the only script there is,
+     because picking from a list of one is a question with no information in
+     it. `chose` is what stops that guess from overriding a writer who has
+     deliberately picked Not filed: an empty choice they made is not the same
+     as no choice at all. */
+  const [chose, setChose] = useState(null);   // null while we are still reading
   useEffect(() => {
     let gone = false;
-    lastScript().then((p) => { if (!gone && p) setScript(p); });
+    lastScript().then((r) => {
+      if (gone) return;
+      setChose(!!r.chosen);
+      if (r.project) setScript(r.project);
+    });
     return () => { gone = true; };
   }, []);
   useEffect(() => {
-    if (!script && scripts && scripts.length === 1) choose(scripts[0]);
-  }, [scripts, script]);
+    if (chose === false && !script && scripts && scripts.length === 1) choose(scripts[0]);
+  }, [scripts, script, chose]);
 
   const choose = (p) => {
     const slim = p ? { id: p.id, name: p.name } : null;
     setScript(slim);
+    setChose(true);
     rememberScript(slim);
   };
 
