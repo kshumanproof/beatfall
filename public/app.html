@@ -1900,6 +1900,16 @@ footer{
 .revput{font-family:var(--sans);font-size:11.5px;padding:4px 7px;color:var(--ink-2);
   border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
   max-width:200px}
+/* Throwing one away. Grey, not red, and no confirm: the row stays on the sheet
+   saying what happened with an Undo beside it, which is a better safety net
+   than a dialog nobody reads. */
+.revbin{background:none;border:0;padding:0;cursor:pointer;
+  font-family:var(--sans);font-size:11.5px;color:var(--ink-4);
+  text-decoration:underline;text-underline-offset:2px}
+.revbin:hover{color:var(--red)}
+.revrow.gone{opacity:.5}
+.revrow.gone .txt{color:var(--ink-4)}
+.revnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:18px 2px}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
   font-family:var(--sans);font-size:9.5px;font-weight:600;text-transform:uppercase;
@@ -6288,6 +6298,23 @@ function showPhonePile(){
  * the review sheet directly out of the captures, with no read and no charge:
  * one row per note, each with the same free dropdown, and the paid read still
  * one click away on any row that turns out to need it. */
+/* Captures down to one row per distinct note, oldest first, each row holding
+   the ids of every copy it stands for. */
+let lastCollapsed = 0;   // copies taken out before the plan was even built
+
+function collapse(items){
+  const by = new Map();
+  items.forEach(c => {
+    const k = noteKey(c.body);
+    if (!k) return;
+    if (by.has(k)) by.get(k).caps.push(c.id);
+    else by.set(k, {text: c.body, caps: [c.id]});
+  });
+  const out = Array.from(by.values());
+  lastCollapsed = items.length - out.length;
+  return out;
+}
+
 function placeGroupByHand(key){
   const target = destinationFor(key);
   if (!target) return;
@@ -6302,8 +6329,12 @@ function placeGroupByHand(key){
     name: target.name, isCurrent: true, brief: {}, people: [],
     // No kind, no beat, no confidence, because nothing has read them. Every
     // row arrives honest: this is your note, tell me where it goes.
-    notes: items.map(c => ({ text: c.body, kind: "beat", beat: null, conf: 0, keep: true }))
+    // Copies collapse here, before the sheet is drawn. One row per note, and
+    // that row remembers every capture it speaks for.
+    notes: collapse(items).map(v => ({ text: v.text, caps: v.caps,
+                                       kind: "beat", beat: null, conf: 0, keep: true }))
   }];
+  dedupePlan();
   setView("board");
   showSheet(sheetReview);
   renderReview();
@@ -6328,7 +6359,10 @@ function sortGroup(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return;
   sortingIds = items.map(c => c.id);
-  const text = items.map(c => c.body).join("\n");
+  // Collapsed BEFORE the read, not after. Three copies of one line is one
+  // line to think about, and the read is metered: sending all three would
+  // charge the writer three times for the same sentence.
+  const text = collapse(items).map(v => v.text).join("\n");
 
   if (!key){
     const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
@@ -6347,35 +6381,75 @@ function sortGroup(key){
 /* Called once the writer has actually added the notes to a board. Marking them
    earlier would clear the pile for a batch that was then cancelled, and a
    cleared pile is a lost note as far as the writer is concerned. */
-/* `kept` is the text of the notes that actually went somewhere.
+/* `kept` is the rows that actually went somewhere, and `binned` is the ids of
+ * the ones the writer threw away on purpose.
  *
- * Without it this marked the WHOLE batch sorted the moment the import was
- * applied, including rows the writer had unticked. Those notes then vanished
- * from the pile having landed nowhere at all, which is losing somebody's work
- * quietly, the worst way to lose it. Unticking means "not this one", not
- * "throw it away".
+ * ONE RULE: a note leaves the pile because it landed somewhere, or because it
+ * was thrown away. Never because it resembles something else.
  *
- * Matched on text because there is no id running through the importer: the
- * reader splits and merges what it is given, so the rows on the review sheet
- * are not one for one with the captures that made them. A capture counts as
- * dealt with when its words are inside something that was kept. Matching
- * loosely errs towards leaving a note in the pile, which is the safe way to
- * be wrong. */
-async function markSorted(kept){
+ * The old version compared text loosely, and that lost a note. Three identical
+ * notes came off the phone, the writer unticked one and kept two, and the
+ * unticked one matched the kept ones word for word, so it was marked sorted
+ * and cleared out of a pile it had never left. The same flaw bit quietly
+ * elsewhere: a short note is contained inside a longer one, so keeping the
+ * long one silently cleared the short one.
+ *
+ * So every capture is claimed at most once, and by at most one row:
+ *
+ *   1. Rows built straight from captures carry their ids and say so.
+ *   2. Any other row claims one capture with the same words.
+ *   3. Only then may a row claim one capture whose words sit inside it, which
+ *      is the reader having split or reworded something. Twenty characters
+ *      minimum, so a fragment cannot swallow a sentence.
+ *
+ * A capture nobody claims stays in the pile. Being wrong in that direction
+ * means the writer sees a note again; being wrong the other way means they
+ * never see it at all. */
+async function markSorted(kept, binned){
   if (!sortingIds.length) return;
-  const flat = (t) => String(t || "").replace(/\s+/g, " ").trim().toLowerCase();
-  const keptText = (kept || []).map(flat).filter(Boolean);
-  const survived = keptText.length
-    ? PENDING.filter(c => sortingIds.includes(c.id)
-        && !keptText.some(k => k.includes(flat(c.body)) || flat(c.body).includes(k)))
-    : [];
-  const ids = sortingIds.filter(id => !survived.some(c => c.id === id));
+  const pool = PENDING.filter(c => sortingIds.includes(c.id));
+  const twins = (id) => {
+    const me = pool.find(c => c.id === id);
+    if (!me) return [id];
+    const k = noteKey(me.body);
+    return pool.filter(c => noteKey(c.body) === k).map(c => c.id);
+  };
+
+  // Thrown away first, so nothing else can claim one of them.
+  const gone = new Set();
+  (binned || []).forEach(id => twins(id).forEach(x => gone.add(x)));
+  const taken = new Set(gone);
+
+  const rows = (kept || []).filter(Boolean);
+  rows.forEach(n => (n.caps || []).forEach(id => twins(id).forEach(x => taken.add(x))));
+
+  const claim = (n, test) => {
+    const hit = pool.find(c => !taken.has(c.id) && test(noteKey(c.body)));
+    if (!hit) return true;
+    twins(hit.id).forEach(x => taken.add(x));
+    return false;
+  };
+  const loose = [];
+  rows.filter(n => !(n.caps && n.caps.length)).forEach(n => {
+    const k = noteKey(n.text);
+    if (claim(n, b => b === k)) loose.push(n);
+  });
+  loose.forEach(n => {
+    const k = noteKey(n.text);
+    claim(n, b => b.length >= 20 && (k.indexOf(b) >= 0 || b.indexOf(k) >= 0));
+  });
+
   sortingIds = [];
-  if (!ids.length){ if (state && state.view === "slate") renderSlate(); return; }
-  PENDING = PENDING.filter(c => !ids.includes(c.id));
+  const sorted  = Array.from(taken).filter(id => !gone.has(id));
+  const dropped = Array.from(gone);
+  if (!sorted.length && !dropped.length){
+    if (state && state.view === "slate") renderSlate();
+    return;
+  }
+  PENDING = PENDING.filter(c => !taken.has(c.id));
   try {
     await BF.api("/api/captures", {method: "PATCH",
-      body: JSON.stringify({sorted: ids, day: dayStamp()})});
+      body: JSON.stringify({sorted: sorted, dropped: dropped, day: dayStamp()})});
   } catch (e) {
     /* The board already has them, so re-showing them would be worse than
        losing the tidy-up: the writer would sort the same notes twice. The
@@ -6384,6 +6458,39 @@ async function markSorted(kept){
   // The dashboard is the pile's other home, so it has to stop showing a queue
   // that is empty.
   if (state && state.view === "slate") renderSlate();
+}
+
+/* Parking a note the writer unticked on purpose.
+ *
+ * A pasted note that gets unticked used to be gone the moment the sheet
+ * closed, because the text lived nowhere but in that box. The pile is the one
+ * place a note waits, so that is where it goes, and it is there at the desk
+ * next time whatever it came in on.
+ *
+ * Only rows the writer actually unticked. A stray the reader marked and the
+ * writer never touched is not a decision, and parking those would fill the
+ * pile with everything the reader already set aside. */
+async function parkUnticked(rows){
+  const list = (rows || []).filter(Boolean);
+  if (!list.length) return;
+  const now = Date.now();
+  const captures = list.map((r, i) => ({
+    id: (self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID()
+      : "desk-" + now + "-" + i,
+    body: r.text,
+    project_id: r.projectId || null,
+    project_name: r.projectName || null,
+    source: "desk",
+    created_at: now + i,
+  }));
+  try {
+    await BF.api("/api/captures", {method: "POST", body: JSON.stringify({captures: captures})});
+    await loadCaptures();
+    if (state && state.view === "slate") renderSlate();
+  } catch (e) {
+    /* Nothing to undo and nothing to say. The note is still on the sheet
+       behind them if they have not left it, and the board is untouched. */
+  }
 }
 
 /* A writer leaves Beatfall open on the desktop, goes out, catches four notes,
@@ -7534,6 +7641,77 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
 }
 
 /* ---- the review: nothing lands on the board until the writer says so ---- */
+/* THE SAME NOTE, TWICE.
+ *
+ * Duplicates arrive for ordinary reasons: a phone that sent a batch twice, a
+ * writer who pasted the same file in on Tuesday and again on Friday, a line
+ * they typed once at the desk and again in the car. Every one of those should
+ * end up as one note.
+ *
+ * What counts as the same: the same words. Ends trimmed, runs of spaces
+ * squeezed, capitals ignored, and curly quotes treated as the straight ones,
+ * because those four differences are typing, not meaning. Nothing beyond
+ * that. "Yes." and "Yes?" stay two notes, and so they should. */
+function noteKey(t){
+  return String(t == null ? "" : t)
+    .replace(/[\u2018\u2019\u201B]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    // A full stop or a comma on the end is typing too. A note tapped into a
+    // phone at a red light rarely has one and the same note typed at a desk
+    // usually does. Question and exclamation marks stay: "Yes." and "Yes?"
+    // are two different notes and always will be.
+    .replace(/[.,]+$/, "");
+}
+
+let revSkipped = 0;   // copies taken out of the batch the writer is looking at
+
+/* Run once on a freshly built plan, before it is ever drawn.
+ *
+ * Two kinds of copy get taken out: a note that appears twice in the same
+ * batch, and a note the board already holds. Already holds means anywhere the
+ * writer can see it, so a beat card, an Other note and a Set aside all count.
+ *
+ * The survivor inherits the captures of every copy it stands for, which is
+ * what keeps the pile honest: place it and all of them clear, untick it and
+ * none of them do. */
+function dedupePlan(){
+  revSkipped = lastCollapsed;
+  lastCollapsed = 0;
+  if (!plan || !plan.length) return;
+  const seen = new Map();          // words -> the row standing for them, or null if the board has it
+  plan.forEach((st, si) => {
+    const here = (si === 0 && !importIntoNew) ? P() : null;
+    ((here && here.cards) || []).forEach(c => {
+      const k = noteKey(c.text);
+      if (k && !seen.has(k)) seen.set(k, null);
+    });
+    st.notes = st.notes.filter(n => {
+      const k = noteKey(n.text);
+      if (!k) return false;
+      if (seen.has(k)){
+        const holder = seen.get(k);
+        if (holder && n.caps && n.caps.length){
+          holder.caps = (holder.caps || []).concat(n.caps);
+        }
+        revSkipped++;
+        return false;
+      }
+      seen.set(k, n);
+      // What the row started as, so the apply step can tell a stray the reader
+      // never ticked from a note the writer unticked on purpose.
+      n.wasKept = !!n.keep;
+      return true;
+    });
+  });
+  // A group with nothing left in it and nothing to say makes no project.
+  plan = plan.filter(st => st.notes.length
+    || (st.brief && Object.keys(st.brief).length)
+    || (st.people && st.people.length));
+}
+
 function renderReview(){
   const proj = P();
   // Beat names have to come from the structure the notes are going INTO, which
@@ -7604,7 +7782,7 @@ function renderReview(){
 
     st.notes.forEach(n => {
       const row = document.createElement("div");
-      row.className = "revrow" + (n.keep ? "" : " off");
+      row.className = "revrow" + (n.gone ? " gone" : n.keep ? "" : " off");
       const nm = id => (S.slots.find(x => x.id === id) || {name:"Set aside"}).name;
       const dest = n.kind !== "beat" ? "→ Other notes · " + KINDS[n.kind]
         : n.beat  ? "→ " + nm(n.beat) + (n.declared ? "  (you said so)"
@@ -7644,23 +7822,41 @@ function renderReview(){
             + (n.beat === x.id ? " selected" : "") + ">" + esc(x.name) + "</option>").join("")
         + '<option value="__shelf">Other notes</option>'
         + '<option value="__none">Set aside</option>';
-      row.innerHTML = '<input type="checkbox"' + (n.keep ? " checked" : "") + ">"
+      /* THE TICK AND THE BIN ARE DIFFERENT QUESTIONS.
+       *
+       * Unticking says not now. The note waits in the pile and turns up at
+       * the desk next time. Throwing it away says never, and that is a
+       * separate press with an Undo sitting where it was, because a writer
+       * clearing junk and a writer deferring a note are not doing the same
+       * thing and one of them used to quietly do the other. */
+      const acts = n.gone
+        ? '<span class="revacts"><span class="dest">Thrown away</span>'
+          +   '<button type="button" class="revbin">Undo</button></span>'
+        : '<span class="revacts">'
+          +   '<button type="button" class="revask">Did we get it wrong?</button>'
+          +   '<select class="revput" aria-label="Place this note yourself">' + opts + "</select>"
+          +   '<button type="button" class="revbin">Throw this away</button></span>';
+      row.innerHTML = (n.gone ? "" : '<input type="checkbox"' + (n.keep ? " checked" : "") + ">")
         + '<span class="chip ' + n.kind + '">' + esc(KINDS[n.kind]) + "</span>"
         + '<span class="txt">' + esc(n.text)
-        + '<span class="dest" style="display:block">' + esc(dest) + "</span>"
-        + '<span class="revacts">'
-        +   '<button type="button" class="revask">Did we get it wrong?</button>'
-        +   '<select class="revput" aria-label="Place this note yourself">' + opts + "</select>"
-        + "</span></span>";
-      row.querySelector("input").addEventListener("change", e => {
+        + (n.gone ? "" : '<span class="dest" style="display:block">' + esc(dest) + "</span>")
+        + acts + "</span>";
+      const box = row.querySelector('input[type=checkbox]');
+      if (box) box.addEventListener("change", e => {
         n.keep = e.target.checked;
         row.classList.toggle("off", !n.keep);
         updateRevCount();
       });
+      row.querySelector(".revbin").addEventListener("click", () => {
+        n.gone = !n.gone;
+        n.keep = n.gone ? false : (n.wasKept !== false);
+        renderReview();
+      });
       /* Placing it by hand. Free, and it overrides whatever the reader
          decided: the writer looking at their own note is the better authority
          and always was. */
-      row.querySelector(".revput").addEventListener("change", e => {
+      const put = row.querySelector(".revput");
+      if (put) put.addEventListener("change", e => {
         const v = e.target.value;
         if (!v) return;
         /* These three shapes are exactly what the apply step reads. A note is
@@ -7705,6 +7901,13 @@ function renderReview(){
     body.appendChild(wrap);
   });
 
+  /* Every note in the batch was already on the board. Saying nothing here
+     leaves a blank sheet that reads as a failure. */
+  if (!body.children.length){
+    body.innerHTML = '<div class="revnone">Every note in there is already on your board, '
+      + "so there is nothing to add.</div>";
+  }
+
   const stories = plan.length;
   document.getElementById("revnote").textContent = stories > 1
     ? "These notes look like " + stories + " different stories. "
@@ -7727,20 +7930,32 @@ function renderReview(){
 
    So it says both figures whenever they differ, and the sheet says why. */
 function updateRevCount(){
-  const total = plan.reduce((n, st) => n + st.notes.length, 0);
-  const kept  = plan.reduce((n, st) => n + st.notes.filter(x => x.keep).length, 0);
-  const beats = plan.reduce((n, st) => n + st.notes.filter(x => x.keep && x.kind === "beat").length, 0);
+  const rows   = plan.reduce((a, st) => a.concat(st.notes), []);
+  const live   = rows.filter(n => !n.gone);
+  const binned = rows.length - live.length;
+  const total  = live.length;
+  const kept   = live.filter(n => n.keep).length;
+  const beats  = live.filter(n => n.keep && n.kind === "beat").length;
+  /* Copies are mentioned once, here, and nowhere else. A writer whose phone
+     sent the same line three times does not need a dialog about it; they need
+     the sheet to be right and a number that explains why it is shorter than
+     they expected. */
   document.getElementById("revcount").textContent =
     (kept === total ? total + " notes"
                     : kept + " of " + total + " notes ticked")
-    + " · " + beats + " onto the board";
-  document.getElementById("revgo").disabled = kept === 0;
+    + " · " + beats + " onto the board"
+    + (revSkipped ? " · " + revSkipped + " already there" : "")
+    + (binned ? " · " + binned + " thrown away" : "");
+  const go = document.getElementById("revgo");
+  go.disabled = kept === 0 && binned === 0;
+  go.textContent = (kept === 0 && binned > 0) ? "Throw them away" : "Add selected notes";
 }
 
 document.getElementById("dumpgo").addEventListener("click", async () => {
   // Once the notes are in the importer's hands the capture bar has no claim
   // on them, so a later Cancel must not put a wall of text back in the box.
   captureStash = "";
+  lastCollapsed = 0;              // nothing was collapsed on the way in here
   const raw = dumptext.value.trim();
   if (!raw){ closeImport(); return; }
   // Length as a bucket, never the text. "how big were the files people paste"
@@ -7787,14 +8002,31 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
       BF.track("import_failed", {error_code: "nothing_usable", stage: "read"});
       return;
     }
+    dedupePlan();
   } else {
     plan = localPlan(raw);
   }
+  dedupePlan();
   renderReview();
 });
 document.getElementById("dumpstop").addEventListener("click", () => dumpCtl && dumpCtl.abort());
 
 document.getElementById("revgo").addEventListener("click", () => {
+  /* Two lists that are not placements, gathered before anything moves.
+     Thrown away travels to the server as thrown away. Unticked on purpose
+     goes to the pile, unless the batch CAME from the pile, in which case it
+     is already waiting there and doing nothing is the right thing. */
+  const fromPile = sortingIds.length > 0;
+  const binned = [];
+  plan.forEach(st => st.notes.forEach(n => {
+    if (n.gone) (n.caps || []).forEach(id => binned.push(id));
+  }));
+  if (!plan.some(st => st.notes.some(n => n.keep && !n.gone))){
+    markSorted([], binned);
+    scrim.hidden = true;
+    hideAll();
+    return;
+  }
   snapshot();
   let firstMoves = [], added = 0, newProjects = 0;
   /* Read once, before the loop moves anyone. A dashboard import switches the
@@ -7884,6 +8116,16 @@ document.getElementById("revgo").addEventListener("click", () => {
       });
       added++;
     });
+    /* Unticked on purpose, and it arrived in a paste, so this sheet is the
+       only place it exists. It goes to the pile rather than nowhere. */
+    if (!fromPile){
+      const park = st.notes.filter(n => !n.keep && !n.gone && n.wasKept);
+      if (park.length) parkUnticked(park.map(n => ({
+        text: n.text,
+        projectId: (target && target.id) || null,
+        projectName: (target && target.name) || null,
+      })));
+    }
     /* Mark it dirty here, by hand.
 
        save() only ever marks P(), the project you are looking at. That is
@@ -7909,7 +8151,7 @@ document.getElementById("revgo").addEventListener("click", () => {
   // The notes are on a board now, so they leave the pile. Not a moment sooner:
   // a cancelled batch has to still be waiting, and neither does a row the
   // writer unticked, which went nowhere and is still theirs to deal with.
-  markSorted(plan.flatMap(st => st.notes.filter(n => n.keep).map(n => n.text)));
+  markSorted(plan.flatMap(st => st.notes.filter(n => n.keep && !n.gone)), binned);
   markStage("real_project");
   if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }
   showSettled(firstMoves, added + " notes sorted"

@@ -64,7 +64,10 @@ export default async function handler(req, res) {
         body: text || '(empty)',
         project_id: pid,
         project_name: pid ? clean(c.project_name, 200) || null : null,
-        source: 'phone',
+        // Almost always the phone. The desk posts here too, when a writer
+        // unticks a pasted note: unticking means "not now", and the pile is
+        // where a note waits, whatever it came in on.
+        source: c && c.source === 'desk' ? 'desk' : 'phone',
         created_at: new Date(Number(c.created_at) || Date.now()).toISOString(),
         updated_at: now,
         // A note thrown away on the phone travels as a tombstone rather than
@@ -92,10 +95,20 @@ export default async function handler(req, res) {
     const { data: recent } = await db.from('captures')
       .select('id,body,project_id')
       .eq('user_id', user.id).gt('created_at', since);
+    /* Same words, not same string. Capitals, stray spaces and curly quotes
+       are typing, not meaning, and a twin that differs only by those is still
+       a twin. Matches what the desk calls the same note. */
+    const same = (t) => String(t == null ? '' : t)
+      .replace(/[\u2018\u2019\u201B]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .replace(/[.,]+$/, '');
     const seen = new Map();
-    (recent || []).forEach(r => seen.set((r.project_id || '') + '\u0000' + r.body, r.id));
+    (recent || []).forEach(r => seen.set((r.project_id || '') + '\u0000' + same(r.body), r.id));
     const fresh = rows.filter(r => {
-      const key = (r.project_id || '') + '\u0000' + r.body;
+      const key = (r.project_id || '') + '\u0000' + same(r.body);
       const holder = seen.get(key);
       if (holder && holder !== r.id) return false;
       seen.set(key, r.id);

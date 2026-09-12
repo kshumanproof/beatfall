@@ -550,6 +550,218 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ------------------------------------------------ the same note, twice
+     Three identical notes off a phone used to arrive as three rows, and
+     unticking one of them cleared it out of the pile it had never left,
+     because the clearing worked by comparing text. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      const same = 'a woman starts receiving voicemails from her dead sister';
+      PENDING = [
+        {id: 'c1', body: same, project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'c2', body: same.toUpperCase() + '  ', project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'c3', body: same, project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'c4', body: 'he keeps the second phone in the glovebox',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+      ];
+      placeGroupByHand('p-nighthaul');
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      return {
+        rows: rows.length,
+        skipped: revSkipped,
+        count: document.getElementById('revcount').textContent,
+        caps: plan[0].notes.map(n => (n.caps || []).join(',')),
+      };
+    });
+    check('three copies of one note make one row', seen.rows === 2,
+      'rows: ' + seen.rows);
+    check('capitals and stray spaces do not make a second note',
+      seen.skipped === 2, 'skipped: ' + seen.skipped);
+    check('and the row stands for every copy it collapsed',
+      seen.caps[0] === 'c1,c2,c3', seen.caps.join(' | '));
+    check('the count line says why the sheet is shorter',
+      /already there/.test(seen.count), seen.count);
+
+    // Untick the collapsed row. Not one capture may leave the pile.
+    const after = await page.evaluate(async () => {
+      const sent = [];
+      const real = BF.api;
+      BF.api = (u, o) => { sent.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
+      plan[0].notes[0].keep = false;
+      await markSorted(plan[0].notes.filter(n => n.keep && !n.gone), []);
+      BF.api = real;
+      return {sent, left: PENDING.map(c => c.id)};
+    });
+    check('unticking a note never clears its copies from the pile',
+      after.left.indexOf('c1') >= 0 && after.left.indexOf('c2') >= 0
+        && after.left.indexOf('c3') >= 0, after.left.join(','));
+    check('and the note that was kept does leave',
+      after.left.indexOf('c4') < 0, after.left.join(','));
+    check('no page errors collapsing copies', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* A short note used to be swallowed by a longer one that contained it. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const left = await page.evaluate(async () => {
+      PENDING = [
+        {id: 's1', body: 'she lies', project_id: 'p-nighthaul'},
+        {id: 's2', body: 'she lies to the detective about where she was on Tuesday night',
+         project_id: 'p-nighthaul'},
+      ];
+      sortingIds = ['s1', 's2'];
+      const real = BF.api;
+      BF.api = () => Promise.resolve({ok: true});
+      await markSorted([{text: 'she lies to the detective about where she was on Tuesday night'}], []);
+      BF.api = real;
+      return PENDING.map(c => c.id);
+    });
+    check('a short note is not swallowed by a longer one containing it',
+      left.length === 1 && left[0] === 's1', left.join(','));
+    await page.close();
+  }
+
+  /* Already on the board, in any of the three places a writer can see it. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      const p = P();
+      p.cards.push({id: 901, text: 'The dog barks at nothing.', slot: '__shelf', pinned: false});
+      p.cards.push({id: 902, text: 'A car idles across the street.', slot: '__none', pinned: false});
+      importIntoNew = false;
+      plan = [{name: p.name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'the dog barks at nothing', kind: 'beat', beat: null, conf: 0, keep: true},
+        {text: 'A car idles across the street.', kind: 'beat', beat: null, conf: 0, keep: true},
+        {text: 'the card for open', kind: 'beat', beat: null, conf: 0, keep: true},
+        {text: 'a genuinely new note about the bridge', kind: 'beat', beat: null, conf: 0, keep: true},
+      ]}];
+      dedupePlan();
+      return {left: plan[0].notes.map(n => n.text), skipped: revSkipped};
+    });
+    check('a note already in Other notes is dropped, full stop or not',
+      seen.left.indexOf('the dog barks at nothing') < 0, seen.left.join(' | '));
+    check('a note already in Set aside is dropped',
+      seen.left.indexOf('A car idles across the street.') < 0, seen.left.join(' | '));
+    check('a note already on the board is dropped',
+      seen.left.indexOf('the card for open') < 0, seen.left.join(' | '));
+    check('and a genuinely new note survives', seen.left.length === 1, seen.left.join(' | '));
+    check('all three are counted as already there', seen.skipped === 3, 'skipped: ' + seen.skipped);
+    await page.close();
+  }
+
+  /* Throwing one away, and changing your mind about it. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      PENDING = [
+        {id: 'b1', body: 'a line worth keeping', project_id: 'p-nighthaul'},
+        {id: 'b2', body: 'asdfasdf pocket dial', project_id: 'p-nighthaul'},
+      ];
+      placeGroupByHand('p-nighthaul');
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      const bins = rows.map(r => r.querySelector('.revbin')).filter(Boolean);
+      bins[1].click();
+      const after = Array.from(document.querySelectorAll('#revbody .revrow'));
+      return {
+        bins: bins.length,
+        gone: after[1].className,
+        noBox: after[1].querySelector('input[type=checkbox]') === null,
+        undo: after[1].querySelector('.revbin').textContent,
+        count: document.getElementById('revcount').textContent,
+      };
+    });
+    check('every row offers a way to throw the note away', seen.bins === 2,
+      'bins: ' + seen.bins);
+    check('a thrown away row says so instead of offering a tick',
+      /gone/.test(seen.gone) && seen.noBox === true, seen.gone);
+    check('and offers Undo in the same place', seen.undo === 'Undo', seen.undo);
+    check('the count line mentions it once, quietly',
+      /1 thrown away/.test(seen.count), seen.count);
+
+    const undone = await page.evaluate(() => {
+      document.querySelectorAll('#revbody .revrow')[1].querySelector('.revbin').click();
+      const row = document.querySelectorAll('#revbody .revrow')[1];
+      return {ticked: !!row.querySelector('input[type=checkbox]:checked'),
+              count: document.getElementById('revcount').textContent};
+    });
+    check('Undo puts the note back, ticked', undone.ticked === true, undone.count);
+    check('and stops mentioning it', !/thrown away/.test(undone.count), undone.count);
+    check('no page errors throwing a note away', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* Thrown away travels to the server as thrown away, not as sorted. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const sent = await page.evaluate(async () => {
+      PENDING = [
+        {id: 'k1', body: 'keep me', project_id: 'p-nighthaul'},
+        {id: 'k2', body: 'bin me', project_id: 'p-nighthaul'},
+      ];
+      sortingIds = ['k1', 'k2'];
+      const out = [];
+      const real = BF.api;
+      BF.api = (u, o) => { out.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
+      await markSorted([{text: 'keep me', caps: ['k1']}], ['k2']);
+      BF.api = real;
+      return out[0];
+    });
+    check('a placed note is marked sorted', (sent.sorted || []).join(',') === 'k1',
+      JSON.stringify(sent));
+    check('and a thrown away one is marked thrown away',
+      (sent.dropped || []).join(',') === 'k2', JSON.stringify(sent));
+    await page.close();
+  }
+
+  /* A pasted note the writer unticks on purpose waits in the pile rather than
+     evaporating with the box it was pasted into. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const posted = await page.evaluate(async () => {
+      const out = [];
+      const real = BF.api;
+      BF.api = (u, o) => {
+        if (o && o.method === 'POST' && /captures/.test(u)) out.push(JSON.parse(o.body));
+        return Promise.resolve({ok: true, captures: [], days: []});
+      };
+      await parkUnticked([{text: 'not this one, not yet', projectId: 'p-nighthaul',
+                           projectName: 'Night Haul'}]);
+      BF.api = real;
+      return out[0];
+    });
+    check('an unticked paste is parked in the pile',
+      posted && posted.captures.length === 1, JSON.stringify(posted).slice(0, 120));
+    check('with the words it had and the board it was for',
+      posted && posted.captures[0].body === 'not this one, not yet'
+        && posted.captures[0].project_id === 'p-nighthaul',
+      JSON.stringify(posted && posted.captures[0]));
+    check('and marked as coming from the desk, not a phone',
+      posted && posted.captures[0].source === 'desk',
+      JSON.stringify(posted && posted.captures[0]));
+    await page.close();
+  }
+
+  /* Nothing left to add is a sentence, not a blank sheet. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'the card for open', kind: 'beat', beat: null, conf: 0, keep: true},
+      ]}];
+      dedupePlan();
+      renderReview();
+      return {text: document.getElementById('revbody').textContent,
+              go: document.getElementById('revgo').disabled};
+    });
+    check('a batch that was all copies says so', /already on your board/.test(seen.text),
+      seen.text.slice(0, 90));
+    check('and there is nothing to press', seen.go === true);
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

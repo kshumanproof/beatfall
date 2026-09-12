@@ -86,6 +86,19 @@ export async function removeItem(k) {
 // A client-side id, generated before the note is saved. The server takes this
 // as the primary key too, which is what makes re-sending a batch harmless:
 // send the same note twice and the second one lands on the same row.
+/* One note, however it was typed. The desk and the server reduce a note to
+   these same words before deciding whether they have seen it, and all three
+   have to agree or a twin slips through whichever one is looser. */
+function same(t) {
+  return String(t == null ? '' : t)
+    .replace(/[‘’‛]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[.,]+$/, '');
+}
+
 function newId() {
   const rand = () => Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
   return `c_${Date.now().toString(36)}_${rand()}${rand()}`;
@@ -101,12 +114,17 @@ export async function add(body, project) {
    * A writer does not catch the identical sentence twice in a row on purpose.
    * They press Keep again because the screen did not appear to react, and one
    * hesitant thumb should not become three cards on a board. Two minutes is
-   * short enough that a deliberate repeat later in the evening still lands. */
-  const twin = await db.getFirstAsync(
-    'SELECT * FROM captures WHERE deleted = 0 AND body = ?'
-    + ' AND created_at > ? AND ifnull(project_id, \'\') = ifnull(?, \'\') LIMIT 1',
-    text, Date.now() - 120000, (project && project.id) || null
+   * short enough that a deliberate repeat later in the evening still lands.
+   *
+   * Same words, not same string: capitals, stray spaces, curly quotes and a
+   * full stop on the end are typing, not meaning. Matched here the way the
+   * desk and the server match it, so all three agree on what one note is. */
+  const recent = await db.getAllAsync(
+    'SELECT * FROM captures WHERE deleted = 0 AND created_at > ?'
+    + ' AND ifnull(project_id, \'\') = ifnull(?, \'\')',
+    Date.now() - 120000, (project && project.id) || null
   );
+  const twin = (recent || []).find((r) => same(r.body) === same(text));
   if (twin) return twin;
 
   const row = {

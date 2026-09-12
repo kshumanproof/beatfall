@@ -129,6 +129,54 @@ const note = (id, extra={}) => ({id, body:'the dog knows first', created_at: Dat
     db.state.captures.length === 2, db.state.captures.length + ' rows');
 }
 
+// ---------- the same words, typed differently, are still one note
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  await hit(db, {method:'POST', body:{captures:[note('c1', {body:'The dog knows first.', project_id:'p1'})]}});
+  await hit(db, {method:'POST', body:{captures:[note('c2', {body:'the dog  knows first', project_id:'p1'})]}});
+  check('capitals, spacing and a full stop do not make a second note',
+    db.state.captures.length === 1, db.state.captures.length + ' rows');
+  const r = await hit(db, {method:'POST', body:{captures:[note('c3', {body:'the dog knows first?', project_id:'p1'})]}});
+  check('but a question mark does', db.state.captures.length === 2,
+    db.state.captures.length + ' rows');
+  check('and the twin is still accepted so the phone lets go of it',
+    r.code === 200, String(r.code));
+}
+
+// ---------- the desk may park a note in the pile
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  const r = await hit(db, {method:'POST', body:{captures:[
+    {id:'d1', body:'not this one, not yet', project_id:'p1', source:'desk', created_at: Date.now()}]}});
+  check('a note unticked at the desk goes back to the pile',
+    r.code === 200 && db.state.captures.length === 1, r.code + ' ' + db.state.captures.length);
+  check('and is recorded as coming from the desk',
+    db.state.captures[0].source === 'desk', JSON.stringify(db.state.captures[0]).slice(0,120));
+  const r2 = await hit(db, {method:'POST', body:{captures:[
+    {id:'d2', body:'from a phone', project_id:'p1', source:'nonsense', created_at: Date.now()}]}});
+  check('anything else is still a phone note',
+    db.state.captures[1].source === 'phone', JSON.stringify(db.state.captures[1]).slice(0,120));
+}
+
+// ---------- sorted and thrown away in one breath
+{
+  const db = makeDb(P(), {projects: mine, captures: [
+    {id:'k1', user_id:'u1', body:'keep me', sorted_at:null, deleted_at:null},
+    {id:'k2', user_id:'u1', body:'bin me', sorted_at:null, deleted_at:null}],
+    work_days: []});
+  const r = await hit(db, {method:'PATCH', body:{sorted:['k1'], dropped:['k2'], day:'2026-09-12'}});
+  check('one call can place one note and bin another', r.code === 200, String(r.code));
+  const k1 = db.state.captures.find(c => c.id === 'k1');
+  const k2 = db.state.captures.find(c => c.id === 'k2');
+  check('the placed one is marked sorted, not deleted',
+    !!k1.sorted_at && !k1.deleted_at, JSON.stringify(k1));
+  check('and the binned one is marked deleted, not sorted',
+    !!k2.deleted_at && !k2.sorted_at, JSON.stringify(k2));
+  const g = await hit(db, {method:'GET'});
+  check('neither is ever handed to the desk again',
+    (g.body.captures || []).length === 0, JSON.stringify(g.body.captures));
+}
+
 // ---------- limits
 {
   const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
