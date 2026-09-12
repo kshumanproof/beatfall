@@ -762,6 +762,89 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ------------------------------------- naming a new script at the desk
+     Picking "A new script" and pressing Place them myself used to refuse,
+     because only the paid read could name a script. The writer knows what it
+     is called, so they can say. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const shown = await page.evaluate(() => {
+      PENDING = [{id: 'u1', body: 'the duffel bag is still there', project_id: null},
+                 {id: 'u2', body: 'he counts it twice', project_id: null}];
+      showPhonePile();
+      const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+      const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+      return {
+        caps: Array.from(sel.options).slice(0, -1).map(o => o.textContent),
+        hidden: box.hidden,
+      };
+    });
+    check('every script in the list is upper case',
+      shown.caps.every(t => t === t.toUpperCase()), shown.caps.join(' | '));
+    check('and the name box is out of the way until it is needed',
+      shown.hidden === true);
+
+    const opened = await page.evaluate(() => {
+      const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+      sel.value = '__new__';
+      sel.dispatchEvent(new Event('change'));
+      return document.querySelector('#sortgroups .pgroup[data-key=""] .newname').hidden;
+    });
+    check('choosing a new script asks what it is called', opened === false);
+
+    const refused = await page.evaluate(() => {
+      document.querySelector('#sortgroups [data-hand]').click();
+      return {why: (document.getElementById('handwhy') || {}).textContent || '',
+              made: state.projects.length};
+    });
+    check('pressing Place with no name asks for one instead of refusing',
+      /working title/i.test(refused.why), refused.why);
+    check('and no empty script is left behind', refused.made === 1,
+      refused.made + ' projects');
+
+    const done = await page.evaluate(() => {
+      const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+      box.value = 'The Duffel Bag';
+      document.querySelector('#sortgroups [data-hand]').click();
+      return {
+        projects: state.projects.map(p => p.name),
+        active: P().name,
+        rows: document.querySelectorAll('#revbody .revrow').length,
+        sheet: !document.getElementById('sheetreview').hidden,
+      };
+    });
+    check('naming it and pressing Place makes exactly that script',
+      done.projects.length === 2 && done.projects[1] === 'The Duffel Bag',
+      done.projects.join(' | '));
+    check('and opens the review sheet on it, free, with both notes',
+      done.sheet === true && done.rows === 2 && done.active === 'The Duffel Bag',
+      JSON.stringify(done));
+    check('no page errors naming a script by hand', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* Pressing Read them for me with a title typed means that title, not one
+     the reader invents from a line in the notes. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const named = await page.evaluate(() => {
+      PENDING = [{id: 'u1', body: 'the duffel bag is still there', project_id: null}];
+      showPhonePile();
+      const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+      sel.value = '__new__';
+      sel.dispatchEvent(new Event('change'));
+      document.querySelector('#sortgroups .pgroup[data-key=""] .newname').value = 'Southbound Two';
+      document.querySelector('#sortgroups [data-sort]').click();
+      return {names: state.projects.map(p => p.name), active: P().name,
+              intoNew: importIntoNew};
+    });
+    check('a title typed before the read is the title the read uses',
+      named.active === 'Southbound Two', JSON.stringify(named));
+    check('and the read is told not to invent another one',
+      named.intoNew === false, String(named.intoNew));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

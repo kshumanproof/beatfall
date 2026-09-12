@@ -71,6 +71,24 @@ export async function createScript(name) {
   return body && body.project;
 }
 
+/* Every working title in a batch, made real, in one place. Called by the
+   sender the moment before it posts, because Send is the first point at which
+   a connection is required anyway: a writer can type five notes under three
+   working titles in a car park and none of it needs the network until now. */
+export async function realise(titles) {
+  const made = [];
+  for (const t of titles) {
+    /* One at a time, and one failure does not discard the successes. Losing
+       a created script here would mean making it again on the next Send, and
+       the writer would find two scripts with the same name at their desk. */
+    try {
+      const p = await createScript(t.name);
+      if (p && p.id) made.push({ localId: t.id, project: p });
+    } catch (e) { /* stays a working title, goes next time */ }
+  }
+  return made;
+}
+
 /* What actually went wrong, in one short line, for the writer AND for us.
    A single sentence that never names the fault is a bug report nobody can
    act on, and this runs on a device with no console attached. */

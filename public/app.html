@@ -1885,6 +1885,9 @@ footer{
   border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
   color:var(--ink);max-width:190px}
 .pgroup .btn{flex:0 0 auto}
+.pgroup .newname{font-family:var(--sans);font-size:12.5px;padding:7px 9px;
+  border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
+  color:var(--ink);width:150px;letter-spacing:.04em;text-transform:uppercase}
 .pnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:8px 0}
 /* The way out of a note that went nowhere. Quiet, because most cards do not
    need it, and legible, because the ones that do are the frustrating ones. */
@@ -6271,11 +6274,20 @@ function paintSortGroups(){
     /* An unfiled batch has to be told where to go, and the honest options are
        every board on the shelf plus a new one. A batch that already names a
        board needs no question asked. */
+    /* Titles are upper case everywhere else in Beatfall, and this list was the
+       one place they were not, so a shelf of scripts read as a list of
+       sentences. Upper cased here rather than in CSS because text-transform on
+       an option is honoured by some browsers and quietly ignored by others. */
     const pick = g.key ? "" :
         '<select data-key="" aria-label="Where these notes go">'
       + open.map(p => '<option value="' + esc(String(p.id || p.localId)) + '">'
-          + esc(p.name) + "</option>").join("")
-      + '<option value="__new__">A new script</option></select>';
+          + esc(String(p.name || "").toUpperCase()) + "</option>").join("")
+      + '<option value="__new__">A new script</option></select>'
+      /* Choosing a new script used to be a dead end by hand: the button
+         refused, and said so, because only the read could name a script. That
+         was backwards. The writer knows what it is called. */
+      + '<input class="newname" data-key="" placeholder="Working title" '
+      + 'aria-label="Name the new script" maxlength="80" hidden>';
     return '<div class="pgroup" data-key="' + esc(g.key) + '">'
       + '<div class="pn"><div class="pt">' + esc(g.name) + "</div>"
       + '<div class="pc">' + count + "</div></div>"
@@ -6288,7 +6300,26 @@ function paintSortGroups(){
 
 function showPhonePile(){
   paintSortGroups();
+  const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
+  if (sel) sel.addEventListener("change", () => {
+    const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+    if (!box) return;
+    box.hidden = sel.value !== "__new__";
+    if (!box.hidden) box.focus();
+  });
   showSheet(sheetSort);
+}
+
+/* A script the writer named themselves, made here and now. The read makes one
+   too, from what the notes say, and both end up in the same place: on the
+   shelf, active, and queued to be written. */
+function startBoard(name){
+  const p = blankProject(String(name || "").trim(), (P() && P().structure) || "stc");
+  if (bareShelf()) takePlaceholder(p);
+  else state.projects.push(p);
+  state.activeId = p.id || p.localId;
+  dirty.add(p);
+  return p;
 }
 
 /* PLACING A BATCH BY HAND, FOR NOTHING.
@@ -6316,10 +6347,12 @@ function collapse(items){
 }
 
 function placeGroupByHand(key){
-  const target = destinationFor(key);
-  if (!target) return;
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
-  if (!items.length) return;
+  if (!items.length) return true;
+  /* Asked for ONCE. It can create a board, so calling it again to check first
+     would leave a second empty script on the shelf every time. */
+  const target = destinationFor(key);
+  if (!target) return false;
   sortingIds = items.map(c => c.id);
 
   state.activeId = target.id || target.localId;
@@ -6338,6 +6371,7 @@ function placeGroupByHand(key){
   setView("board");
   showSheet(sheetReview);
   renderReview();
+  return true;
 }
 
 /* Which board a batch is bound for. A group that names one uses it; the
@@ -6348,7 +6382,12 @@ function destinationFor(key){
   if (key) return state.projects.find(x => String(x.id) === String(key)) || null;
   const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
   const dest = sel ? sel.value : "";
-  if (!dest || dest === "__new__") return null;
+  if (dest === "__new__"){
+    const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+    const name = box ? box.value.trim() : "";
+    return name ? startBoard(name) : null;    // no name yet is the only refusal left
+  }
+  if (!dest) return null;
   return state.projects.find(x => String(x.id || x.localId) === String(dest)) || null;
 }
 
@@ -6367,7 +6406,16 @@ function sortGroup(key){
   if (!key){
     const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
     const dest = sel ? sel.value : "__new__";
-    if (dest === "__new__"){ openImport(true, text); return; }
+    if (dest === "__new__"){
+      /* A title typed into the box is the writer telling the read what this
+         is called. Silently letting the read name it something else, from a
+         line in the notes, is the app overruling them. */
+      const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+      const named = box ? box.value.trim() : "";
+      if (named){ startBoard(named); setView("board"); openImport(false, text); return; }
+      openImport(true, text);
+      return;
+    }
     const p = state.projects.find(x => String(x.id || x.localId) === String(dest));
     if (p){ state.activeId = p.id || p.localId; setView("board"); }
     openImport(false, text);
@@ -6554,19 +6602,16 @@ document.getElementById("sortgroups").addEventListener("click", e => {
   const hand = e.target.closest("[data-hand]");
   if (!hand) return;
   const key = hand.getAttribute("data-hand");
-  if (!destinationFor(key)){
-    /* Only reachable on the unfiled group with no existing script chosen.
-       Say which of the two things is missing rather than letting a button do
-       nothing when it is pressed. */
-    const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
-    document.getElementById("sortgroups").insertAdjacentHTML("afterbegin",
-      '<p class="pnone" id="handwhy">A new script has to come from the read, because it takes '
-      + 'its name from the notes. Choose an existing script above to place these by hand.</p>');
-    setTimeout(() => { const w = document.getElementById("handwhy"); if (w) w.remove(); }, 6000);
-    if (sel) sel.focus();
-    return;
-  }
-  placeGroupByHand(key);
+  if (placeGroupByHand(key)) return;
+  /* The only way to get here now is a new script with no name typed into it. */
+  const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
+  const old = document.getElementById("handwhy");
+  if (old) old.remove();
+  document.getElementById("sortgroups").insertAdjacentHTML("afterbegin",
+    '<p class="pnone" id="handwhy">Give the new script a working title first. '
+    + 'You can change it later.</p>');
+  setTimeout(() => { const w = document.getElementById("handwhy"); if (w) w.remove(); }, 6000);
+  if (box){ box.hidden = false; box.focus(); }
 });
 
 

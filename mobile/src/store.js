@@ -83,9 +83,16 @@ export async function removeItem(k) {
   await db.runAsync('DELETE FROM kv WHERE k = ?', k);
 }
 
-// A client-side id, generated before the note is saved. The server takes this
-// as the primary key too, which is what makes re-sending a batch harmless:
-// send the same note twice and the second one lands on the same row.
+/* Where the shelf and the last choice live. Both are read by the picker and
+   written by the sender, so the keys belong here rather than in either one. */
+export const SHELF = 'scripts.cache';
+export const LAST  = 'scripts.last';
+
+/* A title typed on the phone before it exists on the server. It behaves like
+   a script everywhere on this device, and it becomes a real one at Send. */
+export const LOCAL = 'local:';
+export const isLocal = (id) => String(id || '').indexOf(LOCAL) === 0;
+
 /* One note, however it was typed. The desk and the server reduce a note to
    these same words before deciding whether they have seen it, and all three
    have to agree or a twin slips through whichever one is looser. */
@@ -99,9 +106,42 @@ function same(t) {
     .replace(/[.,]+$/, '');
 }
 
+// A client-side id, generated before the note is saved. The server takes this
+// as the primary key too, which is what makes re-sending a batch harmless:
+// send the same note twice and the second one lands on the same row.
 function newId() {
   const rand = () => Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
   return `c_${Date.now().toString(36)}_${rand()}${rand()}`;
+}
+
+/* A working title has become a real script. Everything on this phone that
+   pointed at the local one now points at the real one: the notes waiting to
+   go, the shelf the picker draws, and the script the writer is filing under.
+   Missing any of those three leaves the phone quietly out of step with the
+   desk in a way the writer would only notice much later. */
+export async function promoteProject(localId, real) {
+  const db = await open();
+  await db.runAsync(
+    'UPDATE captures SET project_id = ?, project_name = ? WHERE project_id = ?',
+    real.id, real.name, localId
+  );
+  try {
+    const raw = await getItem(SHELF);
+    if (raw) {
+      const list = JSON.parse(raw).map((p) => (String(p.id) === String(localId)
+        ? { id: real.id, name: real.name, structure: real.structure } : p));
+      await setItem(SHELF, JSON.stringify(list));
+    }
+  } catch (e) {}
+  try {
+    const raw = await getItem(LAST);
+    if (raw) {
+      const last = JSON.parse(raw);
+      if (last && String(last.id) === String(localId)) {
+        await setItem(LAST, JSON.stringify({ id: real.id, name: real.name }));
+      }
+    }
+  } catch (e) {}
 }
 
 export async function add(body, project) {

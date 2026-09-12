@@ -33,7 +33,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
  * expensive question is "is the thing in front of me even running the code we
  * just changed". Metro serves a stale bundle often enough that guessing costs
  * more than showing. `__DEV__` is false in a real build, so this never ships. */
-const BUILD = '11 Sep 20:20';
+const BUILD = '12 Sep 08:05';
 
 const settle = () =>
   LayoutAnimation.configureNext(
@@ -155,6 +155,17 @@ export default function Capture() {
     rememberScript(slim);
   };
 
+  /* Pressing Keep with nothing filed opens the picker. Once a title exists,
+     the note they already pressed Keep on is kept, without making them press
+     it again for a question they have now answered. */
+  const pendingKeep = useRef(false);
+  useEffect(() => {
+    if (script && !picking && draft.trim() && pendingKeep.current){
+      pendingKeep.current = false;
+      keep();
+    }
+  }, [script, picking]);
+
   /* Switching scripts changes nothing about the notes already on this phone.
      Repainting when the picker closes is belt and braces: whatever the list
      was showing, it now shows what is actually in the database. */
@@ -166,6 +177,10 @@ export default function Capture() {
   const keep = async () => {
     const text = draft.trim();
     if (!text || saving) return;
+    /* Every note leaves this phone under a title. Nothing is lost by asking
+       here: the words stay in the box, the picker opens on the naming field,
+       and the note is kept the moment a title exists. */
+    if (!script){ pendingKeep.current = true; setPicking(true); return; }
     setSaving(true);
     try {
       await store.add(text, script);
@@ -232,7 +247,7 @@ export default function Capture() {
         >
           <Text style={s.scriptRail}>TO</Text>
           <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
-            {script ? String(script.name).toUpperCase() : 'No script yet'}
+            {script ? String(script.name).toUpperCase() : 'No title yet'}
           </Text>
           <Text style={s.scriptGo}>Change</Text>
         </Pressable>
