@@ -845,6 +845,66 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ------------------------------------ throwing a batch away from the pile
+     Until now the only ways out of this pile were to place the notes or to
+     pay to have them read, so a pocket dial had to be filed before it could
+     be deleted. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const asked = await page.evaluate(() => {
+      PENDING = [{id: 'x1', body: 'asdf', project_id: 'p-nighthaul', project_name: 'Night Haul'},
+                 {id: 'x2', body: 'pocket dial', project_id: 'p-nighthaul', project_name: 'Night Haul'}];
+      showPhonePile();
+      let said = '';
+      window.confirm = (m) => { said = m; return false; };
+      document.querySelector('#sortgroups [data-bin]').click();
+      return {said, left: PENDING.length};
+    });
+    check('every batch in the pile can be thrown away', asked.said.length > 0, asked.said);
+    check('and it says out loud that this is the only copy',
+      /only copy/.test(asked.said) && /cannot be undone/.test(asked.said), asked.said);
+    check('saying no keeps every note', asked.left === 2, asked.left + ' left');
+
+    const gone = await page.evaluate(async () => {
+      const sent = [];
+      const real = BF.api;
+      BF.api = (u, o) => { sent.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
+      window.confirm = () => true;
+      document.querySelector('#sortgroups [data-bin]').click();
+      await new Promise(r => setTimeout(r, 30));
+      BF.api = real;
+      return {sent, left: PENDING.length,
+              says: document.getElementById('sortgroups').textContent};
+    });
+    check('saying yes empties that batch', gone.left === 0, gone.left + ' left');
+    check('and tells the server they were thrown away, not sorted',
+      gone.sent.length === 1 && (gone.sent[0].dropped || []).join(',') === 'x1,x2'
+        && !(gone.sent[0].sorted || []).length, JSON.stringify(gone.sent));
+    check('the pile then says it is empty rather than going blank',
+      /Nothing waiting/.test(gone.says), gone.says.slice(0, 80));
+    check('no page errors throwing a batch away', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* The dashboard cell reads as one fact with a way in, not two statements. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const cell = await page.evaluate(() => {
+      PENDING = [{id: 'p1', body: 'a note', project_id: 'p-nighthaul'}];
+      setView('slate', true);
+      const el = document.querySelector('.phonecell');
+      return el ? {k: el.querySelector('.score-k').textContent,
+                   note: el.querySelector('.score-note').textContent.trim(),
+                   link: el.querySelector('.score-open').textContent} : null;
+    });
+    check('the phone cell says what it is in one line',
+      cell && /from your phone, waiting to be sorted/i.test(cell.k), cell && cell.k);
+    check('and the line below it is only the way in',
+      cell && cell.note === 'Open them' && cell.link === 'Open them',
+      cell && JSON.stringify(cell));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

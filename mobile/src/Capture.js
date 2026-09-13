@@ -10,7 +10,7 @@
 // ============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, FlatList, KeyboardAvoidingView, LayoutAnimation, Platform,
+  Alert, FlatList, Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform,
   Pressable, StyleSheet, Text, TextInput, UIManager, View, useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +33,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
  * expensive question is "is the thing in front of me even running the code we
  * just changed". Metro serves a stale bundle often enough that guessing costs
  * more than showing. `__DEV__` is false in a real build, so this never ships. */
-const BUILD = '12 Sep 08:05';
+const BUILD = '13 Sep 09:40';
 
 const settle = () =>
   LayoutAnimation.configureNext(
@@ -92,6 +92,7 @@ export default function Capture() {
   const [everSent, setEverSent] = useState(false);
   const send = useCallback(async () => {
     if (sending) return;
+    Keyboard.dismiss();          // they are done typing; get out of the way
     setSending(true);
     let r = null;
     try { r = await runSync(); } catch (e) {}
@@ -228,7 +229,13 @@ export default function Capture() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      {/* -------------------------------------------------------- header -- */}
+      {/* TAP ANYWHERE UP HERE TO PUT THE KEYBOARD AWAY.
+          The box keeps focus after a Keep, which is right for typing three
+          thoughts in a row, and wrong the moment you want to look at what you
+          caught. Dragging the list down worked and nobody could be expected to
+          discover it. Buttons and the box itself take their own taps first, so
+          this only ever catches the empty space around them. */}
+      <Pressable onPress={() => Keyboard.dismiss()} accessible={false}>
       <View style={s.head}>
         <Lockup scheme={scheme} size={26} />
         <View style={s.grow} />
@@ -240,7 +247,7 @@ export default function Capture() {
           before the writer types, not discovered after. */}
       <View style={s.pad}>
         <Pressable
-          onPress={() => setPicking(true)}
+          onPress={() => { Keyboard.dismiss(); setPicking(true); }}
           style={({ pressed }) => [s.script, pressed && s.scriptDown]}
           accessibilityRole="button"
           accessibilityLabel={script ? `Filing under ${script.name}. Change script.` : 'Choose a script'}
@@ -294,6 +301,8 @@ export default function Capture() {
           </Pressable>
         </View>
       </View>
+
+      </Pressable>
 
       {/* -------------------------------------------------------- recent -- */}
       <View style={s.railHead}>

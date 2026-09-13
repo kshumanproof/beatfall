@@ -6292,10 +6292,41 @@ function paintSortGroups(){
       + '<div class="pn"><div class="pt">' + esc(g.name) + "</div>"
       + '<div class="pc">' + count + "</div></div>"
       + pick
+      /* A note can be wrong on arrival: a pocket dial, a thought that died on
+         the drive home. Until now the only ways out of this pile were to place
+         it or to pay to have it read, so the writer had to file rubbish before
+         they could delete it. */
+      + '<button class="revbin" data-bin="' + esc(g.key) + '">Throw away</button>'
       + '<button class="btn" data-hand="' + esc(g.key) + '">Place them myself</button>'
       + '<button class="btn btn-gold" data-sort="' + esc(g.key) + '">Read them for me</button>'
       + "</div>";
   }).join("");
+}
+
+/* The whole group, gone. Asked out loud first, because these notes are not on
+   a board yet and this phone has already let go of them, so the pile is the
+   only copy left and there is nothing to undo it with. */
+async function binGroup(key){
+  const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
+  if (!items.length) return;
+  const n = items.length;
+  const ok = confirm("Throw away " + n + " note" + (n === 1 ? "" : "s") + " from "
+    + groupName(key, items[0].project_name) + "?\n\n"
+    + "They are not on a board yet and your phone has already let them go, so "
+    + "this is the only copy. It cannot be undone.");
+  if (!ok) return;
+  const ids = items.map(c => c.id);
+  PENDING = PENDING.filter(c => ids.indexOf(c.id) < 0);
+  paintSortGroups();
+  if (state && state.view === "slate") renderSlate();
+  BF.track("phone_notes_binned", {count: n});
+  try {
+    await BF.api("/api/captures", {method: "PATCH", body: JSON.stringify({dropped: ids})});
+  } catch (e) {
+    /* The screen has already moved on and the writer has said what they want.
+       The next load re-reads the server, so the worst case is that the notes
+       come back once and they say it again. */
+  }
 }
 
 function showPhonePile(){
@@ -6599,6 +6630,8 @@ document.getElementById("sortclose").addEventListener("click", closeImport);
 document.getElementById("sortgroups").addEventListener("click", e => {
   const read = e.target.closest("[data-sort]");
   if (read){ sortGroup(read.getAttribute("data-sort")); return; }
+  const bin = e.target.closest("[data-bin]");
+  if (bin){ binGroup(bin.getAttribute("data-bin")); return; }
   const hand = e.target.closest("[data-hand]");
   if (!hand) return;
   const key = hand.getAttribute("data-hand");
@@ -9515,9 +9548,12 @@ function renderScore(t){
         ? '<div class="score-cell phonecell" role="button" tabindex="0">'
             + '<div class="score-n">' + PENDING.length + '<span class="of">'
             + (PENDING.length === 1 ? "note" : "notes") + "</span></div>"
-            + '<div class="score-k">From your phone</div>'
-            + '<div class="score-note">Waiting to be sorted. '
-            + '<span class="score-open">Open them</span></div>'
+            /* One sentence, one style. It used to be a label and then a
+                separate line of body text, which read as two unrelated
+                statements stacked on each other rather than one fact with a
+                way in underneath it. */
+            + '<div class="score-k">From your phone, waiting to be sorted</div>'
+            + '<div class="score-note"><span class="score-open">Open them</span></div>'
           + "</div>"
         : "")
     + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'

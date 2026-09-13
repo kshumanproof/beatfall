@@ -42,13 +42,20 @@ async function open(browser, {account, projects, closed, reason, query}) {
   return { page, errors };
 }
 
+/* Relative, not fixed. These used to be real dates, so as time passed the
+   renewal drifted into the past and the trial drifted into its own final week,
+   and a suite nobody had touched started failing on the strength of the
+   calendar. Anything the app measures in "how long until" has to be measured
+   from now here too. */
+const inDays = (n) => new Date(Date.now() + n * 86400000).toISOString();
+
 const PAID = {email:'w@example.com', display_name:'Writer', plan:'beatfall',
   unlimited:false, trialing:false, credits_left:150, credits_allowance:150,
-  credits_banked:0, current_period_end:'2026-10-01T00:00:00Z', has_history:true,
+  credits_banked:0, current_period_end:inDays(19), has_history:true,
   plans:{beatfall:{credits:150,price:12}}, price_month:12, price_year:99};
 
 const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
-  credits_left:25, credits_allowance:25, trial_ends_at:'2026-09-20T00:00:00Z',
+  credits_left:25, credits_allowance:25, trial_ends_at:inDays(13),
   current_period_end:null, has_history:false});
 
 (async () => {
