@@ -905,6 +905,163 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ------------------------------- the same note, said two different ways
+     Kris typed both of these into his phone. The reader placed them on two
+     different beats, both at 100 per cent, because nothing ever asked whether
+     they were the same thing. */
+  const MOTEL_A = "A woman finds a motel key in her husband's coat pocket from a town he claims he's never visited.";
+  const MOTEL_B = "A woman discovers a motel key in her husband's jacket from a town he insists he's never been to.";
+
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(([A, B]) => {
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: A, kind: 'beat', beat: 'open', conf: 100, keep: true},
+        // What the reader answers when it spots the restatement. Code cannot
+        // reach this one: the two share six content words out of fifteen.
+        {text: B, kind: 'beat', beat: 'cat', conf: 100, keep: true, echo: A},
+      ]}];
+      dedupePlan();
+      renderReview();
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      return {
+        rows: rows.length,
+        second: rows[1].className,
+        ticked: rows.map(r => !!r.querySelector('input[type=checkbox]:checked')),
+        says: rows[1].querySelector('.dest').textContent,
+        count: document.getElementById('revcount').textContent,
+      };
+    }, [MOTEL_A, MOTEL_B]);
+    check('both notes stay on the sheet, nothing is removed', seen.rows === 2,
+      'rows: ' + seen.rows);
+    check('the first is ticked and the restatement is not',
+      seen.ticked[0] === true && seen.ticked[1] === false, JSON.stringify(seen.ticked));
+    check('the restatement is drawn attached to the note it repeats',
+      /echo/.test(seen.second), seen.second);
+    check('and says why instead of where it would have gone',
+      /same as the note above/.test(seen.says), seen.says);
+    check('the count says one of them was left out',
+      /1 onto the board/.test(seen.count) && /1 say the same thing/.test(seen.count),
+      seen.count);
+
+    // Ticking it back on is the writer overruling the app, and it must work.
+    const back = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      const box = rows[1].querySelector('input[type=checkbox]');
+      box.checked = true; box.dispatchEvent(new Event('change'));
+      return document.getElementById('revcount').textContent;
+    });
+    check('ticking it back on stops it being a footnote',
+      /2 onto the board/.test(back) && !/say the same thing/.test(back), back);
+    check('no page errors pairing a restatement', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* What code can and cannot do on its own, which is the whole reason the
+     reader is asked as well. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(([A, B]) => {
+      const t = (x, y) => restates(x, y);
+      return {
+        // Rearranged: certain enough to act on without a reader.
+        shuffled: t('He keeps the second phone in the glovebox of the truck',
+                    'In the glovebox of the truck he keeps the second phone'),
+        // Kris's pair, which code has no way to see: finds is not discovers.
+        motel: t(A, B),
+        // Opposites that share a vocabulary. Must never fire.
+        opposite: t('Dale drives the truck north at dawn',
+                    'Dale drives the truck south at dusk'),
+        // The longer one carries a fact the shorter one does not.
+        fuller: t('The dog barks at nothing',
+                  'The dog barks at nothing in the yard behind the motel'),
+        // Too short to judge.
+        tiny: t('she lies', 'she lied'),
+      };
+    }, [MOTEL_A, MOTEL_B]);
+    check('code catches the same words rearranged', out.shuffled === true);
+    check('code does not pretend to catch synonyms', out.motel === false);
+    check('two opposites sharing a vocabulary are not one note', out.opposite === false);
+    check('a note that adds a fact is not a restatement', out.fuller === false);
+    check('and two short notes are never guessed at', out.tiny === false);
+    await page.close();
+  }
+
+  /* Caught by code alone, on the free route, with no reading paid for. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const free = await page.evaluate(() => {
+      PENDING = [
+        {id: 'e1', body: 'He keeps the second phone in the glovebox of the truck',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'e2', body: 'In the glovebox of the truck he keeps the second phone.',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+      ];
+      placeGroupByHand('p-nighthaul');
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      return {rows: rows.length,
+              ticked: rows.map(r => !!r.querySelector('input[type=checkbox]:checked')),
+              count: document.getElementById('revcount').textContent};
+    });
+    check('placing by hand pairs them too, for nothing', free.rows === 2
+      && free.ticked[0] === true && free.ticked[1] === false, JSON.stringify(free));
+    check('and says so in the count', /say the same thing/.test(free.count), free.count);
+    await page.close();
+  }
+
+  /* Against the board, not just within the batch. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const seen = await page.evaluate(() => {
+      P().cards.push({id: 950, slot: 'open', pinned: false,
+        text: 'She burns the letters in the sink before he gets home'});
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'Before he gets home she burns the letters in the sink.',
+         kind: 'beat', beat: 'open', conf: 90, keep: true},
+      ]}];
+      dedupePlan();
+      renderReview();
+      const row = document.querySelector('#revbody .revrow');
+      return {ticked: !!row.querySelector('input[type=checkbox]:checked'),
+              says: row.querySelector('.dest').textContent};
+    });
+    check('a note your board already makes is left out', seen.ticked === false);
+    check('and says it is the board it clashes with',
+      /board already says this/.test(seen.says), seen.says);
+    await page.close();
+  }
+
+  /* A restatement the writer leaves alone is finished with, not parked. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const sent = await page.evaluate(async () => {
+      PENDING = [
+        {id: 'p1', body: 'He keeps the second phone in the glovebox of the truck',
+         project_id: 'p-nighthaul'},
+        {id: 'p2', body: 'In the glovebox of the truck he keeps the second phone.',
+         project_id: 'p-nighthaul'},
+      ];
+      placeGroupByHand('p-nighthaul');
+      const out = [];
+      const real = BF.api;
+      BF.api = (u, o) => { out.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
+      document.getElementById('revgo').click();
+      await new Promise(r => setTimeout(r, 80));
+      BF.api = real;
+      // Not out[0]: saving the board talks to the server first.
+      const patch = out.find(x => x && Array.isArray(x.sorted)) || {};
+      return {sorted: patch.sorted || [], left: PENDING.length,
+              cards: P().cards.filter(c => /glovebox/i.test(c.text)).length};
+    });
+    check('only one of the two reaches the board', sent.cards === 1, String(sent.cards));
+    check('and neither is left waiting in the pile', sent.left === 0,
+      sent.left + ' left');
+    check('both are marked dealt with', sent.sorted.length === 2, JSON.stringify(sent.sorted));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

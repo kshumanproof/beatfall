@@ -230,7 +230,22 @@ export default function Capture({ email }) {
           caught. Dragging the list down worked and nobody could be expected to
           discover it. Buttons and the box itself take their own taps first, so
           this only ever catches the empty space around them. */}
-      <Pressable onPress={() => Keyboard.dismiss()} accessible={false}>
+      {/* TAP ANY EMPTY SPACE UP HERE TO PUT THE KEYBOARD AWAY.
+       *
+       * A Pressable was the obvious choice and it was the wrong one: it only
+       * reports a tap after iOS has decided the gesture is a press, and with a
+       * keyboard up that decision does not reliably arrive. These two props are
+       * the layer underneath. React Native offers the touch to the deepest view
+       * first and works outward, so the box, the buttons and the list all take
+       * their own taps as normal and this only ever catches what nobody else
+       * wanted, which is exactly the empty space around them.
+       *
+       * The list below keeps its own dismiss-on-drag. Two ways out, neither of
+       * which anybody should have to discover. */}
+      <View
+        onStartShouldSetResponder={() => true}
+        onResponderRelease={() => Keyboard.dismiss()}
+      >
       <View style={s.head}>
         <Lockup scheme={scheme} size={26} />
         <View style={s.grow} />
@@ -310,7 +325,7 @@ export default function Capture({ email }) {
         </View>
       </View>
 
-      </Pressable>
+      </View>
 
       {/* -------------------------------------------------------- recent -- */}
       <View style={s.railHead}>

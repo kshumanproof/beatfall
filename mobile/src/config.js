@@ -28,4 +28,4 @@ export const SUPPORT_EMAIL = 'support@beatfall.app';
    Twice now a bug has turned out to be a phone that had not reloaded, and an
    hour went into each. It is stamped under the notes list while testing, and
    on the account screen beside the version, where a writer can read it to us. */
-export const BUILD = '13 Sep 17:40';
+export const BUILD = '13 Sep 18:25';

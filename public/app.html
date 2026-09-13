@@ -1911,6 +1911,11 @@ footer{
   text-decoration:underline;text-underline-offset:2px}
 .revbin:hover{color:var(--red)}
 .revrow.gone{opacity:.5}
+/* A restatement is joined to the note above it rather than merely near it, so
+   the claim being made is visible: these two are one idea. */
+.revrow.echo{border-top:0;margin-top:-9px;padding-top:0;padding-left:26px;
+  border-left:2px solid var(--rule);margin-left:12px}
+.revrow.echo .why{color:var(--ink-3)}
 .revrow.gone .txt{color:var(--ink-4)}
 .revnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:18px 2px}
 .foot-brand .brandtag{color:var(--ink-3)}
@@ -7277,6 +7282,20 @@ function isStatement(text){
   return STATEMENT.test(t.slice(0, 60));
 }
 
+/* WHAT THE READER SAID, CHECKED BEFORE IT IS BELIEVED.
+ *
+ * `e` is a number the model wrote, so it is treated as a claim rather than a
+ * fact. It has to be a real note, an EARLIER one (a later note cannot be the
+ * original), never itself, and it must belong to the same story, because two
+ * films that happen to share a sentence are not restating one another. Anything
+ * else and the claim is dropped, which puts the app back on today's behaviour
+ * for that note rather than anywhere worse. */
+function echoOf(idx, r, si){
+  const e = Number(r && r.e);
+  if (!Number.isInteger(e) || e < 0 || e >= idx) return null;
+  return e;
+}
+
 async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   const out = new Map();
   const idx = [];
@@ -7494,6 +7513,22 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     + "- Consecutive notes often circle the SAME moment from different angles. When two or "
     + "three notes next to each other describe one turn in the story, give the beat to the "
     + "clearest one and leave the others unplaced. Do not spread one moment across three beats.\n"
+    /* THE SAME NOTE, WRITTEN TWICE.
+       A writer catches an idea in the car and then writes it down again at the
+       desk in slightly better words. Both notes reach the board and become two
+       cards on two different beats, each one confidently placed, because
+       nothing ever asked whether they were the same thing. Code cannot answer
+       this: "finds" and "discovers", "coat" and "jacket", "claims he has never
+       visited" and "insists he has never been to" are the same to a reader and
+       unrelated to a word count. It is asked here because the reading is
+       already paid for, and it never deletes anything: it only says which two
+       to show the writer side by side. */
+    + "- THE SAME MOMENT, WRITTEN TWICE, IS ONE NOTE. Writers restate an idea in fresh words, "
+    + "sometimes lines apart and sometimes pages apart. If a note says the same thing as an "
+    + "earlier note in this list, with only the wording changed, put that earlier note's number "
+    + "in e. Same INFORMATION, not merely a shared subject: two different moments involving the "
+    + "same people, place or object are not the same note, and neither is a note that adds a "
+    + "fact the earlier one does not carry. When in doubt leave e null.\n"
     + "- If you are not certain which beat a note is, set b to null. An empty beat is useful to the "
     + "writer, because it shows them a hole. A wrongly filled one is worse than useless.\n"
     + "- A note may only take a beat it satisfies on its own terms. If it is really the beat before "
@@ -7541,13 +7576,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
         + "k  the kind of note, for the shelf only: beat, character, clue, image, structural, theme, "
         + "line, question, rule, research. k never restricts b. If b is set, k is simply how the "
         + "note is written.\n"
+        + "e  the number of an EARLIER note in this list that says the same thing as this one in "
+        + "different words. Null unless you are sure. Never a note you have not been shown.\n"
         + "n  its number\n"
         + "s  which story it belongs to, by the number above. Use -1 for anything that is not story "
         + "material at all: errands, reminders, appointments, shopping, unrelated observations.\n\n"
         + rules
         + "Reply with JSON only, every note accounted for:\n"
         + "{\"notes\":[{\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"d\":false,\"k\":\"image\","
-        + "\"n\":0,\"s\":0}]}");
+        + "\"e\":null,\"n\":0,\"s\":0}]}");
     } catch (e) {
       if (e && e.code === "cancelled") throw e;
     }
@@ -7665,6 +7702,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     // A declaration that lost its slot to earlier declarations of the same beat
     if (!beat && n.beat && !own[idx]) full = n.beat;
     buckets[si].push({
+      __idx: idx,                      // dropped again as soon as echoes resolve
       text: n.text,
       kind: beat ? "beat" : kind,
       beat,
@@ -7692,8 +7730,27 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
          A stray is not a problem to solve: it goes to a shelf, and a shelf is
          exactly what shelves are for. Unticking is the writer's call, and the
          chip on every row already says what each line was read as. */
-      keep: true
+      keep: true,
+      /* Which earlier note this one restates, if the reader thought it did.
+         Kept as the note's number for now and turned into the note itself
+         below, once every bucket is built: a restatement is only interesting
+         if both notes ended up in the same project. */
+      echoIdx: echoOf(idx, r, si)
     });
+  });
+
+  /* Numbers become notes. Doing it here rather than above is what keeps a
+     restatement honest: the two notes have to have landed in the same story,
+     and the chain has to be followed to its root so that three versions of one
+     idea point at the first one rather than at each other. */
+  buckets.forEach((bucket) => {
+    bucket.forEach((n) => {
+      if (!Number.isInteger(n.echoIdx)) { delete n.echoIdx; return; }
+      const src = bucket.find(o => o.__idx === n.echoIdx);
+      delete n.echoIdx;
+      if (src && src !== n) n.echo = src.text;
+    });
+    bucket.forEach(n => { delete n.__idx; });
   });
 
   // What the writer literally typed wins for title, genre and format - those get
@@ -7745,6 +7802,59 @@ function noteKey(t){
 }
 
 let revSkipped = 0;   // copies taken out of the batch the writer is looking at
+let revEchoes  = 0;   // notes left out because another note already says it
+
+/* THE SAME NOTE IN DIFFERENT WORDS, AS FAR AS CODE CAN TELL.
+ *
+ * Two jobs are being done here and they are not the same job.
+ *
+ * `noteKey` above catches the SAME WORDS: a stray capital, a full stop, a
+ * curly quote. That is not a judgement and those copies are removed silently.
+ *
+ * This catches the same words REARRANGED or padded, which is still not really
+ * a judgement: "In the coat pocket, the key" and "The key is in the coat
+ * pocket" are one note by any reading. It is set deliberately high, because
+ * word overlap cannot tell a restatement from two different beats that share a
+ * vocabulary. "Dale drives the truck north at dawn" and "Dale drives the truck
+ * south at dusk" share five words out of seven, and they are opposites.
+ *
+ * What code CANNOT do is synonyms. "A woman finds a motel key in her husband's
+ * coat pocket" and "A woman discovers a motel key in her husband's jacket"
+ * share six content words out of fifteen, which is the same score two unrelated
+ * notes about the same character would get. That one is caught by the reader
+ * instead, which knows finds means discovers, and which is already being paid
+ * for. See the rules in claudePlan.
+ *
+ * So: code takes the certain ones, the reader takes the ones that need
+ * reading, and neither of them ever deletes. */
+const SMALL = new Set(("a an and are as at be been but by for from had has have he her hers "
+  + "him his i if in into is it its me my no nor not of off on or our out she so than that the "
+  + "their them then there they this to up us was we were what when where which who will with "
+  + "you your").split(" "));
+
+function contentWords(t){
+  const out = new Set();
+  noteKey(t).replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).forEach(w => {
+    if (!w || w.length < 2 || SMALL.has(w)) return;
+    // One crude ending, so plurals do not read as different words. Nothing
+    // cleverer: a stemmer that is wrong is worse than no stemmer at all.
+    out.add(w.length > 3 && w.slice(-1) === "s" && w.slice(-2) !== "ss" ? w.slice(0, -1) : w);
+  });
+  return out;
+}
+
+/* Shared words as a share of ALL the words in both, not of the smaller one.
+   Measured against the smaller one, a short note is a "restatement" of every
+   longer note that happens to contain it, and "The dog barks" would swallow
+   "The dog barks at the man in the yard", which carries a fact the first does
+   not. */
+function restates(a, b){
+  const A = contentWords(a), B = contentWords(b);
+  if (A.size < 4 || B.size < 4) return false;      // too short to be sure of
+  let shared = 0;
+  A.forEach(w => { if (B.has(w)) shared++; });
+  return shared / (A.size + B.size - shared) >= 0.85;
+}
 
 /* Run once on a freshly built plan, before it is ever drawn.
  *
@@ -7757,6 +7867,7 @@ let revSkipped = 0;   // copies taken out of the batch the writer is looking at
  * none of them do. */
 function dedupePlan(){
   revSkipped = lastCollapsed;
+  revEchoes = 0;
   lastCollapsed = 0;
   if (!plan || !plan.length) return;
   const seen = new Map();          // words -> the row standing for them, or null if the board has it
@@ -7788,6 +7899,69 @@ function dedupePlan(){
   plan = plan.filter(st => st.notes.length
     || (st.brief && Object.keys(st.brief).length)
     || (st.people && st.people.length));
+
+  markEchoes();
+}
+
+/* SAID ALREADY, IN OTHER WORDS.
+ *
+ * Nothing is removed here. The note stays on the sheet, unticked, sitting
+ * directly under the one it repeats, saying why. That is the whole design: the
+ * app is allowed to have an opinion about which of two sentences to keep, and
+ * it is not allowed to act on that opinion behind the writer's back. Tick it
+ * and it lands like any other note.
+ *
+ * Two sources feed it. The reader may have said so during the read, which is
+ * the only way synonyms are ever caught. And the comparison above catches the
+ * rearranged ones for nothing, which is what makes this work on the free
+ * route as well as the paid one. */
+function markEchoes(){
+  if (!plan) return;
+  plan.forEach((st, si) => {
+    const here = (si === 0 && !importIntoNew) ? P() : null;
+    const cards = ((here && here.cards) || []).map(c => c.text);
+
+    st.notes.forEach((n, k) => {
+      if (n.echo) return;                       // the reader already said so
+      // Against the board first: a note you already have beats a note you are
+      // about to add, and it says something more useful to the writer.
+      const onBoard = cards.find(t => restates(t, n.text));
+      if (onBoard){ n.echo = onBoard; n.onBoard = true; return; }
+      for (let j = 0; j < k; j++){
+        if (st.notes[j].echo) continue;         // never point at a repeat
+        if (restates(st.notes[j].text, n.text)){ n.echo = st.notes[j].text; return; }
+      }
+    });
+
+    /* Unticked by the app, not by the writer, and the difference matters at
+       the other end: a note the WRITER unticks waits in the pile, a note the
+       app left out has been dealt with and must not come back every morning
+       asking the same question. `wasKept` is what the apply step reads. */
+    st.notes.forEach(n => {
+      if (!n.echo) return;
+      n.keep = false;
+      n.wasKept = false;
+      revEchoes++;
+    });
+
+    /* Side by side, or the writer cannot see what the app is claiming. A
+       restatement four rows below the note it repeats is an accusation with
+       no evidence attached. */
+    const out = [];
+    const used = new Set();
+    st.notes.forEach((n, k) => {
+      if (used.has(k) || n.echo) return;
+      used.add(k); out.push(n);
+      st.notes.forEach((m, j) => {
+        if (used.has(j) || !m.echo || m.echo !== n.text) return;
+        used.add(j); out.push(m);
+      });
+    });
+    // Anything pointing at a note that is no longer here (the board, usually)
+    // keeps its place at the end rather than disappearing from the sheet.
+    st.notes.forEach((n, k) => { if (!used.has(k)) out.push(n); });
+    st.notes = out;
+  });
 }
 
 function renderReview(){
@@ -7860,9 +8034,18 @@ function renderReview(){
 
     st.notes.forEach(n => {
       const row = document.createElement("div");
-      row.className = "revrow" + (n.gone ? " gone" : n.keep ? "" : " off");
+      row.className = "revrow" + (n.gone ? " gone" : n.keep ? "" : " off")
+        + (n.echo ? " echo" : "");
       const nm = id => (S.slots.find(x => x.id === id) || {name:"Set aside"}).name;
-      const dest = n.kind !== "beat" ? "→ Other notes · " + KINDS[n.kind]
+      /* A restatement says what it is instead of where it would go. Where it
+         would go is not the interesting fact about it, and printing "Opening
+         Image, 100% sure" over a note the app is proposing to leave out is the
+         sheet arguing with itself. */
+      const dest = n.echo
+        ? (n.onBoard
+            ? "→ Your board already says this, in different words. Left out."
+            : "→ Says the same as the note above, in different words. Left out.")
+        : n.kind !== "beat" ? "→ Other notes · " + KINDS[n.kind]
         : n.beat  ? "→ " + nm(n.beat) + (n.declared ? "  (you said so)"
                                                     : "  (" + n.conf + "% sure)")
         // A full beat, said plainly. This is the one case where the writer
@@ -8011,6 +8194,9 @@ function updateRevCount(){
   const rows   = plan.reduce((a, st) => a.concat(st.notes), []);
   const live   = rows.filter(n => !n.gone);
   const binned = rows.length - live.length;
+  // Only the ones still left out. Tick one back on and it stops being a
+  // footnote and becomes a note, which is what ticking it means.
+  const echoes = live.filter(n => n.echo && !n.keep).length;
   const total  = live.length;
   const kept   = live.filter(n => n.keep).length;
   const beats  = live.filter(n => n.keep && n.kind === "beat").length;
@@ -8023,6 +8209,7 @@ function updateRevCount(){
                     : kept + " of " + total + " notes ticked")
     + " · " + beats + " onto the board"
     + (revSkipped ? " · " + revSkipped + " already there" : "")
+    + (echoes ? " · " + echoes + " say the same thing" : "")
     + (binned ? " · " + binned + " thrown away" : "");
   const go = document.getElementById("revgo");
   go.disabled = kept === 0 && binned === 0;
@@ -8099,6 +8286,11 @@ document.getElementById("revgo").addEventListener("click", () => {
   plan.forEach(st => st.notes.forEach(n => {
     if (n.gone) (n.caps || []).forEach(id => binned.push(id));
   }));
+  /* A note the app left out because another note already says it, which the
+     writer looked at and did not tick back on. It has been dealt with: it does
+     not go to the board and it does not go back in the pile to be dismissed
+     again tomorrow. */
+  const settled = plan.flatMap(st => st.notes.filter(n => n.echo && !n.keep && !n.gone));
   if (!plan.some(st => st.notes.some(n => n.keep && !n.gone))){
     markSorted([], binned);
     scrim.hidden = true;
@@ -8229,7 +8421,7 @@ document.getElementById("revgo").addEventListener("click", () => {
   // The notes are on a board now, so they leave the pile. Not a moment sooner:
   // a cancelled batch has to still be waiting, and neither does a row the
   // writer unticked, which went nowhere and is still theirs to deal with.
-  markSorted(plan.flatMap(st => st.notes.filter(n => n.keep && !n.gone)), binned);
+  markSorted(plan.flatMap(st => st.notes.filter(n => n.keep && !n.gone)).concat(settled), binned);
   markStage("real_project");
   if (cameFromSample){ BF.track("sample_to_import", {}); cameFromSample = false; }
   showSettled(firstMoves, added + " notes sorted"
