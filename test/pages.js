@@ -228,6 +228,41 @@ async function page(browser, url, before) {
     await p.close();
   }
 
+  /* ------------------- the legal pages, opened from inside the phone app
+     They are handed to a sheet that sits on top of the app. What must not be
+     on them there is a way OUT of the app: on a phone "Back to the board"
+     leads to a board that cannot be used, and the writer is then two taps from
+     being outside Beatfall with no way back in. */
+  for (const doc of ['privacy.html', 'terms.html']) {
+    const u = build(doc);
+    const { p, errors } = await page(browser, u + '?app=1');
+    const st = await p.evaluate(() => {
+      const shown = Array.from(document.querySelectorAll('.topbar .right a'))
+        .filter(a => !a.hidden).map(a => a.getAttribute('href'));
+      const brand = document.querySelector('.topbar .brand');
+      return {shown, brandLinks: !!(brand && brand.getAttribute('href')),
+              words: document.querySelector('.doc').textContent.length};
+    });
+    check(doc + ' in the app offers no way back to the board',
+      st.shown.every(h => h !== '/app'), st.shown.join(' '));
+    check('and does not point at a page about money',
+      st.shown.every(h => String(h).indexOf('billing') < 0), st.shown.join(' '));
+    check('the other document is still one tap away, inside the sheet',
+      st.shown.length === 1, st.shown.join(' '));
+    check('the mark is not a link out either', st.brandLinks === false);
+    check('and the document itself is all still there', st.words > 3000, String(st.words));
+    check('no page errors in app mode', errors.length === 0, errors.join('\n'));
+    await p.close();
+
+    /* And on a desktop the page is untouched, because the same file serves
+       both and the writer at a keyboard does want a way back. */
+    const { p: q } = await page(browser, u);
+    const web = await q.evaluate(() => Array.from(document.querySelectorAll('.topbar .right a'))
+      .filter(a => !a.hidden).map(a => a.getAttribute('href')));
+    check(doc + ' in a browser keeps its whole top bar', web.length === 3, web.join(' '));
+    await q.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

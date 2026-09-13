@@ -116,9 +116,20 @@ export async function submitCode(email, code) {
   return data.session || null;
 }
 
-export async function signOut() {
+/* `local` skips the round trip that tells the server to revoke the token, and
+   that matters in exactly one place: signing out an account that has just been
+   deleted. There is no server-side session left to revoke, the call fails, and
+   a failed signOut never emits the event App.js is listening for, so the app
+   sits on a dead session showing a board that cannot load. Locally is enough:
+   the token is gone from this phone either way. */
+export async function signOut(scope) {
   const s = await sb();
-  if (s) await s.auth.signOut();
+  if (!s) return;
+  try {
+    await s.auth.signOut(scope ? { scope } : undefined);
+  } catch (e) {
+    // The session is being thrown away regardless. Nothing to recover.
+  }
 }
 
 /* Fires on sign in, sign out and every silent token refresh. App.js listens so

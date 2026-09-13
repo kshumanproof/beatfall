@@ -40,6 +40,7 @@ import {
   ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet,
   Text, TextInput, View,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette, radius, font } from './theme';
@@ -51,6 +52,34 @@ import * as store from './store';
 
 const open = (url) => Linking.openURL(url).catch(() => {});
 
+/* THE POLICY AND THE TERMS NEVER LEAVE THE APP.
+ *
+ * Tapping one used to hand the whole thing to Safari, and the page it landed
+ * on offered a Back to the board button, which on a phone leads to a board
+ * that cannot be used. So the writer was two taps from being outside Beatfall
+ * with no way back in.
+ *
+ * This opens the same page in a sheet that sits on top of the app, with a Done
+ * button, and `?app=1` tells the page to leave its own navigation off.
+ *
+ * The text is NOT copied into the app to achieve that. A privacy policy kept
+ * in two places is a privacy policy that will eventually say two things, and
+ * these are the two files in the whole product where that matters most. */
+async function reading(url, c) {
+  try {
+    await WebBrowser.openBrowserAsync(url + (url.indexOf('?') < 0 ? '?' : '&') + 'app=1', {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+      toolbarColor: c.ground,
+      controlsColor: c.blue,
+      dismissButtonStyle: 'done',
+      enableBarCollapsing: true,
+    });
+  } catch (e) {
+    // No sheet available for some reason. Better outside the app than nowhere.
+    open(url);
+  }
+}
+
 export default function Account({ visible, onClose, scheme, email, onCleared }) {
   const c = palette(scheme);
   const s = sheet(c);
@@ -60,7 +89,8 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
   const [acct, setAcct]     = useState(null);
   const [tally, setTally]   = useState({ total: 0, waiting: 0 });
   const [gone, setGone]     = useState({ count: 0, at: 0 });
-  const [problem, setProblem] = useState(null);
+  const [problem, setProblem] = useState(null);   // reaching the server at all
+  const [refused, setRefused] = useState(null);   // the delete itself came back no
   const [busy, setBusy]     = useState(false);
   const [typed, setTyped]   = useState('');
 
@@ -84,7 +114,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
 
   useEffect(() => {
     if (!visible) return;
-    setStage('menu'); setTyped('');
+    setStage('menu'); setTyped(''); setRefused(null);
     load();
   }, [visible, load]);
 
@@ -102,7 +132,10 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         + 'thrown away.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Send them first', onPress: async () => { await runSync(); } },
+          /* And then say what happened. Sending in the background and leaving
+             the same "3 notes have not been sent" on screen is the app doing
+             the thing and hiding it. */
+          { text: 'Send them first', onPress: async () => { await runSync(); load(); } },
           { text: 'Throw away and sign out', style: 'destructive', onPress: quit },
         ],
       );
@@ -124,17 +157,26 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
 
   const kill = async () => {
     if (busy) return;
-    setBusy(true); setProblem(null);
+    setBusy(true); setRefused(null);
     try {
       await deleteAccount(mine);
       await store.wipe();
-      try { await signOut(); } catch (e) {}
+      await signOut('local');
+      /* Apple asks that a writer be told when the deletion has finished, and
+         it is the decent thing anyway: the screen behind this is about to
+         become a sign-in page, which on its own reads like being logged out
+         rather than like the thing you asked for having happened. */
+      Alert.alert('Your account has been deleted',
+        'Everything in it is gone. Thank you for trying Beatfall.');
       if (onCleared) onCleared();
     } catch (e) {
       /* The server is careful about this: if it could not reach Stripe, or
          could not remove the account, it says which half happened and nothing
-         is deleted. Whatever it said is what the writer needs to read. */
-      setProblem((e && e.message) || 'That did not work. Nothing has been deleted.');
+         is deleted. Whatever it said is what the writer needs to read, and it
+         belongs on THIS screen. It used to be written into the same field as
+         "could not reach the server", so a refused delete then showed up under
+         NOTES on the menu behind it, attached to nothing. */
+      setRefused((e && e.message) || 'That did not work. Nothing has been deleted.');
       setBusy(false);
     }
   };
@@ -194,9 +236,9 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         <Row c={c} label="Contact support" hint={SUPPORT_EMAIL}
           on={() => open('mailto:' + SUPPORT_EMAIL + '?subject=Beatfall%20on%20my%20phone')} />
         <Row c={c} label="Privacy policy"
-          on={() => open(SITE + '/privacy.html')} />
+          on={() => reading(SITE + '/privacy.html', c)} />
         <Row c={c} label="Terms" last
-          on={() => open(SITE + '/terms.html')} />
+          on={() => reading(SITE + '/terms.html', c)} />
       </View>
 
       <Pressable onPress={leave} disabled={busy}
@@ -253,7 +295,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         />
       </View>
 
-      {problem ? <Text style={s.bad}>{problem}</Text> : null}
+      {refused ? <Text style={s.bad}>{refused}</Text> : null}
 
       <Pressable onPress={kill} disabled={!ready || busy}
         style={({ pressed }) => [s.killBtn, s.killBig, (!ready || busy) && s.killOff,

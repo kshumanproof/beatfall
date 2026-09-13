@@ -57,6 +57,12 @@
   .foot{font-family:var(--sans);font-size:12.5px;color:var(--ink-4);line-height:1.7}
   .foot a{color:var(--blue)}
 </style>
+<style>
+  /* Inside the app sheet the page is the whole screen, so it can afford to
+     start at the top of it rather than under a bar of buttons. */
+  html.inapp .topbar{position:static}
+  html.inapp .topbar .right{gap:8px}
+</style>
 </head>
 <body>
 
@@ -346,5 +352,35 @@
   <p class="totop"><a href="#top">Back to the top</a></p>
 
 </div>
+
+<script>
+/* OPENED FROM INSIDE THE PHONE APP.
+ *
+ * The app hands these two documents to a browser sheet that sits on top of it,
+ * so the writer never actually leaves Beatfall. What they must not then be
+ * offered is a "Back to the board" button, which on a phone goes to a board
+ * that cannot be used and strands them one tap outside the app they were in.
+ *
+ * The text is not duplicated into the app for this. A privacy policy that
+ * exists in two places is a privacy policy that will one day say two things,
+ * and of everything in this product these are the two files where that matters
+ * most. One copy, wearing less chrome when the app asks for it.
+ */
+(function () {
+  if (new URLSearchParams(location.search).get('app') !== '1') return;
+  document.documentElement.classList.add('inapp');
+  /* The sibling document stays reachable, because moving between the two is a
+     normal thing to want and it happens inside the same sheet. Billing and the
+     board do not: one leads to a page about money, which has no business being
+     linked from inside an app, and the other leads out of the app entirely. */
+  document.querySelectorAll('.topbar .right a').forEach(function (a) {
+    var to = a.getAttribute('href') || '';
+    if (to.indexOf('/terms') === 0 || to.indexOf('/privacy') === 0) return;
+    a.hidden = true;
+  });
+  var brand = document.querySelector('.topbar .brand');
+  if (brand) { brand.removeAttribute('href'); brand.style.cursor = 'default'; }
+})();
+</script>
 </body>
 </html>
