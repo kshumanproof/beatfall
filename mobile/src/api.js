@@ -71,6 +71,23 @@ export async function createScript(name) {
   return body && body.project;
 }
 
+/* Who you are and what plan you are on. The desk endpoint answers with a great
+   deal more than this, and the phone shows three lines of it: the phone is not
+   a billing screen and never will be. */
+export async function fetchAccount() {
+  return call('/api/account');
+}
+
+/* The account, gone. The server wants the email back as the confirmation,
+   which is the same thing the desk asks for, deliberately: Apple requires the
+   two routes to be equally hard, and this way they are the same question. */
+export async function deleteAccount(email) {
+  return call('/api/account', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'delete_account', confirm: String(email || '').trim() }),
+  });
+}
+
 /* Every working title in a batch, made real, in one place. Called by the
    sender the moment before it posts, because Send is the first point at which
    a connection is required anyway: a writer can type five notes under three

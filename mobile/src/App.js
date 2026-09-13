@@ -87,7 +87,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      {session ? <Capture /> : <SignIn />}
+      {/* The email is handed down rather than read again inside Capture. It
+          is the one thing the account screen must be certain about, and the
+          session is the only place it is beyond doubt. */}
+      {session ? <Capture email={(session.user && session.user.email) || ''} /> : <SignIn />}
     </SafeAreaProvider>
   );
 }

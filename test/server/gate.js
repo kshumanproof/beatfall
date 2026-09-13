@@ -89,6 +89,37 @@ const rows = [{id:'p1', user_id:'u1', name:'Night Haul', structure:'stc', cards:
   check('and the outline', 'outline' in proj, JSON.stringify(Object.keys(proj)));
 }
 
+/* ---------- which doors the phone may come through
+   The one-browser lock is for editing, and the phone does not edit here. It
+   reads who you are, and it deletes the account, which Apple requires it to
+   be able to do and requires to be no harder than on the web. Everything else
+   on this endpoint stays locked to one browser. */
+{
+  const db = makeDb(P(), {projects: rows});
+
+  await hit(account, db, {method:'GET'});
+  check('reading the account does not need a browser lock',
+    globalThis.__AUTHOPTS__ && globalThis.__AUTHOPTS__.webDevice === false,
+    JSON.stringify(globalThis.__AUTHOPTS__));
+
+  await hit(account, db, {method:'POST', body:{action:'rename', display_name:'Kris'}});
+  check('renaming still does',
+    !globalThis.__AUTHOPTS__ || globalThis.__AUTHOPTS__.webDevice !== false,
+    JSON.stringify(globalThis.__AUTHOPTS__));
+
+  await hit(account, db, {method:'POST', body:{action:'export'}});
+  check('and so does the export',
+    !globalThis.__AUTHOPTS__ || globalThis.__AUTHOPTS__.webDevice !== false,
+    JSON.stringify(globalThis.__AUTHOPTS__));
+
+  await hit(account, db, {method:'POST', body:{action:'delete_account', confirm:'w@x.y'}});
+  check('deleting the account does not need a browser lock either',
+    globalThis.__AUTHOPTS__ && globalThis.__AUTHOPTS__.webDevice === false,
+    JSON.stringify(globalThis.__AUTHOPTS__));
+  check('and the rename earlier still landed, so reading the body once was enough',
+    db.state.profile.display_name === 'Kris', String(db.state.profile.display_name));
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) { console.log('\nFAILED:'); failed.forEach(f=>console.log('  '+f.n)); process.exit(1); }

@@ -14,3 +14,12 @@ export const SYNC_ENABLED = true;
 // Where the phone will talk to. The same deployment that serves the web app;
 // the phone gets no endpoints of its own that a browser doesn't already have.
 export const API_BASE = 'https://beatfall-beta.vercel.app';
+
+// The website, for the handful of links the phone hands off to it: the desk
+// itself, the privacy policy, the terms. The same deployment as the API, so
+// the two can never point at different versions of Beatfall.
+export const SITE = API_BASE;
+
+// One address, in one place, so it cannot drift from the one the server puts
+// in its own error messages.
+export const SUPPORT_EMAIL = 'contact@beatfall.app';

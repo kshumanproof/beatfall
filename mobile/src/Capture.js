@@ -21,6 +21,7 @@ import { Lockup } from './Mark';
 import { SYNC_ENABLED } from './config';
 import * as store from './store';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
+import Account from './Account';
 import { runSync } from './sync';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -33,7 +34,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
  * expensive question is "is the thing in front of me even running the code we
  * just changed". Metro serves a stale bundle often enough that guessing costs
  * more than showing. `__DEV__` is false in a real build, so this never ships. */
-const BUILD = '13 Sep 09:40';
+const BUILD = '13 Sep 14:20';
 
 const settle = () =>
   LayoutAnimation.configureNext(
@@ -54,7 +55,7 @@ function when(ms) {
 
 
 // ------------------------------------------------------------------ screen --
-export default function Capture() {
+export default function Capture({ email }) {
   const scheme = useColorScheme();
   const c = palette(scheme);
   const inset = useSafeAreaInsets();
@@ -69,6 +70,7 @@ export default function Capture() {
      do, and it is never a question the writer has to answer before typing. */
   const [script, setScript] = useState(null);
   const [picking, setPicking] = useState(false);
+  const [accounting, setAccounting] = useState(false);
   const shelf = useScripts();
   const scripts = shelf.scripts;
   const field = useRef(null);
@@ -240,6 +242,19 @@ export default function Capture() {
         <Lockup scheme={scheme} size={26} />
         <View style={s.grow} />
         <Tally c={c} tally={tally} />
+        {/* The way into the account, and the only new thing on this screen in
+            months. A circle with your initial, because the one question it
+            has to answer at a glance is "am I in the right account", and a
+            gear answers nothing. */}
+        <Pressable
+          onPress={() => { Keyboard.dismiss(); setAccounting(true); }}
+          hitSlop={10}
+          style={({ pressed }) => [s.you, pressed && s.scriptDown]}
+          accessibilityRole="button"
+          accessibilityLabel={email ? 'Account, signed in as ' + email : 'Account'}
+        >
+          <Text style={s.youText}>{initial(email)}</Text>
+        </Pressable>
       </View>
 
       {/* Where the next note is going. One line, always visible, one tap to
@@ -365,6 +380,14 @@ export default function Capture() {
         </View>
       )}
 
+      <Account
+        visible={accounting}
+        scheme={scheme}
+        email={email}
+        onClose={() => { setAccounting(false); refresh(); }}
+        onCleared={() => setAccounting(false)}
+      />
+
       <ScriptSheet
         visible={picking}
         scheme={scheme}
@@ -375,6 +398,14 @@ export default function Capture() {
       />
     </KeyboardAvoidingView>
   );
+}
+
+/* One letter, from whatever we have. Not a photo and not a name: nobody else
+   ever sees you in this app, so the circle is a landmark for your own thumb
+   and a check that you are in the right account. */
+function initial(email) {
+  const t = String(email || '').trim();
+  return t ? t[0].toUpperCase() : '\u00b7';
 }
 
 // --------------------------------------------------------------- the tally --
@@ -401,9 +432,14 @@ const sheet = (c) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.ground },
 
   head: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14,
   },
+  you: {
+    width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: c.rule,
+    backgroundColor: c.card, alignItems: 'center', justifyContent: 'center',
+  },
+  youText: { fontFamily: font.sansSemi, fontSize: 12.5, color: c.ink2 },
   grow: { flex: 1 },
 
   tally: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },

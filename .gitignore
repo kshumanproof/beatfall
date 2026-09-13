@@ -16,3 +16,5 @@ handoff/
 test/app.html
 test/stub.html
 test/server/api/
+# Built by test/pages.js from the real page in public/, same reasoning.
+test/stub-*.html

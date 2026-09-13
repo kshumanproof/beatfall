@@ -6,7 +6,12 @@ fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
 
 fs.writeFileSync('api/shim.js',
   "export * from './_lib/core.js';\n" +
-  "export const requireUser = async () => globalThis.__AUTH__;\n" +
+  /* The options are recorded, not just swallowed. Which endpoints waive the
+     one-browser lock is a real decision with a real consequence: waive too
+     much and two browsers can edit one writer's boards, waive too little and
+     the phone gets a 409 doing something it is required by Apple to be able
+     to do. A suite that cannot see the flag cannot check either. */
+  "export const requireUser = async (req, options) => { globalThis.__AUTHOPTS__ = options || {}; return globalThis.__AUTH__; };\n" +
   "export const track = (...a) => { (globalThis.__TRACKED__ = globalThis.__TRACKED__ || []).push(a[2]); };\n");
 
 const swap = (from, to, extra = s => s) => {

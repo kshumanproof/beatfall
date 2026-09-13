@@ -102,5 +102,21 @@ export function makeDb(profile, opts = {}) {
     return api;
   }
 
-  return { from: table, state };
+  /* The admin side of Supabase, which is one call: removing the auth user.
+     Recorded rather than performed, so a suite can tell "the endpoint asked
+     for the account to be deleted" apart from "the endpoint fell over before
+     it got there", and can make the delete fail on purpose. */
+  const auth = {
+    admin: {
+      deleteUser: async (id) => {
+        state.deletedUsers = state.deletedUsers || [];
+        state.deletedUsers.push(id);
+        return state.deleteFails
+          ? { error: { message: 'nope' } }
+          : { error: null };
+      },
+    },
+  };
+
+  return { from: table, auth, state };
 }

@@ -1788,3 +1788,71 @@ project's visible prose into another project.
 The empty writing box beneath every Outline beat says What happens in this
 beat? Do not vary that prompt based on whether a primary card is present; the
 start gate makes the old empty-beat distinction unnecessary for new Outlines.
+
+## The account screen and the three ways out (13 Sep 2026)
+
+Researched against the live App Store and Play policies rather than from
+memory, because getting this wrong is a rejected submission rather than a bug.
+The findings that shaped it, each verified on 13 Sep:
+
+- **Apple 5.1.1(v):** if an app supports account creation it must offer account
+  deletion IN the app, of the WHOLE account, not deactivation, and it may not
+  be harder than the web route. "Email us to delete" is refused outright; the
+  regulated-industry exception does not cover a notes app.
+- **Google:** the same in-app route AND a public web page where somebody who
+  has already uninstalled can still ask. That URL goes in the Play data safety
+  form and a reviewer clicks it. A homepage or a generic contact form fails.
+- **Both stores:** a privacy policy link must be reachable inside the app.
+  Neither requires terms, and neither requires data export.
+- **Apple 4.8:** Sign in with Apple is NOT required, because Beatfall uses its
+  own email code and no social login. Adding Google sign-in would trigger it.
+- **Money:** a free companion to a web subscription may state the plan as plain
+  text. A purchase link is allowed only on the US storefront and 3.1.3(f) was
+  never amended to match, so there is no button anywhere. Do not add one.
+- **Apple 2.1(a):** a reviewer cannot receive an emailed code. A demo account
+  with a fixed code, named in the review notes, is the single likeliest cause
+  of a first rejection. STILL TO DO.
+
+**Three doors to the same room:** `mobile/src/Account.js`, Settings on the desk,
+and `public/delete.html`. Apple needs the first, Google needs the first and the
+third. All three end at the same endpoint and all three ask for the email as
+the confirmation, deliberately, because parity is a review requirement.
+
+`api/account.js` waives the one-browser lock for exactly two things, GET and
+`delete_account`, and reads the body before calling `requireUser` to decide.
+Everything else on that endpoint stays locked to one browser. `test/server/
+gate.js` asserts which door is which, and `setup.js` records the options passed
+to `requireUser` so it can.
+
+`public/delete.html` is public, `noindex`, and works signed out: it asks for the
+address, sends a code, and only then offers the button. Its `signInWithOtp` uses
+`shouldCreateUser: false`, which is the one line in that file that must never
+change: without it a stranger typing any address gets an account created for
+them so that they can delete it.
+
+The phone account screen is deliberately thin, and the header comment in
+`Account.js` lists what is on it and what is kept off. No profile, no display
+name, no theme switch, nothing that leads to a payment. Comparable apps that
+are worth copying here are Readwise Reader and Obsidian: identity and status on
+the phone, configuration at the desk.
+
+**Still open on the store path:** the reviewer demo account, a D-U-N-S number
+for the Play organisation account (up to 28 days, gates everything), and
+confirming the Android build targets API 36, which Google has required of new
+apps since 31 Aug 2026.
+
+## Verifying, 13 Sep 2026
+
+`test/pages.js` joins the list. It builds its own stub from `public/delete.html`
+and drives the signed-in route, the signed-out route, a refused delete and an
+address with no account behind it.
+
+    cd test ; node pages.js
+
+Current counts: flows 127, drive 55, pages 26, and on the server money 18,
+gate 21, hook 18, clean 6, captures 29.
+
+Two fixture rots were fixed the same week and the lesson is the same both
+times: **never write a real date into a test fixture.** `drive.js` carried a
+trial ending 20 September, and when the calendar reached it the suite started
+failing on a day nobody had touched the code. Dates are relative to now.

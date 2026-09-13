@@ -8,7 +8,26 @@ import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_P
          PRICE_MONTH, PRICE_YEAR, track } from './_lib/core.js';
 
 export default async function handler(req, res) {
-  const auth = await requireUser(req);
+  /* THE PHONE IS LET IN THROUGH TWO DOORS AND NO OTHERS.
+   *
+   * The one-browser lock exists so two people cannot edit one writer's boards
+   * at once. Neither of these touches a board. Reading who you are and what
+   * plan you are on is a fact, not an edit, and deleting your account has to
+   * work from wherever you are standing: Apple requires the phone to offer it,
+   * and requires it to be no harder there than on the web.
+   *
+   * Everything else on this endpoint keeps the lock, so renaming, exporting
+   * and the analytics writes are still one browser at a time.
+   *
+   * The body is read before the auth call because the answer depends on what
+   * is in it. readBody is only good once, so it is passed down rather than
+   * called again below. */
+  let body = null;
+  if (req.method === 'POST') body = await readBody(req);
+  const phoneMayPass = req.method === 'GET'
+    || !!(body && body.action === 'delete_account');
+
+  const auth = await requireUser(req, phoneMayPass ? { webDevice: false } : {});
   if (auth.error) return send(res, auth.status, { error: auth.error });
   const { db, user, profile } = auth;
 
@@ -88,7 +107,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const body = await readBody(req);
 
     if (body.action === 'rename' && typeof body.display_name === 'string') {
       await db.from('profiles')

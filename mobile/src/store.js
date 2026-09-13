@@ -201,8 +201,25 @@ export async function edit(id, body) {
 // A soft delete, and deliberately so. A hard delete on the phone would leave
 // the server holding a note the writer has already thrown away, with no way
 // to know. The tombstone syncs; then the row can go.
+/* Thrown away on the phone.
+ *
+ * A note the server has never seen is simply gone: there is no row out there
+ * to tell about it, so leaving a tombstone behind only gives the sender
+ * something pointless to carry. A note that HAS been sent leaves a tombstone,
+ * because the desk is holding a copy and has to be told.
+ *
+ * The old version tombstoned everything, and that is the bug where the Send
+ * button counted a note the writer had already thrown away. The list showed
+ * nothing and the button said one note waiting, which is the app disagreeing
+ * with itself in front of somebody who is trying to trust it with their
+ * ideas. */
 export async function remove(id) {
   const db = await open();
+  const row = await db.getFirstAsync('SELECT synced_at FROM captures WHERE id = ?', id);
+  if (row && row.synced_at == null) {
+    await db.runAsync('DELETE FROM captures WHERE id = ?', id);
+    return;
+  }
   await db.runAsync('UPDATE captures SET deleted = 1, synced_at = NULL WHERE id = ?', id);
 }
 
@@ -232,7 +249,12 @@ export async function pending() {
 export async function counts() {
   const db = await open();
   const a = await db.getFirstAsync('SELECT COUNT(*) AS n FROM captures WHERE deleted = 0');
-  const b = await db.getFirstAsync('SELECT COUNT(*) AS n FROM captures WHERE synced_at IS NULL');
+  /* Counted the way the writer counts: notes they can see, that have not gone
+     home. A tombstone is a message to the server, not a note, and it must
+     never appear in a number on a button next to an empty list. The sender
+     still picks tombstones up; see pending(). */
+  const b = await db.getFirstAsync(
+    'SELECT COUNT(*) AS n FROM captures WHERE synced_at IS NULL AND deleted = 0');
   return { total: a?.n || 0, waiting: b?.n || 0 };
 }
 
@@ -260,4 +282,19 @@ export async function sentTally() {
 export async function addSent(n) {
   if (!n) return;
   await setItem('sent.count', String((await sentTally()) + n));
+}
+
+/* NOTHING LEFT ON THIS DEVICE.
+ *
+ * Only ever called after the server has confirmed the account is gone. It
+ * takes the notes, the session, the cached shelf, the tallies, every key: an
+ * account that has been deleted must not be recoverable by whoever picks the
+ * phone up next, and half a wipe is worse than none because it looks clean.
+ *
+ * DELETE FROM rather than DROP TABLE, so the schema survives and the next
+ * writer to sign in on this phone gets a working database rather than one
+ * that has to be rebuilt on the first note they type. */
+export async function wipe() {
+  const db = await open();
+  await db.execAsync('DELETE FROM captures; DELETE FROM kv;');
 }
