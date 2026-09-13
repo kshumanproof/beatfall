@@ -43,7 +43,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { palette, radius, font } from './theme';
-import { SITE, SUPPORT_EMAIL } from './config';
+import { SITE, SUPPORT_EMAIL, BUILD } from './config';
 import { fetchAccount, deleteAccount, why } from './api';
 import { signOut } from './supabase';
 import { runSync } from './sync';
@@ -59,6 +59,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
   const [stage, setStage]   = useState('menu');    // 'menu' | 'delete'
   const [acct, setAcct]     = useState(null);
   const [tally, setTally]   = useState({ total: 0, waiting: 0 });
+  const [gone, setGone]     = useState({ count: 0, at: 0 });
   const [problem, setProblem] = useState(null);
   const [busy, setBusy]     = useState(false);
   const [typed, setTyped]   = useState('');
@@ -67,6 +68,9 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
 
   const load = useCallback(async () => {
     try { setTally(await store.counts()); } catch (e) {}
+    try {
+      setGone({ count: await store.sentTally(), at: await store.lastSent() });
+    } catch (e) {}
     try {
       setAcct(await fetchAccount());
       setProblem(null);
@@ -140,43 +144,60 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
   // ------------------------------------------------------------ the account
   const menu = (
     <ScrollView contentContainerStyle={[s.pad, { paddingBottom: inset.bottom + 40 }]}>
-      <Text style={s.rail}>SIGNED IN AS</Text>
-      <Text style={s.email} selectable>{mine || 'not signed in'}</Text>
+      {/* GROUPED, NOT STACKED.
+          A flat run of blocks and rows leaves the reader to work out which
+          lines belong together. Two cards under quiet headings does that work
+          for them, and it is the one structural idea worth taking from every
+          well-made settings screen. Sign out and delete stay OUTSIDE the
+          cards, because they are not facts about you, they are things that
+          happen to you. */}
+      <Text style={s.group}>You</Text>
+      <View style={s.card}>
+        <View style={s.block}>
+          <Text style={s.rail}>SIGNED IN AS</Text>
+          <Text style={s.email} selectable>{mine || 'not signed in'}</Text>
+        </View>
 
-      <View style={s.hr} />
+        <View style={s.inner} />
 
-      <Text style={s.rail}>NOTES</Text>
-      <Text style={s.line}>
-        {tally.waiting > 0
-          ? tally.waiting + (tally.waiting === 1 ? ' note is' : ' notes are') + ' still on this phone.'
-          : 'Nothing waiting on this phone.'}
-      </Text>
-      {/* Three states, not two. "Nothing waiting" and "we cannot reach the
-          server" look identical from the writer's chair unless the difference
-          is said, and that difference is the whole question they are asking. */}
-      <Text style={s.sub}>
-        {problem === 'offline'
-          ? 'No signal, so this is the last thing we knew.'
-          : problem
-            ? "Beatfall couldn't check with the server just now (" + problem + ")."
-            : 'Everything else is at your desk.'}
-      </Text>
+        <View style={s.block}>
+          <Text style={s.rail}>NOTES</Text>
+          <Text style={s.line}>{waitingWords(tally)}</Text>
+          {/* Three states, not two. "Nothing waiting" and "we could not reach
+              the server" look identical from the writer's chair unless the
+              difference is said, and that difference is the whole question
+              they opened this screen to ask. The rest of the time it says what
+              has actually gone home, which is the reassurance a capture app
+              owes somebody trusting it with ideas they cannot get back. */}
+          <Text style={s.sub}>
+            {problem === 'offline'
+              ? 'No signal, so this is the last thing we knew.'
+              : problem
+                ? "Beatfall couldn't check with the server just now (" + problem + ")."
+                : sentWords(gone)}
+          </Text>
+        </View>
 
-      <View style={s.hr} />
+        <View style={s.inner} />
 
-      <Text style={s.rail}>PLAN</Text>
-      <Text style={s.line}>{planWords(acct)}</Text>
-      {/* No price and no button, on purpose. See the note at the top. */}
-      <Text style={s.sub}>Plans and billing are handled at your desk.</Text>
+        <View style={s.block}>
+          <Text style={s.rail}>PLAN</Text>
+          <Text style={s.line}>{planWords(acct)}</Text>
+          {/* Facts only: what you are on, when it next changes, what is left
+              to spend. No price and no button anywhere near it. */}
+          {acct ? <Text style={s.sub}>{creditWords(acct)}</Text> : null}
+        </View>
+      </View>
 
-      <View style={s.hr} />
-
-      <Row c={c} label="Open Beatfall at your desk" hint={host(SITE)}
-        on={() => open(SITE)} />
-      <Row c={c} label="Contact support" hint={SUPPORT_EMAIL}
-        on={() => open('mailto:' + SUPPORT_EMAIL + '?subject=Beatfall%20on%20my%20phone')} />
-      <Row c={c} label="Privacy policy" on={() => open(SITE + '/privacy.html')} />
-      <Row c={c} label="Terms" on={() => open(SITE + '/terms.html')} />
+      <Text style={s.group}>Beatfall</Text>
+      <View style={s.card}>
+        <Row c={c} label="Contact support" hint={SUPPORT_EMAIL}
+          on={() => open('mailto:' + SUPPORT_EMAIL + '?subject=Beatfall%20on%20my%20phone')} />
+        <Row c={c} label="Privacy policy"
+          on={() => open(SITE + '/privacy.html')} />
+        <Row c={c} label="Terms" last
+          on={() => open(SITE + '/terms.html')} />
+      </View>
 
       <Pressable onPress={leave} disabled={busy}
         style={({ pressed }) => [s.out, pressed && s.down]} accessibilityRole="button">
@@ -268,10 +289,11 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
   );
 }
 
-function Row({ c, label, hint, on }) {
+function Row({ c, label, hint, on, last }) {
   const s = sheet(c);
   return (
-    <Pressable onPress={on} style={({ pressed }) => [s.row, pressed && s.down]}
+    <Pressable onPress={on}
+      style={({ pressed }) => [s.row, last && s.rowLast, pressed && s.down]}
       accessibilityRole="button">
       <View style={s.grow}>
         <Text style={s.rowText}>{label}</Text>
@@ -282,9 +304,13 @@ function Row({ c, label, hint, on }) {
   );
 }
 
-/* Said as a fact, in the fewest words that are true. A trial is a trial, a
-   subscription is a subscription, and an account we could not reach says so
-   rather than guessing. */
+/* THE PLAN, SAID PROPERLY.
+ *
+ * This line used to read "Beatfall." and stop, which is restraint taken so far
+ * that it becomes silence. What somebody wants from a plan line is three
+ * things: what am I on, when does it next change, and is anything about to run
+ * out. All three are already in the answer the server sends; the screen simply
+ * was not printing them. */
 function planWords(a) {
   if (!a) return 'Checking…';
   if (a.unlimited) return 'No limits on this account.';
@@ -294,10 +320,71 @@ function planWords(a) {
       : d <= 0 ? 'Your free trial has ended.'
       : 'Free trial, ' + d + (d === 1 ? ' day' : ' days') + ' left.';
   }
+  const name = a.plan_name || 'Beatfall';
   if (a.subscription_status === 'active') {
-    return (a.plan_name || 'Beatfall') + (a.cancel_at_period_end ? ', ending soon.' : '.');
+    const when = dayWords(a.current_period_end);
+    if (a.cancel_at_period_end) return name + ', ending ' + (when || 'soon') + '.';
+    return when ? name + ', renews ' + when + '.' : name + '.';
   }
+  if (a.subscription_status === 'past_due') return name + ', payment did not go through.';
   return 'No plan at the moment.';
+}
+
+/* What is left to spend, and only when there is something to say. Banked
+   credits are named separately because they behave differently: they do not
+   expire at the end of the month, and a writer who bought them should be able
+   to see that they are still there. */
+function creditWords(a) {
+  if (a.unlimited) return 'Plans and billing are handled at your desk.';
+  const left = Number(a.credits_left);
+  if (!isFinite(left)) return 'Plans and billing are handled at your desk.';
+  const banked = Number(a.credits_banked) || 0;
+  const month = isFinite(Number(a.credits_monthly_left))
+    ? Number(a.credits_monthly_left) : left;
+  const head = left === 0
+    ? 'No credits left this month.'
+    : left + (left === 1 ? ' credit' : ' credits') + ' left'
+      + (banked > 0 ? ', ' + month + ' of them this month and ' + banked + ' bought' : '')
+      + '.';
+  return head + ' Placing notes is always free.';
+}
+
+/* Two counts and a clock, because "nothing waiting" on its own is ambiguous:
+   it reads the same whether everything went home or nothing was ever caught. */
+function waitingWords(t) {
+  if (t.waiting > 0) {
+    return t.waiting + (t.waiting === 1 ? ' note is' : ' notes are') + ' still on this phone.';
+  }
+  return 'Nothing waiting on this phone.';
+}
+
+function sentWords(g) {
+  if (!g || !g.count) return 'Nothing has been sent from this phone yet.';
+  const when = ago(g.at);
+  return g.count + (g.count === 1 ? ' note' : ' notes') + ' sent from this phone'
+    + (when ? ', the last one ' + when : '') + '.';
+}
+
+/* A date a person would say out loud. No year: a renewal is always inside
+   twelve months and the year is noise. */
+function dayWords(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+             'August', 'September', 'October', 'November', 'December'];
+  return M[d.getMonth()] + ' ' + d.getDate();
+}
+
+function ago(ms) {
+  if (!ms) return null;
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return m + ' minutes ago';
+  const h = Math.round(m / 60);
+  if (h < 24) return h === 1 ? 'about an hour ago' : 'about ' + h + ' hours ago';
+  const d = Math.round(h / 24);
+  return d === 1 ? 'yesterday' : d + ' days ago';
 }
 
 function daysTo(iso) {
@@ -307,17 +394,18 @@ function daysTo(iso) {
   return Math.ceil((t - Date.now()) / 86400000);
 }
 
-// Only ever shown to us, in a support email. It is here so that a writer can
-// read us the number rather than describe the symptom twice.
+// Only ever shown to us, in a support email. The build matters as much as the
+// version: twice now a bug has turned out to be a phone running yesterday's
+// code, and a version number alone cannot tell those two apart.
 function version() {
+  let v = '?';
   try {
     // eslint-disable-next-line global-require
     const a = require('../app.json');
-    return 'v' + ((a && a.expo && a.expo.version) || '?');
-  } catch (e) { return ''; }
+    v = (a && a.expo && a.expo.version) || '?';
+  } catch (e) {}
+  return 'v' + v + (BUILD ? ' \u00b7 build ' + BUILD : '');
 }
-
-const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 const sheet = (c) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.ground },
@@ -329,7 +417,14 @@ const sheet = (c) => StyleSheet.create({
   },
   h: { fontFamily: font.serif, fontSize: 22, color: c.ink },
   act: { fontFamily: font.sansMed, fontSize: 14, color: c.blue },
-  pad: { paddingHorizontal: 20, paddingTop: 18 },
+  pad: { paddingHorizontal: 20, paddingTop: 4 },
+
+  group: { fontFamily: font.sansSemi, fontSize: 11, letterSpacing: 0.4, color: c.ink3,
+    marginTop: 22, marginBottom: 9, marginLeft: 2 },
+  card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.ruleSoft,
+    borderRadius: radius.panel, overflow: 'hidden' },
+  block: { paddingHorizontal: 15, paddingVertical: 15 },
+  inner: { height: 1, backgroundColor: c.ruleSoft },
 
   rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4,
     marginBottom: 7 },
@@ -339,8 +434,10 @@ const sheet = (c) => StyleSheet.create({
   sub: { fontFamily: font.sans, fontSize: 12.5, lineHeight: 19, color: c.ink3, marginTop: 4 },
   hr: { height: 1, backgroundColor: c.ruleSoft, marginVertical: 20 },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 15,
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 15, paddingHorizontal: 15,
     borderBottomWidth: 1, borderColor: c.ruleSoft },
+  rowLast: { borderBottomWidth: 0 },
   rowText: { fontFamily: font.sansMed, fontSize: 14.5, color: c.ink },
   rowHint: { fontFamily: font.sans, fontSize: 12, color: c.ink4, marginTop: 2 },
   chev: { fontFamily: font.sans, fontSize: 20, color: c.ink4 },

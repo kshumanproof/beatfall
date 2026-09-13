@@ -194,9 +194,9 @@ export default async function handler(req, res) {
           message: cancelled
             ? "Your subscription has been cancelled, but the account itself couldn't be "
               + 'deleted just now. Nothing you wrote has been removed. Try again in a '
-              + 'moment, or write to contact@beatfall.app.'
+              + 'moment, or write to support@beatfall.app.'
             : "Your account couldn't be deleted just now. Nothing was removed. "
-              + 'Try again in a moment, or write to contact@beatfall.app.'
+              + 'Try again in a moment, or write to support@beatfall.app.'
         });
       }
       return send(res, 200, { ok: true });

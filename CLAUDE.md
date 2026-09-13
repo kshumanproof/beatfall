@@ -1623,8 +1623,11 @@ unless the count is zero, in which case it says "Every one has a card."
 
 ## Email addresses (2 Sep 2026)
 
-- **contact@beatfall.app** is the one address the PRODUCT uses. Footer feedback
-  link, billing page, anywhere a writer is invited to write in.
+- **support@beatfall.app** is the one address the PRODUCT uses. Footer feedback
+  link, billing page, the phone app, the deletion page, the server's own error
+  messages, anywhere a writer is invited to write in. It was contact@ until
+  13 Sep 2026, when Kris changed it; if you find a contact@ anywhere it is a
+  leftover and should be swapped.
 - **privacy@** and **legal@** stay in the Privacy Policy and Terms. Those are
   named channels people expect in a legal document, and a privacy request is a
   different kind of mail from a bug report.

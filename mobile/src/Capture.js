@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 
 import { palette, radius, font } from './theme';
 import { Lockup } from './Mark';
-import { SYNC_ENABLED } from './config';
+import { SYNC_ENABLED, BUILD } from './config';
 import * as store from './store';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
 import Account from './Account';
@@ -28,13 +28,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-/* A build stamp, in development only.
- *
- * Chasing a bug across a phone, a laptop and a live server, the single most
- * expensive question is "is the thing in front of me even running the code we
- * just changed". Metro serves a stale bundle often enough that guessing costs
- * more than showing. `__DEV__` is false in a real build, so this never ships. */
-const BUILD = '13 Sep 14:20';
 
 const settle = () =>
   LayoutAnimation.configureNext(

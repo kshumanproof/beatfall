@@ -22,4 +22,10 @@ export const SITE = API_BASE;
 
 // One address, in one place, so it cannot drift from the one the server puts
 // in its own error messages.
-export const SUPPORT_EMAIL = 'contact@beatfall.app';
+export const SUPPORT_EMAIL = 'support@beatfall.app';
+
+/* WHICH CODE IS THIS PHONE ACTUALLY RUNNING.
+   Twice now a bug has turned out to be a phone that had not reloaded, and an
+   hour went into each. It is stamped under the notes list while testing, and
+   on the account screen beside the version, where a writer can read it to us. */
+export const BUILD = '13 Sep 16:05';

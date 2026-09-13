@@ -282,6 +282,14 @@ export async function sentTally() {
 export async function addSent(n) {
   if (!n) return;
   await setItem('sent.count', String((await sentTally()) + n));
+  // When, as well as how many. "Nothing waiting" is only reassuring if the
+  // writer can see that something did in fact go home recently.
+  await setItem('sent.at', String(Date.now()));
+}
+
+export async function lastSent() {
+  const v = await getItem('sent.at');
+  return Number(v) || 0;
 }
 
 /* NOTHING LEFT ON THIS DEVICE.

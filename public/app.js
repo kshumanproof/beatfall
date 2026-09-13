@@ -807,7 +807,7 @@
       +     '<a href="/privacy.html">Privacy</a><span>&middot;</span>'
       +     '<a href="/terms.html">Terms</a><span>&middot;</span>'
       +     '<a href="/billing.html">How billing works</a><span>&middot;</span>'
-      +     '<a href="mailto:contact@beatfall.app">Send feedback</a>'
+      +     '<a href="mailto:support@beatfall.app">Send feedback</a>'
       +   '</div>'
       +   '<p class="bf-gate-legal">&copy; ' + new Date().getFullYear()
       +     ' Beatfall, LLC. Your writing remains yours.</p>'
