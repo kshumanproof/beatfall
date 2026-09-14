@@ -638,16 +638,37 @@ async function open(browser, projects, account = PAID) {
         {text: 'a genuinely new note about the bridge', kind: 'beat', beat: null, conf: 0, keep: true},
       ]}];
       dedupePlan();
-      return {left: plan[0].notes.map(n => n.text), skipped: revSkipped};
+      const on = (t) => {
+        const n = plan[0].notes.find(x => x.text === t);
+        return n ? {kept: !!n.keep, board: !!n.onBoard} : null;
+      };
+      return {
+        // Nothing is removed. A note the board already has is SHOWN, unticked,
+        // saying so. Dropping it used to take its link back to the pile with
+        // it, and the note could then never be cleared.
+        all: plan[0].notes.length,
+        shelf: on('the dog barks at nothing'),
+        aside: on('A car idles across the street.'),
+        board: on('the card for open'),
+        fresh: on('a genuinely new note about the bridge'),
+        echoes: revEchoes,
+      };
     });
-    check('a note already in Other notes is dropped, full stop or not',
-      seen.left.indexOf('the dog barks at nothing') < 0, seen.left.join(' | '));
-    check('a note already in Set aside is dropped',
-      seen.left.indexOf('A car idles across the street.') < 0, seen.left.join(' | '));
-    check('a note already on the board is dropped',
-      seen.left.indexOf('the card for open') < 0, seen.left.join(' | '));
-    check('and a genuinely new note survives', seen.left.length === 1, seen.left.join(' | '));
-    check('all three are counted as already there', seen.skipped === 3, 'skipped: ' + seen.skipped);
+    check('a note already in Other notes is kept and unticked, full stop or not',
+      seen.shelf && seen.shelf.kept === false && seen.shelf.board === true,
+      JSON.stringify(seen.shelf));
+    check('a note already in Set aside, the same',
+      seen.aside && seen.aside.kept === false && seen.aside.board === true,
+      JSON.stringify(seen.aside));
+    check('a note already on the board, the same',
+      seen.board && seen.board.kept === false && seen.board.board === true,
+      JSON.stringify(seen.board));
+    check('and a genuinely new note is ticked and untouched',
+      seen.fresh && seen.fresh.kept === true && seen.fresh.board !== true,
+      JSON.stringify(seen.fresh));
+    check('none of them are removed from the sheet', seen.all === 4, String(seen.all));
+    check('all three are counted as saying the same thing', seen.echoes === 3,
+      'echoes: ' + seen.echoes);
     await page.close();
   }
 
@@ -754,11 +775,16 @@ async function open(browser, projects, account = PAID) {
       dedupePlan();
       renderReview();
       return {text: document.getElementById('revbody').textContent,
-              go: document.getElementById('revgo').disabled};
+              go: document.getElementById('revgo').disabled,
+              label: document.getElementById('revgo').textContent};
     });
-    check('a batch that was all copies says so', /already on your board/.test(seen.text),
-      seen.text.slice(0, 90));
-    check('and there is nothing to press', seen.go === true);
+    check('a batch that is all copies says so on the row',
+      /board already says this/.test(seen.text), seen.text.slice(0, 120));
+    /* And there IS something to press. A dead button on a sheet full of notes
+       the board already has is how a note gets stuck in the pile for ever. */
+    check('and there is still a way to finish with them', seen.go === false);
+    check('the button says what pressing it does', seen.label === 'Done with these',
+      seen.label);
     await page.close();
   }
 
@@ -1059,6 +1085,225 @@ async function open(browser, projects, account = PAID) {
     check('and neither is left waiting in the pile', sent.left === 0,
       sent.left + ' left');
     check('both are marked dealt with', sent.sorted.length === 2, JSON.stringify(sent.sorted));
+    await page.close();
+  }
+
+  /* ================================================ UNTICKING NEVER LOSES A NOTE
+     Four ways a note could disappear, all found in one audit, all of them in
+     the corners of the review sheet. Each one has a check here because each
+     one was written, shipped and believed. */
+
+  // The whole batch unticked. There is no board change, so the only thing that
+  // can happen to those notes is the pile, and it used to be nothing.
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(async () => {
+      const posted = [];
+      const real = BF.api;
+      BF.api = (u, o) => {
+        const b = o && o.body ? JSON.parse(o.body) : {};
+        if (b.captures) posted.push(...b.captures.map(c => c.body));
+        return Promise.resolve({ok: true, captures: [], days: []});
+      };
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'she keeps the ticket stub in the visor', kind: 'beat', beat: null, conf: 0, keep: true},
+        {text: 'the neighbour saw the truck at four in the morning', kind: 'beat', beat: null, conf: 0, keep: true},
+      ]}];
+      dedupePlan();
+      renderReview();
+      document.querySelectorAll('#revbody .revrow input[type=checkbox]').forEach(b2 => {
+        b2.checked = false; b2.dispatchEvent(new Event('change'));
+      });
+      document.getElementById('revgo').click();
+      await new Promise(r => setTimeout(r, 120));
+      BF.api = real;
+      return {posted, cards: P().cards.length};
+    });
+    check('unticking the whole batch parks both notes, it does not bin them',
+      out.posted.length === 2, JSON.stringify(out.posted));
+    check('and nothing lands on the board', out.cards === 6, String(out.cards));
+    check('no page errors unticking everything', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // One group of two unticked. That group makes no project, which is right,
+  // and its notes still have to go somewhere.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(async () => {
+      const posted = [];
+      const real = BF.api;
+      BF.api = (u, o) => {
+        const b = o && o.body ? JSON.parse(o.body) : {};
+        if (b.captures) posted.push(...b.captures.map(c => c.body));
+        return Promise.resolve({ok: true, captures: [], days: []});
+      };
+      importIntoNew = false;
+      plan = [
+        {name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+          {text: 'he counts the money twice in the dark', kind: 'beat', beat: 'open', conf: 90, keep: true}]},
+        {name: 'The Other Film', isCurrent: false, brief: {}, people: [], notes: [
+          {text: 'a barn full of clocks that all say different times', kind: 'beat', beat: null, conf: 0, keep: true},
+          {text: 'the auctioneer never blinks', kind: 'beat', beat: null, conf: 0, keep: true}]},
+      ];
+      dedupePlan();
+      renderReview();
+      // Untick only the second story, the way a writer says "not that film".
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      rows.slice(1).forEach(r => {
+        const b2 = r.querySelector('input[type=checkbox]');
+        b2.checked = false; b2.dispatchEvent(new Event('change'));
+      });
+      document.getElementById('revgo').click();
+      await new Promise(r => setTimeout(r, 120));
+      BF.api = real;
+      return {posted, made: state.projects.length};
+    });
+    check('unticking one story of two parks its notes', out.posted.length === 2,
+      JSON.stringify(out.posted));
+    check('and does not create a project nobody ticked', out.made === 1,
+      out.made + ' projects');
+    await page.close();
+  }
+
+  // A park that fails must not be silent.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const said = await page.evaluate(async () => {
+      const real = BF.api;
+      BF.api = (u, o) => {
+        const b = o && o.body ? JSON.parse(o.body) : {};
+        if (b.captures) return Promise.reject(new Error('offline'));
+        return Promise.resolve({ok: true});
+      };
+      await parkUnticked([{text: 'one that did not make it', projectId: null}]);
+      BF.api = real;
+      const bar = document.getElementById('lowstrip');
+      return bar ? bar.textContent : '';
+    });
+    check('a park that fails says so rather than swallowing it',
+      /could not be saved to your pile/.test(said), said.slice(0, 90));
+    check('and tells the writer to keep their own copy',
+      /keep your notes file/.test(said), said.slice(0, 140));
+    await page.close();
+  }
+
+  // Throw this away, on the route that had no link back to the pile.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const sent = await page.evaluate(async () => {
+      PENDING = [
+        {id: 'g1', body: 'a real note about the bridge', project_id: 'p-nighthaul'},
+        {id: 'g2', body: 'asdfgh pocket dial', project_id: 'p-nighthaul'},
+      ];
+      // What the PAID route leaves behind: the batch is claimed, but the rows
+      // came back from the read as text and carry no ids.
+      sortingIds = ['g1', 'g2'];
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'a real note about the bridge', kind: 'beat', beat: 'open', conf: 90, keep: true},
+        {text: 'asdfgh pocket dial', kind: 'structural', beat: null, conf: 0, keep: true},
+      ]}];
+      dedupePlan();
+      renderReview();
+      const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
+      rows[1].querySelector('.revbin').click();          // throw the junk away
+      const out = [];
+      const real = BF.api;
+      BF.api = (u, o) => { out.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
+      document.getElementById('revgo').click();
+      await new Promise(r => setTimeout(r, 120));
+      BF.api = real;
+      const patch = out.find(x => x && (x.dropped || x.sorted)) || {};
+      return {dropped: patch.dropped || [], sorted: patch.sorted || [],
+              left: PENDING.map(c => c.id)};
+    });
+    check('throwing a note away after a read reaches the server',
+      sent.dropped.join(',') === 'g2', JSON.stringify(sent));
+    check('the one that was placed is marked sorted, not thrown away',
+      sent.sorted.join(',') === 'g1', JSON.stringify(sent));
+    check('and neither comes back tomorrow', sent.left.length === 0, sent.left.join(','));
+    await page.close();
+  }
+
+  // A note the board already has can be cleared out of the pile.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(async () => {
+      P().cards.push({id: 970, slot: 'open', pinned: false,
+        text: 'The dog will not go past the shed'});
+      PENDING = [{id: 'b9', body: 'the dog will not go past the shed.',
+                  project_id: 'p-nighthaul', project_name: 'Night Haul'}];
+      placeGroupByHand('p-nighthaul');
+      const row = document.querySelector('#revbody .revrow');
+      const go = document.getElementById('revgo');
+      const before = {ticked: !!row.querySelector('input[type=checkbox]:checked'),
+                      says: row.querySelector('.dest').textContent,
+                      dead: go.disabled, label: go.textContent};
+      const real = BF.api;
+      BF.api = () => Promise.resolve({ok: true});
+      go.click();
+      await new Promise(r => setTimeout(r, 120));
+      BF.api = real;
+      return {before, left: PENDING.length,
+              cards: P().cards.filter(c => /past the shed/i.test(c.text)).length};
+    });
+    check('a note the board already has arrives unticked',
+      out.before.ticked === false, JSON.stringify(out.before));
+    check('and says it is the board it clashes with',
+      /board already says this/.test(out.before.says), out.before.says);
+    check('the button is alive so it can be finished with',
+      out.before.dead === false && out.before.label === 'Done with these',
+      JSON.stringify(out.before));
+    check('pressing it clears the note out of the pile', out.left === 0, String(out.left));
+    check('without adding a second copy to the board', out.cards === 1, String(out.cards));
+    await page.close();
+  }
+
+  // And the same again through Cancel, which is what a writer actually presses
+  // when they have decided none of it is for tonight.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(async () => {
+      const posted = [];
+      const real = BF.api;
+      BF.api = (u, o) => {
+        const b = o && o.body ? JSON.parse(o.body) : {};
+        if (b.captures) posted.push(...b.captures.map(c => c.body));
+        return Promise.resolve({ok: true, captures: [], days: []});
+      };
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'the church bell is three minutes fast', kind: 'beat', beat: null, conf: 0, keep: true},
+      ]}];
+      dedupePlan();
+      renderReview();
+      const box = document.querySelector('#revbody .revrow input[type=checkbox]');
+      box.checked = false; box.dispatchEvent(new Event('change'));
+      closeImport();
+      await new Promise(r => setTimeout(r, 120));
+      BF.api = real;
+      return posted;
+    });
+    check('closing the sheet parks what was unticked rather than dropping it',
+      out.length === 1, JSON.stringify(out));
+    await page.close();
+  }
+
+  // Back hands the batch back.
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const after = await page.evaluate(() => {
+      PENDING = [{id: 'r1', body: 'still mine', project_id: 'p-nighthaul'}];
+      placeGroupByHand('p-nighthaul');
+      const held = sortingIds.length;
+      document.getElementById('revback').click();
+      return {held, now: sortingIds.length};
+    });
+    check('the batch is claimed while the sheet is open', after.held === 1);
+    check('and released the moment Back is pressed', after.now === 0,
+      after.now + ' still held');
     await page.close();
   }
 

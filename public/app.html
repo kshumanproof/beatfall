@@ -6131,6 +6131,13 @@ document.getElementById("dumptopup").addEventListener("click", async ev => {
   }
 });
 function closeImport(){
+  /* CANCELLING IS NOT THE SAME AS DISCARDING.
+     A writer who unticks six rows and then closes the sheet has made six
+     decisions, and the sheet is the only place those six notes exist when they
+     came in on a paste. They go to the pile on the way out, exactly as they
+     would if Add had been pressed. A batch that came FROM the pile is already
+     there and needs nothing. */
+  if (!sortingIds.length && plan) park(plan, null);
   scrim.hidden = true;
   if (dumpCtl) dumpCtl.abort();
   // A cancelled batch was never sorted, so it stays in the pile.
@@ -6141,6 +6148,12 @@ document.getElementById("dump").addEventListener("click", () => openImport(false
 document.getElementById("barimport").addEventListener("click", () => openImport(false));
 document.getElementById("dumpcancel").addEventListener("click", closeImport);
 document.getElementById("revback").addEventListener("click", () => {
+  /* Back hands the batch back, so it is no longer in anybody's hands.
+     Without this the phone notes stayed claimed: the next thing pasted into
+     the box inherited them, its unticked rows were treated as already waiting
+     in the pile and thrown away, and a phone note could be marked as dealt
+     with because a pasted sentence happened to contain it. */
+  sortingIds = [];
   sheetReview.hidden = true; sheetPaste.hidden = false;
 });
 scrim.addEventListener("click", e => {
@@ -6572,8 +6585,16 @@ async function parkUnticked(rows){
     await loadCaptures();
     if (state && state.view === "slate") renderSlate();
   } catch (e) {
-    /* Nothing to undo and nothing to say. The note is still on the sheet
-       behind them if they have not left it, and the board is untouched. */
+    /* IT HAS TO SAY SO.
+       The sheet is already closed by the time this resolves, so a silent
+       failure here is a note the writer unticked and never saw again, with
+       nothing on screen to suggest anything went wrong. They cannot get the
+       words back from us, but they can get them back out of their own file if
+       they know to look. */
+    sayStrip("<b>" + captures.length + (captures.length === 1 ? " note" : " notes")
+      + " could not be saved to your pile.</b> The ones you ticked are on your board. "
+      + "The ones you unticked did not reach us, so keep your notes file until you "
+      + "have added them again.", "warn");
   }
 }
 
@@ -7882,7 +7903,20 @@ function dedupePlan(){
       if (!k) return false;
       if (seen.has(k)){
         const holder = seen.get(k);
-        if (holder && n.caps && n.caps.length){
+        /* THE BOARD ALREADY HAS IT: keep the row, do not drop it.
+           Dropping it took the row's link back to the note in the pile with
+           it, and nothing downstream could then tell the server the note had
+           been dealt with. The writer got the same note offered to them every
+           morning for ever, on a sheet whose only button was greyed out.
+           It is a restatement like any other now: shown, unticked, explained,
+           and cleared when they press Add. */
+        if (holder === null){
+          n.echo = k;
+          n.onBoard = true;
+          n.wasKept = false;
+          return true;
+        }
+        if (n.caps && n.caps.length){
           holder.caps = (holder.caps || []).concat(n.caps);
         }
         revSkipped++;
@@ -8197,6 +8231,10 @@ function updateRevCount(){
   // Only the ones still left out. Tick one back on and it stops being a
   // footnote and becomes a note, which is what ticking it means.
   const echoes = live.filter(n => n.echo && !n.keep).length;
+  /* Notes the writer unticked themselves. They are a reason to press the
+     button, not a reason it should be dead: unticking everything used to leave
+     a sheet with nothing pressable on it, and the only way out was Cancel. */
+  const waiting = live.filter(n => !n.keep && !n.gone && n.wasKept).length;
   const total  = live.length;
   const kept   = live.filter(n => n.keep).length;
   const beats  = live.filter(n => n.keep && n.kind === "beat").length;
@@ -8212,8 +8250,14 @@ function updateRevCount(){
     + (echoes ? " · " + echoes + " say the same thing" : "")
     + (binned ? " · " + binned + " thrown away" : "");
   const go = document.getElementById("revgo");
-  go.disabled = kept === 0 && binned === 0;
-  go.textContent = (kept === 0 && binned > 0) ? "Throw them away" : "Add selected notes";
+  /* Echoes count towards there being something to do. A batch that is entirely
+     notes the board already has still needs the writer to press something, or
+     the notes never leave the pile and the same sheet greets them tomorrow
+     with a dead button on it. */
+  go.disabled = kept === 0 && binned === 0 && echoes === 0 && waiting === 0;
+  go.textContent = kept > 0 ? "Add selected notes"
+    : binned > 0 ? "Throw them away"
+    : "Done with these";
 }
 
 document.getElementById("dumpgo").addEventListener("click", async () => {
@@ -8267,14 +8311,39 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
       BF.track("import_failed", {error_code: "nothing_usable", stage: "read"});
       return;
     }
-    dedupePlan();
   } else {
     plan = localPlan(raw);
   }
+  /* ONCE. It ran twice on the paid route, and the second pass reset the count
+     the first had just made, so a paste that quietly dropped four notes the
+     board already had reported nothing at all. */
   dedupePlan();
   renderReview();
 });
 document.getElementById("dumpstop").addEventListener("click", () => dumpCtl && dumpCtl.abort());
+
+/* Notes the writer unticked ON PURPOSE, on their way to the pile.
+ *
+ * Three places need this and they used to have one copy between them, sitting
+ * at the bottom of the apply loop where two early exits could skip it. Both of
+ * those exits are the ordinary way to say "not this batch, not now", so the
+ * one thing the writer was promised was the one thing that did not happen.
+ *
+ * `wasKept` is what separates a decision from a default: a stray the reader
+ * arrived with unticked, or a restatement the app left out, was never the
+ * writer's note to defer. */
+function park(groups, target){
+  const rows = [];
+  (groups || []).forEach(st => (st.notes || []).forEach(n => {
+    if (n.keep || n.gone || !n.wasKept) return;
+    rows.push({
+      text: n.text,
+      projectId: (target && target.id) || null,
+      projectName: (target && target.name) || null,
+    });
+  }));
+  if (rows.length) parkUnticked(rows);
+}
 
 document.getElementById("revgo").addEventListener("click", () => {
   /* Two lists that are not placements, gathered before anything moves.
@@ -8282,9 +8351,22 @@ document.getElementById("revgo").addEventListener("click", () => {
      goes to the pile, unless the batch CAME from the pile, in which case it
      is already waiting there and doing nothing is the right thing. */
   const fromPile = sortingIds.length > 0;
+  /* THROWING ONE AWAY HAS TO WORK ON BOTH ROUTES.
+     A row placed by hand carries the id of the note it came from. A row that
+     came back from the read does not, because the read is handed text and
+     gives text back. So the ones without an id are matched by their words
+     against the batch the writer is actually sorting. Without this, Throw this
+     away silently did nothing after a paid read and the note was offered again
+     the next morning. */
+  const inHand = PENDING.filter(c => sortingIds.indexOf(c.id) >= 0);
   const binned = [];
   plan.forEach(st => st.notes.forEach(n => {
-    if (n.gone) (n.caps || []).forEach(id => binned.push(id));
+    if (!n.gone) return;
+    if (n.caps && n.caps.length){ n.caps.forEach(id => binned.push(id)); return; }
+    const k = noteKey(n.text);
+    inHand.forEach(c => {
+      if (noteKey(c.body) === k && binned.indexOf(c.id) < 0) binned.push(c.id);
+    });
   }));
   /* A note the app left out because another note already says it, which the
      writer looked at and did not tick back on. It has been dealt with: it does
@@ -8292,9 +8374,15 @@ document.getElementById("revgo").addEventListener("click", () => {
      again tomorrow. */
   const settled = plan.flatMap(st => st.notes.filter(n => n.echo && !n.keep && !n.gone));
   if (!plan.some(st => st.notes.some(n => n.keep && !n.gone))){
-    markSorted([], binned);
+    /* NOTHING TICKED IS NOT NOTHING TO DO.
+       This used to leave without parking anything, so a writer who unticked a
+       whole batch to deal with tomorrow lost every note in it. Unticking means
+       not now, and it has to mean that here as much as anywhere else. */
+    if (!fromPile) park(plan, null);
+    markSorted(settled, binned);
     scrim.hidden = true;
     hideAll();
+    if (state && state.view === "slate") renderSlate();
     return;
   }
   snapshot();
@@ -8306,7 +8394,14 @@ document.getElementById("revgo").addEventListener("click", () => {
 
   plan.forEach((st, si) => {
     const notes = st.notes.filter(n => n.keep);
-    if (!notes.length && (si > 0 || importIntoNew)) return;
+    if (!notes.length && (si > 0 || importIntoNew)){
+      /* No project gets made for a group nobody ticked, and that is right. But
+         the notes in it were still typed by somebody, so they go to the pile
+         before this returns rather than leaving with the sheet. Unfiled,
+         because the script they were bound for does not exist. */
+      if (!fromPile) park([st], null);
+      return;
+    }
     let target;
     if (si === 0 && importIntoNew){
       // Started from the dashboard: there was no project in front of the
@@ -8386,16 +8481,9 @@ document.getElementById("revgo").addEventListener("click", () => {
       });
       added++;
     });
-    /* Unticked on purpose, and it arrived in a paste, so this sheet is the
-       only place it exists. It goes to the pile rather than nowhere. */
-    if (!fromPile){
-      const park = st.notes.filter(n => !n.keep && !n.gone && n.wasKept);
-      if (park.length) parkUnticked(park.map(n => ({
-        text: n.text,
-        projectId: (target && target.id) || null,
-        projectName: (target && target.name) || null,
-      })));
-    }
+    // Unticked on purpose, and it arrived in a paste, so this sheet is the
+    // only place it exists. It goes to the pile rather than nowhere.
+    if (!fromPile) park([st], target);
     /* Mark it dirty here, by hand.
 
        save() only ever marks P(), the project you are looking at. That is
