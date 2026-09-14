@@ -2920,3 +2920,38 @@ signup is not shown phone store buttons at all.
 Everything else still passes: 81 flows, 55 regression, 18 money, 22 proxy, 16
 gate, 12 hook, 6 clean. The gate was re-run at all four device profiles after
 its stylesheet was split.
+
+## 14 September 2026: The date on the card, and a handoff
+
+Two things.
+
+**Dates are on screen.** They were being recorded from 13 September and shown
+nowhere. They are bottom right on a board card, a character sheet and a note,
+invisible until the card is hovered or tabbed into, sitting in padding the card
+already had so nothing changes height when they appear. The face of it is the
+day it arrived; the explainer carries the full day and, if the words have ever
+been changed, the day that happened.
+
+`stampEdit` was written on 13 September and never called from anywhere, so
+`edited` could not be set at all. Both places a writer can change the words of a
+card now call it.
+
+flows.js went from 183 to 204 checks.
+
+**CLAUDE.md was four days out of date.** It stopped at 5 September with a few
+10 September notes in it, and so did this file. Everything since, the phone's
+account screen, the public deletion page, the legal documents opening in the
+app, semantic duplicates, the audit, the four note-loss fixes, the build check,
+the timestamps and the back buttons, was in the code and in no record anywhere.
+A new session would have been reading a description of a product four days gone.
+
+There is now a section at the bottom of CLAUDE.md called "Where things stand
+(14 September 2026)". It supersedes the older sections where they disagree, and
+it ends with seven open defects, each one re-read in the file today rather than
+recalled. Three are on the phone, three are on the server, one is a line of copy
+that never shipped. The worst is the first: after Send, the capture screen keeps
+holding the dead local id of a working title that has just become a real script,
+so the next note goes to a script that no longer exists and the next Send makes
+a second one with the same name.
+
+418 checks across ten suites, all passing.

@@ -1623,11 +1623,8 @@ unless the count is zero, in which case it says "Every one has a card."
 
 ## Email addresses (2 Sep 2026)
 
-- **support@beatfall.app** is the one address the PRODUCT uses. Footer feedback
-  link, billing page, the phone app, the deletion page, the server's own error
-  messages, anywhere a writer is invited to write in. It was contact@ until
-  13 Sep 2026, when Kris changed it; if you find a contact@ anywhere it is a
-  leftover and should be swapped.
+- **contact@beatfall.app** is the one address the PRODUCT uses. Footer feedback
+  link, billing page, anywhere a writer is invited to write in.
 - **privacy@** and **legal@** stay in the Privacy Policy and Terms. Those are
   named channels people expect in a legal document, and a privacy request is a
   different kind of mail from a bug report.
@@ -1792,70 +1789,173 @@ The empty writing box beneath every Outline beat says What happens in this
 beat? Do not vary that prompt based on whether a primary card is present; the
 start gate makes the old empty-beat distinction unnecessary for new Outlines.
 
-## The account screen and the three ways out (13 Sep 2026)
+## Where things stand (14 September 2026). READ THIS FIRST.
 
-Researched against the live App Store and Play policies rather than from
-memory, because getting this wrong is a rejected submission rather than a bug.
-The findings that shaped it, each verified on 13 Sep:
+Everything above stops at 5 September, with a few 10 September notes woven in.
+This section covers 11 to 14 September and supersedes the older sections
+wherever they disagree.
 
-- **Apple 5.1.1(v):** if an app supports account creation it must offer account
-  deletion IN the app, of the WHOLE account, not deactivation, and it may not
-  be harder than the web route. "Email us to delete" is refused outright; the
-  regulated-industry exception does not cover a notes app.
-- **Google:** the same in-app route AND a public web page where somebody who
-  has already uninstalled can still ask. That URL goes in the Play data safety
-  form and a reviewer clicks it. A homepage or a generic contact form fails.
-- **Both stores:** a privacy policy link must be reachable inside the app.
-  Neither requires terms, and neither requires data export.
-- **Apple 4.8:** Sign in with Apple is NOT required, because Beatfall uses its
-  own email code and no social login. Adding Google sign-in would trigger it.
-- **Money:** a free companion to a web subscription may state the plan as plain
-  text. A purchase link is allowed only on the US storefront and 3.1.3(f) was
-  never amended to match, so there is no button anywhere. Do not add one.
-- **Apple 2.1(a):** a reviewer cannot receive an emailed code. A demo account
-  with a fixed code, named in the review notes, is the single likeliest cause
-  of a first rejection. STILL TO DO.
+### What is on disk that the sections above never mention
 
-**Three doors to the same room:** `mobile/src/Account.js`, Settings on the desk,
-and `public/delete.html`. Apple needs the first, Google needs the first and the
-third. All three end at the same endpoint and all three ask for the email as
-the confirmation, deliberately, because parity is a review requirement.
+- `api/` is TEN functions now, not nine. `captures.js` is the phone's endpoint.
+- `public/delete.html`, the public account deletion page. Signed out, by email
+  code, `noindex`. Google Play requires it and it is built.
+- `mobile/src/Account.js`, the phone's account screen.
+- `test/pages.js` and `test/mobile.js`, two suites that did not exist.
+- `public/app.html` is about 11,500 lines.
 
-`api/account.js` waives the one-browser lock for exactly two things, GET and
-`delete_account`, and reads the body before calling `requireUser` to decide.
-Everything else on that endpoint stays locked to one browser. `test/server/
-gate.js` asserts which door is which, and `setup.js` records the options passed
-to `requireUser` so it can.
+### The verification list, in full
 
-`public/delete.html` is public, `noindex`, and works signed out: it asks for the
-address, sends a code, and only then offers the button. Its `signInWithOtp` uses
-`shouldCreateUser: false`, which is the one line in that file that must never
-change: without it a stranger typing any address gets an account created for
-them so that they can delete it.
+This is the whole thing. Run it BEFORE asking Kris to push, not after. He said
+so on 13 September and he was right to.
 
-The phone account screen is deliberately thin, and the header comment in
-`Account.js` lists what is on it and what is kept off. No profile, no display
-name, no theme switch, nothing that leads to a payment. Comparable apps that
-are worth copying here are Readwise Reader and Obsidian: identity and status on
-the phone, configuration at the desk.
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js ; node flows.js ; node pages.js ; node mobile.js
 
-**Still open on the store path:** the reviewer demo account, a D-U-N-S number
-for the Play organisation account (up to 28 days, gates everything), and
-confirming the Android build targets API 36, which Google has required of new
-apps since 31 Aug 2026.
+    cd server
+    node setup.js
+    node money.js ; node gate.js ; node hook.js ; node clean.js
+    node captures.js ; node proxy.js
 
-## Verifying, 13 Sep 2026
+Counts on 14 September: flows 204, drive 55, pages 40, mobile 5, money 18,
+gate 21, hook 18, clean 6, captures 29, proxy 22. **418 checks, all passing.**
+A lower count means something is wrong with the checkout, not with the test.
 
-`test/pages.js` joins the list. It builds its own stub from `public/delete.html`
-and drives the signed-in route, the signed-out route, a refused delete and an
-address with no account behind it.
+`test/mobile.js` exists because the phone app died twice on a red screen from
+packages that were imported and never declared in package.json. It checks that
+every file parses and that every imported package is DECLARED, not merely
+present in node_modules. node_modules lies. There is no allowlist.
 
-    cd test ; node pages.js
+### One definition of "the same note", in three places
 
-Current counts: flows 127, drive 55, pages 26, and on the server money 18,
-gate 21, hook 18, clean 6, captures 29.
+`noteKey()` in `app.html`, `same()` in `api/captures.js`, `same()` in
+`mobile/src/store.js`. Whitespace, case, curly quotes, trailing full stop and
+comma. **All three must agree or a twin slips through whichever is loosest.**
+Change one, change all three.
 
-Two fixture rots were fixed the same week and the lesson is the same both
-times: **never write a real date into a test fixture.** `drive.js` carried a
-trial ending 20 September, and when the calendar reached it the suite started
-failing on a day nobody had touched the code. Dates are relative to now.
+Near-duplicates are `restates(a, b)`: Jaccard similarity of 0.85 or better on
+content words, both sides at least four content words long. The model also
+answers an `e` field for the synonym-level ones two sentences apart in wording
+and identical in meaning.
+
+**A read costs a flat 2 credits regardless of how many notes are in it.**
+Collapsing duplicates does not save credits. I told Kris it did. It does not.
+
+### Timestamps (13 to 14 September)
+
+`stampNew(thing, when)` sets `at` if it is absent. `stampEdit(thing, before)`
+sets `edited` only when the words actually changed, so opening and saving a
+sheet is not a rewrite. Applied at four card-creation sites and in
+`blankChar()`.
+
+Shown bottom right, invisible until the card is hovered or tabbed into, on
+`.icard`, `.ccard` and `.ncard`. It sits in padding the card already had, so
+nothing changes height when it appears. Anything made before 13 September has
+neither date and shows nothing at all, deliberately: we did not start writing
+this down until then and will not invent a date from a save time.
+
+**Outline passages are plain strings and are NOT dated.** Dating them changes
+their shape and every reader of `proj.outline`. Deferred on purpose.
+
+### Store path, researched from primary sources on 12 September
+
+- Apple guideline 5.1.1(v): an app offering account creation must offer account
+  deletion inside the app. Built, in `mobile/src/Account.js`.
+- Google Play requires in-app deletion AND a public web URL reachable without
+  signing in. Built, `public/delete.html`. Its critical line is
+  `signInWithOtp` with `shouldCreateUser: false`, so the page cannot be used to
+  mint accounts.
+- Privacy and Terms open INSIDE the app, via `?app=1`, which hides the topbar's
+  billing link and "Back to the board". A writer must never be dumped onto the
+  website from the phone app.
+- **support@beatfall.app is the product address now, not contact@.**
+  `mobile/src/config.js` is the single source of it.
+- Still Kris's own actions: a reviewer demo account with a fixed code, a D-U-N-S
+  number for Google (up to 28 days to obtain), confirming Android targets API
+  36, and creating the support@ mailbox.
+
+### THE OPEN LIST, re-read in the code on 14 September
+
+Every one of these was verified today by opening the file. They are real and
+they are not fixed.
+
+**1. The phone creates a duplicate script, and this is the one that will bite.**
+`refresh()` in `Capture.js` reloads only `rows` and `tally`. After Send,
+`runSync()` promotes a working title into a real script in SQLite and in
+storage, but neither the screen's `script` state nor the list inside
+`useScripts()` is reloaded. The next note is filed under the dead `local:` id,
+and the next Send makes a SECOND script with the same name. It fires on the
+ordinary path: name a script, Send, type another note, Send.
+
+**2. The phone can wipe itself without signing out.** `signOut()` in
+`supabase.js` swallows its own error and never throws, so `quit()` in
+`Account.js` runs `store.wipe()` whether or not the sign-out happened. On a bad
+connection the phone ends up emptied and still signed in. The warning shown
+BEFORE sign-out is good and does its job; this is only the failure path after
+the writer has already agreed.
+
+**3. Deleting an account can report a failure that already succeeded.** `kill()`
+in `Account.js` wraps `deleteAccount`, `wipe`, `signOut` and the alert in one
+try. Anything that throws after the server call leaves the writer reading an
+error which says nothing happened, when the account is gone.
+
+**4. The captures upsert is not scoped to the account.**
+`api/captures.js`, `.upsert(fresh, { onConflict: 'id' })`. Ids are generated on
+the client. A client that sends an id belonging to another account overwrites
+that row, `user_id` included. Vanishingly unlikely by accident, trivial on
+purpose. **Fix it in the endpoint, not in the schema.**
+
+**5. Cleanup deletes accounts it never warned.** `api/cleanup.js`, the
+`idle >= DELETE_AFTER` branch, deletes without ever checking that a
+`deletion_warned` event exists. An account that could not be warned, because
+the mail key was missing or the send bounced, is deleted at six months having
+been told nothing. The five-month branch is careful about exactly this; the
+six-month branch is not.
+
+**6. `place` and `route` are unmetered.** `COST.place` and `COST.route` are 0,
+so `credits > 0` is false and the charge, the credit check and the session turn
+ceiling are all skipped together. Any signed-in account can loop `/api/claude`
+with `kind: 'place'` and spend Kris's Anthropic money without limit. Placing
+notes being FREE is the right product decision and is not in question; placing
+notes being UNBOUNDED is a different thing that came along with it.
+
+**7. `mobile/src/SignIn.js` line 100 still reads "Catch it before it goes."**
+The change to "Catch your ideas before they're gone" was asked for on
+11 September and never shipped.
+
+### Four note-loss bugs, found and fixed on 13 September
+
+All four were mine, from the two days before. All four are held down by tests in
+`flows.js` now. Do not reintroduce them.
+
+- `markSorted` matched text loosely, so an unticked duplicate was claimed as
+  sorted and disappeared. It claims one to one now: exact first, then
+  containment at 20 characters or more, **never by resemblance.**
+- Unticking a whole batch left the sheet without parking anything.
+- Unticking one group out of several lost that group's notes.
+- A park that failed said nothing at all.
+
+`park(groups, target)` is the ONE place notes go to the pile. It used to be
+written inline at the bottom of the apply loop, where two early exits skipped
+it, and both of those exits are the ordinary way to say "not this batch".
+
+### Getting back out of the note process (13 September)
+
+`fromPile`, `viaPaste` and `pileNext` are read and cleared inside `openImport`
+rather than set at each of its seven call sites, so a new way into the paste box
+cannot forget where it came from. Silence means a plain paste, which is the safe
+answer. Back goes one step to wherever the writer actually was, which for a
+batch placed by hand is the pile, because that batch never saw the paste box.
+
+### Standing rules not written anywhere above
+
+- **Kris is not a developer.** He has said outright that he does not understand
+  the technical explanations and has to trust me implicitly. Explanations in
+  plain words. Verification has to be something he can do with his own hands.
+- **Do not run screenshot-and-look loops on his work.** Images cost him real
+  money and he has said so more than once.
+- Never say "Claude" or "the AI" in the interface. It is "the writing help".
+- No em dashes anywhere, comments included. `grep -c` and expect 0.
+- Check the build before asking him to push.
