@@ -97,7 +97,7 @@ export default function SignIn() {
 
         {stage === 'email' ? (
           <>
-            <Text style={s.h1}>Catch it before it goes.</Text>
+            <Text style={s.h1}>Catch your ideas before they're gone.</Text>
             <Text style={s.lede}>
               This is the phone half of Beatfall. Say the line you just thought of,
               pick the script it belongs to, and it is on your board when you sit down.

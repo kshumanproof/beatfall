@@ -31,6 +31,34 @@ check('and exactly one abandoned account is acted on',
   b.deleted + b.warned === 1, JSON.stringify(b));
 check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.stringify(b));
 
+/* NOBODY IS DELETED WHO WAS NEVER TOLD.
+   Six months idle is not on its own a reason to delete an account. The warning
+   at five months is only a promise kept if it actually went out, and it does
+   not go out when the mail key is missing or the send bounces. This is a real
+   run, not a dry one, against an account well past six months with no
+   deletion_warned event anywhere. */
+{
+  const forgotten = [
+    {id:'never-told', email:'n@x', last_seen_at: old(400), is_admin:false, is_internal:false,
+     subscription_status:null, trial_ends_at:old(380)}
+  ];
+  globalThis.__DB__ = makeDb({id:'x'}, {profiles: forgotten});
+  globalThis.__DB__.auth = { admin: { deleteUser: async id => {
+    (globalThis.__DELETED2__ ||= []).push(id); return {error:null}; } } };
+  globalThis.__DELETED2__ = [];
+  const r2 = res();
+  await handler({ method:'GET', headers:{'x-cron-secret':'sec'}, query:{key:'sec'} }, r2);
+
+  check('an account that was never warned is not deleted at six months',
+    (globalThis.__DELETED2__||[]).length === 0,
+    JSON.stringify(globalThis.__DELETED2__) + '  ' + JSON.stringify(r2.body));
+  check('and the job says out loud that it could not warn it',
+    (r2.body||{}).could_not_warn === 1, JSON.stringify(r2.body));
+  check('the events table still holds no warning it did not send',
+    ((globalThis.__DB__.state.events)||[]).length === 0,
+    JSON.stringify(globalThis.__DB__.state.events));
+}
+
 const failed = out.filter(x=>!x.ok);
 console.log('\n' + (out.length-failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

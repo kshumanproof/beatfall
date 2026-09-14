@@ -92,6 +92,24 @@ export default function Capture({ email }) {
     let r = null;
     try { r = await runSync(); } catch (e) {}
     await refresh();
+
+    /* A WORKING TITLE THAT HAS JUST BECOME A REAL SCRIPT CHANGED ITS ID.
+     *
+     * runSync puts that right everywhere it is written down: the notes still
+     * waiting, the cached shelf, and the remembered choice. What it cannot
+     * reach is this screen, which is still holding the old `local:` id in
+     * memory. Left alone, the next note is filed under an id the server has
+     * never heard of, and the Send after that creates a SECOND script with
+     * the same name.
+     *
+     * Both pieces are read back from disk rather than patched by hand, so
+     * there is one answer to "which script is this" and it is the stored one. */
+    if (r && r.promoted) {
+      const agreed = await lastScript();
+      setScript(agreed.project || null);
+      shelf.reload();
+    }
+
     if (r && r.sent) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setEverSent(true);
@@ -103,7 +121,7 @@ export default function Capture({ email }) {
         + 'Press Send again when you have signal.');
     }
     setSending(false);
-  }, [refresh, sending]);
+  }, [refresh, sending, shelf.reload]);
 
   useEffect(() => { refresh(); }, [refresh]);
 

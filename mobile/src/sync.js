@@ -32,6 +32,11 @@ export async function runSync() {
   if (running) { again = true; return { skipped: true }; }
   running = true;
   let result = { sent: 0, ok: false };
+  /* How many working titles turned into real scripts on this run. The screen
+     has to know, because promoting one changes an id that the screen is still
+     holding in memory. Reported on every result, including the failed ones:
+     the titles can be created and the notes still not get sent. */
+  let promoted = 0;
   try {
     let pending = await store.pending();
     if (!pending.length) { result = { sent: 0, ok: true }; return result; }
@@ -51,6 +56,7 @@ export async function runSync() {
     if (titles.length) {
       const made = await realise(titles);
       for (const m of made) await store.promoteProject(m.localId, m.project);
+      promoted = made.length;
       pending = await store.pending();
     }
 
@@ -87,6 +93,9 @@ export async function runSync() {
     result = { sent: 0, ok: false, why: e && e.status };
   } finally {
     running = false;
+    // Every exit above returns `result`, and there are five of them. Stamping
+    // it here once is the only way this cannot be forgotten on a new one.
+    result.promoted = promoted;
   }
   if (again) { again = false; runSync(); }
   return result;

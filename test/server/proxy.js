@@ -1,5 +1,5 @@
 import handler from './api/claude.real.js';
-import { entitlement, PLANS, PAID_PLAN } from './api/_lib/core.js';
+import { entitlement, PLANS, PAID_PLAN, FREE_PER_HOUR } from './api/_lib/core.js';
 const ALL = PLANS[PAID_PLAN].credits;   // not a typed 150, see money.js
 import { makeDb } from './fakedb.js';
 
@@ -145,6 +145,64 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   check('an empty turn does not discard what came before it',
     sent && sent.messages.some(m => /the first thing/.test(m.content)),
     sent ? JSON.stringify(sent.messages.map(m=>m.content.slice(0,20))) : 'nothing');
+}
+
+/* FREE IS NOT THE SAME AS UNMETERED.
+ *
+ * COST.place is 0, and every guard in the proxy hangs off `credits > 0`, so a
+ * price of zero used to switch off the balance check, the session ceiling and
+ * the charge together. Placing notes is free by design and stays free; it is
+ * the UNBOUNDED part that was the defect, because the upstream call behind it
+ * costs real money whether or not a credit does. */
+{
+  const db = makeDb(paid());
+  let ok = 0, refusedCode = 0;
+  for (let i = 0; i < FREE_PER_HOUR + 25; i++) {
+    const r = await call(db, {kind:'place', session:'one-session', input:'note ' + i});
+    if (r.code === 200) ok++; else refusedCode = r.code;
+  }
+  check('placing notes is still free', db.state.profile.credits_used === 0,
+    JSON.stringify(db.state.profile));
+  check('but it stops at the hourly ceiling instead of running for ever',
+    ok === FREE_PER_HOUR, ok + ' accepted, ceiling is ' + FREE_PER_HOUR);
+  check('and what it answers past that is a refusal, not an error',
+    refusedCode === 429, String(refusedCode));
+}
+
+/* The bound must key on the PRICE, not on what this particular call worked out
+   to. An import is one payment and up to 150 calls, and every one after the
+   first computes to zero credits: counting those would make a long file start
+   refusing itself halfway through reading. */
+{
+  const db = makeDb(paid());
+  const r1 = await call(db, {kind:'import', session:'big-file', input:'batch 1'});
+  check('an import pays once', r1.code === 200 && db.state.profile.credits_used === 2,
+    JSON.stringify(db.state.profile));
+
+  // 139 more batches on that one payment. Well inside the import's own session
+  // ceiling, and every one of them computes to zero credits.
+  let all = true;
+  for (let i = 0; i < 139; i++) {
+    const r = await call(db, {kind:'import', session:'big-file', input:'batch ' + i});
+    if (r.code !== 200) { all = false; break; }
+  }
+  check('a long file reads right through on that one payment', all,
+    'an import started refusing itself partway');
+  check('and still only ever cost its two credits',
+    db.state.profile.credits_used === 2, JSON.stringify(db.state.profile));
+
+  // The thing that matters: none of those 140 zero-credit turns was counted as
+  // a free-KIND call, so placing still has its whole hour in front of it. Key
+  // the ceiling on the computed credits instead of on COST and this is the
+  // check that goes red.
+  let placed = 0;
+  for (let i = 0; i < FREE_PER_HOUR; i++) {
+    const r = await call(db, {kind:'place', session:'placing', input:'note ' + i});
+    if (r.code !== 200) break;
+    placed++;
+  }
+  check('and the free turns of a paid import never eat into the placing ceiling',
+    placed === FREE_PER_HOUR, placed + ' of ' + FREE_PER_HOUR + ' placements got through');
 }
 
 const failed = out.filter(r => !r.ok);

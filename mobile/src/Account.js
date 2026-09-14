@@ -146,11 +146,21 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
 
   const quit = async () => {
     setBusy(true);
-    try {
-      await signOut();
-      // The notes and the cached shelf belong to the account that just left.
-      await store.wipe();
-    } catch (e) {}
+    const left = await signOut();
+    if (!left) {
+      /* The wipe used to run either way, because signOut never reported a
+         failure. The notes on this phone belong to the account that is signed
+         in, so if the sign-out did not happen that account is still signed in
+         and throwing its notes away buys nothing at all. Nothing is changed
+         and the writer is told, which leaves them able to try again. */
+      setBusy(false);
+      Alert.alert("You're still signed in",
+        "Beatfall couldn't sign you out just now, so nothing has been changed and "
+        + 'your notes are still here. Try again when you have signal.');
+      return;
+    }
+    // The notes and the cached shelf belong to the account that just left.
+    try { await store.wipe(); } catch (e) {}
     setBusy(false);
     if (onCleared) onCleared();
   };
@@ -158,27 +168,42 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
   const kill = async () => {
     if (busy) return;
     setBusy(true); setRefused(null);
+
+    /* ONE CALL CAN FAIL AND MEAN "nothing happened". Only one.
+     *
+     * All four steps used to sit in a single try, so anything that threw AFTER
+     * the server had already removed the account left the writer reading
+     * "Nothing has been deleted" about an account that was gone. That is the
+     * worst sentence this screen can say, because the only reasonable response
+     * to it is to try again on an account that no longer exists.
+     *
+     * So the server call stands alone, and everything past it is tidying up
+     * this phone: best effort, and never able to report a refusal.
+     *
+     * The server is careful about its half: if it could not reach Stripe, or
+     * could not remove the account, it says which and nothing is deleted.
+     * Whatever it said is what the writer needs to read, and it belongs on
+     * THIS screen. It used to be written into the same field as "could not
+     * reach the server", so a refused delete showed up under NOTES on the menu
+     * behind it, attached to nothing. */
     try {
       await deleteAccount(mine);
-      await store.wipe();
-      await signOut('local');
-      /* Apple asks that a writer be told when the deletion has finished, and
-         it is the decent thing anyway: the screen behind this is about to
-         become a sign-in page, which on its own reads like being logged out
-         rather than like the thing you asked for having happened. */
-      Alert.alert('Your account has been deleted',
-        'Everything in it is gone. Thank you for trying Beatfall.');
-      if (onCleared) onCleared();
     } catch (e) {
-      /* The server is careful about this: if it could not reach Stripe, or
-         could not remove the account, it says which half happened and nothing
-         is deleted. Whatever it said is what the writer needs to read, and it
-         belongs on THIS screen. It used to be written into the same field as
-         "could not reach the server", so a refused delete then showed up under
-         NOTES on the menu behind it, attached to nothing. */
       setRefused((e && e.message) || 'That did not work. Nothing has been deleted.');
       setBusy(false);
+      return;
     }
+
+    // Past this line the account is gone and nothing below can change that.
+    try { await store.wipe(); } catch (e) {}
+    try { await signOut('local'); } catch (e) {}
+    /* Apple asks that a writer be told when the deletion has finished, and it
+       is the decent thing anyway: the screen behind this is about to become a
+       sign-in page, which on its own reads like being logged out rather than
+       like the thing you asked for having happened. */
+    Alert.alert('Your account has been deleted',
+      'Everything in it is gone. Thank you for trying Beatfall.');
+    if (onCleared) onCleared();
   };
 
   const ready = typed.trim().toLowerCase() === String(mine).trim().toLowerCase();

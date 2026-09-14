@@ -70,6 +70,21 @@ export const COST = {           // credits per action
   import: 2
 };
 
+/* A FREE ACTION IS STILL AN ACTION SOMEBODY PAYS FOR.
+ *
+ * Placing a note costs 0 credits and should. But a price of zero used to
+ * switch off every limit in the proxy at once, because the charge, the balance
+ * check and the session ceiling all hang off `credits > 0`. Free meant
+ * unmetered, and unmetered meant any signed-in account could sit in a loop on
+ * /api/claude spending real money upstream with nothing in the way.
+ *
+ * Free stays free. It is bounded rather than unlimited now: a rolling hourly
+ * count of the zero-priced kinds, per account. Placing a note is one
+ * deliberate press, so this is far above a hard day's work and far below
+ * anything worth pointing a script at. It is not a pricing number and does not
+ * appear on any page. */
+export const FREE_PER_HOUR = 200;
+
 // Anthropic list price for the model we use, in dollars per million tokens.
 // Update these two numbers if pricing moves; everything downstream follows.
 export const MODEL       = 'claude-haiku-4-5';

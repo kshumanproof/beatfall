@@ -18,6 +18,11 @@ import { admin } from './_lib/core.js';
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 const WARN_AFTER   = 5 * MONTH;
 const DELETE_AFTER = 6 * MONTH;
+/* How long a warning has to have been standing before the account it warned
+   may be deleted. It is the gap the five and six month marks already describe,
+   written down as its own rule so that an account warned LATE, for whatever
+   reason, still gets its month rather than being deleted the next morning. */
+const WARN_GRACE   = 1 * MONTH;
 const BATCH = 200;              // a slow scheduled job is fine; a timeout is not
 
 // Never touch an account that is still paying, or still inside its trial.
@@ -113,7 +118,28 @@ export default async function handler(req, res) {
 
     const idle = now - new Date(p.last_seen_at).getTime();
 
-    if (idle >= DELETE_AFTER) {
+    /* WAS THIS PERSON ACTUALLY TOLD, AND WHEN.
+     *
+     * Both branches below need the answer, so it is read once. The deletion
+     * branch used to not ask at all: it went on idle time alone, so an account
+     * whose warning never went out, because the mail key was missing or the
+     * send bounced, was deleted at six months having been told nothing. The
+     * five-month branch was careful about exactly this and the six-month one
+     * was not.
+     *
+     * Only .eq() and .order() here. PostgREST's grammar is not the stand-in
+     * database's, and this is the query that must not be clever. */
+    const { data: told } = await db.from('events')
+      .select('created_at').eq('user_id', p.id).eq('name', 'deletion_warned')
+      .order('created_at', { ascending: true }).limit(1);
+    const warnedAt = (told && told.length && told[0].created_at)
+      ? new Date(told[0].created_at).getTime() : 0;
+
+    /* Six months idle AND warned AND the warning has had its month to be read.
+       An account that fails any of the three falls through to the warning
+       branch instead, which will send one if it can. Nothing is ever deleted
+       on idle time alone. */
+    if (idle >= DELETE_AFTER && warnedAt && now - warnedAt >= WARN_GRACE) {
       if (!dry) {
         // Deleting the auth user cascades to profile, projects, usage and events.
         const { error: delErr } = await db.auth.admin.deleteUser(p.id);
@@ -123,10 +149,8 @@ export default async function handler(req, res) {
       continue;
     }
 
-    // Five months: warn once, and only once.
-    const { data: already } = await db.from('events')
-      .select('id').eq('user_id', p.id).eq('name', 'deletion_warned').limit(1);
-    if (already && already.length) { skipped.push(p.id); continue; }
+    // Warn once, and only once.
+    if (warnedAt) { skipped.push(p.id); continue; }
 
     /* `warned.push` used to sit outside this branch. With no mail key set,
        warn() returns false without sending anything, no deletion_warned event

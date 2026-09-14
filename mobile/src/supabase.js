@@ -122,13 +122,19 @@ export async function submitCode(email, code) {
    a failed signOut never emits the event App.js is listening for, so the app
    sits on a dead session showing a board that cannot load. Locally is enough:
    the token is gone from this phone either way. */
+/* Answers whether the writer is actually signed out, because the caller acts
+   on it: Account.js throws this phone's notes away afterwards, and doing that
+   on the back of a sign-out that did not happen empties the phone for nothing.
+   Supabase RETURNS its failures here rather than throwing them, so ignoring
+   the return value was the same as not checking at all. */
 export async function signOut(scope) {
   const s = await sb();
-  if (!s) return;
+  if (!s) return false;
   try {
-    await s.auth.signOut(scope ? { scope } : undefined);
+    const { error } = await s.auth.signOut(scope ? { scope } : undefined);
+    return !error;
   } catch (e) {
-    // The session is being thrown away regardless. Nothing to recover.
+    return false;
   }
 }
 

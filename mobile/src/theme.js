@@ -1,7 +1,7 @@
 // ============================================================================
 // The same room as the website. Paper ground, ink that actually passes
 // contrast, blue for what you can touch, gold for what's missing. These are
-// the exact values from public/theme.css — if one changes there, change it
+// the exact values from public/theme.css. If one changes there, change it
 // here, or the two halves of Beatfall stop looking like one product.
 // ============================================================================
 
@@ -49,7 +49,7 @@ const dark = {
   red:       '#D98A8A',
 };
 
-// Softened, not rounded away — the card still reads as a card.
+// Softened, not rounded away. The card still reads as a card.
 export const radius = { card: 4, ctl: 5, panel: 9 };
 
 export const font = {

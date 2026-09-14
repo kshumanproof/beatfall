@@ -3,7 +3,7 @@
 //
 // Metro picks this file over store.js for the `web` platform and ignores it
 // everywhere else, so nothing here reaches an iPhone or an Android build. It
-// exists so the app can be opened in a browser — for design review, and so
+// exists so the app can be opened in a browser: design review, and so that
 // getting a look at it never depends on a phone, a QR code and a firewall.
 //
 // It keeps notes in localStorage rather than memory, so a refresh doesn't wipe

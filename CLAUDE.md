@@ -1819,9 +1819,11 @@ so on 13 September and he was right to.
     node money.js ; node gate.js ; node hook.js ; node clean.js
     node captures.js ; node proxy.js
 
-Counts on 14 September: flows 204, drive 55, pages 40, mobile 5, money 18,
-gate 21, hook 18, clean 6, captures 29, proxy 22. **418 checks, all passing.**
-A lower count means something is wrong with the checkout, not with the test.
+Counts after the 14 September fixes: flows 204, drive 55, pages 40, mobile 5,
+money 18, gate 21, hook 18, clean 9, captures 33, proxy 29. **432 checks, all
+passing.** It was 418 before the seven open items were closed; the fourteen new
+ones hold three of those fixes down. A lower count means something is wrong with
+the checkout, not with the test.
 
 `test/mobile.js` exists because the phone app died twice on a red screen from
 packages that were imported and never declared in package.json. It checks that
@@ -1876,54 +1878,90 @@ their shape and every reader of `proj.outline`. Deferred on purpose.
   number for Google (up to 28 days to obtain), confirming Android targets API
   36, and creating the support@ mailbox.
 
-### THE OPEN LIST, re-read in the code on 14 September
+### THE OPEN LIST, all seven closed on 14 September
 
-Every one of these was verified today by opening the file. They are real and
-they are not fixed.
+All seven were verified in the code first, three of them reproduced by running
+the shipped endpoint against the stand-in database, and all seven then fixed.
+The three server ones have tests now and cannot come back quietly. The four
+phone ones have no runnable test and were reasoned from the code: if one of
+them reappears it will be from the phone, not from a suite.
 
-**1. The phone creates a duplicate script, and this is the one that will bite.**
-`refresh()` in `Capture.js` reloads only `rows` and `tally`. After Send,
-`runSync()` promotes a working title into a real script in SQLite and in
-storage, but neither the screen's `script` state nor the list inside
-`useScripts()` is reloaded. The next note is filed under the dead `local:` id,
-and the next Send makes a SECOND script with the same name. It fires on the
-ordinary path: name a script, Send, type another note, Send.
+**1. The phone created a duplicate script.** Fixed in `sync.js` and
+`Capture.js`. `runSync()` now reports `promoted`, the number of working titles
+it turned into real scripts, stamped on the result in its `finally` so none of
+its five exits can forget it. After a Send that promoted anything, `send()`
+re-reads the chosen script with `lastScript()` and calls `shelf.reload()`. Both
+are read back from disk, which `promoteProject` had already put right, rather
+than patched by hand. The bug was never in the data; it was the screen holding
+a dead `local:` id in memory.
 
-**2. The phone can wipe itself without signing out.** `signOut()` in
-`supabase.js` swallows its own error and never throws, so `quit()` in
-`Account.js` runs `store.wipe()` whether or not the sign-out happened. On a bad
-connection the phone ends up emptied and still signed in. The warning shown
-BEFORE sign-out is good and does its job; this is only the failure path after
-the writer has already agreed.
+**2. The phone could wipe itself without signing out.** Fixed in `supabase.js`
+and `Account.js`. `signOut()` returns true or false, and the false case is real:
+Supabase RETURNS its failures rather than throwing them, so the old try/catch
+caught nothing and the return value was being dropped. `quit()` now wipes only
+on a true, and otherwise changes nothing and says so.
 
-**3. Deleting an account can report a failure that already succeeded.** `kill()`
-in `Account.js` wraps `deleteAccount`, `wipe`, `signOut` and the alert in one
-try. Anything that throws after the server call leaves the writer reading an
-error which says nothing happened, when the account is gone.
+Worth correcting for the record: the symptom as written here was wrong. `wipe()`
+does `DELETE FROM kv`, and the session lives in `kv`, so the phone was never
+left signed in on disk. What actually happened was the capture screen staying up
+looking signed in over an empty notebook until the next launch. The defect was
+real, the severity was lower than this file claimed.
 
-**4. The captures upsert is not scoped to the account.**
-`api/captures.js`, `.upsert(fresh, { onConflict: 'id' })`. Ids are generated on
-the client. A client that sends an id belonging to another account overwrites
-that row, `user_id` included. Vanishingly unlikely by accident, trivial on
-purpose. **Fix it in the endpoint, not in the schema.**
+**3. Deleting an account could report a failure that already succeeded.** Fixed
+in `Account.js`. `deleteAccount` stands alone in its own try and returns early on
+a throw. Everything past it, the wipe, the local sign-out and the alert, is
+tidying up this phone and cannot report a refusal. Nothing below that line can
+make "Nothing has been deleted" appear over an account that is gone.
 
-**5. Cleanup deletes accounts it never warned.** `api/cleanup.js`, the
-`idle >= DELETE_AFTER` branch, deletes without ever checking that a
-`deletion_warned` event exists. An account that could not be warned, because
-the mail key was missing or the send bounced, is deleted at six months having
-been told nothing. The five-month branch is careful about exactly this; the
-six-month branch is not.
+**4. The captures upsert was not scoped to the account.** Fixed in
+`api/captures.js`, in the endpoint as instructed, not in the schema: this
+endpoint holds the service key and bypasses row-level security, so the schema was
+never what stood in the way. The ids in the batch are looked up first and any
+that already belong to another account are dropped from the write and logged. A
+refused row is deliberately NOT reported as accepted, so the sender keeps
+offering one note it can never land and the rest of its batch goes through.
+Reproduced before the fix: a row owned by u2 came back owned by u1 with u1's
+text in it. Four checks in `test/server/captures.js`.
 
-**6. `place` and `route` are unmetered.** `COST.place` and `COST.route` are 0,
-so `credits > 0` is false and the charge, the credit check and the session turn
-ceiling are all skipped together. Any signed-in account can loop `/api/claude`
-with `kind: 'place'` and spend Kris's Anthropic money without limit. Placing
-notes being FREE is the right product decision and is not in question; placing
-notes being UNBOUNDED is a different thing that came along with it.
+**5. Cleanup deleted accounts it never warned.** Fixed in `api/cleanup.js`. The
+warning event is read once, with its `created_at`, and both branches use it.
+Deletion now needs three things together: six months idle, a warning that exists,
+and `WARN_GRACE` of one month since it was written. Anything failing any of the
+three falls through to the warning branch instead. An account whose warning
+cannot be sent is never deleted and shows up in `could_not_warn` on every run,
+which is the loud signal it should always have been. The new constant exists so
+an account warned LATE still gets its month. Three checks in `clean.js`.
 
-**7. `mobile/src/SignIn.js` line 100 still reads "Catch it before it goes."**
-The change to "Catch your ideas before they're gone" was asked for on
-11 September and never shipped.
+**6. `place` and `route` were unmetered.** Fixed in `api/_lib/core.js` and
+`api/claude.js`. Free was never the problem and has not changed; unbounded was.
+`FREE_PER_HOUR` is 200, a rolling hourly count per account over the zero-priced
+kinds, which are read off `COST` rather than listed again so making something
+free cannot quietly make it unmetered too.
+
+**The one thing to not get wrong here if you touch it:** the ceiling keys on
+`COST[kind]`, the PRICE, and never on the computed `credits`, which is also zero
+for the later turns of something already paid for. An import is one payment and
+up to 150 calls. Count those and a long file starts refusing itself halfway
+through reading. There is a check in `proxy.js` that goes red if anybody makes
+that swap: 140 free import turns, then a full 200 placements still get through.
+
+**7. `mobile/src/SignIn.js`** now reads "Catch your ideas before they're gone."
+
+Also done in the same pass: three em dashes in phone comments
+(`theme.js` twice, `store.web.js` once). The audit habit had only ever covered
+`public/` and `api/`, which is how they survived. `mobile/` is in the sweep now.
+
+### Still open, found on 14 September and not fixed
+
+- **The homepage hardcodes the price.** `public/index.html` reads "Then $12 a
+  month or $99 a year" as plain text, on a page that already fetches
+  `/api/config` for the session check and gets `pricing` back in the same
+  response and ignores it. Not lying today because the prices have not moved.
+  It is the same bug this file says has been fixed three times, sitting on the
+  one page every new writer reads first. Left alone because it is a copy change
+  on the marketing page rather than a defect, and Kris has not been asked.
+- `admin.html` prints the label "AI calls". Only Kris ever sees that page, so it
+  is a judgement call rather than a breach of the naming rule.
 
 ### Four note-loss bugs, found and fixed on 13 September
 

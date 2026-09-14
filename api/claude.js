@@ -5,7 +5,11 @@
 // Every call: verify the person, check their remaining credits, call Claude,
 // then record exactly what it cost against their account.
 // ============================================================================
-import { requireUser, entitlement, charge, refund, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE, track } from './_lib/core.js';
+import { requireUser, entitlement, charge, refund, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE, FREE_PER_HOUR, track } from './_lib/core.js';
+
+/* The kinds that cost nothing, read off COST rather than listed again here,
+   so making something free cannot quietly make it unmetered as well. */
+const FREE_KINDS = Object.keys(COST).filter(k => COST[k] === 0);
 
 // A hard ceiling per call, so one runaway request can't cost a fortune.
 const MAX_INPUT_CHARS = 60000;
@@ -104,6 +108,33 @@ export default async function handler(req, res) {
              + `Everything except the writing help keeps working.`,
       used: ent.used, allowance: ent.monthly, banked: ent.banked
     });
+  }
+
+  /* THE FREE KINDS ARE BOUNDED, NOT UNLIMITED.
+   *
+   * Everything above this line is guarded by `credits > 0`, so a kind priced
+   * at zero walked past the balance check, the session ceiling and the charge
+   * together. Placing notes being free is the right product decision and is
+   * not in question here; placing notes being unbounded was a separate thing
+   * that came along with it.
+   *
+   * Keyed on COST[kind], the PRICE, and never on `credits`, which is also zero
+   * for the later turns of something already paid for. An import is one
+   * payment and up to 150 calls, and none of those may be counted here or a
+   * long file would start refusing itself halfway through. */
+  if (COST[kind] === 0) {
+    const anHourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
+    const { count } = await db.from('usage')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id).in('kind', FREE_KINDS).gte('created_at', anHourAgo);
+    if ((count || 0) >= FREE_PER_HOUR) {
+      console.error('free-kind ceiling reached', user.id, kind, count);
+      return send(res, 429, {
+        error: 'too_fast',
+        message: "That's a lot of placing in one go. Give it a few minutes and try again. "
+               + 'Nothing has been charged and nothing is lost.'
+      });
+    }
   }
 
   // ---- build the request -------------------------------------------------

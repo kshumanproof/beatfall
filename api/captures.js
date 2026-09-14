@@ -119,15 +119,43 @@ export default async function handler(req, res) {
     const dropped = rows.filter(r => !fresh.includes(r)).map(r => r.id);
     if (!fresh.length) return send(res, 200, { accepted: dropped });
 
+    /* AN ID FROM A CLIENT MAY ONLY EVER LAND ON THIS ACCOUNT'S OWN ROW.
+     *
+     * The id is made on the phone, and that is the whole reason re-sending a
+     * batch is harmless. It is also why this check has to exist: the upsert
+     * keys on the id alone, so a client sending an id that belongs to somebody
+     * else would overwrite that person's note and carry `user_id` across with
+     * it, taking the row with it. Vanishingly unlikely by accident, since the
+     * ids are random, and trivial on purpose.
+     *
+     * Checked here rather than in the schema deliberately. This endpoint holds
+     * the service key and bypasses row-level security, so the schema was never
+     * the thing standing in the way.
+     *
+     * A refused row is NOT reported as accepted. The sender keeps offering one
+     * note it can never land, which costs nothing and stays visible in the log,
+     * and the rest of its batch goes through untouched. */
+    const { data: already } = await db.from('captures')
+      .select('id,user_id').in('id', fresh.map(r => r.id));
+    const theirs = new Set((already || [])
+      .filter(r => String(r.user_id) !== String(user.id))
+      .map(r => String(r.id)));
+    const ours = theirs.size ? fresh.filter(r => !theirs.has(String(r.id))) : fresh;
+    if (theirs.size) {
+      console.error('captures: refused', theirs.size,
+        'id(s) belonging to another account, sent by', user.id);
+    }
+    if (!ours.length) return send(res, 200, { accepted: dropped });
+
     const { error } = await db.from('captures')
-      .upsert(fresh, { onConflict: 'id' });
+      .upsert(ours, { onConflict: 'id' });
     if (error) return send(res, 500, { error: 'write_failed' });
 
     // Catching a note is working on the script. The phone sends its own local
     // date because only the phone knows what day it is where the writer stands.
-    if (fresh.some(r => !r.deleted_at)) markWorkDay(db, user.id, body.day);
+    if (ours.some(r => !r.deleted_at)) markWorkDay(db, user.id, body.day);
 
-    return send(res, 200, { accepted: fresh.map(r => r.id).concat(dropped) });
+    return send(res, 200, { accepted: ours.map(r => r.id).concat(dropped) });
   }
 
   // ------------------------------------------------- what is still waiting --

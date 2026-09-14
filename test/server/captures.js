@@ -189,5 +189,34 @@ const note = (id, extra={}) => ({id, body:'the dog knows first', created_at: Dat
   check('an unsupported method says so', r3.code === 405, String(r3.code));
 }
 
+// ---------- an id that belongs to somebody else
+/* The ids are made on the phone, which is what lets a batch be re-sent safely
+   and is also what makes this possible: the upsert keys on the id alone, so a
+   client that claims another account's id would otherwise overwrite that row
+   and take the user_id with it. No accident could do this; only a deliberate
+   client. */
+{
+  const theirs = {id:'THEIRS', user_id:'u2', body:'the ending is the funeral',
+    project_id:'p-theirs', project_name:'Their Film', source:'phone',
+    created_at:'2026-09-01T00:00:00Z', updated_at:'2026-09-01T00:00:00Z', deleted_at:null};
+  const db = makeDb(P(), {projects: mine, captures: [{...theirs}], work_days: []});
+  const r = await hit(db, {method:'POST', body:{captures:[
+    {id:'THEIRS', body:'I was never here', created_at: Date.now()},
+    note('ours')
+  ]}});
+
+  const row = db.state.captures.find(c => c.id === 'THEIRS');
+  check("a note belonging to another account is never written over",
+    row.user_id === 'u2' && row.body === theirs.body, JSON.stringify(row).slice(0,160));
+  check('and it is not quietly re-owned either',
+    row.user_id === 'u2' && row.project_id === 'p-theirs', JSON.stringify(row).slice(0,160));
+  check('the refused id is NOT reported as accepted, so the sender cannot forget it',
+    r.code === 200 && (r.body.accepted || []).indexOf('THEIRS') < 0,
+    r.code + ' ' + JSON.stringify(r.body));
+  check("and the rest of that batch still lands",
+    (r.body.accepted || []).indexOf('ours') >= 0 && !!db.state.captures.find(c => c.id === 'ours'),
+    JSON.stringify(r.body));
+}
+
 console.log('\n' + out.filter(o => o.ok).length + ' of ' + out.length + ' passed');
 if (out.some(o => !o.ok)) { console.log('\nFAILED:'); out.filter(o => !o.ok).forEach(o => console.log('  ' + o.n)); process.exit(1); }
