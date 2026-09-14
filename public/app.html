@@ -717,6 +717,22 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   display:inline-block;margin-top:8px;font-family:var(--sans);font-size:9px;font-weight:600;
   text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
 }
+/* WHEN IT ARRIVED, bottom right and quiet.
+   It sits inside the padding the card already has under its last line, so
+   showing it moves nothing and costs the board no height. The top right
+   corner is spoken for by the four controls, which is why this corner. */
+.icard .cdate,.ncard .cdate{
+  position:absolute;right:9px;bottom:3px;
+  font-family:var(--sans);font-size:9.5px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-4);
+  opacity:0;transition:opacity .12s ease;pointer-events:none;
+}
+.icard:hover .cdate,.icard:focus-within .cdate,
+.ncard:hover .cdate,.ncard:focus-within .cdate{opacity:1;pointer-events:auto}
+/* No pointer, no hover, so nothing would ever reveal it. It just stays. */
+@media (hover:none){
+  .icard .cdate,.ncard .cdate,.ccard .cdate{opacity:.75;pointer-events:auto}
+}
 
 /* ----- material filed under a beat, without becoming the beat itself ----- */
 .attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
@@ -927,6 +943,15 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .ccard .cbar i{display:block;height:100%;background:var(--blue)}
 .ccard .cmeta{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--ink-4)}
 .ccard .cmeta b{color:var(--gold);font-weight:600}
+/* In the row rather than over it, because this card ends in small print and
+   already has a right-hand edge going spare. Nothing moves when it appears:
+   it is pushed to that edge whether it is showing or not. */
+.ccard .cdate{
+  margin-left:auto;font-family:var(--sans);font-size:9.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--ink-4);
+  opacity:0;transition:opacity .12s ease;
+}
+.ccard:hover .cdate,.ccard:focus-visible .cdate{opacity:1}
 
 /* Three fixed bands and a scrolling middle: what this is, the way out of a
    blank page, then ten fields that scroll, then Save. Letting the whole sheet
@@ -1225,7 +1250,8 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .ncard{
   background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
   box-shadow:var(--shadow);
-  padding:14px 15px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+  padding:14px 15px 17px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+  position:relative;
 }
 .ncard .chip{align-self:flex-start}
 .ncard .t{font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--ink)}
@@ -4010,7 +4036,8 @@ function cardEl(c){
     + '<button class="del" title="Delete card" aria-label="Delete card">&times;</button>'
     + '<div class="body">' + esc(c.text) + "</div>"
     + (c.suggested ? '<span class="suggested" title="Beatfall suggested this wording. Edit the card and the label goes.">suggested</span>' : "")
-    + hint;
+    + hint
+    + dateTag(c);
 
   el.addEventListener("dragstart", e => {
     e.dataTransfer.setData("text/plain", String(c.id));
@@ -4105,7 +4132,12 @@ function cardEl(c){
     body.contentEditable = "false";
     el.draggable = true;
     const v = body.textContent.trim();
-    if (v && v !== c.text){ c.text = v; c.suggested = false; render(); return; }
+    if (v && v !== c.text){
+      const was = c.text;
+      c.text = v; c.suggested = false;
+      stampEdit(c, was);
+      render(); return;
+    }
     if (!v) body.textContent = c.text;
     save();
   });
@@ -7874,6 +7906,42 @@ function stampNew(thing, when){
   return thing;
 }
 
+/* SHOWING THEM. The date is small, quiet, bottom right, and out of the way
+   until the card is under the pointer, because a board of forty cards each
+   wearing a visible date is a spreadsheet. Hover is not the only way to it:
+   tabbing into the card shows it too, and on a screen with no pointer at all
+   it simply stays visible, since a fact nobody can reach is not a feature. */
+function dayLabel(ms){
+  const d = new Date(Number(ms) || 0);
+  if (!ms || isNaN(d.getTime())) return "";
+  const opts = {month: "short", day: "numeric"};
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString(undefined, opts);
+}
+function fullDay(ms){
+  const d = new Date(Number(ms) || 0);
+  if (!ms || isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {month: "long", day: "numeric", year: "numeric"});
+}
+
+/* The tag itself, or nothing at all.
+ *
+ * Nothing at all is the answer for everything that was already on a board
+ * before today, and that is the honest one: we did not start writing this down
+ * until now, so there is no date to show and we will not invent one from the
+ * day the file happened to be saved.
+ *
+ * The face of it is the day it arrived, because that is the question a writer
+ * asks of a card. The day it last changed is the smaller question, so it goes
+ * in the explainer alongside the first, where both can be read together. */
+function dateTag(thing){
+  if (!thing || !thing.at) return "";
+  const tip = "Added " + fullDay(thing.at) + "."
+    + (thing.edited && thing.edited > thing.at
+        ? " Last changed " + fullDay(thing.edited) + "." : "");
+  return '<span class="cdate" data-tip="' + esc(tip) + '">' + esc(dayLabel(thing.at)) + "</span>";
+}
+
 /* The words changed. Called with what they used to be, so that saving a sheet
    without touching it does not read as a rewrite: an edited date that moves
    every time somebody opens a card is worth less than no date at all. */
@@ -9253,6 +9321,7 @@ function renderCast(){
       + '<div class="cbar"><i style="width:' + pct + '%"></i></div>'
       + '<div class="cmeta">' + pct + "% filled in"
       + (blanks ? '<b>' + blanks + " blank" + (blanks === 1 ? "" : "s") + "</b>" : "")
+      + dateTag(c)
       + "</div>";
     el.addEventListener("click", () => openChar(c.id));
     grid.appendChild(el);
@@ -9594,7 +9663,8 @@ function renderNotes(){
       const el = document.createElement("div");
       el.className = "ncard " + kind;
       el.innerHTML = '<span class="chip ' + kind + '">' + esc(KINDS[kind]) + "</span>"
-        + '<div class="t"></div><div class="on" hidden></div><div class="r"></div>';
+        + '<div class="t"></div><div class="on" hidden></div><div class="r"></div>'
+        + dateTag(c);
       el.querySelector(".t").textContent = c.text;
       const row = el.querySelector(".r");
 
@@ -9655,7 +9725,13 @@ function renderNotes(){
       textEl.addEventListener("blur", () => {
         textEl.setAttribute("contenteditable", "false");
         const v = textEl.textContent.trim();
-        if (v && v !== c.text){ snapshot(); c.text = v; save(); render(); }
+        if (v && v !== c.text){
+          snapshot();
+          const was = c.text;
+          c.text = v;
+          stampEdit(c, was);
+          save(); render();
+        }
         else if (!v) textEl.textContent = c.text;
       });
       textEl.addEventListener("keydown", e => {

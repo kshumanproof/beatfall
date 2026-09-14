@@ -1423,6 +1423,142 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ================================================= AND NOW IT IS ON SCREEN
+     Bottom right, hidden until the card is under the pointer, and absent
+     entirely from everything that predates the recording. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+
+    const shown = await page.evaluate(() => {
+      const proj = P();
+      // One card from today, one from last summer, one from before any of this
+      // was written down. Three different answers on one board.
+      proj.cards.push({id: 900, text: 'the second key is taped under the sill',
+        slot: 'mid', pinned: true, at: Date.now()});
+      proj.cards.push({id: 901, text: 'a coat left on the fence for three days',
+        slot: 'bad', pinned: true,
+        at: new Date(2025, 6, 12, 9).getTime(), edited: new Date(2025, 7, 1, 9).getTime()});
+      render();
+
+      const at = id => document.querySelector('.icard[data-id="' + id + '"]');
+      const tagOf = id => at(id) && at(id).querySelector('.cdate');
+      const older = tagOf(901);
+
+      // The one that came with the board has no date and must not invent one.
+      const legacy = at(1);
+
+      const card = at(900);
+      const tag = tagOf(900);
+      const cbox = card.getBoundingClientRect();
+      const tbox = tag.getBoundingClientRect();
+
+      return {
+        today: tag.textContent,
+        thisYearHasNoYear: !/20\d\d/.test(tag.textContent),
+        lastYearSaysSo: older.textContent.indexOf('2025') >= 0,
+        // Both dates in the explainer once the words have been changed once.
+        tipBoth: /Added .*2025.* Last changed .*2025/.test(older.getAttribute('data-tip') || ''),
+        tipOne: (tag.getAttribute('data-tip') || '').indexOf('Last changed') < 0,
+        legacyHasNone: !legacy.querySelector('.cdate'),
+        hiddenAtRest: getComputedStyle(tag).opacity === '0',
+        // Bottom right of the card it belongs to, and inside it.
+        rightThird: tbox.left > cbox.left + (cbox.width * 0.5),
+        bottomThird: tbox.top > cbox.top + (cbox.height * 0.5),
+        insideCard: tbox.bottom <= cbox.bottom + 1 && tbox.right <= cbox.right + 1,
+        cardHeight: cbox.height,
+      };
+    });
+    check('a card made today shows the day it arrived', /\w/.test(shown.today), shown.today);
+    check('and drops the year, since it is this one', shown.thisYearHasNoYear, shown.today);
+    check('a card from last year keeps its year', shown.lastYearSaysSo);
+    check('the explainer names both dates once the words have changed', shown.tipBoth);
+    check('and only one when they have not', shown.tipOne);
+    check('a card written before any of this stays undated', shown.legacyHasNone);
+    check('the date is invisible until the card is under the pointer', shown.hiddenAtRest);
+    check('it sits in the bottom right', shown.rightThird && shown.bottomThird,
+      JSON.stringify({r: shown.rightThird, b: shown.bottomThird}));
+    check('and inside the card, not hanging off it', shown.insideCard);
+
+    // Hovering must reveal it and must not move the card, because a board that
+    // reflows under the pointer is a board you cannot aim at.
+    await page.hover('.icard[data-id="900"]');
+    await page.waitForTimeout(200);
+    const hovered = await page.evaluate(prev => {
+      const card = document.querySelector('.icard[data-id="900"]');
+      const tag = card.querySelector('.cdate');
+      return {
+        visible: getComputedStyle(tag).opacity === '1',
+        sameHeight: Math.abs(card.getBoundingClientRect().height - prev) < 0.5,
+      };
+    }, shown.cardHeight);
+    check('hovering shows it', hovered.visible);
+    check('and the card does not change height when it appears', hovered.sameHeight);
+
+    // A character sheet and a note both carry one, in the corner their own
+    // layout leaves free.
+    const others = await page.evaluate(() => {
+      const proj = P();
+      proj.characters = [Object.assign(blankChar(), {name: 'Dale', role: 'Protagonist',
+        want: 'to get out from under the debt'})];
+      proj.cards.push({id: 902, text: 'he never says her name out loud',
+        slot: '__shelf', kind: 'line', at: Date.now()});
+      setView('cast', true);
+      const ccard = document.querySelector('#castgrid .ccard');
+      const cmeta = ccard.querySelector('.cmeta');
+      const cdate = ccard.querySelector('.cdate');
+      const mbox = cmeta.getBoundingClientRect();
+      const dbox = cdate.getBoundingClientRect();
+      setView('notes', true);
+      const ncard = document.querySelector('#notesbody .ncard');
+      const ndate = ncard && ncard.querySelector('.cdate');
+      const nb = ncard.getBoundingClientRect();
+      const db = ndate && ndate.getBoundingClientRect();
+      return {
+        castHas: !!cdate,
+        castHidden: getComputedStyle(cdate).opacity === '0',
+        // At the right-hand end of the line it shares, not floating over it.
+        castOnTheLine: Math.abs(dbox.right - mbox.right) < 2,
+        noteHas: !!ndate,
+        noteHidden: ndate ? getComputedStyle(ndate).opacity === '0' : false,
+        noteInside: db ? (db.bottom <= nb.bottom + 1 && db.right <= nb.right + 1) : false,
+        noteBottomRight: db ? (db.left > nb.left + nb.width * 0.5
+          && db.top > nb.top + nb.height * 0.5) : false,
+      };
+    });
+    check('a character sheet carries one too', others.castHas);
+    check('quietly, until the card is under the pointer', others.castHidden);
+    check('at the right end of the line it already had', others.castOnTheLine);
+    check('and so does a note on the shelf', others.noteHas);
+    check('the same way', others.noteHidden);
+    check('inside its card, bottom right', others.noteInside && others.noteBottomRight);
+
+    // Changing the words through the real control, not by calling stampEdit.
+    const edited = await page.evaluate(async () => {
+      setView('board', true);
+      const card = document.querySelector('.icard[data-id="900"]');
+      card.querySelector('.edit').click();
+      const body = card.querySelector('.body');
+      body.textContent = 'the second key is taped under the wheel arch';
+      body.dispatchEvent(new Event('blur'));
+      await new Promise(r => setTimeout(r, 150));
+      const c = P().cards.find(x => x.id === 900);
+      const tag = document.querySelector('.icard[data-id="900"] .cdate');
+      return {
+        marked: !!c.edited,
+        stillSaysArrived: tag ? tag.textContent : '',
+        tip: tag ? tag.getAttribute('data-tip') : '',
+      };
+    });
+    check('changing a card in the app records that it changed', edited.marked);
+    check('the face of it still says the day it arrived',
+      /\w/.test(edited.stillSaysArrived), edited.stillSaysArrived);
+    check('and the explainer picks up the change',
+      edited.tip.indexOf('Last changed') >= 0, edited.tip);
+
+    check('no page errors showing dates', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');
