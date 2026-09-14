@@ -2203,6 +2203,11 @@ footer{
     <textarea id="dumptext" spellcheck="false" placeholder="drag .txt or .md files here, or paste&#10;&#10;he never tells her about the money, maybe that's the whole thing?&#10;the dog knows before anyone else does&#10;GRANDMOTHER: &quot;We don't say that name at this table.&quot;&#10;ends at the same kitchen table, different chair"></textarea>
     <div class="sheet-actions">
       <span class="sheet-count" id="dumpcount">nothing yet</span>
+      <!-- Only when this box was opened FROM the pile of phone notes. On that
+           route Cancel used to be the only way out and it threw the whole
+           errand away, so a writer who reached the price and thought better of
+           it had to start again from the dashboard. -->
+      <button class="btn" id="dumpback" hidden>Back</button>
       <button class="btn" id="dumpcancel">Cancel</button>
       <button class="btn" id="dumpstop" hidden>Stop</button>
       <button class="btn btn-gold" id="dumpgo" data-tip="Separate your notes and show the results before changing the board.">Sort my notes</button>
@@ -4560,7 +4565,7 @@ function commit(slotId){
            {count: (pending.options || []).length});
   snapshot();
   const proj = P();
-  proj.cards.push({id: uid++, text: pending.text, slot: slotId, pinned: false});
+  proj.cards.push(stampNew({id: uid++, text: pending.text, slot: slotId, pinned: false}));
   pending = null;
   proposal.hidden = true;
   input.value = ""; growNote(); paintCaptureMore();
@@ -5780,8 +5785,8 @@ document.getElementById("draftgo").addEventListener("click", () => {
   const slot = thread.slot;
   const untouched = thread.mode === "idea" && thread.origin
     && text.replace(/\s+/g," ").trim() === thread.origin.replace(/\s+/g," ").trim();
-  proj.cards.push({id: uid++, text, slot: slot.id, pinned: true, kind: "beat",
-                   suggested: untouched});
+  proj.cards.push(stampNew({id: uid++, text, slot: slot.id, pinned: true, kind: "beat",
+                   suggested: untouched}));
   const moves = settle(proj);
   closeAsk();
   thread = null;
@@ -5986,8 +5991,8 @@ document.getElementById("loadsample").addEventListener("click", () => {
     proj.cards = [];
     SAMPLE.forEach(text => {
       const ranked = score(text, proj.structure, proj);
-      proj.cards.push({id: uid++, text, slot: ranked[0].slot.id,
-                       pinned: false, fromSample: true});
+      proj.cards.push(stampNew({id: uid++, text, slot: ranked[0].slot.id,
+                       pinned: false, fromSample: true}));
     });
     settle(proj);
   }
@@ -6081,9 +6086,30 @@ function showSheet(el){
   });
 }
 
+/* WHERE THIS BATCH CAME FROM, so Back knows where back is.
+ *
+ * Three ways into the review sheet and they have three different behinds. A
+ * plain paste came from the box, so Back is the box. Notes read off the phone
+ * came through the box FROM the pile, so the box gets its own Back to the
+ * pile. Notes placed by hand never touched the box at all, so Back has to skip
+ * it entirely and go to the pile, which is where the writer thinks they are.
+ *
+ * Without this, Back from a hand-placed batch dropped the writer into an empty
+ * paste box they had never seen, and the read route had no Back at all. */
+let fromPile = false;          // this batch started at the pile of phone notes
+let viaPaste = false;          // and it went through the paste box on the way
+let pileNext = false;          // the pile is about to open the box; consumed below
+
 function openImport(intoNew, prefill){
   importIntoNew = !!intoNew;
   importDropped = false;
+  /* Read and cleared here rather than set at each of the seven call sites, so
+     a new way into this box cannot forget to say where it came from: silence
+     means a plain paste, which is the safe answer. */
+  fromPile = pileNext;
+  pileNext = false;
+  viaPaste = true;
+  document.getElementById("dumpback").hidden = !fromPile;
   showSheet(sheetPaste);
   dumptext.value = prefill || "";
   plan = null;
@@ -6138,6 +6164,8 @@ function closeImport(){
      would if Add had been pressed. A batch that came FROM the pile is already
      there and needs nothing. */
   if (!sortingIds.length && plan) park(plan, null);
+  fromPile = false;
+  viaPaste = false;
   scrim.hidden = true;
   if (dumpCtl) dumpCtl.abort();
   // A cancelled batch was never sorted, so it stays in the pile.
@@ -6154,7 +6182,22 @@ document.getElementById("revback").addEventListener("click", () => {
      in the pile and thrown away, and a phone note could be marked as dealt
      with because a pasted sentence happened to contain it. */
   sortingIds = [];
+  plan = null;
+  /* One step back, not one screen back. A batch placed by hand never went
+     through the paste box, so showing it the box would be showing it something
+     it has never seen. */
+  if (fromPile && !viaPaste){ showPhonePile(); return; }
   sheetReview.hidden = true; sheetPaste.hidden = false;
+});
+
+/* And out of the box, back to the pile it came from. */
+document.getElementById("dumpback").addEventListener("click", () => {
+  if (dumpCtl) dumpCtl.abort();
+  // The batch goes back on the shelf with the notes.
+  sortingIds = [];
+  plan = null;
+  dumptext.value = "";
+  showPhonePile();
 });
 scrim.addEventListener("click", e => {
   if (e.target !== scrim) return;
@@ -6398,6 +6441,8 @@ function collapse(items){
 function placeGroupByHand(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return true;
+  fromPile = true;
+  viaPaste = false;
   /* Asked for ONCE. It can create a board, so calling it again to check first
      would leave a second empty script on the shelf every time. */
   const target = destinationFor(key);
@@ -6446,6 +6491,7 @@ function destinationFor(key){
 function sortGroup(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return;
+  pileNext = true;
   sortingIds = items.map(c => c.id);
   // Collapsed BEFORE the read, not after. Three copies of one line is one
   // line to think about, and the read is metered: sending all three would
@@ -7796,6 +7842,48 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   })).filter(st => st.notes.length);
 }
 
+/* WHEN DID I WRITE THIS.
+ *
+ * Two dates on everything the writer makes, and only two, because they answer
+ * two different questions and one of them cannot stand in for the other:
+ *
+ *   at     when it arrived on the board
+ *   edited when its words last changed
+ *
+ * A beat caught in March and rewritten last night is both of those facts, and
+ * a single date has to lie about one of them.
+ *
+ * NOTHING SHOWS THESE YET, and that is deliberate. A date can be put on the
+ * screen at any point in the future; a date that was never written down is
+ * gone for good. So the recording lands now and the showing waits until there
+ * is somewhere it actually earns its place. Forty cards each wearing a
+ * timestamp is noise on a board whose whole job is shape at a glance.
+ *
+ * Everything already on a board has neither, and never will. Those will say
+ * nothing rather than guess, which is the honest answer to a question we did
+ * not start asking until today.
+ *
+ * They ride inside the project's own record, so there is no database change
+ * and nothing to migrate. Anything that reads a card and does not know about
+ * these two keys carries them along untouched, which is how every card that
+ * moves between beats keeps its history. */
+function stampNew(thing, when){
+  if (!thing || typeof thing !== "object") return thing;
+  const t = Number(when) || Date.now();
+  if (!thing.at) thing.at = t;
+  return thing;
+}
+
+/* The words changed. Called with what they used to be, so that saving a sheet
+   without touching it does not read as a rewrite: an edited date that moves
+   every time somebody opens a card is worth less than no date at all. */
+function stampEdit(thing, before){
+  if (!thing || typeof thing !== "object") return thing;
+  if (String(before == null ? "" : before) === String(thing.text == null ? "" : thing.text)) return thing;
+  thing.edited = Date.now();
+  return thing;
+}
+
 /* ---- the review: nothing lands on the board until the writer says so ---- */
 /* THE SAME NOTE, TWICE.
  *
@@ -8471,14 +8559,14 @@ document.getElementById("revgo").addEventListener("click", () => {
          the Hook and I am not sure enough to put it there" is visible and one
          drag from being right. On the shelf the hint is never even drawn. */
       const looking = n.kind === "beat" || real(n.maybe) || real(n.full);
-      target.cards.push({
+      target.cards.push(stampNew({
         id: uid++, text: n.text, pinned: false,
         kind: looking ? "beat" : n.kind,
         maybe: real(n.maybe) ? n.maybe : null,
         full: real(n.full) ? n.full : null,
         declared: !!n.declared,
         slot: looking ? (real(n.beat) ? n.beat : "__none") : "__shelf"
-      });
+      }));
       added++;
     });
     // Unticked on purpose, and it arrived in a paste, so this sheet is the
@@ -9116,7 +9204,7 @@ function charDone(c){
   return Math.round((got / CWEIGHT) * 100);
 }
 function charBlanks(c){ return CFIELDS.filter(f => !String(c[f.k] || "").trim()); }
-function blankChar(){ return {id: "c" + (uid++) + "-" + Date.now().toString(36)}; }
+function blankChar(){ return stampNew({id: "c" + (uid++) + "-" + Date.now().toString(36)}); }
 
 /* What the BOARD is told about the people in it.
 

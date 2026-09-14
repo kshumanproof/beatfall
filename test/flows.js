@@ -1307,6 +1307,122 @@ async function open(browser, projects, account = PAID) {
     await page.close();
   }
 
+  /* ============================================ BACK GOES BACK, NOT NOWHERE
+     Three ways into the review sheet, three different places behind it, and
+     Back used to assume all three came from the paste box. */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+
+    // Placing by hand never touches the paste box, so Back must skip it.
+    const hand = await page.evaluate(() => {
+      PENDING = [{id: 'n1', body: 'the porch light is on at noon',
+                  project_id: 'p-nighthaul', project_name: 'Night Haul'}];
+      showPhonePile();
+      document.querySelector('#sortgroups [data-hand]').click();
+      const onReview = !document.getElementById('sheetreview').hidden;
+      document.getElementById('revback').click();
+      return {onReview,
+              pile: !document.getElementById('sheetsort').hidden,
+              paste: !document.getElementById('sheetpaste').hidden,
+              held: sortingIds.length};
+    });
+    check('placing by hand opens the review sheet', hand.onReview === true);
+    check('and Back from it returns to the pile, not to a box never seen',
+      hand.pile === true && hand.paste === false, JSON.stringify(hand));
+    check('and the batch goes back on the shelf', hand.held === 0, String(hand.held));
+
+    // The paid route DOES go through the box, so the box gets its own Back.
+    const read = await page.evaluate(() => {
+      PENDING = [{id: 'n2', body: 'he pays cash for the second phone',
+                  project_id: 'p-nighthaul', project_name: 'Night Haul'}];
+      showPhonePile();
+      document.querySelector('#sortgroups [data-sort]').click();
+      const box = {open: !document.getElementById('sheetpaste').hidden,
+                   back: !document.getElementById('dumpback').hidden,
+                   text: dumptext.value.length > 0};
+      document.getElementById('dumpback').click();
+      return {box, pile: !document.getElementById('sheetsort').hidden,
+              held: sortingIds.length, left: dumptext.value};
+    });
+    check('Read them for me opens the box with the notes in it',
+      read.box.open === true && read.box.text === true, JSON.stringify(read.box));
+    check('and that box has a Back, which it never did before',
+      read.box.back === true);
+    check('pressing it returns to the pile', read.pile === true, JSON.stringify(read));
+    check('releases the batch', read.held === 0, String(read.held));
+    check('and leaves nothing behind in the box', read.left === '', read.left);
+
+    // A plain paste from the board has no pile behind it, so no Back to one.
+    const plain = await page.evaluate(() => {
+      openImport(false);
+      return {back: !document.getElementById('dumpback').hidden};
+    });
+    check('a paste that did not come from the pile is not offered a Back to it',
+      plain.back === false);
+    check('no page errors moving backwards', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* ==================================================== WHEN DID I WRITE THIS
+     Recorded on everything the writer makes, shown nowhere yet. A date can be
+     put on screen later; a date never written down is gone. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const out = await page.evaluate(() => {
+      const before = Date.now() - 1;
+      // Placed from the capture bar. commit() is the function every route to
+      // the board goes through, picker or suggestion, so it is the one worth
+      // holding down rather than the select that leads to it.
+      pending = {text: 'the second key is taped under the sill', options: []};
+      commit('last');
+      const placed = P().cards.find(c => /taped under the sill/.test(c.text));
+
+      // Arrived through an import.
+      importIntoNew = false;
+      plan = [{name: P().name, isCurrent: true, brief: {}, people: [], notes: [
+        {text: 'a coat left on the fence for three days', kind: 'beat', beat: 'open',
+         conf: 90, keep: true}]}];
+      dedupePlan();
+      renderReview();
+      document.getElementById('revgo').click();
+      const imported = P().cards.find(c => /coat left on the fence/.test(c.text));
+
+      // A character sheet made by hand.
+      const person = blankChar();
+
+      return {
+        placed: placed ? placed.at : null,
+        imported: imported ? imported.at : null,
+        person: person.at || null,
+        before,
+        // Old cards, made before today, must stay undated rather than be
+        // given a date they did not earn.
+        old: P().cards.filter(c => /the card for /.test(c.text)).every(c => !c.at),
+      };
+    });
+    check('a note placed by hand is dated', out.placed >= out.before, String(out.placed));
+    check('a note that arrived in an import is dated',
+      out.imported >= out.before, String(out.imported));
+    check('a character sheet is dated', out.person >= out.before, String(out.person));
+    check('and everything written before today stays undated rather than lying',
+      out.old === true);
+
+    // The edited date only moves when the words actually move.
+    const edit = await page.evaluate(() => {
+      const card = {text: 'she waits in the car', at: 1000};
+      stampEdit(card, 'she waits in the car');
+      const untouched = card.edited || null;
+      card.text = 'she waits in the truck';
+      stampEdit(card, 'she waits in the car');
+      return {untouched, moved: !!card.edited, at: card.at};
+    });
+    check('saving without changing the words is not a rewrite',
+      edit.untouched === null, String(edit.untouched));
+    check('changing them is', edit.moved === true);
+    check('and the day it arrived never moves', edit.at === 1000, String(edit.at));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');
