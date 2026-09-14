@@ -28,4 +28,6 @@ swap('../../api/cleanup.js',        'api/cleanup.real.js');
 swap('../../api/stripe-webhook.js', 'api/hook.real.js', s =>
   s.replace("import Stripe from 'stripe';",
             "const Stripe = function(){ return { webhooks: { constructEvent: () => globalThis.__EVENT__ } }; };"));
+swap('../../api/session.js',        'api/session.real.js');
+swap('../../api/admin.js',          'api/admin.real.js');
 console.log('endpoints copied and wired');

@@ -41,7 +41,21 @@ export function makeDb(profile, opts = {}) {
       update(p) { q._op = 'update'; q._patch = p; return api; },
       insert(r) { q._op = 'insert'; q._patch = r; return api; },
       upsert(r) { q._op = 'upsert'; q._patch = r; return api; },
-      async single()      { const r = rows(); return {data: r[0] || null, error: r.length ? null : {message:'no rows'}}; },
+      /* `single()` has to run the operation, not just read the table.
+         It used to return rows() directly, which meant any write ending in
+         .single() did NOTHING here and answered with the row as it was before.
+         Two shipped calls end that way, `api/session.js` claiming a browser and
+         `api/projects.js` creating a project, so both were invisible to this
+         suite: the write never happened and the test read the old value back
+         and believed it. PostgREST errors when .single() matches no row, so
+         that part is kept. */
+      async single() {
+        const r = await finish(true);
+        if (r.error) return r;
+        const row = Array.isArray(r.data) ? (r.data[0] ?? null) : (r.data ?? null);
+        return row ? { data: row, error: null }
+                   : { data: null, error: { message: 'no rows', code: 'PGRST116' } };
+      },
       async maybeSingle() { return finish(true); },
       then(res, rej) { return finish(false).then(res, rej); }
     };
