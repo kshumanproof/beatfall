@@ -234,6 +234,22 @@ header{
   -webkit-mask:var(--tagline-src) no-repeat left center/contain;
           mask:var(--tagline-src) no-repeat left center/contain;
 }
+/* THE MASTHEAD: the lockup with its line under it, which is where a tagline
+   belongs. Two things about this block are load bearing.
+
+   It is 40px, not the 34px the bar used to run at, and the size is the reason
+   the tagline can be here at all. At 34 the line's capitals are 7px and the
+   words are a smudge; at 40 they are 8.3px, which is the floor for reading
+   something this small. Shrinking it back is the same as deleting the line.
+
+   And it is a COLUMN, so the line hangs under the name instead of sitting
+   beside the mark competing with it. A flex column's baseline is its first
+   item's baseline, which here is the wordmark's, so the project name next to
+   it still sits where it always sat. Nothing else in the bar moved. */
+.masthead{--wm:40px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+  min-width:0}
+.masthead .brand{--wm:inherit}
+.masthead .brandtag{color:var(--ink-3)}   /* the same weight it carries in the footer */
 /* ===========================================================================
    THE WAIT WALL.
 
@@ -251,7 +267,15 @@ header{
    well under a fifth of a second and a full-screen animation on top of them
    reads as a fault rather than as progress.
    =========================================================================== */
-.loadwall{position:fixed;inset:0;z-index:300;background:var(--ground);
+/* The wall is translucent on purpose: the writer's own paste is behind it, and
+   seeing it faintly is what says "your notes are still there" while the read
+   runs. The opaque line first is the fallback for a browser without
+   color-mix; nothing breaks, it just covers instead of veiling. */
+.loadwall{position:fixed;inset:0;z-index:300;
+  background:var(--ground);
+  background:color-mix(in srgb, var(--ground) 84%, transparent);
+  -webkit-backdrop-filter:blur(9px) saturate(112%);
+          backdrop-filter:blur(9px) saturate(112%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
 .loadwall[hidden]{display:none}
 .fallmark{position:relative;width:104px;aspect-ratio:411/589}
@@ -291,10 +315,23 @@ header{
   color:var(--ink);text-align:center}
 .loadwall p{margin:0;font-size:14.5px;line-height:1.6;color:var(--ink-3);text-align:center;
   max-width:34ch}
+/* THE STATUS LINE IS THE HONEST PART OF A LOADING SCREEN. A wait with no word
+   on it feels twice as long, and one that names the wrong thing is worse than
+   silence. Every line this shows is a pass the read actually makes, and the
+   rail only moves when one of them has finished: nothing here is a timer
+   pretending to be progress. Which is also why there is no percentage on it. */
+.loadstep{margin-top:18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--gold);text-align:center;min-height:14px;
+  padding:0 16px}
+.loadrail{margin-top:13px;width:214px;max-width:70vw;height:3px;background:var(--rule);
+  border-radius:2px;overflow:hidden}
+.loadrail i{display:block;height:100%;width:0;background:var(--blue);border-radius:2px;
+  transition:width .45s cubic-bezier(.4,0,.2,1)}
 @media (prefers-reduced-motion: reduce){
   .fallmark .fm-card,.fallmark .fm-ticks{animation:none}
   .fallmark .fm-card{transform:none}
   .fallmark .fm-ticks{opacity:.85}
+  .loadrail i{transition:none}
 }
 /* Baseline-aligned like the two texts it divides: a block's baseline is its
    bottom edge, so the rule runs from above the cap down to the baseline. */
@@ -2081,6 +2118,11 @@ footer{
 @media (max-width:760px){
   /* the header was overlapping itself: let it wrap rather than collide */
   .topline{padding:12px 16px;gap:8px 14px;height:auto;flex-wrap:wrap}
+  /* Below this width the bar is already wrapping, and a 26px lockup puts the
+     tagline's capitals at 5px. It comes off rather than sitting there as a
+     grey blur. */
+  .masthead{--wm:26px}
+  .masthead .brandtag{display:none}
   .hsep{display:none}
   .projbar{order:2;flex-basis:100%;margin-top:-2px}
   .projbtn{max-width:100%}
@@ -2131,9 +2173,12 @@ footer{
          Drawn rather than loaded so it takes the palette with it into dark
          mode and costs no request. -->
     <div class="lead">
-    <a class="brand" href="/app" title="Beatfall">
-      <span class="brandmark"></span>
-    </a>
+    <div class="masthead">
+      <a class="brand" href="/app" title="Beatfall">
+        <span class="brandmark"></span>
+      </a>
+      <span class="brandtag" role="img" aria-label="Where your story falls into place."></span>
+    </div>
 
     <div class="hsep"></div>
 
@@ -2272,6 +2317,8 @@ footer{
     </div>
     <h2>Reading your notes</h2>
     <p>A few seconds. It asks before it guesses.</p>
+    <div class="loadstep" id="loadstep">Looking at the whole file</div>
+    <div class="loadrail" aria-hidden="true"><i id="loadbar"></i></div>
   </div>
 
   <div class="sheet" id="sheetpaste">
@@ -3819,6 +3866,22 @@ function showWall(on){
   const el = document.getElementById("loadwall");
   if (!el) return;
   el.hidden = !on;
+  if (on) wallStep("Looking at the whole file", 0);
+}
+
+/* The wall's status line and its rail. `share` is how much of the read is
+   behind us, and it is only ever called where a pass has genuinely finished,
+   so the rail cannot run ahead of the work. The weights are what the three
+   passes actually cost: one call to read the file, one call per batch of
+   notes, three parallel calls to cast the board. They are estimates of TIME,
+   never of certainty, and the wall says no number out loud for that reason. */
+function wallStep(words, share){
+  const s = document.getElementById("loadstep");
+  const b = document.getElementById("loadbar");
+  if (s && words) s.textContent = words;
+  if (b && typeof share === "number"){
+    b.style.width = Math.max(0, Math.min(1, share)) * 100 + "%";
+  }
 }
 
 function snapshot(){
@@ -7403,6 +7466,9 @@ async function claudePlan(raw){
   const items = foldNotes(raw, importStructure || proj.structure);
   const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
   if (!notes.length) return [];
+  // The first pass is done and the file has been split, so the wall can say a
+  // real number instead of a mood.
+  wallStep("Separating the ideas: " + notes.length + " notes", .15);
 
   const forced = new Map();
   // Groups this code invented, as opposed to stories the model actually found.
@@ -7723,9 +7789,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   for (let i = 0; i < notes.length; i += IMPORT_BATCH){
     const batch = notes.slice(i, i + IMPORT_BATCH);
     const lines = batch.map((n, k) => (i + k) + ". " + n.text.replace(/\s+/g, " ").slice(0, 400)).join("\n");
+    const upto = Math.min(notes.length, i + IMPORT_BATCH);
     document.getElementById("dumpcount").innerHTML =
       '<span class="spinner"></span>reading notes ' + (i + 1) + " to "
-      + Math.min(notes.length, i + IMPORT_BATCH) + " of " + notes.length;
+      + upto + " of " + notes.length;
+    /* The same count the sheet carries, on the wall that is covering the
+       sheet. The wall was hiding the one honest progress figure this read has
+       ever had, which is most of why it looked stuck. */
+    wallStep("Reading notes " + (i + 1) + " to " + upto + " of " + notes.length,
+             .15 + .55 * (i / notes.length));
     let data = null;
     try {
       data = await ask(
@@ -7787,7 +7859,9 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     if (!forced.has(idx) && codeMade.has(si)) si = 0;
     storyOf[idx] = si;
   });
+  wallStep("Weighing the notes against each beat", .7);
   const cast = await castTheBoard(notes, placed, storyOf, S, beats, ask);
+  wallStep("Placing what it is sure of", .93);
 
   /* ---- assemble, with the confidence gate and a hard per-beat ceiling ---- */
   const perBeat = {};
@@ -11208,7 +11282,7 @@ function showLoadFailure(){
 
   // Keep the universal masthead and its route home. Everything that assumes
   // project data exists stays out of sight and, more importantly, never runs.
-  document.querySelectorAll("header .topline > :not(.lead), header .lead > :not(.brand), main, footer, .capture, .trays, #slate, #outlineview, #notesview")
+  document.querySelectorAll("header .topline > :not(.lead), header .lead > :not(.masthead), main, footer, .capture, .trays, #slate, #outlineview, #notesview")
     .forEach(el => el && (el.hidden = true));
 
   document.body.insertAdjacentHTML("beforeend", `

@@ -99,11 +99,26 @@ button{font-family:inherit;color:inherit}
 .topbar-in{max-width:1560px;margin:0 auto;padding:0 28px;height:76px;
   display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .topbar-in .right{margin-left:auto;display:flex;gap:18px;align-items:center}
-.topbar-in>.brand{--wm:34px}
+/* THE MASTHEAD: the lockup with its line under it, which is where a tagline
+   belongs. 40px, not the 34 this bar used to run at, and the size is why the
+   line can be here at all: at 34 its capitals are 7px and the words are a
+   smudge, at 40 they are 8.3px, which is the floor for reading type this
+   small. Shrinking it back is the same as deleting the line.
+
+   A column, so the tagline hangs under the name rather than sitting beside the
+   mark competing with it. A flex column's baseline is its first item's, so
+   anything baseline aligned next to it still sits on the wordmark. */
+.topbar-in>.masthead{--wm:40px;display:flex;flex-direction:column;
+  align-items:flex-start;gap:6px;min-width:0}
+.topbar-in>.masthead .brand{--wm:inherit}
+.topbar-in>.masthead .brandtag{color:var(--ink-3)}
 
 @media(max-width:760px){
   .topbar-in{height:auto;min-height:68px;padding:10px 16px;gap:12px;flex-wrap:nowrap}
-  .topbar-in>.brand{--wm:26px}
+  /* A 26px lockup puts the tagline's capitals at 5px. It comes off rather
+     than sitting there as a grey blur. */
+  .topbar-in>.masthead{--wm:26px}
+  .topbar-in>.masthead .brandtag{display:none}
   .topbar-in>.slug{display:none}
   .topbar-in .right{gap:8px}
   .topbar-in .right .btn:not(.btn-primary){display:none}

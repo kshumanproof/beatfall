@@ -269,6 +269,10 @@ It is redrawn as inline SVG in the header of every page, so it takes the palette
 into dark mode and costs no request, and rasterised from his PNG for the
 favicon, the touch icon and the phone app. Do not propose alternatives.
 
+**That middle sentence is out of date and was the cause of a lot of trouble.
+Nothing is redrawn any more. See "The lockup, top to bottom (15 September
+2026)" near the bottom of this file, which supersedes this section.**
+
 `/home/claude/mkfavicon.py` builds the web set from his artwork; the supplied
 PNG has an opaque black export field, flood-filled away from the corners rather
 than colour-keyed, so the mark's own dark ink survives.
@@ -450,6 +454,19 @@ worth keeping:
 
 **It lives in the footer only now**, under the lockup, where a tagline goes.
 Do not put it back in the header.
+
+**REVERSED on 15 September, and read the reason before acting on the paragraph
+above.** The tagline is in the header of every page now, under the wordmark.
+Both objections above still stand and both were answered rather than
+overruled. It is not on the dashboard twice, because it is in the masthead on
+every page and the footer carries it once, which is a masthead and a sign-off
+rather than a repeat. And it is not in the slot that holds the script's name,
+because it hangs UNDER the lockup in a column of its own instead of sitting
+beside the mark where the name goes. What was wrong the first time was the
+placement, not the line.
+
+The other half of it: the lockup it sat under in 2 September was the redrawn
+one, not Kris's artwork. See "The lockup, top to bottom (15 September)".
 
 The footer lockup reuses the header's `.brand` markup verbatim, just smaller
 (`.foot-brand .wordmark` 22px, `.mark` 26px). The first version hand-built a
@@ -1819,10 +1836,11 @@ so on 13 September and he was right to.
     node money.js ; node gate.js ; node hook.js ; node clean.js
     node captures.js ; node proxy.js ; node lock.js
 
-Counts after the 14 September pass: flows 204, drive 55, pages 40, mobile 5,
-money 18, gate 21, hook 18, clean 18, captures 33, proxy 29, lock 16. **457
-checks, all passing.** It was 418 before the seven open items were closed. A
-lower count means something is wrong with the checkout, not with the test.
+Counts after the 15 September pass: flows 204, drive 68, pages 52, mobile 5,
+money 18, gate 21, hook 18, clean 18, captures 33, proxy 29, lock 16. **482
+checks, all passing.** It was 457 before the masthead landed and 418 before the
+seven open items were closed. A lower count means something is wrong with the
+checkout, not with the test.
 
 `lock.js` is new and covers `api/session.js` and `api/admin.js`, which had no
 suite at all: the one-browser lock, the takeover, the old browser signing out
@@ -2110,6 +2128,78 @@ field. Read the screen before giving instructions about it.
 **The templates live in the Supabase dashboard, not in this repo.** Nothing about
 them deploys. `email/` holds the source so the design is version controlled and
 rebuildable; pasting is a manual step and always will be.
+
+### The lockup, top to bottom (15 September 2026)
+
+Everything above about the mark being drawn as inline SVG is stale. **No page
+draws it. All twelve files use `.brandmark`, which loads one PNG.** That PNG is
+cut from Kris's master artwork by `brand-src/cut.py`, which reads the master's
+own transforms and ink box rather than eyeballing anything, and writes
+`public/brand/lockup.png` (1199x260) plus its dark twin and the same pair into
+`mobile/assets/`. Re-cut it by running the script; do not touch the PNGs by
+hand and do not redraw the mark. The reasoning is in the file's own docstring
+and it is worth reading before changing any of this.
+
+**The tagline had never rendered, for two separate reasons, and both are worth
+knowing because either one alone hides the other.** `--tagline-src` was a data
+URI wrapped in double quotes that contained 128 more double quotes, so the CSS
+string ended at the first inner one and the mask never loaded. It was invisible
+rather than obviously broken only because the element had no width: give it
+width and a failed mask paints a solid `currentColor` BAR, which looks like a
+deliberate design decision. The URI is percent-encoded now and carries
+`fill=%22%23000%22`, since a mask only reads alpha and `currentColor` inside it
+resolves against nothing.
+
+**The masthead is 40px, and the size is load bearing.** At the old 34 the
+tagline's capitals are 7px and the words are a smudge; at 40 they are 8.5px,
+which is the floor. Shrinking the masthead back is the same as deleting the
+line, so if it ever has to get smaller, take the tagline off instead, which is
+exactly what the phone breakpoints do at 26px.
+
+`.masthead` is a flex COLUMN holding `.brand` with `.brandtag` under it, and
+the column is what answers the 2 September objection: the line hangs beneath
+the name rather than sitting in the slot that holds the script's name. A flex
+column's baseline is its first item's, so the project name beside the lockup
+still sits on the wordmark's bottom edge and nothing else in the bar moved.
+There is a check in `drive.js` on exactly that, because if it ever stops being
+true the name drops about 17px and the bar looks wrong rather than broken.
+
+It is in `theme.css` for the nine pages that share the top bar, inline in
+`app.html` for the board, and inline in `index.html` for the homepage. Three
+copies of one idea, which is the shape this product already has for the account
+pill. Change one, change all three.
+
+Still cut from the OLD artwork and not yet redone: the favicon, the
+apple-touch-icon, `icons/icon-192.png`, `icons/icon-512.png`, and the phone's
+five icon files.
+
+### The wait wall (15 September 2026)
+
+`.loadwall` in `app.html`, raised around the notes read in `openImport` and
+nowhere else. The gold card falls onto the blue stack at 1500ms, which is
+Kris's own mark finishing its gesture: at about 38 per cent of every loop the
+frame IS the lockup. Layers are `public/brand/fall-{blue,card,ticks}.png` and
+their dark twins.
+
+Two things on it are deliberate and both came from Kris looking at it running.
+
+**It veils rather than covers.** 84 per cent ground plus a blur, so the
+writer's own paste is faintly there behind it. The opaque line before it is the
+fallback for a browser with no `color-mix`.
+
+**The status line is the honest part.** A wait with no word on it feels twice
+as long. Every line it shows is a pass the read actually makes and the rail
+only moves when one has finished: the file read, then "reading notes 41 to 80
+of 83", which is the real count the paste sheet was already carrying underneath
+the wall, then the casting call. `wallStep(words, share)` is the only way to
+move either. The weights are estimates of TIME and never of certainty, which
+is why no percentage is printed anywhere on it. **Do not make it a timer**, and
+do not cycle the words on an interval: a loading screen that names the wrong
+thing is worse than one that says nothing.
+
+Do NOT reach for this wall on a project switch or a view change. Those resolve
+in well under a fifth of a second and a full screen animation on top of them
+reads as a fault rather than as progress.
 
 ### Four note-loss bugs, found and fixed on 13 September
 

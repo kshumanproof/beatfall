@@ -263,6 +263,44 @@ async function page(browser, url, before) {
     await q.close();
   }
 
+  /* ------------------- the masthead, on the pages that share one top bar
+     The tagline is a CSS mask over a data URI, and a mask that fails renders
+     as a solid bar rather than as nothing, so it looks like a design decision
+     instead of a fault. It shipped broken for a fortnight that way, invisible
+     only because the element had no width. These measure the thing itself:
+     that it is there, that it is under the wordmark, and that it is big enough
+     to read. Cap height is the test, not box height, because the box includes
+     the descender on the p. */
+  const CAP = 25.58 / 32.66;      // the art's ascender over its full ink box
+  for (const [doc, out] of [['login.html', true], ['privacy.html', false]]) {
+    const u = build(doc);
+    const { p } = await page(browser, u, out ? (() => { window.__SIGNED_OUT__ = true; }) : null);
+    const m = await p.evaluate(() => {
+      const tag = document.querySelector('.topbar-in > .masthead .brandtag');
+      const mk = document.querySelector('.topbar-in > .masthead .brandmark');
+      if (!tag || !mk) return null;
+      const t = tag.getBoundingClientRect(), k = mk.getBoundingClientRect();
+      const cs = getComputedStyle(tag);
+      return {tw: t.width, th: t.height, under: t.top >= k.bottom - 1,
+              masked: (cs.maskImage || cs.webkitMaskImage || '').indexOf('svg') > 0};
+    });
+    check(doc + ': the tagline is in the header', !!m && m.tw > 100,
+      m ? JSON.stringify(m) : 'no .brandtag in the top bar');
+    if (m) {
+      check('and it is the artwork, not a solid bar', m.masked);
+      check('and it sits under the wordmark', m.under);
+      check('and its capitals reach 8px (' + (m.th * CAP).toFixed(1) + 'px)',
+        m.th * CAP >= 8, String(m.th));
+    }
+    await p.setViewportSize({width: 390, height: 844});
+    await p.waitForTimeout(200);
+    const small = await p.$eval('.masthead .brandtag', el => getComputedStyle(el).display);
+    check('and it comes off on a phone rather than blurring', small === 'none', small);
+    const wide = await p.evaluate(() => document.documentElement.scrollWidth);
+    check('and nothing runs off a 390px phone', wide <= 391, String(wide));
+    await p.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

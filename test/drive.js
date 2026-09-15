@@ -419,6 +419,76 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* ---- the masthead and the wait wall ---------------------------------
+     The tagline is a CSS mask, and a mask that fails draws a solid bar rather
+     than nothing, which reads as a design decision instead of a fault. It
+     shipped broken for a fortnight that way. And the column it now sits in
+     could quietly have cost the bar its alignment: a flex column takes its
+     baseline from its FIRST item, so the project name beside the lockup still
+     sits on the wordmark. If that ever stops being true the name drops about
+     17px and the whole bar looks wrong. */
+  {
+    const { page, errors } = await open(browser, {
+      account: {plan: 'pro', credits_used: 0},
+      projects: [board('The Spillway', 15)],
+    });
+    const m = await page.evaluate(() => {
+      const tag = document.querySelector('header .masthead .brandtag');
+      const mk = document.querySelector('header .masthead .brandmark');
+      if (!tag || !mk) return null;
+      const t = tag.getBoundingClientRect(), k = mk.getBoundingClientRect();
+      // A span of text dropped into the same baseline aligned row, because
+      // the project name is empty on a fresh board.
+      const s = document.createElement('span');
+      s.textContent = 'Xg'; s.style.font = '14px monospace'; s.style.lineHeight = '1';
+      document.querySelector('header .lead').appendChild(s);
+      const r = s.getBoundingClientRect();
+      s.remove();
+      const cs = getComputedStyle(tag);
+      return {tw: t.width, th: t.height, under: t.top >= k.bottom - 1,
+              masked: (cs.maskImage || cs.webkitMaskImage || '').indexOf('svg') > 0,
+              drift: Math.abs(r.bottom - k.bottom),
+              bar: document.querySelector('header .topline').getBoundingClientRect().height};
+    });
+    check('the tagline is in the app header', !!m && m.tw > 100,
+      m ? JSON.stringify(m) : 'no .brandtag in the top bar');
+    if (m) {
+      check('and it is the artwork, not a solid bar', m.masked);
+      check('and it sits under the wordmark', m.under);
+      // Cap height, not box height: the box carries the descender on the p.
+      check('and its capitals reach 8px (' + (m.th * 25.58 / 32.66).toFixed(1) + 'px)',
+        m.th * 25.58 / 32.66 >= 8, String(m.th));
+      check('and the project name still sits on the wordmark',
+        m.drift <= 4, m.drift + 'px off the mark');
+      check('and the bar did not grow to take it', m.bar <= 80, m.bar + 'px');
+    }
+
+    const wall = await page.evaluate(() => {
+      showWall(true);
+      const el = document.getElementById('loadwall');
+      const cs = getComputedStyle(el);
+      const opened = document.getElementById('loadbar').style.width;
+      wallStep('Reading notes 41 to 80 of 83', .48);
+      return {up: el.hidden === false, bg: cs.backgroundColor,
+              blur: cs.backdropFilter || cs.webkitBackdropFilter, opened,
+              step: document.getElementById('loadstep').textContent,
+              moved: document.getElementById('loadbar').style.width,
+              down: (showWall(false), el.hidden)};
+    });
+    check('the wait wall goes up for a read', wall.up);
+    check('and it veils the sheet rather than covering it',
+      /rgba\(|\/\s*0?\.\d/.test(wall.bg) && /blur/.test(wall.blur || ''),
+      wall.bg + ' | ' + wall.blur);
+    check('and it opens on the first pass with an empty rail',
+      wall.opened === '0%', wall.opened);
+    check('and the status line names the pass the read is actually on',
+      wall.step === 'Reading notes 41 to 80 of 83', wall.step);
+    check('and the rail only moves when it is told to', wall.moved === '48%', wall.moved);
+    check('and the wall comes down again', wall.down === true);
+    check('no page errors around the wall', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);
