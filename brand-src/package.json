@@ -1,0 +1,5 @@
+{
+  "name": "beatfall-brand-src",
+  "private": true,
+  "description": "The master artwork and the script that cuts every brand asset from it. Nothing here is served or deployed; .vercelignore keeps it out. See cut.py."
+}

@@ -18,11 +18,19 @@ const LOCKUP_DARK  = require('../assets/lockup-dark.png');
 const TAGLINE      = require('../assets/tagline.png');
 const TAGLINE_DARK = require('../assets/tagline-dark.png');
 
-// Straight off the artwork: the lockup's ink is 510.909 x 110.30 page units
-// against a 120.80 wordmark, and the tagline's is 513.947 x 32.656 sitting
-// 17.888 below it, flush left.
+/* Straight off the artwork: the lockup's ink is 512.356 x 111.117 page units
+   against a 120.80 wordmark, and the tagline's is 513.947 x 32.656 sitting
+   17.888 below it, flush left.
+
+   The two numbers on the lockup line were 510.909 x 110.300 until 15 September,
+   which is close enough to be believable and was never the real problem. The
+   PNG underneath them was: it had been redrawn with the mark 19 per cent larger
+   against the wordmark than the master sets it, and the letterspacing opened up
+   to match. Kris spotted it from across a room. Both files are cut from the
+   master now, by `email/../brand` tooling that reads the transforms out of
+   "Where your story falls into place.svg" rather than eyeballing anything. */
 const LOCK_H   = 0.913;
-const LOCK_AR  = 510.909 / 110.300;
+const LOCK_AR  = 512.356 / 111.117;
 const TAG_W    = 4.254;
 const TAG_AR   = 513.947 / 32.656;
 const TAG_GAP  = 0.1481;

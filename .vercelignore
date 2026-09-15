@@ -8,3 +8,7 @@ handoff/
 
 # The offline UI suite. It runs against public/app.html and is never served.
 test/
+
+# The master artwork and the script that cuts the brand assets from it. Source,
+# not product: the PNGs it writes are what ships.
+brand-src/

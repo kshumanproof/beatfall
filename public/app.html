@@ -221,7 +221,7 @@ header{
    whatever it sits on, in either theme. */
 .brand{--wm:34px;display:inline-block;line-height:0;text-decoration:none}
 .brandmark{
-  display:block;height:calc(var(--wm) * .913);aspect-ratio:1545 / 342;
+  display:block;height:calc(var(--wm) * .913);aspect-ratio:1199 / 260;
   background:url("/brand/lockup.png") no-repeat left center/contain;
 }
 :root[data-theme="dark"] .brandmark{background-image:url("/brand/lockup-dark.png")}
@@ -1892,8 +1892,8 @@ footer{
 }
 /* The lockup, then the line under it. A tagline belongs beneath the name it
    describes, not beside the mark competing with it. */
-.foot-brand{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
-.foot-brand .brand{--wm:22px}
+.foot-brand{--wm:40px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.foot-brand .brand{--wm:inherit}
 .setbrand{padding:0 13px 2px}
 .brand.setbrand{--wm:19px}
 

@@ -78,7 +78,7 @@ button{font-family:inherit;color:inherit}
    whatever it sits on, in either theme. */
 .brand{--wm:24px;display:inline-block;line-height:0;text-decoration:none}
 .brandmark{
-  display:block;height:calc(var(--wm) * .913);aspect-ratio:1545 / 342;
+  display:block;height:calc(var(--wm) * .913);aspect-ratio:1199 / 260;
   background:url("/brand/lockup.png") no-repeat left center/contain;
 }
 :root[data-theme="dark"] .brandmark{background-image:url("/brand/lockup-dark.png")}
