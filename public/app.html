@@ -4435,9 +4435,19 @@ function cardEl(c){
   el.querySelector(".del").addEventListener("click", e => {
     e.stopPropagation();
     const proj = P();
-    if (c.locked && !confirm("Delete this locked card?\n\n“"
-        + c.text.slice(0, 120) + (c.text.length > 120 ? "…" : "")
-        + "”\n\nYou locked it here. Undo will bring it back.")) return;
+    /* EVERY delete asks first. Kris pressed the X, a sentence he had written
+       went off the screen with no step in between, and asking is what he wanted
+       from it. The receipt below is the second net, not a replacement for this
+       one: the question stops the press that was a mistake, the receipt catches
+       the one that got past it.
+
+       It does not claim the delete is permanent, because it is not, and this
+       file has a rule about absolutes that shipped untrue three times. */
+    if (!confirm((c.locked ? "Delete this locked card?" : "Delete this card?")
+        + "\n\n“" + c.text.slice(0, 160) + (c.text.length > 160 ? "…" : "")
+        + "”\n\n"
+        + (c.locked ? "You locked it here. " : "")
+        + "It comes off the board. Undo will bring it back.")) return;
     snapshot();
     const where = c.slot === "__shelf" ? "Notes" : slotName(proj.structure, c.slot);
     proj.cards = proj.cards.filter(x => x.id !== c.id);

@@ -322,7 +322,12 @@ async function open(browser, projects, account = PAID) {
   // ------------------------------------------------- deleting and undo
   {
     const { page } = await open(browser, [board('Night Haul', 6)]);
+    /* The X asks before it deletes now, so this has to answer. Stubbing confirm
+       rather than handling the page dialog keeps it synchronous, which is how
+       the rest of this block is written, and it is what the "Empty the board"
+       check below already does. */
     const cycle = await page.evaluate(() => {
+      window.confirm = () => true;
       const n0 = P().cards.length;
       document.querySelector('#board .icard .del').click();
       const n1 = P().cards.length;
@@ -331,6 +336,17 @@ async function open(browser, projects, account = PAID) {
     });
     check('deleting a card removes exactly one', cycle.n1 === cycle.n0 - 1, JSON.stringify(cycle));
     check('and undo brings it back', cycle.n2 === cycle.n0, JSON.stringify(cycle));
+
+    /* And the question is a real gate, not a formality: saying no keeps the
+       card. This is the whole point of the change, so it gets its own check. */
+    const refused = await page.evaluate(() => {
+      window.confirm = () => false;
+      const n0 = P().cards.length;
+      document.querySelector('#board .icard .del').click();
+      return {n0, n1: P().cards.length};
+    });
+    check('and answering no keeps the card', refused.n1 === refused.n0,
+      JSON.stringify(refused));
 
     const emptied = await page.evaluate(() => {
       window.confirm = () => true;
