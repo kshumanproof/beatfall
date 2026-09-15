@@ -1797,6 +1797,14 @@ Outline button expands that button over the whole app. The completeness gate
 must affect only opening Outline. Board, Characters, Notes, project settings,
 and the dashboard remain available for incomplete projects.
 
+**THIS HAPPENED AGAIN ON 15 SEPTEMBER.** The card padlock shipped with the class
+`locked`, and every card Kris locked grew to fill the browser window. The
+paragraph above says exactly this and I wrote the class anyway. The card class
+is `card-locked`. There is a check in `drive.js` now that locks a card and
+measures it, so the next one is caught by a test rather than by Kris: it fails
+on the SIZE, whatever the class is called. **Any new state class in this file
+gets a prefix. `.locked` is spoken for.**
+
 Locking never deletes Outline prose. If the Board becomes incomplete, preserve
 all saved passages and recovered unplaced prose, return the writer to Board,
 and reveal the work again after every beat has a card. Do not add or rely on a

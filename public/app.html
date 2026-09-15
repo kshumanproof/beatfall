@@ -843,9 +843,13 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
    pressed the padlock. It used to mean `pinned`, which every manual
    placement set on its own, so the mark said "settled" about a card the
    writer had merely dragged. Nothing sets this but the button. */
-.icard.locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow);cursor:default}
-.icard.locked .pin{opacity:1;color:var(--gold)}
-.icard.locked:hover{transform:none}
+/* card-locked, NOT locked. `.locked` on its own is the full-screen device
+   blocker further down this file, position:fixed over the whole app, and
+   a card wearing it grew to fill the window. This exact trap is written
+   up under "Outline start gate": never shorten a state class to `locked`. */
+.icard.card-locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow);cursor:default}
+.icard.card-locked .pin{opacity:1;color:var(--gold)}
+.icard.card-locked:hover{transform:none}
 .icard .maybe{
   margin-top:9px;font-family:var(--sans);font-size:10px;font-weight:600;
   text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
@@ -1297,7 +1301,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   box-shadow:var(--shadow);
   padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.6;
 }
-.ocard.locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.ocard.card-locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
 .ocard .outline-action{display:block;margin:9px 0 0 auto}
 .ocard,.oprose{max-width:74ch}
 .oprose{
@@ -4293,7 +4297,7 @@ function padlock(shut){
 
 function cardEl(c){
   const el = document.createElement("div");
-  el.className = "icard" + (c.locked ? " locked" : "");
+  el.className = "icard" + (c.locked ? " card-locked" : "");
   // A locked card cannot be dragged. This is the lock actually holding:
   // before, the control claimed a placement was settled and then let you
   // move it anyway, which made the mark decoration.
@@ -9243,7 +9247,7 @@ function renderOutline(){
       const holder = el.querySelector(".ocards");
       cards.forEach(c => {
         const cd = document.createElement("div");
-        cd.className = "ocard" + (c.locked ? " locked" : "");
+        cd.className = "ocard" + (c.locked ? " card-locked" : "");
         cd.appendChild(document.createTextNode(c.text));
         // A Set aside idea placed from Outline is now a genuine beat card.
         // This return action reverses that placement without inventing a

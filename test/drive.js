@@ -489,6 +489,75 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* ---- the padlock, and the class name that must not be `locked` ---------
+     `.locked` on its own is the full-screen one-device blocker: position fixed
+     over the whole app. A card given that class grew to fill the window, which
+     is the SECOND time this file has cost somebody an hour (the first was the
+     Outline nav button, written up in CLAUDE.md). The size check below is the
+     real one: it fails whatever the class is called if a locked card stops
+     being a card. */
+  {
+    const { page, errors } = await open(browser, {
+      account: {plan: 'pro', credits_used: 0},
+      projects: [board('The Spillway', 15)],
+    });
+    await page.evaluate(() => {
+      state.activeId = state.projects[0].id; setView('board'); render();
+    });
+    await page.waitForTimeout(300);
+
+    const lock = await page.evaluate(() => {
+      const size = () => {
+        const c = document.querySelector('.icard');
+        const b = c.getBoundingClientRect();
+        return {w: Math.round(b.width), h: Math.round(b.height),
+                pos: getComputedStyle(c).position};
+      };
+      const id = +document.querySelector('.icard').dataset.id;
+      const before = size();
+      document.querySelector('.icard .pin').click();
+      const shut = size();
+      const el = document.querySelector('.icard');
+      const out = {
+        before, shut,
+        flag: P().cards.find(c => c.id === id).locked === true,
+        draggable: el.draggable,
+        moveDisabled: el.querySelector('.move').disabled,
+        gold: el.className,
+      };
+      document.querySelector('.icard .pin').click();
+      out.open = size();
+      out.unflagged = !P().cards.find(c => c.id === id).locked;
+      out.draggableAgain = document.querySelector('.icard').draggable;
+      return out;
+    });
+
+    check('the padlock locks the card', lock.flag);
+    check('and a locked card is not the full-screen blocker in disguise',
+      lock.shut.w === lock.before.w && lock.shut.h === lock.before.h
+      && lock.shut.pos === 'relative',
+      JSON.stringify(lock.before) + ' became ' + JSON.stringify(lock.shut));
+    check('and it cannot be dragged', lock.draggable === false);
+    check('and the move menu refuses too', lock.moveDisabled === true);
+    check('and it carries the gold edge', /card-locked/.test(lock.gold), lock.gold);
+    check('the padlock unlocks it again', lock.unflagged && lock.draggableAgain === true);
+    check('and the card is the size it started', lock.open.w === lock.before.w);
+
+    /* Nothing but the padlock may lock. Every placement used to set the old
+       flag, which is what made the control decoration. */
+    const placing = await page.evaluate(() => {
+      const c = P().cards[1];
+      c.slot = 'mid'; render();
+      const byHand = !c.locked;
+      const fresh = {id: 9001, text: 'a new one', slot: 'open'};
+      P().cards.push(fresh); render();
+      return byHand && !P().cards.find(x => x.id === 9001).locked;
+    });
+    check('and a placement never locks anything on its own', placing === true);
+    check('no page errors around the padlock', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);
