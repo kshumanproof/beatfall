@@ -45,9 +45,14 @@
   h1{font-size:clamp(48px,6.2vw,78px);line-height:.99;letter-spacing:-.036em;margin:0 0 26px;text-wrap:balance}
   .hero-copy>p:not(.eyebrow){font-family:var(--serif);font-size:22px;line-height:1.48;color:var(--ink-2);max-width:700px;margin:0 0 28px}
   .hero-acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.hero-acts .btn{font-size:15px;padding:13px 22px;text-decoration:none}
-  /* Under the button, not beside it. Beside it, it sits on the same baseline
-     and reads as a second, quieter thing to press. */
-  .trial{font-size:13px;color:var(--ink-3);margin-top:11px}
+  /* Darker, not bolder: the paragraph runs on --ink-2 and this one sentence
+     takes --ink, the same step the headings take. Weight stays at 400 so the
+     serif does not change voice mid-paragraph. */
+  .hero-copy strong{font-weight:400;color:var(--ink)}
+  /* Under the button and centred on it, not beside it. Beside it, it sat on the
+     same baseline and read as a second, quieter thing to press. */
+  .cta{display:inline-flex;flex-direction:column;align-items:center;gap:7px}
+  .trial{font-size:13px;color:var(--ink-3);text-align:center}
   .product-shot{margin:0;border:1px solid var(--rule);border-radius:var(--r-panel);overflow:hidden;background:var(--surface);box-shadow:0 28px 70px rgba(41,35,29,.15),var(--shadow)}
   .product-shot img{display:block;width:100%;height:auto}
   .dashboard-proof{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--surface)}
@@ -111,12 +116,21 @@
            belongs with the pitch and not under the button where copy goes
            unread. -->
       <p>Turn scattered story notes into a structured beat board. Beatfall finds the beats,
-        keeps everything else, and shows you what is still missing. Beatfall always asks before
-        it guesses, and it never writes your script.</p>
-      <div class="hero-acts"><a class="btn btn-primary" href="/login.html?start=1">Start 14 days free</a></div>
-      <!-- A div rather than a p, because .hero-copy>p is the serif subtext
-           rule and this is the button's fine print. -->
-      <div class="trial">No card required.</div>
+        keeps everything else, and shows you what is still missing.
+        <!-- Darker ink, same weight and same size. The sentence is the one a
+             screenwriter is actually reading for, so it steps forward, but bold
+             in the middle of a serif paragraph is a different voice rather than
+             a louder one. -->
+        <strong>Beatfall always asks before it guesses, and it never writes your script.</strong></p>
+      <!-- The button and its fine print are one object: a column that shrinks
+           to the button, so the line centres under the button rather than under
+           the paragraph. -->
+      <div class="hero-acts">
+        <div class="cta">
+          <a class="btn btn-primary" href="/login.html?start=1">Start 14 days free</a>
+          <span class="trial">No card required.</span>
+        </div>
+      </div>
     </div>
     <figure class="product-shot">
       <picture><source media="(max-width:600px)" srcset="/media/night-haul-board-mobile.webp"><img src="/media/night-haul-board.webp" width="1400" height="760" alt="Night Haul beat board with story cards placed beside beats that are still open"></picture>
