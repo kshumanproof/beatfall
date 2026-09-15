@@ -10117,22 +10117,72 @@ function renderScore(t){
       + "</div>";
   }
 
-  const runNote = ch.run > 1
-    ? (ch.today ? "Don’t break it." : "Yesterday counted. Today hasn’t yet.")
-    : ch.today ? "Started today." : "A day you change something counts.";
+  /* THE LINE UNDER THE STREAK.
+
+     It used to be one fixed sentence per state, which is accurate and goes
+     stale by the fourth day: a writer who sees "Yesterday counted. Today hasn't
+     yet." every morning stops reading it. So it is a pool now, and the pool is
+     the point rather than the wording.
+
+     CHOSEN BY THE DATE, NOT AT RANDOM, and that is the part that matters.
+     render() runs on every view change, so a genuinely random pick would give
+     a different sentence walking from the dashboard to a board and back, three
+     times in ten seconds. That reads as a fault, not as encouragement. Seeded
+     on the day stamp it is one line all day, and the only thing that can change
+     it is the writer actually doing something, which moves them to another
+     pool. That is a response to them rather than noise.
+
+     THREE POOLS, not two, because there are three things true here and the
+     middle one is the only one with anything to ask for. The seven dots already
+     show the fact; these say what to do about it. */
+  const KEPT = [                       // the streak is alive and today is banked
+    "Nice work.", "Good run.", "You’re on a roll.", "Another one.",
+    "That’s progress.", "You showed up.", "Still moving.", "Looking good.",
+    "Nice streak.", "Good rhythm.", "That adds up.", "You’re moving."];
+  const GOING = [                      // alive, but today has not counted yet
+    "Keep the streak going today.", "Keep going.", "Keep building.",
+    "One more day.", "Keep at it.", "Keep the story moving.", "Back at it.",
+    "Good momentum."];
+  const BACK = [                       // no streak to speak of
+    "Good to have you back.", "Back to it.", "Pick up where you left off.",
+    "The story’s still here.", "Ready when you are.", "Back in the chair.",
+    "Let’s keep building.", "Your work is waiting.", "Another day, another beat.",
+    "Start where you are.", "Right where you left it.", "You’re back."];
+  /* A STRIDE, NOT A HASH, and the difference is the whole reason this is
+     written down.
+
+     The first try summed the day stamp's characters the usual times-31 way.
+     Consecutive dates differ by one character, so the result barely moved and
+     it repeated on a five day cycle: the 17th and the 20th drew the same line.
+     A proper avalanche hash fixed that and brought a subtler fault with it.
+     Truly random picks from eight lines will, over a year, land the same line
+     on four days running, and a writer who gets "Keep going." four mornings in
+     a row concludes the thing is stuck, not that they got unlucky.
+
+     So it steps through the pool instead. 7 shares no factor with 8 or with
+     12, which is every pool length here, so the index walks the whole list
+     before it shows anything twice and it cannot land on the same line two
+     days running. Change a pool's length and check 7 is still coprime with it:
+     an even-length pool with an even stride would visit half the lines and
+     never the rest. */
+  const STRIDE = 7;
+  function dayLine(pool){
+    const d = dayStamp().split("-");
+    const day = Date.UTC(+d[0], +d[1] - 1, +d[2]) / 86400000;
+    return pool[(day * STRIDE) % pool.length];
+  }
+  const runNote = ch.today && ch.run > 1 ? dayLine(KEPT)
+                : !ch.today && ch.run >= 1 ? dayLine(GOING)
+                : dayLine(BACK);
 
   el.innerHTML =
       '<div class="score-row">'
-    /* The label has to answer "so many WHAT", and it should do it in one
-       sentence. This cell used to be a label with a fragment hanging under it,
-       "BEATS FILLED" over "Across your 2 boards.", which reads as two thoughts
-       about the same number. One line, and the writer's own word for them: a
-       board is what they work on, a project is what they have. */
-    + cell(filled, " / " + total,
-           !total ? "Beats filled"
-                  : state.projects.length === 1
-                    ? "Beats filled in your project"
-                    : "Beats filled across your " + state.projects.length + " projects",
+    /* Just "Beats filled". The label used to carry the project count as well,
+       "Beats filled across your 6 projects", which wrapped to two lines and
+       made the shortest cell on the row the wordiest. The figure beside it is
+       already 56 of 75, so the total is on screen, and how many boards those
+       75 beats are spread over is not what this cell is for. */
+    + cell(filled, " / " + total, "Beats filled",
            "", total ? "" : "No structure yet.")
     + cell(t.empty, "", "Beats still empty", "gap",
            t.empty ? "" : "Every one has a card.")
