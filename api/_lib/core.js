@@ -412,7 +412,12 @@ export function markWorkDay(db, userId, day) {
 /* The last 90 days the writer worked, newest first, as plain YYYY-MM-DD. The
  * client turns this into a run and seven dots; the server does not need an
  * opinion about what a streak is worth. */
-export async function workDays(db, userId, limit = 90) {
+/* 400, not 90. At 90 a writer who showed up every day for a year was told they
+   had a 90 day streak, because this is where the ceiling actually was: the run
+   is counted from the days this returns, so the fetch was the cap. 400 covers
+   thirteen months and is about 8KB on the wire. THE CLIENT'S OWN LIMIT HAS TO
+   MATCH: see CHAIN_MAX in public/app.html. */
+export async function workDays(db, userId, limit = 400) {
   const { data } = await db.from('work_days')
     .select('day').eq('user_id', userId)
     .order('day', { ascending: false }).limit(limit);
