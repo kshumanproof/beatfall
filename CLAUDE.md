@@ -44,7 +44,12 @@ says otherwise, which is a change from the 2 Sep direction note further down.
 - **Never ask for or handle an API key, secret, or service_role key.** Keys go
   from the source site straight into Vercel's env box. Never screenshot one.
 - I don't create his accounts, enter payment details, or deploy for him.
-- Deliver files with `SendUserFile` → `device_commit_files`. Never base64 patches.
+- Deliver files with `SendUserFile` → `device_commit_files` **by `fileUuid`**, and
+  never base64 patches. On 15 September two writes sent by `stagedPath` both
+  answered `written` and wrote nothing; Kris found it, not me. Two rules came
+  out of it: never pass `force`, and **confirm a delivery before saying it is
+  done.** Confirm with `device_list_dir` and compare the byte size, not by
+  staging the file back, which can hand you a cached copy of the old one.
 
 ## Current state (10 Sep 2026)
 
