@@ -1418,16 +1418,42 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .score-note{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.45}
 
-/* The chain. Seven days, filled or not, the one thing on this page that is
-   about showing up rather than about the script. */
-.chain{display:flex;gap:5px;margin-top:12px;align-items:flex-end;height:18px}
-.chain i{
-  flex:0 0 9px;height:9px;border-radius:2px;background:var(--rule);
-  transition:background var(--settle);
+/* THE MONTH. The one thing on this page about showing up rather than about the
+   script. It was seven dots in a row; it is the calendar month now, so a writer
+   can see the shape of their own habit rather than just the last week of it.
+
+   The count and its label are one object on the left and the month sits beside
+   them. "In a row" used to hang nine pixels under the number with .14em of
+   letterspacing pushing it further away, and it read as a stranded caption
+   rather than as the unit of the figure above it. */
+/* The text does NOT grow. Letting it take the spare width pushed the month
+   hard against the cell's right edge with a hundred pixels of nothing between
+   the two, which is the same complaint the stranded label had: one object read
+   as two. They sit together and the spare room falls on the outside. */
+/* Wider than its neighbours now, because it carries a month as well as a
+   figure. Left at the row's ordinary 130px the cell squeezed the text column
+   to about fifty pixels between 900 and 1180, and "Pick up where you left off."
+   came apart over three lines. Its neighbours are two short numbers and can
+   give up the room. */
+.streakcell{display:flex;gap:20px;align-items:flex-start;min-width:238px}
+.streakcell .sc-left{min-width:0;flex:0 1 auto}
+.streakcell .score-k{margin-top:3px}
+.mcal{display:grid;grid-template-columns:repeat(7,9px);gap:3px;flex:0 0 auto;margin-top:3px}
+.mcal b{
+  font-family:var(--sans);font-size:7.5px;font-weight:600;line-height:1;
+  color:var(--ink-4);text-align:center;letter-spacing:0;margin-bottom:1px;
 }
-.chain i.on{background:var(--blue)}
-.chain i.today{height:15px;border-radius:2px}
-.chain i.today.off{background:var(--rule);outline:1px solid var(--gold-hair);outline-offset:1px}
+.mcal i{width:9px;height:9px;border-radius:2px;background:var(--rule-soft);
+  transition:background var(--settle)}
+.mcal i.on{background:var(--blue)}
+/* THREE STATES, NOT TWO, and this is the part that decides whether the grid
+   encourages or accuses. A day still to come and a day that was missed are
+   both empty, and if they look the same then on the 3rd of the month the
+   writer opens Beatfall to twenty-eight boxes reading as failure. A day that
+   has not happened yet is drawn as an outline holding a space. */
+.mcal i.soon{background:none;box-shadow:inset 0 0 0 1px var(--rule-soft)}
+.mcal i.pad{background:none;box-shadow:none}
+.mcal i.now{outline:1px solid var(--gold-hair);outline-offset:1px}
 
 .score-bar{height:4px;background:var(--rule-soft);position:relative}
 .score-bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
@@ -3605,11 +3631,9 @@ function markWorked(){
 function chain(){
   const set = new Set(workedDays());
   const day = new Date(); day.setHours(12, 0, 0, 0);
-  const last7 = [];
-  for (let i = 6; i >= 0; i--){
-    const d = new Date(day); d.setDate(d.getDate() - i);
-    last7.push(set.has(dayStamp(d)));
-  }
+  // It used to hand back a seven day window for the row of dots as well. The
+  // dots are a calendar month now and monthGrid() reads the days itself, so
+  // that field went rather than sit here unread.
   let run = 0;
   const start = set.has(dayStamp(day)) ? 0 : 1;
   for (let i = start; i < 90; i++){
@@ -3617,7 +3641,7 @@ function chain(){
     if (!set.has(dayStamp(d))) break;
     run++;
   }
-  return {run, last7, today: set.has(dayStamp(day))};
+  return {run, today: set.has(dayStamp(day))};
 }
 
 async function flush(){
@@ -10092,8 +10116,25 @@ function renderScore(t){
       + (note ? '<div class="score-note">' + note + "</div>" : "")
     + "</div>";
 
-  const chainDots = ch.last7.map((on, i) =>
-    '<i class="' + (on ? "on" : "off") + (i === 6 ? " today" : "") + '"></i>').join("");
+  /* The calendar month, Sunday first because that is how a calendar reads to
+     the writer this is for. Leading blanks keep every box under its own
+     weekday, which is the only reason the columns mean anything: it is what
+     lets somebody notice they never write on a Tuesday. */
+  function monthGrid(){
+    const worked = new Set(workedDays());
+    const now = new Date(); now.setHours(12, 0, 0, 0);
+    const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+    const lead = new Date(y, m, 1, 12).getDay();
+    const len = new Date(y, m + 1, 0).getDate();
+    let out = "SMTWTFS".split("").map(c => "<b>" + c + "</b>").join("");
+    for (let i = 0; i < lead; i++) out += '<i class="pad"></i>';
+    for (let d = 1; d <= len; d++){
+      const on = worked.has(dayStamp(new Date(y, m, d, 12)));
+      out += '<i class="' + (d > today ? "soon" : on ? "on" : "off")
+           + (d === today ? " now" : "") + '"></i>';
+    }
+    return out;
+  }
 
   function nearly(){
     if (!lead) return '<div class="score-cell wide quiet">'
@@ -10209,12 +10250,15 @@ function renderScore(t){
             + '<div class="score-note"><span class="score-open">Open them</span></div>'
           + "</div>"
         : "")
-    + '<div class="score-cell' + (ch.run ? "" : " quiet") + '">'
-        + '<div class="score-n">' + ch.run + '<span class="of">'
-        + (ch.run === 1 ? "day" : "days") + "</span></div>"
-        + '<div class="score-k">In a row</div>'
-        + '<div class="chain">' + chainDots + "</div>"
-        + '<div class="score-note">' + runNote + "</div>"
+    + '<div class="score-cell streakcell' + (ch.run ? "" : " quiet") + '">'
+        + '<div class="sc-left">'
+          + '<div class="score-n">' + ch.run + '<span class="of">'
+          + (ch.run === 1 ? "day" : "days") + "</span></div>"
+          + '<div class="score-k">In a row</div>'
+          + '<div class="score-note">' + runNote + "</div>"
+        + "</div>"
+        + '<div class="mcal" role="img" aria-label="Days you worked this month">'
+          + monthGrid() + "</div>"
       + "</div>"
     + "</div>"
     + '<div class="score-bar"><i style="width:' + pct + '%"></i></div>';
