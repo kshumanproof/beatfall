@@ -536,6 +536,17 @@ header{
   gap:26px;align-items:center;
 }
 .structure-choice{display:flex;align-items:center;gap:13px;min-width:0}
+/* The counterclockwise arrow, beside the structure and before the meter. Small
+   and quiet: it is a way back, not somewhere to go. */
+.undoback{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;padding:0;border:1px solid var(--rule);border-radius:var(--r-ctl);
+  background:var(--card);color:var(--ink-3);cursor:pointer;
+  transition:color .12s ease,border-color .12s ease,background .12s ease;
+}
+.undoback:hover{color:var(--blue);border-color:var(--blue);background:var(--card)}
+.undoback:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.undoback[hidden]{display:none}
 .structure-k{
   flex:0 0 auto;font-size:9.5px;font-weight:650;text-transform:uppercase;
   letter-spacing:.13em;color:var(--ink-4)
@@ -2688,6 +2699,19 @@ footer{
       <span class="structure-k">Story structure</span>
       <select id="structure" aria-label="Story structure"
         data-tip="Change this project's story structure. Beatfall preserves your writing and shows anything that needs a new place."></select>
+      <!-- The way back, always on the board rather than only inside a receipt
+           that has been dismissed. It is ABSENT until there is something to
+           undo, which is the same rule the Outline's Save button follows: a
+           control that is always there and usually pointless teaches a writer
+           to ignore it. -->
+      <button class="undoback" id="undoback" type="button" hidden
+        aria-label="Undo the last board change">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2.6 4.2v3.4h3.4"/>
+          <path d="M3.6 7.2a5 5 0 1 1 1 4.1"/>
+        </svg>
+      </button>
     </label>
     <div class="structure-progress">
       <div class="meter"><div class="meter-track"><div class="meter-fill" id="fill"></div></div></div>
@@ -4091,6 +4115,7 @@ function render(justPlaced){
   // real beat cards before either surface counts or draws this project.
   migrateAttachedSetAsides(proj);
   const S = STRUCTURES[proj.structure];
+  paintUndo();
   renderTabs();
   sel.value = proj.structure;
   board.innerHTML = "";
@@ -4395,12 +4420,32 @@ function cardEl(c){
     c.locked = !c.locked;
     render();
   });
+  /* DELETING A CARD SAID NOTHING AND THE CARD WAS JUST GONE.
+
+     It was already undoable, snapshot() is right there and Cmd+Z brings it
+     back, and the tooltip on the X even says so. None of that reaches a writer
+     at the moment a sentence they wrote vanishes off the screen. A receipt at
+     the moment it happens is worth more than a warning before it, because it
+     does not stand in the way of the nineteen deletes that were meant and it
+     hands back the one that was not.
+
+     A LOCKED card asks first. Locking is the writer saying this one is
+     decided, so taking it off the board should cost two steps rather than one.
+     Everything else deletes on the press and offers the way back. */
   el.querySelector(".del").addEventListener("click", e => {
     e.stopPropagation();
-    snapshot();
     const proj = P();
+    if (c.locked && !confirm("Delete this locked card?\n\n“"
+        + c.text.slice(0, 120) + (c.text.length > 120 ? "…" : "")
+        + "”\n\nYou locked it here. Undo will bring it back.")) return;
+    snapshot();
+    const where = c.slot === "__shelf" ? "Notes" : slotName(proj.structure, c.slot);
     proj.cards = proj.cards.filter(x => x.id !== c.id);
     render();
+    // The board's own receipt, the one a structure switch already uses. With no
+    // `to` it reads "removed from Opening Image", and the Undo button beside it
+    // is the same 30 deep stack Cmd+Z walks.
+    showSettled([{text: c.text, from: where}], "Card deleted");
   });
 
   const body = el.querySelector(".body");
@@ -4482,6 +4527,19 @@ function hideAll(){ hideSettled(); proposal.hidden = true; pending = null; close
 
 document.getElementById("settledx").addEventListener("click", hideSettled);
 document.getElementById("undo").addEventListener("click", undo);
+document.getElementById("undoback").addEventListener("click", undo);
+
+/* The board's undo button appears only when there is something to undo, and
+   it names what that something is, so pressing it is not a guess. Called from
+   render(), which is the one place that runs after every change. */
+function paintUndo(){
+  const el = document.getElementById("undoback");
+  if (!el) return;
+  el.hidden = !undoStack.length;
+  el.setAttribute("data-tip", undoStack.length
+    ? "Undo the last change. Ctrl or Cmd and Z does the same."
+    : "Nothing to undo yet.");
+}
 
 function undo(){
   if (!undoStack.length) return;
