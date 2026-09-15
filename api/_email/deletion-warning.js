@@ -28,7 +28,7 @@ export const DELETION_WARNING_HTML = `<!doctype html>
     .bf-ink3    { color:#9A8F82 !important; }
     .bf-ink4    { color:#8C8175 !important; }
     .bf-gold    { color:#D9BC77 !important; }
-    .bf-lockup  { content:url("https://beatfall-beta.vercel.app/brand/lockup-dark.png"); }
+    .bf-lockup  { content:url("https://beatfall-beta.vercel.app/brand/lockup-tagline-dark.png"); }
     a           { color:#8FB6DE !important; }
   }
   @media only screen and (max-width:620px) {
@@ -60,12 +60,22 @@ export const DELETION_WARNING_HTML = `<!doctype html>
                    class="bf-wrap" style="width:600px;max-width:600px;">
               <tr>
                 <td class="bf-pad" style="padding:22px 6px;">
-                  <!-- 152 x 33, not 150 x 33. The lockup is 1199 x 260, a ratio
-                       of 4.611, and 150 x 33 is 4.545, so the old numbers
-                       squashed the mark by about two pixels of width. Outlook
-                       obeys the attributes rather than the file. -->
-                  <img src="https://beatfall-beta.vercel.app/brand/lockup.png" alt="Beatfall" width="152" height="33"
-                       style="display:block;width:152px;height:33px;border:0;outline:none;
+                  <!-- THE LOCKUP WITH THE TAGLINE BAKED IN.
+
+                       On the site the tagline is a CSS mask beside the mark, so
+                       it takes the ink of whatever it sits on. Email has no
+                       masks, so this is one flat picture with the line already
+                       in it, cut from the master by brand-src/cut.py.
+
+                       182 x 57 is the file's own 1204 x 377 ratio, 3.1936, and
+                       Outlook obeys these attributes rather than the file, so
+                       they have to be right or it squashes the mark. At this
+                       height the tagline's capitals land at about 9px, which is
+                       over the floor for reading a line this small. Do not set
+                       it smaller: shrink it and the line is a grey smudge, and
+                       the mark alone would be the honest thing to show. -->
+                  <img src="https://beatfall-beta.vercel.app/brand/lockup-tagline.png" alt="Beatfall: where your story falls into place." width="182" height="57"
+                       style="display:block;width:182px;height:57px;border:0;outline:none;
                               text-decoration:none;-ms-interpolation-mode:bicubic;"
                        class="bf-lockup">
                 </td>

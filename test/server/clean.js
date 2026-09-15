@@ -74,8 +74,13 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     /[Ss]ign in once/.test(H) && /download everything/.test(H), '');
   check('it names where a reply actually goes',
     /Nobody reads replies/.test(H) && /support@beatfall\.app/.test(H), '');
+  /* This used to demand the exact string alt="Beatfall", so it went red the day
+     the lockup gained its tagline and the alt text was widened to say so. The
+     alt got BETTER and the check called it a failure. What it is actually for
+     is that a reader with images off still learns whose mail this is, so that
+     is what it asks now. */
   check('the mark carries alt text, because images are off by default',
-    /alt="Beatfall"/.test(H), '');
+    /<img[^>]*\balt="[^"]*Beatfall[^"]*"/.test(H), '');
   check('every colour is inline as well as in the stylesheet, which is all Outlook reads',
     (H.match(/style="[^"]*color:#/g) || []).length > 8,
     String((H.match(/style="[^"]*color:#/g)||[]).length) + ' inline colour declarations');
