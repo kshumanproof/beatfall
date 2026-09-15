@@ -435,14 +435,17 @@ async function open(browser, projects, account = PAID) {
       sel.value = 'last';
       sel.dispatchEvent(new Event('change'));
       const card = P().cards.find(c => /returns home/.test(c.text));
-      return card ? {slot: card.slot, pinned: card.pinned} : null;
+      return card ? {slot: card.slot, locked: card.locked, pinned: card.pinned} : null;
     });
     check('choosing a beat puts the card exactly there',
       placed && placed.slot === 'last', JSON.stringify(placed));
-    // Not pinned, deliberately: it behaves exactly as accepting a suggestion
-    // does. Pinning only a hand-placed card would put a gold edge on it and
-    // teach a distinction nobody asked for.
-    check('and behaves the same as accepting a suggestion', placed && placed.pinned === false,
+    /* Not locked, and it used to read `pinned === false` here. The field is
+       gone: `pinned` meant "placed by hand", every placement set it, and it
+       drew the gold edge, so the board called a placement settled that the
+       writer had only dragged. Only the padlock locks a card now, so a hand
+       placement arrives with no lock at all, which is what this asks. */
+    check('and behaves the same as accepting a suggestion',
+      placed && !placed.locked && placed.pinned === undefined,
       JSON.stringify(placed));
     check('no page errors placing by hand', errors.length === 0, errors.join('\n'));
     await page.close();

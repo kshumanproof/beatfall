@@ -633,9 +633,13 @@ select:focus{border-color:var(--blue);outline:none}
    This says what the box is for, in the same key as "Story structure" on the
    row below so the two bars read as a pair, and a shade darker than that one
    because this is the thing that was hard to see. */
+/* Set in the serif, at the size a small heading is set, because the first
+   version of this was a 9.5px caps label in the same key as "Story structure"
+   and it was still too quiet to find. That key is right for a label on a
+   control you can already see; this one has to do the seeing for you. */
 .capture-k{
-  font-size:9.5px;font-weight:650;text-transform:uppercase;letter-spacing:.13em;
-  color:var(--ink-3);margin:0 0 6px 30px;
+  font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:-.005em;
+  color:var(--ink-2);margin:0 0 4px 30px;
 }
 /* Top-aligned, so the pencil and the two buttons stay on the first line while
    the box grows downward under them. Centring them would have the buttons
@@ -786,7 +790,12 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 /* ---------- the card: paper ---------- */
 .icard{
   background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
-  padding:15px 17px 17px;box-shadow:var(--shadow);cursor:grab;position:relative;
+  /* 28px of top padding, not 15. The four controls are absolutely positioned in
+     the top right corner and the text used to run straight under them, so on a
+     card whose first line is long the glyphs sat on the words. The strip is
+     reserved now, which costs every card 13px and buys the writer a card that
+     reads as writing with tools beside it rather than a cluttered box. */
+  padding:32px 17px 17px;box-shadow:var(--shadow);cursor:grab;position:relative;
   font-family:var(--mono);font-size:13px;line-height:1.62;color:var(--ink);
   transition:box-shadow .15s ease,transform .15s ease;
   /* A run of about 150 characters with no space in it - a file path, a URL
@@ -801,23 +810,42 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 /* Four controls, and the padding is the hit area rather than the glyph: the
    marks stay small because a card is not a toolbar, but a finger or a tired
    hand at eleven at night gets something real to aim at. */
+/* A ROW, not four absolute positions. Each button was pinned to its own `right`
+   offset, and because the four glyphs are different widths the gaps between
+   them came out at 25, 34 and 25: it read as a dense clump with one hole in it.
+   A flex row spaces itself whatever the glyphs are, and there is now one number
+   to keep in step with the card's top padding instead of four. */
+.cardtools{position:absolute;top:5px;right:5px;display:flex;align-items:center;gap:2px}
+/* One fixed box each. With free-width buttons the gaps between the BOXES were
+   equal but the gaps between the GLYPHS were not, because a vertical ellipsis
+   and a multiplication sign are nothing like the same width. Identical boxes
+   put the marks on an even pitch, which is what the eye is reading. */
 .icard .del,.icard .move,.icard .pin,.icard .edit{
-  position:absolute;top:3px;border:none;background:none;
-  color:var(--ink-4);line-height:1;padding:6px 7px;cursor:pointer;
-  opacity:0;transition:opacity .12s ease;
+  border:none;background:none;color:var(--ink-4);line-height:1;
+  width:25px;height:22px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .12s ease;border-radius:3px;
 }
-.icard .del{right:3px;font-size:15px}
-.icard .pin{right:27px;font-size:12px}
-.icard .move{right:51px;font-size:14px}
-.icard .edit{right:75px;font-size:12px}
+.icard .del{font-size:15px}
+.icard .pin{font-size:12px}
+.icard .move{font-size:14px}
+.icard .edit{font-size:12px}
 .icard:hover .del,.icard:hover .move,.icard:hover .pin,.icard:hover .edit,
 .icard .del:focus-visible,.icard .move:focus-visible,.icard .pin:focus-visible,
 .icard .edit:focus-visible{opacity:1}
 .icard .del:hover,.icard .move:hover,.icard .pin:hover,.icard .edit:hover{
   color:var(--ink);background:var(--rule-soft)}
+/* Still visible, still explains itself on hover, just refuses. Hiding it would
+   leave the writer hunting for the way to move a card they locked. */
+.icard .move:disabled{opacity:.35;cursor:not-allowed}
+.icard .move:disabled:hover{color:var(--ink-4);background:none}
 .icard[contenteditable="true"],.icard .body[contenteditable="true"]{cursor:text}
-.icard.pinned{box-shadow:inset 3px 0 0 var(--gold-hair),var(--shadow)}
-.icard.pinned .pin{opacity:1;color:var(--gold)}
+/* THE GOLD EDGE MEANS LOCKED, and locked means one thing only: the writer
+   pressed the padlock. It used to mean `pinned`, which every manual
+   placement set on its own, so the mark said "settled" about a card the
+   writer had merely dragged. Nothing sets this but the button. */
+.icard.locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow);cursor:default}
+.icard.locked .pin{opacity:1;color:var(--gold)}
+.icard.locked:hover{transform:none}
 .icard .maybe{
   margin-top:9px;font-family:var(--sans);font-size:10px;font-weight:600;
   text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);
@@ -1269,7 +1297,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   box-shadow:var(--shadow);
   padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.6;
 }
-.ocard.pinned{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
+.ocard.locked{box-shadow:inset 3px 0 0 var(--gold),var(--shadow)}
 .ocard .outline-action{display:block;margin:9px 0 0 auto}
 .ocard,.oprose{max-width:74ch}
 .oprose{
@@ -3385,10 +3413,18 @@ function migrateAttachedSetAsides(proj){
   const valid = new Set(STRUCTURES[proj.structure].slots.map(s => s.id));
   let changed = false;
   proj.cards.forEach(c => {
+    /* `pinned` is gone. It meant "placed by hand", every drop and every Place
+       it set it, and it drew the gold edge, so the board claimed a placement
+       was settled that the writer had only dragged. `locked` replaces it and
+       ONLY the padlock sets that, so no existing card can honestly be called
+       locked: none of them were locked by a writer, because there was nothing
+       to press. The key is removed rather than left behind, so the next reader
+       of this file does not find a field that once meant something. Nothing
+       here touches a card's text, its beat, or its place on the board. */
+    if ("pinned" in c){ delete c.pinned; changed = true; }
     if (c.slot !== "__none" || !c.attachedTo || !valid.has(c.attachedTo)) return;
     c.slot = c.attachedTo;
     c.kind = "beat";
-    c.pinned = true;
     c.placedFromOutline = true;
     delete c.attachedTo;
     changed = true;
@@ -4241,22 +4277,41 @@ function render(justPlaced){
   save();
 }
 
+/* The padlock, open or shut. Two signals, not one: the shackle changes shape
+   AND the colour goes gold, because this app's own rule is never to encode a
+   state by colour alone. Drawn rather than set as a character, since the
+   unicode padlocks land as an emoji on some machines and a blank box on
+   others, and neither is a control. */
+function padlock(shut){
+  return '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<rect x="3.2" y="7.1" width="9.6" height="6.3" rx="1.2"/>'
+    + (shut ? '<path d="M5.7 7.1V5a2.3 2.3 0 0 1 4.6 0v2.1"/>'
+            : '<path d="M5.7 7.1V5a2.3 2.3 0 0 1 4.6 0"/>')
+    + "</svg>";
+}
+
 function cardEl(c){
   const el = document.createElement("div");
-  el.className = "icard" + (c.pinned ? " pinned" : "");
-  el.draggable = true;
+  el.className = "icard" + (c.locked ? " locked" : "");
+  // A locked card cannot be dragged. This is the lock actually holding:
+  // before, the control claimed a placement was settled and then let you
+  // move it anyway, which made the mark decoration.
+  el.draggable = !c.locked;
   el.dataset.id = c.id;
   const hint = c.maybe && c.slot === "__none"
     ? '<div class="maybe">possibly: ' + esc(slotName(P().structure, c.maybe)) + "</div>" : "";
   el.innerHTML =
-      '<button class="edit" title="Edit card" aria-label="Edit this card">'
+      '<div class="cardtools">'
+    + '<button class="edit" title="Edit card" aria-label="Edit this card">'
     + '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
     + 'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg></button>'
     + '<button class="move" title="Move or relabel">&#8942;</button>'
-    + '<button class="pin" title="' + (c.pinned ? "Settled here" : "Mark as settled") + '">'
-    + (c.pinned ? "&#9679;" : "&#9675;") + "</button>"
+    + '<button class="pin" title="' + (c.locked ? "Locked here" : "Lock this card in place") + '">'
+    + padlock(c.locked) + "</button>"
     + '<button class="del" title="Delete card" aria-label="Delete card">&times;</button>'
+    + "</div>"
     + '<div class="body">' + esc(c.text) + "</div>"
     + (c.suggested ? '<span class="suggested" title="Beatfall suggested this wording. Edit the card and the label goes.">suggested</span>' : "")
     + hint
@@ -4283,16 +4338,25 @@ function cardEl(c){
     el.appendChild(settle);
   }
 
-  el.querySelector(".pin").setAttribute("data-tip", c.pinned
-    ? "Mark this placement as unsettled."
-    : "Mark this placement as settled.");
+  el.querySelector(".pin").setAttribute("data-tip", c.locked
+    ? "Unlock this card so it can be moved again."
+    : "Lock this card here. It cannot be moved until it is unlocked.");
   el.querySelector(".del").setAttribute("data-tip", "Delete this card. You can undo.");
   el.querySelector(".move").setAttribute("data-tip",
     "Move this card to another beat, set it aside, or file it under Other notes.");
   el.querySelector(".edit").setAttribute("data-tip",
     "Change the wording on this card. Double-clicking the card does the same.");
+  /* The other way off a beat. Dragging is already refused by draggable=false,
+     and this menu would have walked straight past the lock, which is exactly
+     the hole that made the old control decoration. */
+  if (c.locked){
+    const mv = el.querySelector(".move");
+    mv.disabled = true;
+    mv.setAttribute("data-tip", "This card is locked. Unlock it to move it.");
+  }
   el.querySelector(".move").addEventListener("click", e => {
     e.stopPropagation();
+    if (c.locked) return;
     if (el.querySelector(".movepick")) return;
     const proj = P();
     const sel2 = document.createElement("select");
@@ -4308,11 +4372,10 @@ function cardEl(c){
       snapshot();
       if (sel2.value.startsWith("b:")){
         c.slot = sel2.value.slice(2); c.kind = "beat";
-        c.pinned = c.slot !== "__none";
         if (c.slot === "__none") delete c.placedFromOutline;
         delete c.attachedTo;
       } else {
-        c.slot = "__shelf"; c.kind = sel2.value.slice(2); c.pinned = false;
+        c.slot = "__shelf"; c.kind = sel2.value.slice(2);
         delete c.attachedTo;
         delete c.placedFromOutline;
       }
@@ -4324,7 +4387,8 @@ function cardEl(c){
   });
   el.querySelector(".pin").addEventListener("click", e => {
     e.stopPropagation();
-    c.pinned = !c.pinned;
+    snapshot();                      // locking is a decision, so it can be undone
+    c.locked = !c.locked;
     render();
   });
   el.querySelector(".del").addEventListener("click", e => {
@@ -4382,7 +4446,6 @@ function wireDrop(el, slotId){
     if (!card) return;
     snapshot();
     card.slot = slotId;
-    card.pinned = slotId !== "__none"; // a manual beat placement is a decision
     if (slotId === "__none") delete card.placedFromOutline;
     // Dropping it somewhere on the board is placing it, which is not filing it
     // under a beat. It cannot be in both places at once.
@@ -4820,7 +4883,7 @@ function commit(slotId){
            {count: (pending.options || []).length});
   snapshot();
   const proj = P();
-  proj.cards.push(stampNew({id: uid++, text: pending.text, slot: slotId, pinned: false}));
+  proj.cards.push(stampNew({id: uid++, text: pending.text, slot: slotId}));
   pending = null;
   proposal.hidden = true;
   input.value = ""; growNote(); paintCaptureMore();
@@ -5023,7 +5086,7 @@ sel.addEventListener("change", () => {
   // longest notes first: they carry the most signal and should claim their beat first
   carried.slice().sort((a,b) => b.text.length - a.text.length).forEach(c => {
     const ranked = score(c.text, to, rebuilt);
-    const copy = {...c, slot: ranked[0].slot.id, pinned: false};
+    const copy = {...c, slot: ranked[0].slot.id};
     delete copy.attachedTo;
     rebuilt.cards.push(copy);
   });
@@ -6040,7 +6103,7 @@ document.getElementById("draftgo").addEventListener("click", () => {
   const slot = thread.slot;
   const untouched = thread.mode === "idea" && thread.origin
     && text.replace(/\s+/g," ").trim() === thread.origin.replace(/\s+/g," ").trim();
-  proj.cards.push(stampNew({id: uid++, text, slot: slot.id, pinned: true, kind: "beat",
+  proj.cards.push(stampNew({id: uid++, text, slot: slot.id, kind: "beat",
                    suggested: untouched}));
   const moves = settle(proj);
   closeAsk();
@@ -6247,7 +6310,7 @@ document.getElementById("loadsample").addEventListener("click", () => {
     SAMPLE.forEach(text => {
       const ranked = score(text, proj.structure, proj);
       proj.cards.push(stampNew({id: uid++, text, slot: ranked[0].slot.id,
-                       pinned: false, fromSample: true}));
+                       fromSample: true}));
     });
     settle(proj);
   }
@@ -8867,7 +8930,7 @@ document.getElementById("revgo").addEventListener("click", () => {
          drag from being right. On the shelf the hint is never even drawn. */
       const looking = n.kind === "beat" || real(n.maybe) || real(n.full);
       target.cards.push(stampNew({
-        id: uid++, text: n.text, pinned: false,
+        id: uid++, text: n.text,
         kind: looking ? "beat" : n.kind,
         maybe: real(n.maybe) ? n.maybe : null,
         full: real(n.full) ? n.full : null,
@@ -9180,7 +9243,7 @@ function renderOutline(){
       const holder = el.querySelector(".ocards");
       cards.forEach(c => {
         const cd = document.createElement("div");
-        cd.className = "ocard" + (c.pinned ? " pinned" : "");
+        cd.className = "ocard" + (c.locked ? " locked" : "");
         cd.appendChild(document.createTextNode(c.text));
         // A Set aside idea placed from Outline is now a genuine beat card.
         // This return action reverses that placement without inventing a
@@ -9194,7 +9257,6 @@ function renderOutline(){
           back.addEventListener("click", () => {
             snapshot();
             c.slot = "__none";
-            c.pinned = false;
             delete c.placedFromOutline;
             delete c.attachedTo;
             // Usually this is an extra card beside the beat's original card.
@@ -9350,11 +9412,11 @@ function renderOutline(){
         const home = card.slot === "__none";
         if (home){
           // Set aside contains possible beat cards. Dragging one here is an
-          // intentional placement, so it becomes the same pinned card the
-          // Board already understands: filled gold dot, gold edge, menu, and X.
+          // intentional placement, so it becomes the ordinary beat card the
+          // Board already understands: padlock, menu and X. It arrives
+          // UNLOCKED, like every other placement: only the padlock locks.
           card.slot = slot.id;
           card.kind = "beat";
-          card.pinned = true;
           card.placedFromOutline = true;
           delete card.attachedTo;
         } else {
@@ -9391,7 +9453,10 @@ function renderRail(){
   const railCard = c => {
     const d = document.createElement("div");
     d.className = "railcard";
-    d.draggable = true;
+    // A card can only be locked from the board, so one should never reach the
+    // rail locked. Refusing the drag anyway costs nothing and means the rule
+    // holds wherever a card is drawn, not only where it is usually drawn.
+    d.draggable = !c.locked;
     d.textContent = c.text.length > 130 ? c.text.slice(0, 130) + "…" : c.text;
     d.title = c.text;
     d.addEventListener("dragstart", e => {
@@ -10012,7 +10077,7 @@ function renderNotes(){
       toCard.addEventListener("change", () => {
         if (!toCard.value) return;
         snapshot();
-        c.slot = toCard.value; c.kind = "beat"; c.pinned = true;
+        c.slot = toCard.value; c.kind = "beat";
         delete c.attachedTo;
         settle(proj); renderNotes(); render();
       });
