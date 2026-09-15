@@ -59,6 +59,32 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     JSON.stringify(globalThis.__DB__.state.events));
 }
 
+
+/* THE WARNING IS AN EMAIL, AND AN EMAIL IS A THING THAT CAN BE WRONG.
+   It is the only message this product sends that a writer did not ask for, so
+   it has to arrive, be readable with images off, and say plainly where a reply
+   goes. Checked against the shipped markup, not a copy of it. */
+{
+  const { DELETION_WARNING_HTML: H } = await import('./api/_email/deletion-warning.js');
+  check('the warning has an HTML body at all', typeof H === 'string' && H.length > 800,
+    typeof H + ' ' + (H||'').length);
+  check('it says what will happen and when',
+    /deleted in about a month/.test(H) && /five months/.test(H) && /six months/.test(H), '');
+  check('it offers both ways to keep the work',
+    /[Ss]ign in once/.test(H) && /download everything/.test(H), '');
+  check('it names where a reply actually goes',
+    /Nobody reads replies/.test(H) && /support@beatfall\.app/.test(H), '');
+  check('the mark carries alt text, because images are off by default',
+    /alt="Beatfall"/.test(H), '');
+  check('every colour is inline as well as in the stylesheet, which is all Outlook reads',
+    (H.match(/style="[^"]*color:#/g) || []).length > 8,
+    String((H.match(/style="[^"]*color:#/g)||[]).length) + ' inline colour declarations');
+  check('it uses the palette from theme.css and invents nothing',
+    /#2B2620/.test(H) && /#F1EEE7/.test(H) && /#7B5A13/.test(H), '');
+  check('no em dash survived into the message', H.indexOf('\u2014') < 0, '');
+  check('nothing is left unsubstituted', !/\$\{/.test(H) && !/\{\{/.test(H), '');
+}
+
 const failed = out.filter(x=>!x.ok);
 console.log('\n' + (out.length-failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

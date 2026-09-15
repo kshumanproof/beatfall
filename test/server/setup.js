@@ -3,6 +3,11 @@
 import fs from 'fs';
 fs.mkdirSync('api/_lib', { recursive: true });
 fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
+// The email bodies are plain modules with no boundary to swap, so they are
+// copied as they are and the suite exercises the real markup.
+fs.mkdirSync('api/_email', { recursive: true });
+fs.readdirSync('../../api/_email').forEach(f =>
+  fs.copyFileSync('../../api/_email/' + f, 'api/_email/' + f));
 
 fs.writeFileSync('api/shim.js',
   "export * from './_lib/core.js';\n" +

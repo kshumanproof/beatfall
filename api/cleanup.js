@@ -14,6 +14,7 @@
 // CRON_SECRET, so without that set it refuses to do anything at all.
 // ============================================================================
 import { admin } from './_lib/core.js';
+import { DELETION_WARNING_HTML } from './_email/deletion-warning.js';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 const WARN_AFTER   = 5 * MONTH;
@@ -44,7 +45,16 @@ async function warn(db, profile) {
       body: JSON.stringify({
         from,
         to: profile.email,
+        /* Nothing is read at this address. The footer of the message says so
+           and points at the one that is, which is the half that stops a dead
+           end reading as indifference. */
+        reply_to: from,
         subject: 'Your Beatfall account will be deleted in about a month',
+        html: DELETION_WARNING_HTML,
+        /* Kept, and not as a formality. A plain-text part is what a screen
+           reader, a text-only client and every spam filter actually read, and
+           a message with only an HTML part scores worse for it. The words are
+           the same words. */
         text:
 `You haven't signed in to Beatfall for five months.
 

@@ -18,3 +18,8 @@ test/stub.html
 test/server/api/
 # Built by test/pages.js from the real page in public/, same reasoning.
 test/stub-*.html
+
+# Screenshots and scratch output from working sessions. Useful while a design
+# is being decided, and about six megabytes of PNGs that nothing in the product
+# reads. Kept on disk, out of the repo.
+Claude outputs/

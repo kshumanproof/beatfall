@@ -1817,13 +1817,24 @@ so on 13 September and he was right to.
     cd server
     node setup.js
     node money.js ; node gate.js ; node hook.js ; node clean.js
-    node captures.js ; node proxy.js
+    node captures.js ; node proxy.js ; node lock.js
 
-Counts after the 14 September fixes: flows 204, drive 55, pages 40, mobile 5,
-money 18, gate 21, hook 18, clean 9, captures 33, proxy 29. **432 checks, all
-passing.** It was 418 before the seven open items were closed; the fourteen new
-ones hold three of those fixes down. A lower count means something is wrong with
-the checkout, not with the test.
+Counts after the 14 September pass: flows 204, drive 55, pages 40, mobile 5,
+money 18, gate 21, hook 18, clean 18, captures 33, proxy 29, lock 16. **457
+checks, all passing.** It was 418 before the seven open items were closed. A
+lower count means something is wrong with the checkout, not with the test.
+
+`lock.js` is new and covers `api/session.js` and `api/admin.js`, which had no
+suite at all: the one-browser lock, the takeover, the old browser signing out
+after it was replaced, junk device ids, and the admin 403.
+
+**A defect in the stand-in database was found and fixed on 14 September, and it
+matters more than the count.** `single()` returned the table as it was instead
+of running the operation, so ANY write ending in `.select().single()` did
+nothing here and handed back the old row. Two shipped calls end that way,
+`api/session.js` claiming a browser and `api/projects.js` creating a project, so
+both were invisible to this suite. It runs the operation now. If a check ever
+passes against a write you cannot see in `db.state`, suspect this first.
 
 `test/mobile.js` exists because the phone app died twice on a red screen from
 packages that were imported and never declared in package.json. It checks that
@@ -1951,17 +1962,154 @@ Also done in the same pass: three em dashes in phone comments
 (`theme.js` twice, `store.web.js` once). The audit habit had only ever covered
 `public/` and `api/`, which is how they survived. `mobile/` is in the sweep now.
 
-### Still open, found on 14 September and not fixed
+### Still open, found by the full audit on 14 September
 
-- **The homepage hardcodes the price.** `public/index.html` reads "Then $12 a
-  month or $99 a year" as plain text, on a page that already fetches
-  `/api/config` for the session check and gets `pricing` back in the same
-  response and ignores it. Not lying today because the prices have not moved.
-  It is the same bug this file says has been fixed three times, sitting on the
-  one page every new writer reads first. Left alone because it is a copy change
-  on the marketing page rather than a defect, and Kris has not been asked.
-- `admin.html` prints the label "AI calls". Only Kris ever sees that page, so it
-  is a judgement call rather than a breach of the naming rule.
+A top-to-bottom pass: the 448 suite checks plus 123 more written for the audit,
+driving every page in a browser at nine device sizes in both themes, the writer's
+journey through the app, hostile text in every field, the contrast of every
+token against its own ground, and the endpoints that had no suite. Nothing below
+is a crash and nothing below loses a note. In rough order of what I would fix
+first.
+
+**1. A card holding a beat its structure does not have is drawn NOWHERE.**
+Reproduced. The board renders by iterating the structure's own slots and the
+Set aside tray takes only `slot === "__none"`, so a card carrying a foreign
+beat id matches neither. It stays in the project, saves to the database, counts
+towards nothing and appears on no screen.
+
+This file claims the opposite, in "Nothing placed: the structure switched after
+classification": *"A card can never hold a beat its structure lacks. Whatever
+happens upstream, an unknown id becomes Set aside."* That is true in the import
+build and false at load. **No live path creates one today** (the structure
+switch rescores every carried card, and the import switches before
+classification), so the exposure is old rows from the 3 September era, which
+means Kris's own projects rather than a new writer's. The fix is a sweep beside
+`migrateAttachedSetAsides` and `salvageStrandedOutline`: any card whose slot is
+not `__none`, not `__shelf` and not in the current structure becomes `__none`.
+
+**2. Two pages print money and allowances as literals.** `public/login.html`
+says "14-day trial. 25 credits. No card required." as plain text that nothing
+ever updates, and it is the page every new writer reads before signing up.
+`public/index.html` says "Then $12 a month or $99 a year" the same way, on a
+page that already fetches `/api/config`, gets `pricing` back in the same
+response, and ignores it. `billing.html` shows the pattern to copy:
+`data-bf="trial_credits"` with a literal fallback, filled from config on load.
+Neither is lying today. Both are the bug this file says has been fixed three
+times. `settings.html` and `admin.html` are fine: their literals are fallbacks
+behind a server value.
+
+**3. `/help` is in the sitemap and behind the small-screen gate.** So a phone
+that finds the help page in search gets the app pitch instead of the help page.
+Either drop it from `sitemap.xml` or treat it as a document like Privacy and
+Terms and take `app.js` off it. It is a one-line decision either way and it is
+Kris's, not mine.
+
+**4. `admin.html` prints the label "AI calls".** The only breach of the naming
+rule left anywhere. Only Kris sees that page, which is why it survived.
+
+**5. `/admin`, `/app` and `/settings` carry no `noindex`** while `robots.txt`
+allows everything. Nothing is exposed, they all refuse without a session, but
+there is no reason for the admin surface to be indexable. `404.html` and
+`delete.html` already say `noindex`.
+
+**6. `--ink-4` measures 3.34 on the light ground.** Fine for the micro-labels it
+is documented for, below the 4.5 line for the few places it carries real text at
+11.5 and 12px, such as the email under the account name. The big contrast defect
+this file recorded IS fixed and was verified by measurement: ink-3 is 4.72, up
+from 2.64, and gold is 5.47, up from 4.36.
+
+**7. `admin.html` dereferences `d.credits_per_active_user.median` unguarded.**
+`d.pricing` has a fallback beside it and this does not, so an older deployed API
+blanks the page with a script error rather than a missing card.
+
+Checked and found correct, so do not go looking again: no script error on any of
+the eleven pages; nothing runs off a 390px phone on any of them; every internal
+link and asset resolves; the gate is right at nine real device sizes including a
+rotated Pro Max and an iPad Mini; a writer's own text never becomes markup or
+script in any view; the credit ladder is exactly 20 and 7 at 100, 30 and 10 at
+150, 5 and 2 on the trial; the three definitions of the same note agree on
+fifteen awkward inputs; every persisted project field is in all four places; all
+three account pills read the same fields and none quotes a monthly price; the
+events allowlist covers every prop name the code actually sends; the schema and
+the endpoints agree; and `billing.js` never takes a price from the browser.
+
+### One place this file and the code disagree
+
+"Outline start gate (5 Sep 2026)" says the gate is *"a strict completeness gate,
+not a one-time unlock. Existing prose and old `outline.__started` markers do not
+bypass it."* The code does the opposite on purpose: `outlineAccess` returns
+`canOpen: complete || started`, `markOutlineStarted` writes `__started` when the
+Outline is first opened through the door, and the structure switch deliberately
+preserves it with the comment *"Losing __started here would lock a writer out of
+prose they are looking at."*
+
+So once a writer has opened the Outline on a complete board, it stays open even
+if the board later goes incomplete. The code's reasoning is better than the
+older note's and the behaviour is almost certainly the one to keep. **The file
+is what is wrong here, not the code.** Kris has not been asked which he wants,
+so nothing was changed.
+
+### The emails (15 September 2026)
+
+Three messages, all built by `email/build.js`. Read `email/README.md` before
+touching any of them; what follows is only what would not be obvious from the
+files.
+
+**Beatfall signs people in with a SIX DIGIT CODE, not a magic link.** Web,
+phone and the public deletion page all do `signInWithOtp` then `verifyOtp`.
+`login.html` explains why in a comment and it is a good reason: a link signs in
+whichever device opened the mail app, which is the wrong one about half the
+time. So every template needs `{{ .Token }}` in it.
+
+**The subject lines are Kris's and are settled.** I proposed putting the code
+itself in the subject, presented it as decided rather than asking, and he said
+no on 15 September. The existing subjects stay. Do not raise it again.
+
+**The OTP expires in an hour**, which is what the templates now say. That came
+off the copy already in the Supabase template rather than a guess.
+
+**TWO Supabase templates, not one.** A brand new address gets **Confirm
+signup** and a returning one gets **Magic Link**. Put the token in only one and
+half the writers get an email with nothing usable in it. `email/signup.html`
+and `email/signin.html` are those two.
+
+**The design is the homepage, not just its hex codes.** Surface masthead over a
+rule, paper in the middle, surface footer under a rule, which is the band
+structure of `index.html`. The label above the digits is gold at 11px and
+.16em because that is exactly `.eyebrow` on that page. Gold appears there and
+nowhere else in the message: on the board gold means a gap or a credit, so a
+gold button in an email would be saying something untrue. Digits in Courier,
+which is already the board's mono.
+
+**noreply@beatfall.app is the sender, and the way replies are actually stopped
+is by not creating that mailbox.** An address cannot refuse mail on its own. The
+footer says plainly that nobody reads replies and points at
+support@beatfall.app, because a bounce with no explanation reads as a company
+that does not want to hear from you. `api/cleanup.js` sets `reply_to` to the
+same dead address on purpose.
+
+**The deletion warning is HTML now, with the text part kept.** The text is not a
+formality: it is what a screen reader, a text-only client and every spam filter
+read, and an HTML-only message scores worse for it. It lives in
+`api/_email/deletion-warning.js` as a module rather than a file, because Vercel
+functions do not reliably ship sibling assets and a warning that fails to render
+is a warning nobody was given. Nine checks in `clean.js` hold the markup down.
+
+**Three addresses are now in play and all three have to exist**: `noreply@`
+sends, `support@` is where the phone app and these emails send people,
+`contact@` is still in the web footer and on the billing page. That is one more
+than this product needs and Kris has not been asked to settle it.
+
+**Both templates are pasted and live as of 15 September**, and sending was
+already working before any of this: custom SMTP through Resend, domain verified,
+sending from noreply@beatfall.app. I wasted a chunk of a session walking Kris
+through setting up something already done, because Supabase shows a saved SMTP
+password as an empty box and I read that as unset. It says so directly under the
+field. Read the screen before giving instructions about it.
+
+**The templates live in the Supabase dashboard, not in this repo.** Nothing about
+them deploys. `email/` holds the source so the design is version controlled and
+rebuildable; pasting is a manual step and always will be.
 
 ### Four note-loss bugs, found and fixed on 13 September
 

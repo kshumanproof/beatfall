@@ -1,0 +1,6 @@
+{
+  "name": "beatfall-email",
+  "private": true,
+  "type": "commonjs",
+  "description": "The root package.json declares type=module. build.js is CommonJS and uses require(), so without this file `node build.js` fails on its first line. Same reason test/package.json exists. Nothing here is installed or shipped."
+}
