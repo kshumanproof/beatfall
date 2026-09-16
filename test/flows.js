@@ -134,7 +134,9 @@ async function open(browser, projects, account = PAID) {
     const edited = await page.evaluate(() => {
       const card = [...document.querySelectorAll('#notesbody .ncard')]
         .find(c => /payphone/.test(c.textContent));
-      const btn = [...card.querySelectorAll('button')].find(b => /^edit$/i.test(b.textContent.trim()));
+      // The pencil, by class. It was a button labelled "Edit" in the row below
+      // and is the same icon a board card uses now, so there is no text to find.
+      const btn = card.querySelector('.edit');
       if (!btn) return {found: false};
       btn.click();
       const t = card.querySelector('.t');
@@ -211,7 +213,7 @@ async function open(browser, projects, account = PAID) {
       const card = [...document.querySelectorAll('#notesbody .ncard')]
         .find(c => /I do not steal cars/.test(c.textContent));
       const t = card.querySelector('.t');
-      [...card.querySelectorAll('button')].find(b => /^edit$/i.test(b.textContent.trim())).click();
+      card.querySelector('.edit').click();
       const ev = new KeyboardEvent('keydown', {key: 'Enter', shiftKey: true, cancelable: true});
       const prevented = !t.dispatchEvent(ev);
       return {prevented, editable: t.getAttribute('contenteditable')};

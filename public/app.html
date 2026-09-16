@@ -841,7 +841,8 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
    equal but the gaps between the GLYPHS were not, because a vertical ellipsis
    and a multiplication sign are nothing like the same width. Identical boxes
    put the marks on an even pitch, which is what the eye is reading. */
-.icard .del,.icard .move,.icard .pin,.icard .edit{
+.icard .del,.icard .move,.icard .pin,.icard .edit,
+.ncard .del,.ncard .edit{
   border:none;background:none;color:var(--ink-4);line-height:1;
   width:25px;height:22px;padding:0;display:inline-flex;align-items:center;justify-content:center;
   cursor:pointer;opacity:0;transition:opacity .12s ease;border-radius:3px;
@@ -851,9 +852,11 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .icard .move{font-size:14px}
 .icard .edit{font-size:12px}
 .icard:hover .del,.icard:hover .move,.icard:hover .pin,.icard:hover .edit,
+.ncard:hover .del,.ncard:hover .edit,
 .icard .del:focus-visible,.icard .move:focus-visible,.icard .pin:focus-visible,
-.icard .edit:focus-visible{opacity:1}
-.icard .del:hover,.icard .move:hover,.icard .pin:hover,.icard .edit:hover{
+.icard .edit:focus-visible,.ncard .del:focus-visible,.ncard .edit:focus-visible{opacity:1}
+.icard .del:hover,.icard .move:hover,.icard .pin:hover,.icard .edit:hover,
+.ncard .del:hover,.ncard .edit:hover{
   color:var(--ink);background:var(--rule-soft)}
 /* Still visible, still explains itself on hover, just refuses. Hiding it would
    leave the writer hunting for the way to move a card they locked. */
@@ -1409,10 +1412,14 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   border:1px solid var(--rule);padding:8px 12px;font-family:var(--mono);font-size:12.5px;
 }
 .notefind:focus{border-color:var(--blue);outline:none}
+/* Same corner tools as a board card: the pencil edits, the X deletes. They were
+   two more buttons in the row underneath, so one card carried six controls
+   around a single sentence. The 32px top padding is the strip the tools sit in,
+   exactly as on .icard, so the chip never runs under them. */
 .ncard{
   background:var(--card);border:1px solid var(--rule);border-radius:var(--r-card);
   box-shadow:var(--shadow);
-  padding:14px 15px 17px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+  padding:32px 15px 17px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;
   position:relative;
 }
 .ncard .chip{align-self:flex-start}
@@ -10052,7 +10059,17 @@ function renderNotes(){
     items.forEach(c => {
       const el = document.createElement("div");
       el.className = "ncard " + kind;
-      el.innerHTML = '<span class="chip ' + kind + '">' + esc(KINDS[kind]) + "</span>"
+      /* The pencil and the X, in the corner, the same two marks and the same
+         behaviour as a board card. There is one way to edit a piece of text in
+         Beatfall and one way to throw it away, wherever the text is sitting. */
+      el.innerHTML = '<div class="cardtools">'
+        + '<button class="edit" title="Edit note" aria-label="Edit this note">'
+        + '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        + '<path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg></button>'
+        + '<button class="del" title="Delete note" aria-label="Delete this note">&times;</button>'
+        + "</div>"
+        + '<span class="chip ' + kind + '">' + esc(KINDS[kind]) + "</span>"
         + '<div class="t"></div><div class="on" hidden></div><div class="r"></div>'
         + dateTag(c);
       el.querySelector(".t").textContent = c.text;
@@ -10100,9 +10117,9 @@ function renderNotes(){
         row.appendChild(settle);
       }
 
-      const edit = document.createElement("button");
-      edit.className = "btn"; edit.textContent = "Edit";
-      edit.setAttribute("data-tip", "Change the wording of this note.");
+      const edit = el.querySelector(".edit");
+      edit.setAttribute("data-tip",
+        "Change the wording of this note. Double-clicking the note does the same.");
       const textEl = el.querySelector(".t");
       edit.addEventListener("click", () => {
         // No toggle branch here: pressing the button moves focus, which fires
@@ -10131,7 +10148,8 @@ function renderNotes(){
         if (e.key === "Enter"){ e.preventDefault(); textEl.blur(); }
         if (e.key === "Escape"){ textEl.textContent = c.text; textEl.blur(); }
       });
-      row.appendChild(edit);
+      // No row.appendChild here any more: the pencil already lives in the
+      // corner tools, and appending it would move it back down into the row.
 
       const kindSel = document.createElement("select");
       kindSel.setAttribute("data-tip", "Change how this note is grouped.");
@@ -10192,15 +10210,19 @@ function renderNotes(){
       });
       row.appendChild(send);
 
-      const del = document.createElement("button");
-      del.className = "btn"; del.textContent = "Delete";
+      /* The corner X, and it asks first, the same as a board card does. A note
+         is a sentence the writer typed; it should not leave the screen on one
+         press with nothing in between. Undo takes it back either way. */
+      const del = el.querySelector(".del");
       del.setAttribute("data-tip", "Delete this note. You can undo.");
       del.addEventListener("click", () => {
+        if (!confirm("Delete this note?\n\n\u201c" + c.text.slice(0, 160)
+            + (c.text.length > 160 ? "\u2026" : "")
+            + "\u201d\n\nIt comes off Other notes. Undo will bring it back.")) return;
         snapshot();
         proj.cards = proj.cards.filter(x => x.id !== c.id);
         renderNotes(); render();
       });
-      row.appendChild(del);
       grid.appendChild(el);
     });
     body.appendChild(g);
