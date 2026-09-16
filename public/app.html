@@ -8920,7 +8920,7 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
           ? "<b>" + esc(BF.explain(e)) + "</b> Nothing was charged and your notes are "
             + "still in the box. " + (ME && ME.trialing
                 ? "Picking a plan opens this straight away."
-                : "Credits reset on the 1st.")
+                : "Your credits come back on your reset day.")
           : "<b>Couldn't read that file.</b> Nothing was added. Your text is still above. "
             + "Try again, or split it into two files.");
       go.disabled = false; go.textContent = "Try again"; stop.hidden = true; dumpCtl = null;

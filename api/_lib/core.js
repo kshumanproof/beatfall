@@ -22,22 +22,47 @@ const OWNER_ALLOWANCE = 1000000;   // effectively unlimited, without Infinity in
 // before they have used the product once.
 export const PLANS = {
   trial:    { name: 'Trial',    credits: 25,  price: 0  },
-  beatfall: { name: 'Beatfall', credits: 100, price: 12 },
+  beatfall: { name: 'Beatfall', credits: 75,  price: 15 },
   owner:    { name: 'Owner',    credits: OWNER_ALLOWANCE, price: 0 },
   none:     { name: 'No plan',  credits: 0,   price: 0  }
 };
 
 export const PAID_PLAN   = 'beatfall';
-export const PRICE_MONTH = 12;
-export const PRICE_YEAR  = 99;
-// A top-up is priced ABOVE the subscription rate on purpose. The plan is
-// 100 for $12, twelve cents a credit; a pack is 40 for $6, fifteen cents.
-// Selling packs cheaper than the plan teaches people to skip the plan and
-// makes the $12 look like the worse deal, which is what 100 for $6 was doing.
-// The pack is deliberately not smaller than this: at 30 a heavy month would
-// make the same person buy twice, and two purchase decisions is where
-// goodwill goes.
-export const TOPUP_CREDITS = 40;
+export const PRICE_MONTH = 15;
+export const PRICE_YEAR  = 149;
+
+/* 16 September: 100 for $12 became 75 for $15, and the year went 99 to 149.
+   Two reasons, and the second is the real one.
+
+   The allowance was never binding. A script taken seriously is about 25
+   credits: read the notes in, talk through fifteen empty beats, interview four
+   characters. At 100 that is four whole scripts a month and nobody ever met
+   the ceiling, so the credit numbers were not doing any pricing work at all.
+   At 75 a busy two-script month reaches it, which is where a ceiling belongs:
+   invisible to an ordinary month, felt by a heavy one.
+
+   And the year at 149 is two months free rather than the 28 per cent 99 was.
+   Annual subscribers are the least likely to leave, so they needed the
+   shallowest discount, not the deepest.
+
+   NONE OF THIS CHANGES WHAT STRIPE CHARGES. These numbers are what the site
+   SAYS. Stripe bills whatever the price objects behind STRIPE_PRICE_MONTHLY
+   and STRIPE_PRICE_ANNUAL say. Move one without the other and the product
+   lies about its own price. */
+
+/* A top-up is priced ABOVE the subscription rate on purpose. The plan is
+   75 for $15, twenty cents a credit; a pack is 25 for $6, twenty-four cents.
+   Selling packs cheaper than the plan teaches people to skip the plan and
+   makes the subscription look like the worse deal, which is what 100 for $6
+   was doing.
+
+   THE SIZE IS CONSTRAINED BY ARITHMETIC NOW. At a twenty cent plan rate a $6
+   pack cannot exceed 29 credits without undercutting the plan, so the old 40
+   would need $9. Kris ruled that out for a better reason than price: banked
+   credits never expire, so a 40 pack against a 75 allowance leaves a surplus
+   that rolls up month after month until a heavy user never has to buy again.
+   25 is sized to one script, which is what the overflow actually looks like. */
+export const TOPUP_CREDITS = 25;
 export const TOPUP_PRICE   = 6;
 
 // The two low-credit marks, as a SHARE of whatever allowance they are applied
@@ -133,18 +158,45 @@ export async function requireUser(req, options = {}) {
     track(db, user.id, 'profile_recreated');
   }
 
-  // new calendar month → credits reset, topped-up credits carry over
-  const startOfMonth = new Date(); startOfMonth.setUTCDate(1);
-  startOfMonth.setUTCHours(0, 0, 0, 0);
+  /* The month rolls on the writer's OWN day, not on the 1st.
+
+     It used to reset for everybody on the first of the calendar month, and
+     that quietly gave away an allowance: sign up on the 28th and you had 75
+     credits for three days and a fresh 75 on the 1st. A hundred and fifty in
+     your first week for one month's money.
+
+     It also matters more now that annual exists. An annual subscriber pays
+     once and draws a monthly allowance, so their allowance has to come back on
+     a date that means something to them rather than on a calendar boundary
+     they never agreed to.
+
+     The anchor is the day of the month they signed up, which is always present
+     and never moves. It is not literally their Stripe billing day for someone
+     who trialled for a fortnight first, and it does not need to be: what it
+     has to guarantee is twelve refills a year on a fixed, predictable day. */
+  const periodStartFor = (anchorISO, now) => {
+    const day = new Date(anchorISO).getUTCDate();
+    const on = (y, m) => {
+      // The 31st in a 30 day month lands on the last day of it rather than
+      // skidding into the next one, which is what setUTCDate(31) would do.
+      const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+      return new Date(Date.UTC(y, m, Math.min(day, last), 0, 0, 0, 0));
+    };
+    let start = on(now.getUTCFullYear(), now.getUTCMonth());
+    if (start > now) start = on(now.getUTCFullYear(), now.getUTCMonth() - 1);
+    return start;
+  };
+  const periodStart = periodStartFor(profile.created_at || profile.period_start, new Date());
+
   /* The reset is conditional in the database, not just in this `if`. Filtered
-     on the id alone, two requests landing together on the first of the month
-     both saw last month's period_start, and the second one wrote credits_used
-     back to zero after the first had already spent against it. Now only one of
-     them can match, and the loser re-reads rather than keeping a stale row. */
-  if (new Date(profile.period_start) < startOfMonth) {
+     on the id alone, two requests landing together on the rollover both saw
+     last month's period_start, and the second one wrote credits_used back to
+     zero after the first had already spent against it. Now only one of them
+     can match, and the loser re-reads rather than keeping a stale row. */
+  if (new Date(profile.period_start) < periodStart) {
     const { data: rolled } = await db.from('profiles')
-      .update({ period_start: startOfMonth.toISOString(), credits_used: 0 })
-      .eq('id', user.id).lt('period_start', startOfMonth.toISOString())
+      .update({ period_start: periodStart.toISOString(), credits_used: 0 })
+      .eq('id', user.id).lt('period_start', periodStart.toISOString())
       .select().maybeSingle();
     if (rolled) profile = rolled;
     else {
@@ -192,8 +244,8 @@ export function entitlement(profile) {
 
   // Two buckets, and they behave differently on purpose.
   //
-  // `monthly` comes with the subscription, resets on the 1st, and whatever is
-  // left of it evaporates. `banked` is what they bought: it never renews and
+  // `monthly` comes with the subscription, resets on the writer's own day of
+  // the month, and whatever is left of it evaporates. `banked` is what they bought: it never renews and
   // it never expires, and it is only touched once the month's is gone.
   //
   // This used to be one number. `allowance` was plan.credits + credits_extra
@@ -300,7 +352,7 @@ export async function refund(db, userId, took) {
     /* Each bucket gets back exactly what came out of it. Refunding the total
        into whichever bucket had room looked equivalent and is not: a bought
        credit that comes back as a monthly one has quietly become a credit that
-       expires on the 1st, and the writer paid for one that never does. */
+       expires on the reset day, and the writer paid for one that never does. */
     const patch = {
       credits_used:  Math.max(0, (row.credits_used || 0) - fromMonthly),
       credits_extra: (row.credits_extra || 0) + fromBanked

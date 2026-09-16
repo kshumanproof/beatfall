@@ -203,7 +203,7 @@
   </section>
 
   <section class="price-wrap">
-    <div class="price"><div><h2>Try it on a real project.</h2><p><strong>14 days free.</strong> Then $12 a month or $99 a year. No card required to start.</p></div><a class="btn" href="/login.html?start=1">Start 14 days free</a></div>
+    <div class="price"><div><h2>Try it on a real project.</h2><p><strong>14 days free.</strong> Then $<span data-bf="price_month">15</span> a month or $<span data-bf="price_year">149</span> a year. No card required to start.</p></div><a class="btn" href="/login.html?start=1">Start 14 days free</a></div>
   </section>
 
   <section class="founder">
@@ -234,6 +234,16 @@
     (async function sendSignedInWritersToTheirProjects(){
       try {
         const config = await fetch('/api/config').then(response => response.ok ? response.json() : null);
+        // The prices printed in the HTML above are the truth as of today, so the
+        // page is right with no JavaScript at all. Then we write in whatever the
+        // server actually bills, so a price change is one edit in core.js and
+        // this page follows it. If the fetch fails the printed numbers stand.
+        if (config && config.pricing) {
+          document.querySelectorAll('[data-bf]').forEach(function (el) {
+            const v = config.pricing[el.getAttribute('data-bf')];
+            if (v !== undefined && v !== null && v !== '') el.textContent = v;
+          });
+        }
         if (config && config.supabaseUrl && config.supabaseAnonKey && window.supabase) {
           const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
             auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }

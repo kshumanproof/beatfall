@@ -57,6 +57,20 @@
            !config.supabaseAnonKey && 'SUPABASE_ANON_KEY'].filter(Boolean).join(', '));
       return null;
     }
+    /* The prices and allowances a page prints are the truth as of the day it
+       was written, so every page is correct with no JavaScript at all. Then we
+       write in whatever the server actually bills, so a price change is one
+       edit in core.js and every page follows it without anybody having to
+       remember the page exists. Same data-bf attribute billing.html uses.
+       If config came back without pricing, the printed numbers stand. */
+    BF.pricing = config.pricing || null;
+    if (BF.pricing) {
+      document.querySelectorAll('[data-bf]').forEach(function (el) {
+        const v = BF.pricing[el.getAttribute('data-bf')];
+        if (v !== undefined && v !== null && v !== '') el.textContent = v;
+      });
+    }
+
     sb = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });

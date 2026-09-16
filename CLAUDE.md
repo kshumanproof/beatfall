@@ -69,9 +69,10 @@ config, projects, session, stripe-webhook. Supabase Postgres with row-level
 security, Claude Haiku 4.5 behind a metered server-side proxy, Stripe Checkout
 and portal.
 
-Pricing: 14-day card-free trial, then $12/mo or $99/yr, **100 credits a month**,
-top-up **40 credits for $6**. Placing notes is free forever. A conversation is
-1 credit, an import 2, a character interview 2.
+Pricing: 14-day card-free trial, then $15/mo or $149/yr, **75 credits a month**,
+top-up **25 credits for $6**. Placing notes is free forever. A conversation is
+1 credit, an import 2, a character interview 2. Monthly credits reset on the
+writer's OWN day of the month, the day they signed up, not on the 1st.
 
 **Every one of those numbers lives in `api/_lib/core.js` and nowhere else.**
 `/api/config` is public and serves them to signed-out pages; `/api/account`
@@ -570,18 +571,36 @@ which walks the spillover and asserts a new month still reads 150.
 
 ### Pricing
 
-**Current, 10 Sep 2026: the plan is 100 credits for $12, the pack is 40 for $6.**
-The dollar prices have never moved. Everything below is why the shape is what
-it is, and the reasoning survived the change even though both numbers did not.
+**Changing a price is TWO changes, and `core.js` is only one of them.**
+`PRICE_MONTH` and `PRICE_YEAR` in `api/_lib/core.js` say what the site
+DISPLAYS. What a card is actually charged is whatever the Stripe price object
+behind `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL` and `STRIPE_PRICE_TOPUP`
+says. Stripe prices are immutable, so a new figure means creating a new price
+object in Stripe and pasting its id into Vercel. Change one side without the
+other and the site advertises a number Stripe does not take, which is the worst
+possible bug on a page that asks for a card. No test can catch this: the test
+suite has no access to the Stripe account.
 
-A pack is priced ABOVE the subscription rate on purpose. At 100 for $12 a plan
-credit is twelve cents and a pack credit is fifteen, so the pack cannot undercut
-the plan. It used to be able to: a pack at 100 for $6 was six cents, CHEAPER
-than subscribing, which taught people to skip the plan. That is what the pack
-first shrinking to 50 and then to 40 was correcting.
+**Current, 16 Sep 2026: the plan is 75 credits for $15, the pack is 25 for $6.**
+The year is $149, two months free against the monthly rate. Everything below is
+why the shape is what it is, and the reasoning has survived every change to the
+numbers.
 
-The pack is deliberately not smaller than 40. At 30 a heavy month would make the
-same person buy twice, and two purchase decisions is where goodwill goes.
+A pack is priced ABOVE the subscription rate on purpose. At 75 for $15 a plan
+credit is twenty cents and a pack credit is twenty-four, so the pack cannot
+undercut the plan. It used to be able to: a pack at 100 for $6 was six cents,
+CHEAPER than subscribing, which taught people to skip the plan. That is what the
+pack shrinking, first to 50, then 40, then 25, was correcting.
+
+The pack is deliberately not smaller than 25. Below that a heavy month would make
+the same person buy twice, and two purchase decisions is where goodwill goes.
+It was not raised to 40 for $9 either: anything that large rolls over into the
+next month often enough that a heavy user never runs out again, and the pack
+stops being a top-up and becomes a second subscription.
+
+**The annual plan draws 75 a month, not 900 at once, and those 75 expire on the
+writer's reset day like anybody else's.** That is deliberate: an annual
+subscriber who could not run out would never buy a pack.
 
 None of this was a cost decision. Measured cost is about a penny a credit: a
 3-turn conversation is $0.0064 and a 200-note import is $0.0333, sized against
@@ -2018,16 +2037,18 @@ means Kris's own projects rather than a new writer's. The fix is a sweep beside
 `migrateAttachedSetAsides` and `salvageStrandedOutline`: any card whose slot is
 not `__none`, not `__shelf` and not in the current structure becomes `__none`.
 
-**2. Two pages print money and allowances as literals.** `public/login.html`
-says "14-day trial. 25 credits. No card required." as plain text that nothing
-ever updates, and it is the page every new writer reads before signing up.
-`public/index.html` says "Then $12 a month or $99 a year" the same way, on a
-page that already fetches `/api/config`, gets `pricing` back in the same
-response, and ignores it. `billing.html` shows the pattern to copy:
-`data-bf="trial_credits"` with a literal fallback, filled from config on load.
-Neither is lying today. Both are the bug this file says has been fixed three
-times. `settings.html` and `admin.html` are fine: their literals are fallbacks
-behind a server value.
+**2. FIXED, 16 Sep 2026.** `public/login.html` and `public/index.html` both
+printed money as plain text that nothing ever updated. Both now use the
+`data-bf` pattern: a literal fallback in the HTML so the page is right with no
+JavaScript at all, painted over from `/api/config` on load. `index.html` paints
+from the config call it was already making; `login.html` and every other page
+that loads `app.js` is painted by `BF.init`, which now does the same sweep.
+
+And there is a test now. `test/server/money.js` reads index, login, billing and
+settings, pulls every `data-bf` fallback out of the HTML, and asserts each one
+equals what `core.js` says. It caught four stale numbers in `billing.html` on
+the day it was written, which is exactly the kind of miss that kept putting this
+audit item back.
 
 **3. `/help` is in the sitemap and behind the small-screen gate.** So a phone
 that finds the help page in search gets the app pitch instead of the help page.

@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     track(db, user.id, 'credits_exhausted', { credit_bucket: 'all', kind: body.kind });
     return send(res, 402, {
       error: 'out_of_credits',
-      message: `That's all ${ent.monthly} of this month's credits. They come back on the 1st, `
+      message: `That's all ${ent.monthly} of this month's credits. They come back on your reset day, `
              + `or ${TOPUP_CREDITS} more is $${TOPUP_PRICE} and those never expire. `
              + `Everything except the writing help keeps working.`,
       used: ent.used, allowance: ent.monthly, banked: ent.banked
@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         track(db, user.id, 'credits_exhausted', { credit_bucket: 'all', kind: body.kind });
         return send(res, 402, {
           error: 'out_of_credits',
-          message: `That's all ${ent.monthly} of this month's credits. They come back on the 1st, `
+          message: `That's all ${ent.monthly} of this month's credits. They come back on your reset day, `
                  + `or ${TOPUP_CREDITS} more is $${TOPUP_PRICE} and those never expire. `
                  + `Everything except the writing help keeps working.`,
           used: ent.used, allowance: ent.monthly, banked: ent.banked

@@ -166,8 +166,9 @@
       <p class="muted" style="margin-top:14px;max-width:66ch">
         Placing a note is free and always will be. It's the whole point of the app.
         A whole conversation costs one credit however many questions it takes, and
-        reading in a notes file costs two.
-        If you run out, everything except the writing help keeps working and your credits reset on the 1st.
+        reading in a notes file costs two. Your credits come back on the same day
+        each month, the day you signed up, whether you pay monthly or yearly.
+        If you run out, everything except the writing help keeps working and your credits come back on your reset day.
       </p>
       <!-- Beatfall asks once the first time you use each paid thing, and then
            trusts you. This is for anybody who would rather be asked every
@@ -262,10 +263,10 @@ function flash(kind, msg){
 }
 
 const PERIODS = [
-  { key:'month', label:'Monthly',  price:'$12', per:'a month',
+  { key:'month', label:'Monthly',  price:'$15', per:'a month',
     note:'Cancel any time, from your own billing page.' },
-  { key:'year',  label:'Annual',   price:'$99', per:'a year',
-    note:'Two and a half months free, paid once.' }
+  { key:'year',  label:'Annual',   price:'$149', per:'a year',
+    note:'Two months free, paid once. Still 75 credits a month, not 900 at once.' }
 ];
 
 (async function () {
@@ -404,8 +405,8 @@ const PERIODS = [
 
   const money = n => '$' + n;
   const PRICED = [
-    { ...PERIODS[0], price: money(me.price_month || 12) },
-    { ...PERIODS[1], price: money(me.price_year  || 99) }
+    { ...PERIODS[0], price: money(me.price_month || 15) },
+    { ...PERIODS[1], price: money(me.price_year  || 149) }
   ];
 
   /* Same test as the in-app version of this screen: nothing records whether a

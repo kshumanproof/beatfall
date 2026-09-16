@@ -12,10 +12,15 @@ const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Price ids come from the environment so the same code runs in test and live.
 // One plan, billed either way, plus the one-off top-up.
+//
+// These are Stripe's numbers, not ours. PRICE_MONTH and PRICE_YEAR in
+// _lib/core.js say what the site DISPLAYS. What a card is actually charged is
+// whatever the Stripe price object behind these three ids says. Change one
+// without the other and the site advertises a figure Stripe does not take.
 const PRICE = () => ({
-  month: process.env.STRIPE_PRICE_MONTHLY,       // $12 / month
-  year:  process.env.STRIPE_PRICE_ANNUAL,        // $99 / year
-  topup: process.env.STRIPE_PRICE_TOPUP          // one-off pack, TOPUP_CREDITS
+  month: process.env.STRIPE_PRICE_MONTHLY,       // must be PRICE_MONTH / month
+  year:  process.env.STRIPE_PRICE_ANNUAL,        // must be PRICE_YEAR / year
+  topup: process.env.STRIPE_PRICE_TOPUP          // one-off pack, TOPUP_PRICE for TOPUP_CREDITS
 });
 
 export default async function handler(req, res) {

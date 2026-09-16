@@ -111,6 +111,64 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
   check('and is never refused for balance', entitlement(db.state.profile).left > 0);
 }
 
+// ---------- the numbers printed on the pages
+/* Every price and allowance a public page prints is written into the HTML as
+   a plain number, so the page is right with no JavaScript at all, and then
+   painted over from /api/config once it loads. That printed number is the one
+   a search engine indexes and the one somebody with a slow connection reads,
+   so it has to agree with what the server actually bills. It is also the one
+   nobody remembers to change. This is the check that remembers.
+
+   Kris raised the plan on 16 September and four separate files had to move.
+   One of them, the homepage, had been saying the price before last for weeks
+   and nothing caught it, because nothing was looking. */
+{
+  const fs = await import('node:fs');
+  const core = await import('./api/_lib/core.js');
+
+  const truth = {
+    plan_credits:    core.PLANS[core.PAID_PLAN].credits,
+    trial_credits:   core.PLANS.trial.credits,
+    price_month:     core.PRICE_MONTH,
+    price_year:      core.PRICE_YEAR,
+    topup_credits:   core.TOPUP_CREDITS,
+    topup_price:     core.TOPUP_PRICE,
+    low_mark:        core.lowMark(core.PLANS[core.PAID_PLAN].credits),
+    last_mark:       core.lastMark(core.PLANS[core.PAID_PLAN].credits),
+    trial_low_mark:  core.lowMark(core.PLANS.trial.credits),
+    trial_last_mark: core.lastMark(core.PLANS.trial.credits),
+    year_saving:     (core.PRICE_MONTH * 12) - core.PRICE_YEAR
+  };
+
+  const pages = ['index.html', 'login.html', 'billing.html', 'settings.html'];
+  const wrong = [];
+  let found = 0;
+
+  for (const page of pages) {
+    const html = fs.readFileSync('../../public/' + page, 'utf8');
+    const tag = /data-bf="([a-z_]+)"[^>]*>([^<]*)</g;
+    let m;
+    while ((m = tag.exec(html))) {
+      found++;
+      const key = m[1], printed = m[2].trim();
+      if (!(key in truth)) { wrong.push(page + ': data-bf="' + key + '" is not a thing config serves'); continue; }
+      if (printed !== String(truth[key])) {
+        wrong.push(page + ': data-bf="' + key + '" prints ' + printed + ', core.js says ' + truth[key]);
+      }
+    }
+  }
+
+  check('every page is checked for printed prices', found >= 8, 'only found ' + found + ' printed numbers');
+  check('and each one agrees with core.js', wrong.length === 0, wrong.join('\n          '));
+
+  // The homepage price sentence is the one people read before they decide.
+  // If it ever goes back to being a bare number this fails loudly.
+  const home = fs.readFileSync('../../public/index.html', 'utf8');
+  check('the homepage price comes from the server, not from typing',
+    /data-bf="price_month"/.test(home) && /data-bf="price_year"/.test(home),
+    'index.html has a hand-typed price in it again');
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);
