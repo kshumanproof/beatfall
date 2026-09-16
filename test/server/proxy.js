@@ -1,6 +1,10 @@
 import handler from './api/claude.real.js';
-import { entitlement, PLANS, PAID_PLAN, FREE_PER_HOUR } from './api/_lib/core.js';
+import { entitlement, PLANS, PAID_PLAN, FREE_PER_HOUR, COST } from './api/_lib/core.js';
 const ALL = PLANS[PAID_PLAN].credits;   // not a typed 150, see money.js
+/* And the prices come from the table too. These used to be typed 1s and 2s, so
+   the day Kris moved the floor to 2 eight of these went red for the only reason
+   a test must never fail: the test was the thing that was out of date. */
+const TALK = COST.conversation, READ = COST.import;
 import { makeDb } from './fakedb.js';
 
 const out = [];
@@ -37,10 +41,10 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   const db = makeDb(paid());
   const r = await call(db, {kind:'conversation', input:'what goes in the midpoint?'});
   check('a conversation succeeds', r.code === 200, r.code + ' ' + JSON.stringify(r.body).slice(0,140));
-  check('and costs one credit', db.state.profile.credits_used === 1, JSON.stringify(db.state.profile));
+  check('and costs what a conversation costs', db.state.profile.credits_used === TALK, JSON.stringify(db.state.profile));
   check('the answer comes back', r.body && typeof r.body.text === 'string', JSON.stringify(r.body).slice(0,100));
   check('and the balance it reports is the real one',
-    r.body.credits_left === ALL - 1, 'reported ' + (r.body||{}).credits_left);
+    r.body.credits_left === ALL - TALK, 'reported ' + (r.body||{}).credits_left);
   check('a usage row is written', db.state.usage.length === 1, JSON.stringify(db.state.usage));
 }
 
@@ -51,8 +55,8 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   const used1 = db.state.profile.credits_used;
   await call(db, {kind:'conversation', session:'s1', input:'two'});
   await call(db, {kind:'conversation', session:'s1', input:'three'});
-  check('the first turn of a session pays', used1 === 1, 'used=' + used1);
-  check('and the rest of it is free', db.state.profile.credits_used === 1,
+  check('the first turn of a session pays', used1 === TALK, 'used=' + used1);
+  check('and the rest of it is free', db.state.profile.credits_used === TALK,
     'used=' + db.state.profile.credits_used);
 }
 
@@ -63,7 +67,8 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   check('placing a note is free', db.state.profile.credits_used === 0);
   await call(db, {kind:'import', session:'x', input:'a whole file'});
   check('and does not pay for the import that reuses its session',
-    db.state.profile.credits_used === 2, 'used=' + db.state.profile.credits_used + ' (should be 2)');
+    db.state.profile.credits_used === READ,
+    'used=' + db.state.profile.credits_used + ' (should be ' + READ + ')');
 }
 
 // ---------- one kind cannot pay for another
@@ -72,7 +77,8 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   await call(db, {kind:'conversation', session:'y', input:'one'});
   await call(db, {kind:'import', session:'y', input:'a file'});
   check('a conversation does not pay for an import on the same session',
-    db.state.profile.credits_used === 3, 'used=' + db.state.profile.credits_used + ' (1 + 2)');
+    db.state.profile.credits_used === TALK + READ,
+    'used=' + db.state.profile.credits_used + ' (should be ' + TALK + ' + ' + READ + ')');
 }
 
 // ---------- out of credits, before any model call
@@ -176,7 +182,7 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
 {
   const db = makeDb(paid());
   const r1 = await call(db, {kind:'import', session:'big-file', input:'batch 1'});
-  check('an import pays once', r1.code === 200 && db.state.profile.credits_used === 2,
+  check('an import pays once', r1.code === 200 && db.state.profile.credits_used === READ,
     JSON.stringify(db.state.profile));
 
   // 139 more batches on that one payment. Well inside the import's own session
@@ -188,8 +194,8 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   }
   check('a long file reads right through on that one payment', all,
     'an import started refusing itself partway');
-  check('and still only ever cost its two credits',
-    db.state.profile.credits_used === 2, JSON.stringify(db.state.profile));
+  check('and still only ever cost the one payment',
+    db.state.profile.credits_used === READ, JSON.stringify(db.state.profile));
 
   // The thing that matters: none of those 140 zero-credit turns was counted as
   // a free-KIND call, so placing still has its whole hour in front of it. Key

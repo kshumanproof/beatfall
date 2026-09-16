@@ -254,7 +254,7 @@ header{
    THE WAIT WALL.
 
    Reading a notes file is the one wait in Beatfall that earns a screen of its
-   own: it takes real seconds, it costs two credits, and the board does not
+   own: it takes real seconds, it is the most expensive action in the app, and the board does not
    exist yet, so there is no shape to show a ghost of.
 
    The mark is already one frame of this. The gold card is drawn caught in the
@@ -774,7 +774,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
    because the two are the same idea seen from opposite ends. Gold TEXT and
    gold RULES say "there is a gap here": the open count, the empty beat's name,
    the dashed line under it. Gold CONTROLS say "this is the door out of that
-   gap, and it costs one credit". Every paid control in Beatfall is a way of
+   gap, and it costs credits". Every paid control in Beatfall is a way of
    working on a hole; there is no third meaning to confuse.
 
    Two rules keep it from becoming noise:
@@ -2057,7 +2057,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .kind b{display:block;font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);
   text-transform:none;letter-spacing:0;margin-bottom:2px}
 /* The credit log. "119 of 150 used" is a number nobody can act on; this is the
-   itemised version, so a writer can see the two credits that went on reading in
+   itemised version, so a writer can see the credits that went on reading in
    a file and decide whether that was worth it. */
 .ledger{margin-top:30px;border-top:1px solid var(--rule);padding-top:18px}
 .ledger-h{font-size:11.5px;color:var(--ink-4);text-transform:uppercase;
@@ -2472,7 +2472,7 @@ footer{
   </div>
 
   <!-- One character. Ten fields, filled by hand for nothing, or by the
-       interview for two credits. -->
+       interview for what COST.character says. -->
   <div class="sheet castsheet" id="sheetchar" hidden>
     <div class="sheet-title" id="chartitle">A character</div>
     <p class="sheet-note" style="margin-bottom:14px">Fill in what you know. Blanks are fine.</p>
@@ -3381,21 +3381,21 @@ function briefBlock(){
    decides what is actually charged, and this decides what the writer is told,
    and a gap between them is the kind of thing that ends up on a support email.
    place and route are free, and free things say nothing. */
-const CREDIT = {conversation: 1, ideas: 1, logline: 1, character: 2, import: 2,
+const CREDIT = {conversation: 2, ideas: 2, logline: 3, character: 3, import: 5,
                 place: 0, route: 0};
 
 /* And the two prices, for the screens that have to name them before
    /api/account has answered. Same rule as CREDIT: the server is what actually
    charges, this is what the writer is told, and /api/account now sends both so
    anything that can wait should read them from there instead. */
-const PRICES = {month: 12, year: 99};
+const PRICES = {month: 15, year: 149};
 
 /* What a paid month carries. Three screens used to say "150" as typed text,
    and the paid allowance is exactly the kind of number that moves. This asks
    the server first and falls back to a printed number only if /api/account has
    not answered yet, which is the same rule PRICES follows. One place to change
    means the app cannot advertise an allowance it does not hand out. */
-const PLAN_CREDITS = 100;
+const PLAN_CREDITS = 75;
 function planCredits(){
   return (ME && ME.plans && ME.plans.beatfall && ME.plans.beatfall.credits)
       || PLAN_CREDITS;
@@ -3403,7 +3403,7 @@ function planCredits(){
 
 /* The top-up pack, same reasoning. */
 function packWords(){
-  const n = (ME && ME.topup_credits) || 40;
+  const n = (ME && ME.topup_credits) || 25;
   const p = (ME && ME.topup_price)   || 6;
   return n + " credits for $" + p;
 }
@@ -5917,7 +5917,7 @@ document.getElementById("savepdf").addEventListener("click", exportPDF);
    useful left to ask, and Create a card is available after the first answer. */
 const ASK_LIMIT = 5;
 let askCtl = null;
-/* One conversation costs one credit however many questions it takes. Every
+/* One conversation is billed once however many questions it takes. Every
    turn carries the same id and the server bills only the first. */
 function newSid(){
   try { return crypto.randomUUID(); }
@@ -11120,15 +11120,16 @@ function paneUsage(){
               ? "Only used after the monthly ones run out. They never expire."
               : "None yet. Credits you buy never expire, and are only used after the monthly ones run out.")
           + "</div></div>"
-        + '<button class="btn" id="u-topup">Add ' + (ME.topup_credits || 40)
+        + '<button class="btn" id="u-topup">Add ' + (ME.topup_credits || 25)
           + " credits for $" + (ME.topup_price || 6) + "</button>"
         + "</div>")
 
     + '<div class="kinds">' + kinds + "</div>"
     + ledger()
     + '<p class="muted" style="margin-top:26px;max-width:62ch;line-height:1.65">'
-      + "A conversation costs one credit, however many questions it takes. Reading in a notes "
-      + "file costs two. If you run out, everything except the writing help keeps working."
+      + "A conversation costs " + costWords("conversation") + ", however many questions it "
+      + "takes. Reading in a notes file costs " + costWords("import") + ". If you run out, "
+      + "everything except the writing help keeps working."
       + "</p>";
 
   const top = document.getElementById("u-topup");
@@ -11381,13 +11382,13 @@ function panePlan(){
       + '<div class="ctl"><button class="btn" id="s-portal">Manage billing</button></div></div>'
     + '<div class="setrow">'
       + '<div><div class="lab">Buy more credits</div><div class="help">'
-      + (ME.topup_credits || 40) + " credits for $" + (ME.topup_price || 6)
+      + (ME.topup_credits || 25) + " credits for $" + (ME.topup_price || 6)
       + ". They never expire, and are only used after your monthly ones run out."
       + (ME.cancel_at_period_end
           ? " Your plan is ending, so these would wait in your account until you subscribe again."
           : "") + "</div></div>"
       + '<div class="ctl"><button class="btn" id="s-topup">Add '
-      + (ME.topup_credits || 40) + " credits</button></div></div>"
+      + (ME.topup_credits || 25) + " credits</button></div></div>"
     + (subscribed && !ME.unlimited && !ME.cancel_at_period_end
         ? '<div class="setrow">'
           + '<div><div class="lab" style="color:var(--red)">Cancel your plan</div>'

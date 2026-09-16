@@ -83,7 +83,11 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       welcome: !document.getElementById('firstrun').hidden,
       credits: (document.getElementById('frcredits') || {}).textContent || '',
       creditsShown: !(document.getElementById('frcredits') || {}).hidden,
-      pasteCost: (document.getElementById('frpastecost') || {}).textContent || ''
+      pasteCost: (document.getElementById('frpastecost') || {}).textContent || '',
+      // Read the app's own price table rather than typing a figure here. A test
+      // that pins 2 fails the day the price moves, for the only reason a test
+      // must never fail: the test was the thing that was out of date.
+      importCost: CREDIT.import
     }));
     check('no Untitled project on a bare shelf', shelf.cards === 0, 'found ' + shelf.cards);
     check('the way to start is still there', shelf.blanks === 1, 'blank cards: ' + shelf.blanks);
@@ -91,7 +95,9 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('the lede says nothing is saved', /Nothing saved yet/.test(shelf.lede), shelf.lede);
     check('the welcome sheet opens', shelf.welcome);
     check('it states the trial allowance', shelf.creditsShown && /25 credits/.test(shelf.credits), shelf.credits);
-    check('the paid choice names its price', /2 credits/.test(shelf.pasteCost), JSON.stringify(shelf.pasteCost));
+    check('the paid choice names its price',
+      new RegExp('\\b' + shelf.importCost + ' credits?\\b').test(shelf.pasteCost),
+      JSON.stringify(shelf.pasteCost) + ' should name ' + shelf.importCost);
     check('no page errors on a new account', errors.length === 0, errors.join('\n'));
     await page.close();
   }
@@ -173,15 +179,17 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       rows: document.querySelectorAll('.lp-row').length,
       names: [...document.querySelectorAll('.lp-name')].map(e => e.textContent),
       buttons: [...document.querySelectorAll('.locked-acts .bigbtn')].map(b => b.textContent.trim()),
-      boardVisible: !document.getElementById('boardview').hidden
+      boardVisible: !document.getElementById('boardview').hidden,
+      month: PRICES.month, year: PRICES.year
     }));
     check('the locked screen is up', locked.up);
     check('a lapsed plan is called a plan, not a trial',
       /plan has ended/.test(locked.heading), locked.heading);
     check('every board is listed', locked.rows === 2, 'rows: ' + locked.rows + ' ' + JSON.stringify(locked.names));
     check('both prices are offered, not just the yearly',
-      locked.buttons.some(b => /12 a month/.test(b)) && locked.buttons.some(b => /99 a year/.test(b)),
-      JSON.stringify(locked.buttons));
+      locked.buttons.some(b => b.indexOf('$' + locked.month + ' a month') === 0)
+      && locked.buttons.some(b => b.indexOf('$' + locked.year + ' a year') === 0),
+      JSON.stringify(locked.buttons) + ' should offer $' + locked.month + ' and $' + locked.year);
     check('no board is left open underneath', locked.boardVisible === false);
     const pdf = await page.evaluate(async () => {
       window.__ERR__ = null;
@@ -591,7 +599,10 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       }
     });
     check('it asks the first time a kind is used', asked.length === 1, JSON.stringify(asked));
-    check('and names the price', /costs 1 credit/i.test(asked[0] || ''), asked[0]);
+    const talkCost = await page.evaluate(() => CREDIT.conversation);
+    check('and names the price',
+      new RegExp('costs ' + talkCost + ' credits?', 'i').test(asked[0] || ''),
+      asked[0] + '  (should name ' + talkCost + ')');
     check('and does not ask again for that kind', asked.length === 1,
       asked.length + ' dialogs for three presses of one kind');
 

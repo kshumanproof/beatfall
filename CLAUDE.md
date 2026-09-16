@@ -70,9 +70,16 @@ security, Claude Haiku 4.5 behind a metered server-side proxy, Stripe Checkout
 and portal.
 
 Pricing: 14-day card-free trial, then $15/mo or $149/yr, **75 credits a month**,
-top-up **25 credits for $6**. Placing notes is free forever. A conversation is
-1 credit, an import 2, a character interview 2. Monthly credits reset on the
-writer's OWN day of the month, the day they signed up, not on the 1st.
+top-up **25 credits for $6**. Placing notes is free forever. Monthly credits
+reset on the writer's OWN day of the month, the day they signed up, not on the
+1st.
+
+Per action, 16 Sep 2026: **conversation 2, ideas 2, logline 3, character 3,
+import 5.** The floor is 2 and nothing that calls the model is below it. Ideas
+sits on the floor beside a conversation deliberately, even though it is far
+cheaper upstream: it is the discovery feature, and it should be pressed without
+arithmetic. Import at 5 is the one to watch, because it allows 150 turns against
+24 for everything else.
 
 **Every one of those numbers lives in `api/_lib/core.js` and nowhere else.**
 `/api/config` is public and serves them to signed-out pages; `/api/account`
@@ -601,6 +608,12 @@ stops being a top-up and becomes a second subscription.
 **The annual plan draws 75 a month, not 900 at once, and those 75 expire on the
 writer's reset day like anybody else's.** That is deliberate: an annual
 subscriber who could not run out would never buy a pack.
+
+**Prices are never typed into a test.** `test/server/proxy.js` had eight typed
+1s and 2s and all eight went red the day the floor moved to 2, for the only
+reason a test must never fail: the test was the thing out of date. They read
+`COST` now. `test/drive.js` reads the app's own `CREDIT` and `PRICES` tables the
+same way. If you find yourself writing a figure into an assertion, import it.
 
 None of this was a cost decision. Measured cost is about a penny a credit: a
 3-turn conversation is $0.0064 and a 200-note import is $0.0333, sized against

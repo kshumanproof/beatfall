@@ -167,6 +167,54 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
   check('the homepage price comes from the server, not from typing',
     /data-bf="price_month"/.test(home) && /data-bf="price_year"/.test(home),
     'index.html has a hand-typed price in it again');
+
+  /* app.html carries its own copy of the price table, deliberately. The server
+     decides what is charged; that copy decides what the writer is TOLD, and it
+     has to be there before /api/account has answered. A deliberate duplicate is
+     fine. A duplicate that drifts is a support email, so this is the check that
+     they still say the same thing. */
+  const app = fs.readFileSync('../../public/app.html', 'utf8');
+
+  const table = (src, name) => {
+    const m = src.match(new RegExp('const ' + name + ' = \\{([^}]*)\\}'));
+    if (!m) return null;
+    const out = {};
+    m[1].replace(/([a-z_]+)\s*:\s*(\d+)/g, (_, k, v) => { out[k] = Number(v); return ''; });
+    return out;
+  };
+
+  const said = table(app, 'CREDIT');
+  const gap = [];
+  if (!said) gap.push('app.html has no CREDIT table any more');
+  else {
+    for (const k of Object.keys(core.COST)) {
+      if (said[k] !== core.COST[k]) {
+        gap.push(k + ': app.html says ' + said[k] + ', core.js charges ' + core.COST[k]);
+      }
+    }
+    for (const k of Object.keys(said)) {
+      if (!(k in core.COST)) gap.push(k + ': app.html prices it, core.js has never heard of it');
+    }
+  }
+  check('the app quotes the same price the server charges', gap.length === 0,
+    gap.join('\n          '));
+
+  const fallback = table(app, 'PRICES');
+  check('and its printed prices are the current ones',
+    fallback && fallback.month === core.PRICE_MONTH && fallback.year === core.PRICE_YEAR,
+    JSON.stringify(fallback) + ' against ' + core.PRICE_MONTH + '/' + core.PRICE_YEAR);
+
+  const allowance = app.match(/const PLAN_CREDITS = (\d+)/);
+  check('and its printed allowance is the current one',
+    allowance && Number(allowance[1]) === core.PLANS[core.PAID_PLAN].credits,
+    (allowance ? allowance[1] : 'missing') + ' against ' + core.PLANS[core.PAID_PLAN].credits);
+
+  // The pack size is printed in four places in app.html as `|| <number>`.
+  // Every one of them was stale on 16 September. This counts them instead.
+  const packs = [...app.matchAll(/topup_credits\)? \|\| (\d+)/g)].map(m => Number(m[1]));
+  check('and every printed pack size agrees too',
+    packs.length >= 3 && packs.every(n => n === core.TOPUP_CREDITS),
+    'found ' + JSON.stringify(packs) + ', core.js says ' + core.TOPUP_CREDITS);
 }
 
 const failed = out.filter(r => !r.ok);

@@ -87,12 +87,30 @@ export const lastMark = a => Math.min(LAST_NOTICE, Math.max(1, Math.round(a * 0.
 // whole feature depends on. Calls carrying a session id are billed once.
 export const COST = {           // credits per action
   place: 0, route: 0,
-  conversation: 1, ideas: 1, logline: 1,
-  // A character interview is up to ten questions and one write-up, all on one
-  // session id, so it bills once at two. Typing the sheet in yourself is free
-  // and stays free - the charge is for the questions, not for the feature.
-  character: 2,
-  import: 2
+
+  /* THE FLOOR IS 2. Nothing that calls the model costs less than this, because
+     the cheapest thing in here is still a real call somebody pays for.
+
+     A set of ideas sits on the floor beside a conversation even though a
+     conversation runs many more turns. That is deliberate. It is one call, it
+     is the fastest thing in the app, the writer may take none of the three it
+     offers, and it is how somebody finds out the app is any good. It should be
+     the control people press without doing arithmetic first. */
+  conversation: 2, ideas: 2,
+
+  /* A logline and a character interview both hand back a finished piece of
+     work rather than a placement, so they carry a credit more. The interview is
+     up to ten questions and one write-up, all on one session id, so it bills
+     once at three. Typing the sheet in yourself is free and stays free: the
+     charge is for the questions, not for the feature. */
+  logline: 3, character: 3,
+
+  /* Reading in a pile of notes is the heaviest thing in here by a wide margin,
+     up to 150 turns against 24 for everything else, and it is the one action
+     that could actually cost more upstream than it charges. At 5 it is a
+     little over two conversations, and it is still far and away the cheapest
+     way to fill a board from nothing. */
+  import: 5
 };
 
 /* A FREE ACTION IS STILL AN ACTION SOMEBODY PAYS FOR.
