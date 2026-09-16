@@ -149,29 +149,35 @@ async function open(browser, projects, account = PAID) {
     check('and the new wording is what gets kept',
       edited.text === 'the diner payphone still takes coins', JSON.stringify(edited));
 
-    // the two beat actions are different things and now say so
+    /* The two beat actions are different things and still have to say so. They
+       used to be two dropdowns side by side, which looked like one control
+       duplicated; they are one dropdown with two labelled groups now, and the
+       GROUP HEADINGS are what carries the difference. So this asks for the
+       headings rather than for two selects. */
     const acts = await page.evaluate(() => {
       const card = [...document.querySelectorAll('#notesbody .ncard')]
         .find(c => /forty and tired/.test(c.textContent));
-      const sels = [...card.querySelectorAll('select')];
-      return sels.map(s => (s.options[0] || {}).textContent || '');
+      const send = [...card.querySelectorAll('select')]
+        .find(s => /Send this note to a beat/.test(s.options[0].textContent));
+      return send ? [...send.querySelectorAll('optgroup')].map(g => g.label) : [];
     });
     check('the notes page offers turning a note into a card',
-      acts.some(a => /Turn into a beat card/.test(a)), JSON.stringify(acts));
+      acts.some(a => /card on the board/i.test(a)), JSON.stringify(acts));
     check('and filing one under a beat, which is not the same thing',
-      acts.some(a => /File under a beat/.test(a)), JSON.stringify(acts));
+      acts.some(a => /Keep it a note/i.test(a)), JSON.stringify(acts));
 
     const both = await page.evaluate(() => {
       const card = [...document.querySelectorAll('#notesbody .ncard')]
         .find(c => /forty and tired/.test(c.textContent));
-      const file = [...card.querySelectorAll('select')]
-        .find(s => /File under a beat/.test(s.options[0].textContent));
-      file.value = 'setup'; file.dispatchEvent(new Event('change'));
+      const send = [...card.querySelectorAll('select')]
+        .find(s => /Send this note to a beat/.test(s.options[0].textContent));
+      send.value = 'file:setup'; send.dispatchEvent(new Event('change'));
       const n = P().cards.find(c => c.id === 92);
       return {slot: n.slot, attached: n.attachedTo, kind: n.kind};
     });
     check('filing under a beat keeps it a note',
       both.slot === '__shelf' && both.attached === 'setup', JSON.stringify(both));
+
 
     // a filed note must never turn up as a card on the board
     const board2 = await page.evaluate(() => {
@@ -180,6 +186,24 @@ async function open(browser, projects, account = PAID) {
     });
     check('and it does not appear as a board card',
       !/forty and tired/.test(board2), 'a shelf note rendered on the board');
+
+    /* The other half of the same control, checked AFTER the board assertion
+       above: promoting this note makes it a card, and that check needs it to
+       still be a note when it runs. One select doing two jobs is only an
+       improvement if both jobs still work. */
+    const promoted = await page.evaluate(() => {
+      setView('notes', true); renderNotes();
+      const card = [...document.querySelectorAll('#notesbody .ncard')]
+        .find(c => /forty and tired/.test(c.textContent));
+      const send = [...card.querySelectorAll('select')]
+        .find(s => /Send this note to a beat/.test(s.options[0].textContent));
+      send.value = 'card:setup'; send.dispatchEvent(new Event('change'));
+      const n = P().cards.find(c => c.id === 92);
+      return {slot: n.slot, kind: n.kind, attached: n.attachedTo};
+    });
+    check('and the other half of it makes a real board card',
+      promoted.slot === 'setup' && promoted.kind === 'beat' && !promoted.attached,
+      JSON.stringify(promoted));
 
     // a line break must not weld two lines into one word
     const broke = await page.evaluate(() => {

@@ -785,6 +785,16 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
    this page now means free. */
 .askbtn{color:var(--gold)}
 .askbtn:hover{color:var(--gold-ink)}
+/* AND SO DOES EVERY OTHER "Did we get it wrong?", which is the same paid
+   conversation at the same price wearing three different coats. All three were
+   blue, which on this page says free. Kris caught it. They repeat down a page,
+   one per card, so they take gold TEXT rather than a filled gold button, the
+   same as the two links above. */
+.noteask{
+  border:none;background:none;padding:0;cursor:pointer;text-align:left;
+  font-family:var(--sans);font-size:11.5px;color:var(--gold);letter-spacing:.01em;
+}
+.noteask:hover{color:var(--gold-ink);text-decoration:underline;text-underline-offset:3px}
 /* An icon button on a row of text: sized to the line it sits on, and given a
    little room to be hit. */
 .ideasbtn{display:inline-flex;align-items:center;padding:2px 3px;line-height:0}
@@ -2095,15 +2105,19 @@ footer{
 .pnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:8px 0}
 /* The way out of a note that went nowhere. Quiet, because most cards do not
    need it, and legible, because the ones that do are the frustrating ones. */
+/* Gold, not blue: this opens the paid conversation. It sat in blue, which on
+   this page means free, and these rules are BELOW the paid-controls block, so
+   an override up there would have lost on source order. The colour changes
+   where it is set. */
 .cardask{display:block;margin-top:9px;background:none;border:0;padding:0;cursor:pointer;
-  font-family:var(--sans);font-size:11.5px;color:var(--blue);text-align:left;
+  font-family:var(--sans);font-size:11.5px;color:var(--gold);text-align:left;
   text-decoration:underline;text-underline-offset:2px}
-.cardask:hover{color:var(--blue-ink)}
+.cardask:hover{color:var(--gold-ink)}
 .revacts{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
 .revask{background:none;border:0;padding:0;cursor:pointer;
-  font-family:var(--sans);font-size:11.5px;color:var(--blue);
+  font-family:var(--sans);font-size:11.5px;color:var(--gold);
   text-decoration:underline;text-underline-offset:2px}
-.revask:hover{color:var(--blue-ink)}
+.revask:hover{color:var(--gold-ink)}
 .revput{font-family:var(--sans);font-size:11.5px;padding:4px 7px;color:var(--ink-2);
   border:1px solid var(--rule);border-radius:var(--r-ctl);background:var(--card);
   max-width:200px}
@@ -10078,7 +10092,7 @@ function renderNotes(){
        * question has been answered. */
       if (!isAttached(c, proj)){
         const settle = document.createElement("button");
-        settle.className = "btn"; settle.textContent = "Did we get it wrong?";
+        settle.className = "noteask"; settle.textContent = "Did we get it wrong?";
         settle.setAttribute("data-tip",
           "Talk it through. A few questions about what happens in it, then it is placed properly.");
         marksCost(settle, "conversation");
@@ -10131,44 +10145,52 @@ function renderNotes(){
       });
       row.appendChild(kindSel);
 
-      /* Two different things, and until now only one of them was reachable
-         here under a name that described neither.
+      /* ONE CONTROL, TWO OUTCOMES, AND THE GROUP HEADINGS ARE THE EXPLANATION.
 
-         "Send to a beat" CONVERTED the note into a beat card: it stopped being
-         a note and appeared on the board. Filing a note UNDER a beat, so it
-         stays a note and sits beneath the card as supporting material, existed
-         only as a drag inside the Outline. The interface knew the difference
-         and the label did not, so both are named for what they do and both are
-         offered in the place a writer is looking at their notes. */
-      const toCard = document.createElement("select");
-      toCard.setAttribute("data-tip",
-        "Turn this note into a card on the board. It stops being a note.");
-      toCard.innerHTML = '<option value="">Turn into a beat card&hellip;</option>'
-        + STRUCTURES[proj.structure].slots.map(x =>
-            '<option value="' + x.id + '">' + esc(x.name) + "</option>").join("");
-      toCard.addEventListener("change", () => {
-        if (!toCard.value) return;
-        snapshot();
-        c.slot = toCard.value; c.kind = "beat";
-        delete c.attachedTo;
-        settle(proj); renderNotes(); render();
-      });
-      row.appendChild(toCard);
+         These were two dropdowns side by side, the same size, both reading
+         "verb a beat" and both listing the same fifteen beats. Kris built this
+         product and could not tell them apart, which means nobody can. The
+         difference was real and lived only in the hover text, which is the one
+         place it is no use: it is what separates two controls from each other,
+         so it has to be visible without hovering.
 
-      const fileUnder = document.createElement("select");
-      fileUnder.setAttribute("data-tip",
-        "Keep this as a note, filed under a beat as supporting material.");
-      fileUnder.innerHTML = '<option value="">File under a beat&hellip;</option>'
-        + STRUCTURES[proj.structure].slots.map(x =>
-            '<option value="' + x.id + '"' + (x.id === c.attachedTo ? " selected" : "")
-            + ">" + esc(x.name) + "</option>").join("");
-      fileUnder.addEventListener("change", () => {
-        if (!fileUnder.value) return;
+         They do genuinely different things and both have to stay. Turning a
+         note into a card CONSUMES the note: it leaves this view and appears on
+         the board. Filing it under a beat KEEPS it a note and shows it beneath
+         that beat in the Outline as supporting material; it never reaches the
+         board, which is exactly the surprise Kris predicted for anyone who
+         picks it by mistake.
+
+         Deleting the filing option was the obvious thin, and it is wrong: the
+         Outline's drag is the other way to file, and the Outline is LOCKED
+         until every beat has a card. On an incomplete board it would leave no
+         way to file a note at all. */
+      const send = document.createElement("select");
+      send.setAttribute("data-tip",
+        "Make this note a card on the board, or keep it a note filed under a beat.");
+      const beats = STRUCTURES[proj.structure].slots;
+      send.innerHTML = '<option value="">Send this note to a beat&hellip;</option>'
+        + '<optgroup label="Make it a card on the board">'
+        + beats.map(x => '<option value="card:' + x.id + '">' + esc(x.name) + "</option>").join("")
+        + "</optgroup>"
+        + '<optgroup label="Keep it a note, filed under">'
+        + beats.map(x => '<option value="file:' + x.id + '"'
+            + (x.id === c.attachedTo ? " selected" : "") + ">" + esc(x.name) + "</option>").join("")
+        + "</optgroup>";
+      send.addEventListener("change", () => {
+        if (!send.value) return;
         snapshot();
-        c.attachedTo = fileUnder.value;
-        save(); renderNotes(); render();
+        const [how, id] = send.value.split(":");
+        if (how === "card"){
+          c.slot = id; c.kind = "beat";
+          delete c.attachedTo;
+          settle(proj); renderNotes(); render();
+        } else {
+          c.attachedTo = id;
+          save(); renderNotes(); render();
+        }
       });
-      row.appendChild(fileUnder);
+      row.appendChild(send);
 
       const del = document.createElement("button");
       del.className = "btn"; del.textContent = "Delete";
