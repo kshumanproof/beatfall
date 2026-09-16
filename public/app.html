@@ -594,6 +594,13 @@ select:focus{border-color:var(--blue);outline:none}
    them. */
 .btn-gold{background:var(--gold);border-color:var(--gold);color:var(--on-gold);font-weight:500}
 .btn-gold:hover{background:var(--gold-ink);border-color:var(--gold-ink);color:var(--on-gold)}
+/* The same promise, said quietly. For a paid action that is the SECOND thing
+   on a row rather than the point of it: on a confident placement the writer is
+   meant to accept the beat, and the conversation is the extra. Filled gold
+   there would shout over the thing they came to do. It still cannot be blue
+   or plain, because both of those say free. */
+.btn-goldline{background:transparent;border-color:var(--gold-hair);color:var(--gold);font-weight:500}
+.btn-goldline:hover{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-ink)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-ghost{background:transparent;border-color:transparent;color:var(--blue);padding:8px 6px}
 .btn-ghost:hover{color:var(--blue-ink);border-color:transparent;text-decoration:underline;text-underline-offset:3px}
@@ -648,9 +655,15 @@ select:focus{border-color:var(--blue);outline:none}
    version of this was a 9.5px caps label in the same key as "Story structure"
    and it was still too quiet to find. That key is right for a label on a
    control you can already see; this one has to do the seeing for you. */
+/* Set like the dashboard's own lede, because that is the size Kris pointed at
+   and two goes at a "small label" were both still too quiet to find. It is not
+   a caption on a control you can already see; the borderless note box is
+   invisible without it, so this has to be the thing that finds the box for
+   you. Same clamp as .slate-lede, one step down at the top end. */
 .capture-k{
-  font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:-.005em;
-  color:var(--ink-2);margin:0 0 4px 30px;
+  font-family:var(--serif);font-weight:600;letter-spacing:-.014em;
+  font-size:clamp(16px, 1.5vw + 8px, 25px);
+  line-height:1.2;color:var(--ink);margin:0 0 6px 30px;
 }
 /* Top-aligned, so the pencil and the two buttons stay on the first line while
    the box grows downward under them. Centring them would have the buttons
@@ -2647,7 +2660,7 @@ footer{
  <div class="capture-in">
   <!-- 30px of left margin puts it over the note box rather than over the
        pencil: 16px of quill and 14px of gap, the same sum .capture-more uses. -->
-  <div class="capture-k">Catch an idea</div>
+  <div class="capture-k">Capture a thought</div>
   <div class="capture-row">
     <svg class="quill" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ink-4)" stroke-width="1.4" aria-hidden="true"><path d="M11.5 2.5l2 2L6 12l-3 1 1-3 7.5-7.5z"/></svg>
 <!-- A textarea, not an input. A one-line input scrolls sideways, so a long
@@ -3406,9 +3419,61 @@ function marksCost(el, kind){
   const w = costWords(kind);
   if (!w || el.dataset.costed) return el;
   el.dataset.costed = "1";
+  // The gate below reads this. Recording the kind here rather than working it
+  // out at click time means it cannot fall out of step with the price table.
+  el.dataset.kind = kind;
   const t = el.getAttribute("data-tip");
   el.setAttribute("data-tip", (t ? t + " " : "") + "Costs " + w + ".");
   return el;
+}
+
+/* ===========================================================================
+   ASKING BEFORE IT SPENDS, ONCE PER KIND.
+
+   The rule was already that nothing spends without saying so first, and it was
+   kept two ways: the price in the hover explainer, and on a touch screen a
+   first tap that shows the price and runs nothing. Neither reaches somebody
+   with a mouse who simply clicks, which is most people most of the time.
+
+   So the first time an account uses each paid kind, it is asked, before the
+   charge. FIVE kinds, so five questions in the life of an account and then
+   never again. Not once per press: a board with fifteen empty beats carries
+   thirty gold links, and a question answered thirty times in an evening is one
+   nobody reads. This file already learned that when the price chip on every
+   gap row was pulled for being "a figure printed fifteen times".
+
+   Not once per PRICE either, which was the cheaper version. Ideas and a
+   character interview are different things to a writer even when two of them
+   cost the same, and agreeing to one should not quietly authorize another they
+   have never run.
+
+   Kept per account, so one browser shared by two people asks each of them. */
+const SPEND_KEY  = "beatfall.spendok";
+const ALWAYS_KEY = "beatfall.askalways";
+function spendSeen(){
+  try { return JSON.parse(localStorage.getItem(SPEND_KEY) || "{}") || {}; }
+  catch (e) { return {}; }
+}
+function askAlways(){
+  try { return localStorage.getItem(ALWAYS_KEY) === "1"; } catch (e) { return false; }
+}
+function spendGate(kind){
+  const price = costWords(kind);
+  if (!price) return true;                       // free, or a kind with no price
+  const who = (ME && ME.id) || "anon";
+  const seen = spendSeen();
+  const mine = seen[who] || {};
+  if (mine[kind] && !askAlways()) return true;
+
+  const ok = confirm("This costs " + price + ".\n\n"
+    + "Anything gold in Beatfall spends credits. Everything else is free, and "
+    + "placing notes on the board always will be.\n\nGo ahead?");
+  if (!ok) return false;
+  if (!askAlways()){
+    mine[kind] = 1; seen[who] = mine;
+    try { localStorage.setItem(SPEND_KEY, JSON.stringify(seen)); } catch (e) {}
+  }
+  return true;
 }
 
 function structureLine(key){
@@ -4864,7 +4929,11 @@ function paintCandidates(options, sharpened){
     const row = document.createElement("div");
     row.className = "nosignal-acts";
     const more = document.createElement("button");
-    more.className = "btn btn-primary";
+    /* GOLD, NOT BLUE. This opens the paid conversation, and on this board blue
+       says free. It is a standalone action rather than a link that repeats down
+       a page, so it takes the FILLED gold treatment, the same as Ask what's
+       missing. All three routes to this button had it in primary blue. */
+    more.className = "btn btn-gold";
     /* ONE NAME FOR ONE DOOR. Every uncertain placement opens the same short
        conversation, so every route names that action the same way. */
     more.textContent = "Answer a few questions";
@@ -4892,7 +4961,9 @@ function paintCandidates(options, sharpened){
     const row = document.createElement("div");
     row.className = "nosignal-acts";
     const more = document.createElement("button");
-    more.className = "btn btn-primary";
+    // Nothing was matched here, so the conversation is the way forward rather
+    // than an extra. Filled gold, same as the uncertain route above.
+    more.className = "btn btn-gold";
     more.textContent = "Answer a few questions";
     more.setAttribute("data-tip", "Open a short conversation to turn this note into a card.");
     marksCost(more, "conversation");
@@ -4924,7 +4995,9 @@ function paintCandidates(options, sharpened){
     const row = document.createElement("div");
     row.className = "nosignal-acts";
     const more = document.createElement("button");
-    more.className = "btn";
+    // Beatfall is sure here, so accepting the beat is the point and this is the
+    // extra. Outlined gold: it still says it spends, without competing.
+    more.className = "btn btn-goldline";
     more.textContent = "Answer a few questions";
     more.setAttribute("data-tip", "Open a short conversation to add detail to this card.");
     marksCost(more, "conversation");
@@ -11475,12 +11548,28 @@ document.addEventListener("pointerdown", e => {
 }, true);
 document.addEventListener("click", e => {
   const paid = e.target.closest("[data-costed]");
-  if (!touching || !paid){ armed = null; return; }
-  if (armed === paid){ armed = null; return; }     // asked and answered
-  armed = paid;
-  e.preventDefault();
-  e.stopPropagation();
-  showTip(paid);
+  if (!paid){ armed = null; return; }
+
+  // A finger gets the price on the first tap and the action on the second.
+  if (touching && armed !== paid){
+    armed = paid;
+    e.preventDefault();
+    e.stopPropagation();
+    showTip(paid);
+    return;
+  }
+  armed = null;
+
+  /* And every input gets asked once per kind, before the charge. This is a
+     CAPTURE listener, so it runs before the control's own handler, and
+     confirm() blocks, so refusing here means the action never starts. One
+     place for all of it: a gate written into a dozen call sites is a gate
+     that gets forgotten on the thirteenth. */
+  if (!spendGate(paid.dataset.kind)){
+    e.preventDefault();
+    e.stopPropagation();
+    hideTip();
+  }
 }, true);
 ["click","scroll","keydown"].forEach(ev => document.addEventListener(ev, e => {
   if (ev === "click" && armed && e.target.closest("[data-costed]") === armed) return;

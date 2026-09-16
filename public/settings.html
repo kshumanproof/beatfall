@@ -70,6 +70,12 @@
     .pop{width:min(300px,calc(100vw - 32px))}
     .popitem{min-height:40px}
   }
+  .askalways{display:flex;gap:10px;align-items:flex-start;margin-top:16px;cursor:pointer;
+    max-width:66ch}
+  .askalways input{margin-top:3px;flex:0 0 auto;accent-color:var(--blue)}
+  .askalways b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+  .askalways em{display:block;font-style:normal;font-size:12.5px;line-height:1.6;
+    color:var(--ink-3);margin-top:3px}
 </style>
 </head>
 <body>
@@ -163,6 +169,18 @@
         reading in a notes file costs two.
         If you run out, everything except the writing help keeps working and your credits reset on the 1st.
       </p>
+      <!-- Beatfall asks once the first time you use each paid thing, and then
+           trusts you. This is for anybody who would rather be asked every
+           time. Kept in this browser, because it is a habit rather than a
+           setting worth a column in the database. -->
+      <label class="askalways" for="askalways">
+        <input type="checkbox" id="askalways">
+        <span>
+          <b>Ask before every credit</b>
+          <em>Beatfall asks once the first time you use each paid feature. Tick this
+          and it will ask every single time instead.</em>
+        </span>
+      </label>
     </div>
 
     <div class="panel">
@@ -437,6 +455,24 @@ const PERIODS = [
   };
   document.getElementById('portal').addEventListener('click', openStripe('portal'));
   document.getElementById('topup').addEventListener('click', openStripe('topup'));
+
+  /* Ask before every credit. The board reads this same key; it lives in this
+     browser rather than on the account because it is a habit, and a writer who
+     wants to be asked on their laptop may not want it on the machine at the
+     desk. Wrapped, because a browser with site data blocked throws on both
+     calls and a checkbox is not worth taking the settings page down for. */
+  const always = document.getElementById('askalways');
+  try { always.checked = localStorage.getItem('beatfall.askalways') === '1'; }
+  catch (e) {}
+  always.addEventListener('change', () => {
+    try {
+      if (always.checked) localStorage.setItem('beatfall.askalways', '1');
+      else localStorage.removeItem('beatfall.askalways');
+      flash('ok', always.checked
+        ? 'Beatfall will ask before every credit.'
+        : 'Beatfall will ask once for each paid feature.');
+    } catch (e) { flash('bad', 'This browser is blocking saved settings.'); }
+  });
   /* Switching an existing subscription happens in Stripe's portal, which
      prorates what they have already paid. A second checkout would leave them
      paying for two plans. This binding sits below openStripe on purpose: it

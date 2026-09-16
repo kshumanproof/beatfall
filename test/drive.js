@@ -558,6 +558,80 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* ---- asking before it spends ------------------------------------------
+     Nothing may take a credit without the writer having agreed to that price
+     at least once, before the charge. Once per KIND, not once per press and
+     not once per price: five questions in the life of an account. This is the
+     money path, so it gets held down properly. */
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(String(e)));
+    const asked = [];
+    page.on('dialog', async d => { asked.push(d.message()); await d.accept(); });
+    await page.addInitScript(([a, p]) => {
+      window.__ACCOUNT__ = a; window.__PROJECTS__ = p;
+    }, [{id: 'u1', plan: 'pro', credits_used: 0}, [board('The Spillway', 12)]]);
+    await page.goto(PAGE);
+    await page.waitForTimeout(700);
+    await page.evaluate(() => {
+      state.activeId = state.projects[0].id; setView('board'); render();
+    });
+    await page.waitForTimeout(300);
+
+    const marked = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-costed]')].every(e => !!e.dataset.kind));
+    check('every paid control records which kind it is', marked === true);
+
+    // the same kind three times asks once
+    await page.evaluate(async () => {
+      const w = () => new Promise(r => setTimeout(r, 90));
+      for (let i = 0; i < 3; i++){
+        document.getElementById('whatsmissing').click(); await w(); closeAsk();
+      }
+    });
+    check('it asks the first time a kind is used', asked.length === 1, JSON.stringify(asked));
+    check('and names the price', /costs 1 credit/i.test(asked[0] || ''), asked[0]);
+    check('and does not ask again for that kind', asked.length === 1,
+      asked.length + ' dialogs for three presses of one kind');
+
+    const kept = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('beatfall.spendok') || '{}'));
+    check('and remembers it against the account', !!(kept.u1 && kept.u1.conversation),
+      JSON.stringify(kept));
+
+    /* Refusing must stop the action, not merely warn about it. A gate that
+       asks and then runs anyway is worse than no gate. */
+    const refused = await page.evaluate(async () => {
+      localStorage.removeItem('beatfall.spendok');
+      window.confirm = () => false;
+      document.getElementById('whatsmissing').click();
+      await new Promise(r => setTimeout(r, 150));
+      return {open: !document.getElementById('askscrim').hidden,
+              kept: localStorage.getItem('beatfall.spendok')};
+    });
+    check('answering no stops the action running', refused.open === false,
+      'the conversation opened anyway');
+    check('and no agreement is recorded', !refused.kept, String(refused.kept));
+
+    /* And the escape hatch for anyone who wants the toll booth every time. */
+    const always = await page.evaluate(async () => {
+      localStorage.setItem('beatfall.askalways', '1');
+      let n = 0;
+      window.confirm = () => { n++; return true; };
+      const w = () => new Promise(r => setTimeout(r, 90));
+      for (let i = 0; i < 3; i++){
+        document.getElementById('whatsmissing').click(); await w(); closeAsk();
+      }
+      localStorage.removeItem('beatfall.askalways');
+      return n;
+    });
+    check('and "ask before every credit" really does ask every time', always === 3,
+      always + ' of 3');
+    check('no page errors around the spend gate', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);
