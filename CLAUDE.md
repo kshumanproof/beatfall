@@ -609,6 +609,32 @@ stops being a top-up and becomes a second subscription.
 writer's reset day like anybody else's.** That is deliberate: an annual
 subscriber who could not run out would never buy a pack.
 
+**The PDF has a real renderer now.** The suite's jsPDF is a stand-in that
+records what it was ASKED to draw, so it proves the right words reach the page
+and nothing about where they land. Two defects lived under a green suite: every
+card in the outline ran off the right edge of the paper, and the cover's
+standing line printed through the date. `test/render-pdf.js` runs the shipped
+`exportPDF` against the real library and writes `test/sample.pdf`. Run it after
+ANY change to the document and look at the result:
+
+    cd test ; cp ../public/app.html . ; node mkstub.js ; node render-pdf.js
+    pdftoppm -png -r 80 sample.pdf pg
+
+One trap worth knowing, because it caused one of those two defects:
+`splitTextToSize` measures in whatever face is CURRENTLY set. Set the font
+before you split, never after, or the wrapping is computed for the previous
+font and the text overruns the margin.
+
+**The PDF is six sections and the board and the outline both carry the card
+text, on purpose.** Cover, board, outline, characters, set aside, loose notes.
+The board is the map you glance at; the outline is the thing you read start to
+finish, so it carries every beat in order with its cards, its filed notes and
+its prose, including beats nobody has written under. It printed prose only until
+16 Sep 2026, which meant a beat holding four cards and no typed passage appeared
+nowhere at all: the app losing a writer's work in the only place it gets seen. A
+note filed against a beat prints under that beat and is left out of Loose notes,
+so nothing is printed twice.
+
 **Prices are never typed into a test.** `test/server/proxy.js` had eight typed
 1s and 2s and all eight went red the day the floor moved to 2, for the only
 reason a test must never fail: the test was the thing out of date. They read

@@ -5637,51 +5637,155 @@ async function exportPDF(which){
   }
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit: "pt", format: "letter"});
+  /* ==========================================================================
+     THE DOCUMENT.
+
+     This is the only thing a writer carries out of Beatfall. If somebody spent
+     a month on a board, the PDF is the artifact they keep on the desk beside
+     the pages, so it is built as a document to be read rather than a dump of
+     what is in the database.
+
+     Six parts, each with its own space, in the order you would want them:
+
+       1. Cover        what this is, and where it stands
+       2. The board    the wall at a glance, one or two pages
+       3. The outline  the body: every beat in order, with everything in it
+       4. Characters
+       5. Set aside    what did not find a home
+       6. Loose notes  notes filed under no beat
+
+     The board and the outline both carry the card text, on purpose. They are
+     not the same document twice: the board is the map you glance at, and the
+     outline is the thing you read start to finish. An outline with the cards
+     stripped out is not readable on its own, which is exactly how this used to
+     print: a beat full of cards and no typed prose appeared nowhere at all, so
+     the app lost a writer's work in the only place it gets seen.
+     ====================================================================== */
   const PW = 612, PH = 792, M = 42;
   const COLS = 2, CW = (PW - M*2 - 18) / COLS, CH = 132, GAP = 16;
   let col = 0, row = 0;
   const b = proj.brief || {};
 
-  function header(){
-    doc.setFont("helvetica", "bold").setFontSize(13).setTextColor(20);
-    doc.text(proj.name, M, M - 12);
-    doc.setFont("courier", "normal").setFontSize(8).setTextColor(120);
-    doc.text(S.label.toUpperCase(), PW - M, M - 12, {align: "right"});
-    doc.setDrawColor(200).setLineWidth(.7).line(M, M - 4, PW - M, M - 4);
+  /* The site's palette, not five flat greys. Beatfall is warm: the ink is a
+     brown-black, the rules are sand, and gold and blue carry meaning rather
+     than decoration. These are theme.css, converted. If the site's colors move,
+     move these with them. */
+  const INK   = [43, 38, 32];      // --ink
+  const INK2  = [92, 83, 73];      // --ink-2
+  const INK3  = [114, 104, 89];    // --ink-3
+  const INK4  = [138, 128, 117];   // --ink-4
+  const RULE  = [224, 217, 203];   // --rule
+  const SOFT  = [237, 231, 218];   // --rule-soft
+  const BLUE  = [44, 92, 143];     // --blue
+  const GOLD  = [123, 90, 19];     // --gold
+  const GOLDH = [217, 192, 138];   // --gold-hair
+  const CREAM = [241, 238, 231];   // --ground
+  const PAPER = [253, 251, 246];   // --card
+
+  /* The note chips, the same three families the Notes screen uses: blue for
+     anything that moves the plot, gold for anything the writer decided, and
+     muted for the rest. Straight off .chip in the stylesheet. */
+  const CHIPCOLOR = {
+    beat: BLUE, question: BLUE, clue: BLUE,
+    character: GOLD, structural: GOLD, rule: GOLD,
+    theme: INK2, line: INK2, image: INK2, research: INK3
+  };
+
+  const ink  = c => doc.setTextColor(c[0], c[1], c[2]);
+  const draw = c => doc.setDrawColor(c[0], c[1], c[2]);
+  const fill = c => doc.setFillColor(c[0], c[1], c[2]);
+
+  /* Three faces, standing in for the three on the site: courier for Courier
+     Prime, times for Newsreader, and nothing at all for Instrument Sans, whose
+     job here is done by the other two. A PDF can only use its three built-in
+     families unless the real fonts are embedded, which would add about 300KB
+     to a file that is already large. Close cousins, not twins. */
+  function label(size, color, space){          // the site's eyebrow
+    doc.setFont("courier", "bold").setFontSize(size || 8);
+    ink(color || INK4);
+    doc.setCharSpace(space === undefined ? .7 : space);
+  }
+  function plain(){ doc.setCharSpace(0); }
+  function mono(size, color){                  // card text, as on the board
+    plain(); doc.setFont("courier", "normal").setFontSize(size || 9.5); ink(color || INK);
+  }
+  function serif(size, color, style){          // prose, as in the outline
+    plain(); doc.setFont("times", style || "normal").setFontSize(size || 10.5); ink(color || INK);
   }
 
-  /* A title page, so the export is something you could hand to somebody. */
+  let pageNo = 1;
+
+  function footer(){
+    plain();
+    doc.setFont("courier", "normal").setFontSize(7).setTextColor(INK4[0], INK4[1], INK4[2]);
+    doc.setCharSpace(.6);
+    doc.text("BEATFALL", M, PH - M + 8);
+    plain();
+    doc.setFont("courier", "normal").setFontSize(7);
+    doc.text(String(pageNo), PW - M, PH - M + 8, {align: "right"});
+  }
+
+  function header(){
+    serif(11, INK, "bold");
+    doc.text(proj.name, M, M - 12);
+    label(7.5, INK4);
+    doc.text(S.label.toUpperCase(), PW - M, M - 12, {align: "right"});
+    plain();
+    draw(RULE); doc.setLineWidth(.7); doc.line(M, M - 4, PW - M, M - 4);
+    footer();
+  }
+
+  let y = M + 14;
+
+  function newPage(){ doc.addPage(); pageNo++; header(); y = M + 14; col = 0; }
+  function room(n){ if (y + n > PH - M - 16) newPage(); }
+
+  /* A section opens on its own page with its name and one line saying what it
+     is for, because a writer coming back to this in three weeks should not have
+     to work out what they are looking at. */
+  function sectionHead(name, what){
+    newPage();
+    label(9.5, INK, 1.2);
+    doc.text(name.toUpperCase(), M, y);
+    plain();
+    draw(GOLDH); doc.setLineWidth(1.2); doc.line(M, y + 7, M + 42, y + 7);
+    y += 20;
+    if (what){
+      serif(10, INK3, "italic");
+      doc.text(what, M, y);
+      y += 10;
+    }
+    y += 14;
+  }
+
+  /* ------------------------------------------------------------- 1. cover -- */
   function coverPage(){
-    let y = 168;
-    doc.setFont("helvetica", "bold").setFontSize(30).setTextColor(18);
+    fill(CREAM); doc.rect(0, 0, PW, PH, "F");
+
+    let cy = 176;
+    serif(32, INK, "bold");
     doc.splitTextToSize(proj.name.toUpperCase(), PW - M * 2).forEach(ln => {
-      doc.text(ln, M, y); y += 34;
+      doc.text(ln, M, cy); cy += 36;
     });
-    y += 4;
-    doc.setDrawColor(30).setLineWidth(1.4).line(M, y, M + 78, y);
-    y += 30;
+    cy += 6;
+    draw(GOLD); doc.setLineWidth(1.6); doc.line(M, cy, M + 78, cy);
+    cy += 32;
 
     if (b.log){
-      doc.setFont("helvetica", "normal").setFontSize(12).setTextColor(35);
-      doc.splitTextToSize(b.log, PW - M * 2 - 40).forEach(ln => { doc.text(ln, M, y); y += 17; });
-      y += 20;
+      serif(12.5, INK2);
+      doc.splitTextToSize(b.log, PW - M * 2 - 40).forEach(ln => { doc.text(ln, M, cy); cy += 18; });
+      cy += 20;
     }
 
-    const rows = [
-      ["Format", S.label],
-      ["Genre", b.genre],
-      ["Tone", b.like],
-      ["Setting", b.setting],
-      ["Protagonist", b.who]
-    ].filter(r => r[1]);
-
-    rows.forEach(([k, v]) => {
-      doc.setFont("courier", "bold").setFontSize(8).setTextColor(130);
-      doc.text(k.toUpperCase(), M, y);
-      doc.setFont("helvetica", "normal").setFontSize(10.5).setTextColor(30);
-      const lines = doc.splitTextToSize(String(v), PW - M * 2 - 96);
-      lines.forEach((ln, i) => doc.text(ln, M + 96, y + i * 14));
-      y += Math.max(19, lines.length * 14 + 5);
+    [["Format", S.label], ["Genre", b.genre], ["Tone", b.like],
+     ["Setting", b.setting], ["Protagonist", b.who]]
+    .filter(r => r[1]).forEach(([k, v]) => {
+      label(7.5, INK4);
+      doc.text(k.toUpperCase(), M, cy);
+      serif(11, INK2);
+      const lines = doc.splitTextToSize(String(v), PW - M * 2 - 104);
+      lines.forEach((ln, i) => doc.text(ln, M + 104, cy + i * 15));
+      cy += Math.max(20, lines.length * 15 + 5);
     });
 
     // where the story actually stands
@@ -5689,55 +5793,59 @@ async function exportPDF(which){
     const holes  = S.slots.filter(x => !proj.cards.some(c => c.slot === x.id) && isGap(x, proj)).length;
     const shelf  = proj.cards.filter(c => c.slot === "__shelf").length;
     const aside  = proj.cards.filter(c => c.slot === "__none").length;
-    y = Math.max(y + 16, PH - M - 96);
-    doc.setDrawColor(210).setLineWidth(.7).line(M, y, PW - M, y);
-    y += 16;
-    doc.setFont("courier", "normal").setFontSize(8.5).setTextColor(120);
+    const words  = outlineWordCount(proj);
+    cy = Math.max(cy + 16, PH - M - 96);
+    draw(GOLDH); doc.setLineWidth(.8); doc.line(M, cy, PW - M, cy);
+    cy += 17;
+    /* Two lines, not one. These shared a baseline, so a board with enough on it
+       to be worth printing ran its last count straight into the date. */
+    mono(8.5, INK3);
     doc.text(filled + " of " + S.slots.length + " beats filled"
-      + (holes ? "   ·   " + holes + (holes === 1 ? " gap" : " gaps") + " between them" : "")
+      + (words ? "   ·   " + words.toLocaleString() + " words written" : "")
+      + (holes ? "   ·   " + holes + (holes === 1 ? " gap" : " gaps") : "")
       + (aside ? "   ·   " + aside + " set aside" : "")
-      + (shelf ? "   ·   " + shelf + " notes" : ""), M, y);
+      + (shelf ? "   ·   " + shelf + " notes" : ""), M, cy);
+    mono(8, INK4);
     doc.text(new Date().toLocaleDateString(undefined,
-      {year: "numeric", month: "long", day: "numeric"}), PW - M, y, {align: "right"});
-    doc.setFont("courier", "normal").setFontSize(7.5).setTextColor(175);
-    doc.text("BEATFALL", M, PH - M + 6);
-    doc.addPage();
-    header();
-    y = M + 14; col = 0;
+      {year: "numeric", month: "long", day: "numeric"}), M, cy + 15);
+    footer();
   }
 
-  let y = M + 14;
-
-  function newPage(){ doc.addPage(); header(); y = M + 14; col = 0; }
-
+  /* --------------------------------------------------------- 2. the board -- */
   function slotBox(s, only){
-    if (col === 0 && y + CH > PH - M) newPage();
+    if (col === 0 && y + CH > PH - M - 16) newPage();
     const x = M + col * (CW + 18);
     const cards = only || proj.cards.filter(c => c.slot === s.id);
 
-    doc.setDrawColor(cards.length ? 150 : 205).setLineWidth(cards.length ? .9 : .6);
+    if (cards.length){ fill(PAPER); doc.rect(x, y, CW, CH, "F"); }
+    draw(cards.length ? RULE : SOFT);
+    doc.setLineWidth(cards.length ? .9 : .6);
     if (!cards.length) doc.setLineDashPattern([3, 3], 0);
     doc.rect(x, y, CW, CH);
     doc.setLineDashPattern([], 0);
 
-    doc.setFont("courier", "bold").setFontSize(7.5).setTextColor(cards.length ? 60 : 150);
-    doc.text(s.name.toUpperCase(), x + 10, y + 16);
-    doc.setDrawColor(225).setLineWidth(.5).line(x + 10, y + 22, x + CW - 10, y + 22);
+    label(7.5, cards.length ? INK3 : INK4);
+    doc.text(s.name.toUpperCase(), x + 11, y + 17);
+    plain();
+    draw(cards.length ? RULE : SOFT); doc.setLineWidth(.5);
+    doc.line(x + 11, y + 23, x + CW - 11, y + 23);
 
     if (cards.length){
-      doc.setFont("courier", "normal").setFontSize(9.5).setTextColor(25);
-      let ty = y + 36;
+      mono(9.5, INK);
+      let ty = y + 37;
       cards.forEach(c => {
-        const lines = doc.splitTextToSize(c.text, CW - 20);
-        lines.slice(0, 7).forEach(ln => { if (ty < y + CH - 8){ doc.text(ln, x + 10, ty); ty += 12; } });
+        doc.splitTextToSize(c.text, CW - 22).slice(0, 7).forEach(ln => {
+          if (ty < y + CH - 8){ doc.text(ln, x + 11, ty); ty += 12; }
+        });
         ty += 5;
       });
     } else {
-      doc.setFont("courier", "italic").setFontSize(8.5).setTextColor(160);
-      doc.splitTextToSize(s.fn, CW - 20).slice(0, 4)
-        .forEach((ln, i) => doc.text(ln, x + 10, y + 38 + i * 11));
-      doc.setFont("courier", "bold").setFontSize(7.5).setTextColor(175);
-      doc.text("[ OPEN ]", x + 10, y + CH - 12);
+      serif(9, INK4, "italic");
+      doc.splitTextToSize(s.fn, CW - 22).slice(0, 4)
+        .forEach((ln, i) => doc.text(ln, x + 11, y + 39 + i * 11));
+      label(7, GOLD);
+      doc.text("OPEN", x + 11, y + CH - 12);
+      plain();
     }
 
     if (++col >= COLS){ col = 0; y += CH + GAP; }
@@ -5745,56 +5853,165 @@ async function exportPDF(which){
 
   function actHeading(name){
     if (col !== 0){ col = 0; y += CH + GAP; }          // finish the row first
-    if (y + 26 + CH > PH - M) newPage();
-    doc.setFont("helvetica", "bold").setFontSize(9).setTextColor(40);
+    if (y + 26 + CH > PH - M - 16) newPage();
+    label(8.5, INK2, 1);
     doc.text(name.toUpperCase(), M, y + 8);
-    doc.setDrawColor(60).setLineWidth(1).line(M, y + 13, M + 46, y + 13);
+    plain();
+    draw(GOLDH); doc.setLineWidth(1); doc.line(M, y + 13, M + 34, y + 13);
     y += 26;
   }
 
+  /* ------------------------------------------------------- 3. the outline -- */
+  /* EVERY BEAT, WITH EVERYTHING IN IT.
+
+     A beat here is what the outline screen shows: its name, what the beat is
+     for, the cards sitting in it, the notes filed against it, and the prose
+     written under it. In that order, because that is the order a writer built
+     it in, and because the cards are frequently the only outline a beat has.
+
+     Empty beats print too. A hole you are writing towards belongs in a writing
+     companion; leaving it out makes a fifteen-beat structure look finished at
+     four. */
+  function outlineBeat(slot, actName){
+    const cards = proj.cards.filter(c => c.slot === slot.id);
+    const notes = proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slot.id);
+    const prose = outlineList(proj, slot.id);
+    const has   = cards.length || notes.length || prose.length;
+
+    // Keep the heading with at least the start of its body.
+    room(64);
+
+    label(9, has ? INK : INK4, 1);
+    doc.text(slot.name.toUpperCase(), M, y);
+    label(7, INK4, .5);
+    doc.text(actName.toUpperCase(), PW - M, y, {align: "right"});
+    plain();
+    draw(has ? GOLDH : SOFT); doc.setLineWidth(has ? 1 : .6);
+    doc.line(M, y + 6, PW - M, y + 6);
+    y += 19;
+
+    // what the beat is for, always, because this is a companion to write beside
+    serif(9.5, INK4, "italic");
+    doc.splitTextToSize(slot.fn, PW - M * 2 - 20).forEach(ln => {
+      room(14); doc.text(ln, M, y); y += 12;
+    });
+    y += 7;
+
+    // the cards, as source material: a rule down the left, not a box
+    cards.forEach(c => {
+      // mono() FIRST. splitTextToSize measures in whatever face is currently
+      // set, so splitting before this used the italic serif from the job line
+      // above and every card ran off the right edge of the page.
+      mono(9.5, INK);
+      const lines = doc.splitTextToSize(String(c.text || ""), PW - M * 2 - 26);
+      const top = y - 8;
+      lines.forEach(ln => {
+        if (y > PH - M - 28){
+          draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
+          newPage();
+          mono(9.5, INK);
+        }
+        doc.text(ln, M + 16, y); y += 13;
+      });
+      draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
+      y += 9;
+    });
+
+    // notes filed against this beat, with the chip the screen gives them
+    notes.forEach(c => {
+      const kind = shelfKind(c);
+      room(26);
+      label(7, CHIPCOLOR[kind] || INK3, .6);
+      doc.text((KINDS[kind] || "Note").toUpperCase(), M + 16, y);
+      plain();
+      y += 12;
+      mono(9, INK2);
+      doc.splitTextToSize(String(c.text || ""), PW - M * 2 - 26).forEach(ln => {
+        room(14); doc.text(ln, M + 16, y); y += 12;
+      });
+      y += 9;
+    });
+
+    // and the prose, which is the beat once it has been written
+    if (prose.length){
+      if (cards.length || notes.length) y += 3;
+      prose.forEach(p => {
+        serif(10.5, INK);
+        doc.splitTextToSize(String(p), PW - M * 2).forEach(ln => {
+          room(16); doc.text(ln, M, y); y += 15;
+        });
+        y += 10;
+      });
+    }
+
+    if (!has){
+      label(7, GOLD, .8);
+      doc.text("OPEN", M, y);
+      plain();
+      y += 12;
+    }
+
+    y += 16;
+  }
+
+  /* --------------------------------------------------------------- build -- */
   coverPage();
+
+  newPage();
+  label(9.5, INK, 1.2);
+  doc.text("THE BOARD", M, y);
+  plain();
+  draw(GOLDH); doc.setLineWidth(1.2); doc.line(M, y + 7, M + 42, y + 7);
+  y += 20;
+  serif(10, INK3, "italic");
+  doc.text("Every beat at a glance, and what is standing in it.", M, y);
+  y += 24;
+
   S.acts.forEach((actName, ai) => {
     actHeading(actName);
     S.slots.filter(x => x.act === ai).forEach(x => slotBox(x));   // not .forEach(slotBox), or the index would land in `only`
   });
   if (col !== 0){ col = 0; y += CH + GAP; }
 
-  const written = S.slots.filter(x => outlineList(proj, x.id).length);
+  sectionHead("The outline", "The story beat by beat, with everything standing in each one.");
+  S.acts.forEach((actName, ai) => {
+    const slots = S.slots.filter(x => x.act === ai);
+    if (!slots.length) return;
+    room(80);
+    label(8.5, INK2, 1);
+    doc.text(actName.toUpperCase(), M, y);
+    plain();
+    draw(GOLDH); doc.setLineWidth(1); doc.line(M, y + 5, M + 34, y + 5);
+    y += 24;
+    slots.forEach(slot => outlineBeat(slot, actName));
+  });
+
   const heldOutline = outlineUnplaced(proj);
-  if (written.length || heldOutline.length){
-    newPage();
-    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(30);
-    doc.text("OUTLINE", M, y); y += 20;
-    written.forEach(x => {
-      if (y > PH - M - 60) newPage();
-      doc.setFont("courier", "bold").setFontSize(8.5).setTextColor(70);
-      doc.text(x.name.toUpperCase(), M, y); y += 13;
-      doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(25);
-      doc.splitTextToSize(outlineText(proj, x.id), PW - M * 2).forEach(ln => {
-        if (y > PH - M - 14) newPage();
-        doc.text(ln, M, y); y += 13;
+  if (heldOutline.length){
+    room(70);
+    label(8.5, INK2, 1);
+    doc.text("PASSAGES WITH NOWHERE TO GO", M, y);
+    plain();
+    draw(SOFT); doc.setLineWidth(.6); doc.line(M, y + 5, PW - M, y + 5);
+    y += 14;
+    serif(9.5, INK4, "italic");
+    doc.text("Written under a beat that no longer exists in this structure.", M, y);
+    y += 20;
+    heldOutline.forEach(item => {
+      room(30);
+      label(7, INK4, .5);
+      doc.text("FROM " + String(item.from).toUpperCase(), M, y);
+      plain();
+      y += 13;
+      serif(10.5, INK2);
+      doc.splitTextToSize(item.text, PW - M * 2).forEach(ln => {
+        room(16); doc.text(ln, M, y); y += 15;
       });
-      y += 12;
+      y += 14;
     });
-    if (heldOutline.length){
-      if (y > PH - M - 60) newPage();
-      doc.setFont("courier", "bold").setFontSize(8.5).setTextColor(70);
-      doc.text("UNPLACED OUTLINE PASSAGES", M, y); y += 13;
-      heldOutline.forEach(item => {
-        doc.setFont("courier", "normal").setFontSize(7.5).setTextColor(120);
-        doc.text("FROM " + String(item.from).toUpperCase(), M, y); y += 11;
-        doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(25);
-        doc.splitTextToSize(item.text, PW - M * 2).forEach(ln => {
-          if (y > PH - M - 14) newPage();
-          doc.text(ln, M, y); y += 13;
-        });
-        y += 10;
-      });
-    }
   }
 
-  /* THE CAST, after the outline and before the shelf.
-
+  /* ---------------------------------------------------------- 4. the cast --
      A page per person is wrong: a printed board is something you spread on a
      table, and a character you have written two lines about does not deserve a
      sheet of paper. One block each, only the fields that have something in
@@ -5804,93 +6021,94 @@ async function exportPDF(which){
   const people = cast(proj).filter(c => String(c.name || "").trim()
     && CFIELDS.some(f => f.k !== "name" && String(c[f.k] || "").trim()));
   if (people.length){
-    newPage();
-    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(30);
-    doc.text("CHARACTERS", M, y); y += 22;
+    sectionHead("Characters", "Only what has been written down. Blanks are simply absent.");
     people.forEach(c => {
       const written = CFIELDS.filter(f => f.k !== "name" && f.k !== "role"
                                        && String(c[f.k] || "").trim());
-      if (y > PH - M - 70) newPage();
-      doc.setFont("helvetica", "bold").setFontSize(13).setTextColor(20);
+      room(78);
+      serif(14, INK, "bold");
       doc.text(String(c.name || "Unnamed"), M, y);
       if (c.role){
-        doc.setFont("courier", "normal").setFontSize(8).setTextColor(120);
+        label(7.5, INK4);
         doc.text(String(c.role).toUpperCase(), PW - M, y, {align: "right"});
+        plain();
       }
-      y += 7;
-      doc.setDrawColor(205).setLineWidth(.7).line(M, y, PW - M, y);
-      y += 16;
+      y += 8;
+      draw(GOLDH); doc.setLineWidth(.8); doc.line(M, y, PW - M, y);
+      y += 18;
       written.forEach(f => {
-        if (y > PH - M - 30) newPage();
-        doc.setFont("courier", "bold").setFontSize(7.5).setTextColor(130);
+        room(30);
+        label(7.5, INK4);
         doc.text(f.label.toUpperCase(), M, y);
-        doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(28);
+        serif(10.5, INK2);
         const lines = doc.splitTextToSize(String(c[f.k]).trim(), PW - M * 2 - 120);
-        lines.forEach((ln, i) => {
-          if (y + i * 13 > PH - M - 8) { /* let the block run on; the next
-                                            field starts a fresh page */ }
-          doc.text(ln, M + 120, y + i * 13);
-        });
-        y += Math.max(17, lines.length * 13 + 4);
+        lines.forEach((ln, i) => doc.text(ln, M + 120, y + i * 14));
+        y += Math.max(19, lines.length * 14 + 5);
       });
-      y += 16;
+      y += 20;
     });
   }
 
+  /* --------------------------------------------------------- 5. set aside -- */
   const parked = proj.cards.filter(c => c.slot === "__none");
   if (parked.length){
-    newPage();
-    actHeading("Set aside");
-    parked.forEach(c => slotBox({id: "__aside", name: "Set aside", fn: "", act: 0}, [c]));
+    sectionHead("Set aside", "Notes that reached the board and have not found a beat yet.");
+    parked.forEach(c => {
+      mono(9.5, INK);                       // before the split; see outlineBeat
+      const lines = doc.splitTextToSize(String(c.text || ""), PW - M * 2 - 26);
+      const top = y - 8;
+      lines.forEach(ln => {
+        if (y > PH - M - 28){
+          draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
+          newPage(); mono(9.5, INK);
+        }
+        doc.text(ln, M + 16, y); y += 13;
+      });
+      draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
+      y += 13;
+    });
   }
 
-  /* Other notes. The cover page has always COUNTED these and the document has
-     never printed them, so a writer read "12 notes" on the front of a file that
-     did not contain a single one of them. Everything the importer keeps that is
-     not a beat lives here: the dialogue, the research, the character details.
-     Grouped by type, the way the Notes screen groups them, so the page reads
-     the same as the screen it came from. */
-  const shelved = proj.cards.filter(c => c.slot === "__shelf");
+  /* ------------------------------------------------------- 6. loose notes --
+     The cover page has always COUNTED these and the document did not print
+     them, so a writer read "12 notes" on the front of a file that contained
+     none of them. Everything the importer keeps that is not a beat lives here:
+     the dialogue, the research, the character details. Grouped by type, the way
+     the Notes screen groups them.
+
+     Only the ones filed under nothing. A note the writer filed against a beat
+     is printed in the outline, under that beat, where they put it; repeating it
+     here would be the same note twice with no reason. */
+  const shelved = proj.cards.filter(c => c.slot === "__shelf" && !c.attachedTo);
   if (shelved.length){
-    newPage();
-    actHeading("Other notes");
+    sectionHead("Loose notes", "Kept, and filed under no beat.");
     /* Flowing text, not card boxes. slotBox is built for a beat card: a fixed
        height and the first seven lines. A beat card is a sentence, and these are
        not - a research note or a run of dialogue goes well past that, and it was
-       being cut mid-word with nothing on the page to say so, while the cover
-       went on counting all of them. Nothing a writer typed gets trimmed here. */
-    const WIDTH = PW - M * 2 - 14;
+       being cut mid-word with nothing on the page to say so. Nothing a writer
+       typed gets trimmed here. */
+    const WIDTH = PW - M * 2 - 16;
     SHELVES.forEach(kind => {
       const items = shelved.filter(c => shelfKind(c) === kind);
       if (!items.length) return;
 
-      if (y + 34 > PH - M) newPage();
-      doc.setFont("courier", "bold").setFontSize(8).setTextColor(120);
-      doc.text((KINDS[kind] || "Note").toUpperCase() + "  \u00b7  " + items.length, M, y);
-      doc.setDrawColor(225).setLineWidth(.5).line(M, y + 5, PW - M, y + 5);
-      y += 18;
+      room(44);
+      label(8, CHIPCOLOR[kind] || INK3, .8);
+      doc.text((KINDS[kind] || "Note").toUpperCase() + "  ·  " + items.length, M, y);
+      plain();
+      draw(SOFT); doc.setLineWidth(.5); doc.line(M, y + 5, PW - M, y + 5);
+      y += 19;
 
       items.forEach(c => {
-        doc.setFont("courier", "normal").setFontSize(9).setTextColor(60);
+        mono(9, INK2);
         doc.splitTextToSize(String(c.text || ""), WIDTH).forEach(ln => {
-          if (y > PH - M - 12){ newPage(); }
-          doc.text(ln, M + 14, y);
-          y += 12;
+          room(14); doc.text(ln, M + 16, y); y += 12;
         });
-        // Where it sits, if the writer filed it. The screen says this and the
-        // page did not.
-        if (c.attachedTo){
-          if (y > PH - M - 12) newPage();
-          doc.setFont("courier", "normal").setFontSize(7.5).setTextColor(150);
-          doc.text("filed under " + slotName(proj.structure, c.attachedTo), M + 14, y);
-          y += 11;
-        }
-        y += 7;
+        y += 9;
       });
-      y += 6;
+      y += 8;
     });
   }
-
   const fname = (proj.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase()
                  || "beatfall") + "-beats.pdf";
   btn.disabled = true; say("Saving…");

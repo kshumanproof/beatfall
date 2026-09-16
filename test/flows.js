@@ -397,6 +397,10 @@ async function open(browser, projects, account = PAID) {
       text: Array.from({length: 98}, (_, i) => 'word' + i).join(' ')
             + ' ninety ninth word of this research note'});
     proj.cards.push({id: 81, text: 'an idea set aside', slot: '__none'});
+    // A note the writer filed against a beat. It belongs in the outline under
+    // that beat, and nowhere else.
+    proj.cards.push({id: 83, text: 'a clue filed under theme', slot: '__shelf',
+                     kind: 'clue', attachedTo: 'theme'});
     const { page, errors } = await open(browser, [proj]);
     const pdf = await page.evaluate(async () => {
       await exportPDF(P());
@@ -413,7 +417,29 @@ async function open(browser, projects, account = PAID) {
       check('and prints a long one whole rather than cutting it',
         /ninety ninth word of this research note/i.test(pdf.text),
         'a long note was truncated');
-      check('and heads that section', /other notes/i.test(pdf.text));
+      check('and heads that section', /loose notes/i.test(pdf.text));
+
+      /* THE OUTLINE IS THE DOCUMENT, NOT A LIST OF WHAT WAS TYPED.
+         It used to print the prose and nothing else, so a beat holding four
+         cards and no typed passage appeared nowhere at all and a writer's work
+         vanished in the only place it gets seen. Everything standing in a beat
+         prints under that beat now. */
+      const outline = pdf.text.split(/THE OUTLINE/i)[1] || '';
+      check('the outline section exists at all', !!outline, 'no OUTLINE heading');
+      check('and carries the cards standing in each beat',
+        /the card for open/i.test(outline), 'cards are missing from the outline');
+      check('and the notes filed against a beat',
+        /a clue filed under theme/i.test(outline), 'filed notes are missing');
+      check('and says what each beat is for',
+        /the first shot/i.test(outline), 'the beat descriptions are missing');
+      check('and still lists a beat nobody has written under',
+        /CATALYST/i.test(outline), 'empty beats vanish from the outline');
+
+      // And a filed note is printed once, under its beat, not again in Loose notes.
+      const loose = pdf.text.split(/LOOSE NOTES/i)[1] || '';
+      check('a filed note is not repeated in the loose pile',
+        !/a clue filed under theme/i.test(loose), 'the same note printed twice');
+
       check('the filename is the project', /night-haul/i.test(pdf.name || ''), pdf.name);
     }
     check('no page errors exporting', errors.length === 0, errors.join('\n'));
