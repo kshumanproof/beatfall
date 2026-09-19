@@ -1154,6 +1154,114 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  // ------------------------------------------- dropped, and pasted, pictures --
+  /* The file picker is how a writer adds a picture once they have gone looking
+     for the way. These are the two they reach for without looking. Paste is the
+     one that matters most: a frame off a film is the whole example this feature
+     was built for, and a screenshot lives on the clipboard and never touches
+     the disk. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [{id: 'c1', name: 'Mara Vance', role: 'Protagonist'}];
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('notes', true); });
+    await page.waitForTimeout(300);
+
+    /* A real drop, built the way a browser builds one. DataTransfer is
+       constructible in Chromium, so this is the same event shape the operating
+       system delivers rather than a hand-made object the handler is written to
+       accept. */
+    const dropped = await page.evaluate(async () => {
+      const png = Uint8Array.from(atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8//8/AzZgYmJiYmL'
+        + '6//8/AzbAxMTExMTEBABPQwX1eN5ZzAAAAABJRU5ErkJggg=='), c => c.charCodeAt(0));
+      const dt = new DataTransfer();
+      dt.items.add(new File([png], 'rain_on_glass.png', {type: 'image/png'}));
+
+      const view = document.getElementById('notesview');
+      view.dispatchEvent(new DragEvent('dragenter', {dataTransfer: dt, bubbles: true}));
+      const litUp = view.classList.contains('dropping');
+      view.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true}));
+      await new Promise(r => setTimeout(r, 800));
+      return {
+        litUp,
+        stillLit: view.classList.contains('dropping'),
+        photos: P().cards.filter(c => c.kind === 'photo').length,
+        caption: (P().cards.find(c => c.kind === 'photo') || {}).text || ''
+      };
+    });
+    check('a page carrying a picture over it says so', dropped.litUp === true);
+    check('and stops saying so once it lands', dropped.stillLit === false);
+    check('a dropped picture becomes a note', dropped.photos === 1, JSON.stringify(dropped));
+    check('with the filename as its caption',
+      dropped.caption === 'rain on glass', dropped.caption);
+
+    // ---- pasted from the clipboard, from somewhere else in the app
+    const pasted = await page.evaluate(async () => {
+      setView('board', true);
+      await new Promise(r => setTimeout(r, 150));
+      const png = Uint8Array.from(atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8//8/AzZgYmJiYmL'
+        + '6//8/AzbAxMTExMTEBABPQwX1eN5ZzAAAAABJRU5ErkJggg=='), c => c.charCodeAt(0));
+      const dt = new DataTransfer();
+      dt.items.add(new File([png], 'screenshot.png', {type: 'image/png'}));
+      document.body.focus();
+      document.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dt, bubbles: true}));
+      await new Promise(r => setTimeout(r, 900));
+      return { photos: P().cards.filter(c => c.kind === 'photo').length, view: state.view };
+    });
+    check('a screenshot pasted anywhere in the app lands in Vision',
+      pasted.photos === 2, JSON.stringify(pasted));
+    check('and the writer is taken to where it landed',
+      pasted.view === 'notes', pasted.view);
+
+    /* AND IT NEVER STEALS A PASTE OF WORDS. The rule is what is on the
+       clipboard, not where the caret is: "never while typing" would mean never
+       on the board, because the board focuses the capture bar the moment it
+       opens. Words plus a caret in a text box is a paste of words and has to
+       keep working. A picture and no words has no other meaning. */
+    const pastedWords = await page.evaluate(async () => {
+      setView('board', true);
+      await new Promise(r => setTimeout(r, 150));
+      const before = P().cards.filter(c => c.kind === 'photo').length;
+      const box = document.getElementById('input') || document.querySelector('textarea');
+      box.focus();
+      const dt = new DataTransfer();
+      dt.setData('text/plain', 'he finds out his brother knew all along');
+      box.dispatchEvent(new ClipboardEvent('paste', {clipboardData: dt, bubbles: true}));
+      await new Promise(r => setTimeout(r, 400));
+      return { before, after: P().cards.filter(c => c.kind === 'photo').length };
+    });
+    check('pasting words into a box is never turned into a picture',
+      pastedWords.after === pastedWords.before, JSON.stringify(pastedWords));
+
+    // ---- and onto one character
+    const ontoPerson = await page.evaluate(async () => {
+      setView('cast', true);
+      await new Promise(r => setTimeout(r, 250));
+      const png = Uint8Array.from(atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8//8/AzZgYmJiYmL'
+        + '6//8/AzbAxMTExMTEBABPQwX1eN5ZzAAAAABJRU5ErkJggg=='), c => c.charCodeAt(0));
+      const dt = new DataTransfer();
+      dt.items.add(new File([png], 'mara.png', {type: 'image/png'}));
+      const card = document.querySelector('.ccard');
+      card.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true}));
+      await new Promise(r => setTimeout(r, 900));
+      const p = state.projects[0];
+      const shot = p.cards.filter(c => c.kind === 'photo');
+      return { face: (p.characters[0] || {}).face || '',
+               inVision: shot.length,
+               same: shot.some(x => x.img === (p.characters[0] || {}).face) };
+    });
+    check('a picture dropped on a character becomes their reference',
+      !!ontoPerson.face, JSON.stringify(ontoPerson));
+    check('and is in Vision too, not hidden on the character',
+      ontoPerson.same === true, JSON.stringify(ontoPerson));
+
+    check('no page errors dropping or pasting', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

@@ -601,6 +601,26 @@ a dashed box with a plus that opens the same picker and the same upload, with
 is never a picture living somewhere the Notes page cannot see. The picker drops
 `multiple` for that route, because a character wears one face.
 
+**Three ways in, and two of them nobody is taught.** The file picker is what a
+writer finds once they go looking. Dragging a file onto the page and pasting a
+screenshot are what they reach for without looking, and paste matters most: a
+frame off a film is the example this feature exists for, and a screenshot lives
+on the clipboard and never touches the disk. Drop targets are the whole Notes
+page (goes to Vision) and each character card (becomes that character's
+reference). `acceptsPictures(el, onto)` wires one; it counts dragenter/dragleave
+rather than toggling, because dragging across a child fires leave on the parent
+and a boolean flickers the outline the whole way in.
+
+**The paste rule is what is on the clipboard, not where the caret is.** The
+obvious rule, "never while they are typing", is wrong and was wrong in the first
+version: the board focuses the capture bar the moment it opens, so a writer
+standing on their board is always technically typing and paste worked nowhere
+they actually were. Words on the clipboard plus a caret in a text box means they
+are pasting words, so this stays out of the way. A picture and no words has no
+other meaning, because a textarea cannot hold an image. A pasted picture also
+switches the view to Notes, since it would otherwise land somewhere the writer
+is not looking; a dropped one does not, because it landed where they dropped it.
+
 **A picture filed under a beat IS the picture.** `attachedList` printed a
 Vision chip and a caption, so the Outline told a writer a photograph existed and
 then did not show it. Filing one under a beat is the whole reason the control

@@ -1582,6 +1582,14 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .ncard .face{
   font-size:12.5px;color:var(--gold);font-weight:500;
 }
+/* A page, or one character's card, while a picture is hovering over it. Gold,
+   because gold in Beatfall means the writing help, and this is the one place
+   it does not: it means "let go and this lands here". Nothing here spends a
+   credit. Used sparingly enough that the two do not collide. */
+.dropping{
+  outline:2px dashed var(--gold-hair);outline-offset:4px;border-radius:var(--r-panel);
+}
+.ccard.dropping{background:var(--gold-soft)}
 .photoerr{
   font-size:13px;color:var(--gold-ink);background:var(--gold-soft);
   border:1px solid var(--gold-hair);padding:9px 13px;border-radius:var(--r-ctl);
@@ -10267,6 +10275,10 @@ function renderCast(){
       });
     }
 
+    /* And a picture dropped straight onto somebody becomes their reference.
+       The same upload, told where it is going, exactly as the plus does. */
+    acceptsPictures(el, c.id);
+
     el.addEventListener("click", () => openChar(c.id));
     el.addEventListener("keydown", ev => {
       if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openChar(c.id); }
@@ -10777,6 +10789,7 @@ async function sendPhotos(files){
     if (room) PHOTO_ROOM = {used: room.used, quota: room.quota};
     renderNotes(); renderCast(); render();
   }
+  return added;
 }
 
 /* What is left, and only said out loud once it is nearly gone. A quota nobody
@@ -10824,12 +10837,126 @@ function faceOwner(proj, path){
   return cast(proj).find(c => c.face === path) || null;
 }
 
+/* ======================================================================
+   THE TWO WAYS NOBODY IS TAUGHT AND EVERYBODY TRIES.
+
+   A file picker is the way a writer adds a picture once they have gone
+   looking for the way. These are the two they reach for without looking:
+   dragging the file onto the page, and pasting a screenshot.
+
+   The second matters more than it sounds. A frame off a film is the whole
+   example this feature was built for, and a screenshot lives on the
+   clipboard and never touches the disk. Without paste the route is: take
+   the screenshot, find where it saved, press Add pictures, find it again.
+   ====================================================================== */
+function imageFilesFrom(dt){
+  if (!dt) return [];
+  const out = [];
+  // A drop carries `files`; a paste carries `items` and sometimes both.
+  if (dt.files && dt.files.length){
+    [...dt.files].forEach(f => { if (f && /^image\//.test(f.type)) out.push(f); });
+  }
+  if (!out.length && dt.items){
+    [...dt.items].forEach(i => {
+      if (i.kind === "file" && /^image\//.test(i.type)){
+        const f = i.getAsFile();
+        if (f) out.push(f);
+      }
+    });
+  }
+  return out;
+}
+
+const carryingFiles = dt =>
+  !!dt && [...(dt.types || [])].indexOf("Files") >= 0;
+
+/* Turns any element into somewhere a picture can be dropped. `onto` is a
+   character id when the picture is going on a reference, null for Vision.
+   Counted rather than toggled: dragging across a child element fires leave on
+   the parent, so a boolean flickers the outline on and off the whole way in. */
+function acceptsPictures(el, onto){
+  if (!el) return;
+  let depth = 0;
+  const lit = on => el.classList.toggle("dropping", on);
+
+  el.addEventListener("dragenter", e => {
+    if (!carryingFiles(e.dataTransfer)) return;
+    e.preventDefault(); depth++; lit(true);
+  });
+  el.addEventListener("dragover", e => {
+    if (!carryingFiles(e.dataTransfer)) return;
+    // Without this the browser opens the file instead, which navigates away
+    // from the app and looks exactly like a crash.
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  });
+  el.addEventListener("dragleave", e => {
+    if (!carryingFiles(e.dataTransfer)) return;
+    depth = Math.max(0, depth - 1);
+    if (!depth) lit(false);
+  });
+  el.addEventListener("drop", e => {
+    if (!carryingFiles(e.dataTransfer)) return;
+    e.preventDefault(); e.stopPropagation();
+    depth = 0; lit(false);
+    const pics = imageFilesFrom(e.dataTransfer);
+    if (!pics.length){
+      photoSay("That is not a picture Beatfall can read. JPEG, PNG or WebP.");
+      return;
+    }
+    photoTarget = onto || null;
+    sendPhotos(pics);
+  });
+}
+
+/* A screenshot, straight off the clipboard.
+
+   THE RULE IS WHAT IS ON THE CLIPBOARD, NOT WHERE THE CARET IS.
+
+   The obvious rule, "never while they are typing", is wrong here and was wrong
+   in the first version of this: the board FOCUSES the capture bar the moment it
+   opens, so a writer standing on their board is always technically typing, and
+   paste would have worked nowhere they actually are.
+
+   So: if the clipboard carries words and the caret is in something editable,
+   this stays out of the way entirely, because they are pasting words and that
+   has to keep working everywhere. If the clipboard carries a picture and no
+   words, there is nothing else it could mean. A textarea cannot hold an image,
+   so taking it is not stealing the paste from anybody. */
+function editingSomething(){
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = (el.tagName || "").toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select"
+      || el.isContentEditable === true;
+}
+
+document.addEventListener("paste", async e => {
+  if (!state || !P()) return;                 // no project open, nowhere to put it
+  let words = "";
+  try { words = (e.clipboardData && e.clipboardData.getData("text/plain")) || ""; }
+  catch (err) { words = ""; }
+  if (editingSomething() && words.trim()) return;
+  const pics = imageFilesFrom(e.clipboardData);
+  if (!pics.length) return;
+  e.preventDefault();
+  photoTarget = null;
+  const added = await sendPhotos(pics);
+  /* A picture pasted from the board would otherwise land somewhere the writer
+     is not looking, with nothing to say it arrived. A drop needs no such thing:
+     it landed where they dropped it. */
+  if (added && state.view !== "notes") setView("notes");
+});
+
 /* The button's own markup, kept so the label can say "Adding 3 of 9" while it
    works and go back to itself afterwards. */
 const PHOTO_BTN = (document.getElementById("photoadd") || {}).innerHTML || "Add pictures";
 (function wirePhotos(){
   const btn  = document.getElementById("photoadd");
   const file = document.getElementById("photofile");
+  // The whole Notes page takes a dropped picture, not just the button. Aiming
+  // at a button is a thing you do once you know it is there.
+  acceptsPictures(document.getElementById("notesview"), null);
   if (!btn || !file) return;
   btn.addEventListener("click", () => {
     photoTarget = null;              // the Notes page adds to Vision, not to a face
