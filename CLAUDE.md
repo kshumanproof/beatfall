@@ -601,6 +601,41 @@ a dashed box with a plus that opens the same picker and the same upload, with
 is never a picture living somewhere the Notes page cannot see. The picker drops
 `multiple` for that route, because a character wears one face.
 
+**The word is "reference", never "face", anywhere a writer can read it.** A
+photograph pinned to a character is often not a face: it is the jacket, the car,
+the hands, the way somebody stands. Kris also found "take this face off" creepy
+in a tooltip, and he was right. The internal field is still `character.face` and
+the class is still `.facex`, because renaming those would rewrite saved projects
+for no gain and nobody reads them but us. The visible words are: "Add a
+reference", "Remove this reference image", "Use as a reference for...",
+"Reference for <name>".
+
+**NO HOVER MEANS NO CONTROLS, AND THE SMALL-SCREEN GATE HIDES THE BUG.** Every
+card control fades in on hover: the delete, pencil, move and padlock on a board
+card, the delete and pencil on a note, the x on a reference image. On a
+touchscreen laptop or a large tablet there is no hover, so all of them were
+invisible AND unreachable. There was no way to delete a card on a Surface. It
+went unnoticed because the board gates SMALL screens, and a touchscreen laptop
+is not a small screen: it passes the gate and has no mouse. `@media (hover:none)`
+now keeps them all visible at .75 opacity, and the x at .9 because it sits on a
+photograph. They do NOT appear on first tap: a tap that reveals a control is a
+tap that did not press it, and the first thing a finger learns is that the card
+does nothing.
+
+Two traps in that fix, both hit:
+- **Source order beat the media query.** The shared `@media (hover:none)` block
+  sits above where `.facex` is declared, and two rules of equal specificity are
+  settled by which comes last. The rule looked right and did nothing. A
+  hover:none override has to sit BESIDE the declaration it overrides.
+- Playwright's `emulateMedia` cannot set hover. A context with `hasTouch: true`
+  makes Chromium report `(hover: none)` and `(pointer: coarse)` for real, which
+  is what `drive.js` uses, at a 1280px viewport because the case that matters is
+  a BIG touchscreen.
+
+Tooltips are still hover-only across the whole app, so a touch user sees none of
+them. The paid controls already have the tap-twice price rule; the rest do not.
+Known, not fixed.
+
 **`.ccard` is a div with `role="button"`, not a `<button>`.** It has to be: the
 face carries controls of its own and a button inside a button is not markup a
 browser will build. Keyboard reach is restored by hand and the two face controls

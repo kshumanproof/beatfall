@@ -907,10 +907,36 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .icard:hover .cdate,.icard:focus-within .cdate,
 .ncard:hover .cdate,.ncard:focus-within .cdate{opacity:1;pointer-events:auto}
-/* No pointer, no hover, so nothing would ever reveal it. It just stays. */
+/* ==========================================================================
+   NO POINTER, NO HOVER, SO NOTHING WOULD EVER REVEAL ANY OF THIS.
+
+   The date tag was already handled here. The CONTROLS were not, and that was
+   the more serious half by a long way: on a touchscreen laptop or a large
+   tablet, the delete, the pencil, the move and the padlock on a board card,
+   the delete and the pencil on a note, and the x that takes a reference off a
+   character were all invisible and unreachable. Not awkward. Absent. There was
+   no way to delete a card on a Surface.
+
+   It is easy to miss because the board GATES small screens, so a phone never
+   gets here and the bug hides behind that gate: a touchscreen laptop is not a
+   small screen, passes the gate, and has no hover.
+
+   They stay visible rather than appearing on tap. A tap that reveals a control
+   is a tap that does not press it, and the first thing a finger learns is that
+   the card does nothing. Quiet, not hidden: three quarters opacity reads as
+   available without turning every card into a row of buttons. The reference x
+   sits on top of a photograph and has to hold its own against whatever is
+   underneath it, so it stays nearly solid.
+   ========================================================================== */
 @media (hover:none){
   .icard .cdate,.ncard .cdate,.ccard .cdate{opacity:.75;pointer-events:auto}
+  .icard .del,.icard .move,.icard .pin,.icard .edit,
+  .ncard .del,.ncard .edit{opacity:.75}
 }
+/* The x on a reference image gets the same treatment, but its rule has to live
+   further down, BESIDE the declaration it is overriding. This block sits above
+   .facex, and two rules of equal specificity are settled by which comes last,
+   so putting it here looked right and did nothing at all. */
 
 /* ----- material filed under a beat, without becoming the beat itself ----- */
 .attached{display:flex;flex-direction:column;gap:1px;margin-top:9px;
@@ -1111,10 +1137,17 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .ccard .cface img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* Take this face off this character. Not a delete: the picture is still in
-   Vision and can go straight onto somebody else. Somebody who finds a better
-   reference on Tuesday than the one they found on Monday should not have to go
-   looking for the Notes page to make the swap. */
+/* Remove this reference from this character. Not a delete: the picture is
+   still in Vision and can go straight onto somebody else. Somebody who finds a
+   better reference on Tuesday than the one they found on Monday should not have
+   to go looking for the Notes page to make the swap.
+
+   ONE WORD FOR ONE THING. It said "face" here and in four other places, which
+   presumes the picture IS a face, and half of what gets pinned to a character
+   is not: it is the jacket, the car, the hands, the way somebody stands. It is
+   a reference, which is also the word a writer would use talking to a director.
+   The internal field is still `character.face`; changing that would rewrite
+   saved projects for no gain, and nobody reads it but us. */
 .cface .facex{
   position:absolute;top:6px;right:6px;width:24px;height:24px;
   display:inline-flex;align-items:center;justify-content:center;
@@ -1125,6 +1158,9 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 }
 .ccard:hover .facex,.cface .facex:focus-visible{opacity:1}
 .cface .facex:hover{background:rgba(20,17,14,.8)}
+/* No mouse, so nothing would ever reveal it. It sits on top of a photograph
+   and has to hold its own against whatever is underneath, so nearly solid. */
+@media (hover:none){ .cface .facex{opacity:.9} }
 
 /* And the empty one. A hairline dashes where a picture could go, with the same
    plus that adds one anywhere else. It is deliberately quiet: a character with
@@ -1501,7 +1537,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink-4);text-align:center;padding:0 14px;line-height:1.5;
 }
-/* Says whose sheet this face is on, in the same voice as "Filed under". */
+/* Says who this picture is a reference for, in the voice of "Filed under". */
 .ncard .face{
   font-size:12.5px;color:var(--gold);font-weight:500;
 }
@@ -10124,12 +10160,12 @@ function renderCast(){
     el.innerHTML =
         (c.face
           ? '<div class="cface"><img alt="">'
-            + '<button class="facex" type="button" aria-label="Take this face off '
-            + esc(c.name || "this character") + '">&times;</button></div>'
+            + '<button class="facex" type="button" aria-label="Remove this reference image'
+            + ' from ' + esc(c.name || "this character") + '">&times;</button></div>'
           : '<button class="cface-add" type="button">'
             + '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
             + 'stroke-width="1.6" stroke-linecap="round" aria-hidden="true">'
-            + '<path d="M8 3.4v9.2M3.4 8h9.2"/></svg>Add a face</button>')
+            + '<path d="M8 3.4v9.2M3.4 8h9.2"/></svg>Add a reference</button>')
       + '<div class="cr">' + esc(c.role || "Part not set") + "</div>"
       + '<div class="cn">' + esc(c.name || "Unnamed") + "</div>"
       + '<div class="cw' + (c.want ? "" : " none") + '">'
@@ -10148,8 +10184,7 @@ function renderCast(){
          one away. Nothing is destroyed, so nothing asks you twice, and undo
          takes it back anyway. */
       x.setAttribute("data-tip",
-        "Take this face off " + (c.name || "this character")
-        + ". The picture stays in Vision.");
+        "Remove this reference image. The picture stays in Vision.");
       x.addEventListener("click", ev => {
         ev.stopPropagation();
         snapshot();
@@ -10159,8 +10194,9 @@ function renderCast(){
     } else {
       const add = el.querySelector(".cface-add");
       add.setAttribute("data-tip",
-        "Add a picture from this computer. It goes on " + (c.name || "this character")
-        + " and into Vision with your other notes. No credits.");
+        "Add a picture from this computer. It becomes a reference for "
+        + (c.name || "this character") + " and goes into Vision with your other notes. "
+        + "No credits.");
       add.addEventListener("click", ev => {
         ev.stopPropagation();
         /* The same file picker and the same upload as the Notes page, told
@@ -10206,7 +10242,7 @@ function openChar(id){
     const top = document.createElement("div");
     top.className = "sheettop";
     top.innerHTML = '<div class="sheetface"><img alt=""></div>'
-      + '<p class="sheet-note" style="margin:0">Change or remove this face from '
+      + '<p class="sheet-note" style="margin:0">Change or remove this reference from '
       + "this character\u2019s card on the Characters page, or from the picture\u2019s "
       + "own card in Vision.</p>";
     body.appendChild(top);
@@ -10988,15 +11024,15 @@ function renderNotes(){
         if (wearer){
           const f = el.querySelector(".face");
           f.hidden = false;
-          f.textContent = "On " + (wearer.name || "a character") + "\u2019s sheet";
+          f.textContent = "Reference for " + (wearer.name || "a character");
         }
         if (people.length){
           const who = document.createElement("select");
           who.setAttribute("data-tip",
-            "Put this picture on a character's sheet. It stays here in Vision as well.");
-          who.innerHTML = '<option value="">Put this face on&hellip;</option>'
-            + (wearer ? '<option value="__off">Take it off ' + esc(wearer.name || "the sheet")
-                        + "</option>" : "")
+            "Use this picture as a character's reference. It stays here in Vision as well.");
+          who.innerHTML = '<option value="">Use as a reference for&hellip;</option>'
+            + (wearer ? '<option value="__off">Remove from '
+                        + esc(wearer.name || "that character") + "</option>" : "")
             + people.map(x => '<option value="' + x.id + '"'
                 + (wearer && wearer.id === x.id ? " selected" : "") + ">"
                 + esc(x.name) + "</option>").join("");

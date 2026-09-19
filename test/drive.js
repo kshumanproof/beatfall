@@ -676,7 +676,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
         paid: !!(card && card.querySelector('.noteask')),
         boardOption: selects.some(s => /Make it a card on the board/.test(s.innerHTML)),
         fileOption:  selects.some(s => /Keep it a note, filed under/.test(s.innerHTML)),
-        faceOption:  selects.some(s => /Put this face on/.test(s.innerHTML)),
+        faceOption:  selects.some(s => /Use as a reference for/.test(s.innerHTML)),
         kindOption:  selects.some(s => /Open question/.test(s.innerHTML)),
         dropdowns:   selects.length,
         // and the type control is still there on a written note, where it belongs
@@ -715,11 +715,11 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       seen.writtenKinds === true, 'regrouping a misfiled note is no longer possible');
 
     // ---- the whole point: put it on somebody
-    check('a photo offers the characters', seen.faceOption === true);
+    check('a photo offers the characters as a reference', seen.faceOption === true);
     const assigned = await page.evaluate(async () => {
       const card = document.querySelector('.ncard.photo');
       const who = [...card.querySelectorAll('select')]
-        .find(s => /Put this face on/.test(s.innerHTML));
+        .find(s => /Use as a reference for/.test(s.innerHTML));
       who.value = 'c1';
       who.dispatchEvent(new Event('change'));
       await new Promise(r => setTimeout(r, 200));
@@ -743,7 +743,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     const moved = await page.evaluate(async () => {
       const card = document.querySelector('.ncard.photo');
       const who = [...card.querySelectorAll('select')]
-        .find(s => /Put this face on/.test(s.innerHTML));
+        .find(s => /Use as a reference for/.test(s.innerHTML));
       who.value = 'c2';
       who.dispatchEvent(new Event('change'));
       await new Promise(r => setTimeout(r, 200));
@@ -993,6 +993,92 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
 
     check('no page errors adding a face', errors.length === 0, errors.join('\n'));
     await page.close();
+  }
+
+  // ------------------------------------------------- a screen with no mouse --
+  /* A touchscreen laptop or a large tablet is not a small screen. It sails
+     through the gate that keeps phones off the board, and it has no hover.
+     Every control that fades in on hover is therefore invisible AND
+     unreachable there: the delete, the pencil, the move and the padlock on a
+     board card, the delete and the pencil on a note, and the x that takes a
+     reference off a character.
+
+     There was no way to delete a card on a Surface. This is the check that
+     says so out loud.
+
+     A context with hasTouch is how Chromium is told there is a finger and no
+     mouse; it reports (hover: none) and (pointer: coarse) exactly as the real
+     thing does. The viewport stays large on purpose, because the point is a
+     BIG touchscreen, which is the case the small-screen gate does not catch. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [{id:'c1', name:'Mara Vance', role:'Protagonist', face:'u1/face.jpg'}];
+    proj.cards.push({id: 70, slot: '__shelf', kind: 'photo', img: 'u1/face.jpg',
+                     text: 'a face in the crowd'});
+    proj.cards.push({id: 71, slot: '__shelf', kind: 'research', text: 'a written note'});
+
+    const ctx = await browser.newContext({ hasTouch: true, viewport: {width: 1280, height: 900} });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(String(e)));
+    await page.addInitScript(([a, p]) => { window.__ACCOUNT__ = a; window.__PROJECTS__ = p; },
+      [PAID, [proj]]);
+    await page.goto(PAGE);
+    await page.waitForTimeout(700);
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('board', true); });
+    await page.waitForTimeout(300);
+
+    const seen = o => Number(o) > .2;
+    const board1 = await page.evaluate(() => {
+      const card = document.querySelector('#board .icard');
+      const o = el => el ? getComputedStyle(el).opacity : '0';
+      return {
+        noHover: window.matchMedia('(hover: none)').matches,
+        del:  o(card && card.querySelector('.del')),
+        edit: o(card && card.querySelector('.edit')),
+        move: o(card && card.querySelector('.move')),
+        pin:  o(card && card.querySelector('.pin'))
+      };
+    });
+    check('the browser really is reporting no hover', board1.noHover === true,
+      'the emulation did not take, so the rest of this block proves nothing');
+    check('a board card\u2019s delete can be seen without a mouse', seen(board1.del), board1.del);
+    check('and its pencil', seen(board1.edit), board1.edit);
+    check('and its move control', seen(board1.move), board1.move);
+    check('and its padlock', seen(board1.pin), board1.pin);
+
+    // and it is not merely visible, it actually works
+    await page.evaluate(() => { window.confirm = () => true; });
+    const pressed = await page.evaluate(async () => {
+      const before = P().cards.filter(c => c.slot !== '__shelf').length;
+      document.querySelector('#board .icard .del').click();
+      await new Promise(r => setTimeout(r, 200));
+      return { before, after: P().cards.filter(c => c.slot !== '__shelf').length };
+    });
+    check('and pressing it with no hover really deletes the card',
+      pressed.after === pressed.before - 1, JSON.stringify(pressed));
+
+    await page.evaluate(() => setView('notes', true));
+    await page.waitForTimeout(300);
+    const notes = await page.evaluate(() => {
+      const card = document.querySelector('.ncard');
+      const o = el => el ? getComputedStyle(el).opacity : '0';
+      return { del: o(card && card.querySelector('.del')),
+               edit: o(card && card.querySelector('.edit')) };
+    });
+    check('a note\u2019s delete can be seen without a mouse', seen(notes.del), notes.del);
+    check('and its pencil', seen(notes.edit), notes.edit);
+
+    await page.evaluate(() => setView('cast', true));
+    await page.waitForTimeout(300);
+    const face = await page.evaluate(() => {
+      const x = document.querySelector('.ccard .cface .facex');
+      return x ? getComputedStyle(x).opacity : '0';
+    });
+    check('and the x that removes a reference image', seen(face), face);
+
+    check('no page errors without a mouse', errors.length === 0, errors.join('\n'));
+    await ctx.close();
   }
 
   await browser.close();
