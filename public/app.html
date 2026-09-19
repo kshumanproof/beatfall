@@ -6308,57 +6308,78 @@ async function exportPDF(which){
      sheet of paper. One block each, only the fields that have something in
      them, and the blanks are simply absent. What is missing on the screen is
      missing here too. */
-  // A name on its own is not a character, here as everywhere else.
+  /* A name on its own is not a character, and neither is a name with a part
+     to play and nothing else. Role was counted as something written, so a row
+     carrying only "woman, protagonist" printed a heading, a rule, and then an
+     inch of blank paper. Every field this section actually PRINTS is excluded
+     from the test, so the test now asks the only useful question: is there
+     anything here to read. */
   const people = cast(proj).filter(c => String(c.name || "").trim()
-    && CFIELDS.some(f => f.k !== "name" && String(c[f.k] || "").trim()));
+    && CFIELDS.some(f => f.k !== "name" && f.k !== "role"
+                      && String(c[f.k] || "").trim()));
   if (people.length){
     sectionHead("Characters", "Only what has been written down. Blanks are simply absent.");
+    /* TWO COLUMNS, THE SAME TWO FOR EVERYBODY.
+
+       The first version let the text run the full width when a character had
+       no reference and stop short when they did, and drew the rule under the
+       name to match. Down a page of six people that produced a right margin
+       that moved in and out at random, which reads as broken rather than as
+       designed. The measure is fixed now, whether or not there is a picture,
+       and the rule always spans the whole width.
+
+       The reference also got its own column instead of a corner. A film frame
+       is landscape, so a hundred and eight points made it a postage stamp. A
+       hundred and fifty is two inches on paper, which is a reference somebody
+       can actually read a face in. */
+    const RW   = 150;                       // the reference column
+    const GUT  = 20;
+    /* 122, not 104. "THE LIE THEY BELIEVE" is twenty characters of letterspaced
+       courier, which measures almost exactly 104, so it ran straight into the
+       sentence beside it. The widest label decides this column, not the
+       average one. */
+    const LBL  = 122;                       // the label column
+    const TEXT = PW - M * 2 - RW - GUT;     // and what is left for the words
+
     people.forEach(c => {
       const written = CFIELDS.filter(f => f.k !== "name" && f.k !== "role"
                                        && String(c[f.k] || "").trim());
-      /* The reference, if they have one, at the top right of their block and
-         no bigger than that. It is how you recognise which one this is while
-         you read what they want; it is not the subject of the page. */
       const ref = c.face && PICS.has(c.face);
-      const RW = 108, RH = 132;
-      room(ref ? Math.max(78, RH + 30) : 78);
+      room(ref ? 150 : 80);
 
-      const blockTop = y;
-      serif(14, INK, "bold");
+      serif(15, INK, "bold");
       doc.text(String(c.name || "Unnamed"), M, y);
       if (c.role){
         label(7.5, INK4);
-        doc.text(String(c.role).toUpperCase(), ref ? PW - M - RW - 16 : PW - M, y,
-                 {align: "right"});
+        doc.text(String(c.role).toUpperCase(), PW - M, y, {align: "right"});
         plain();
       }
-      y += 8;
-      draw(GOLDH); doc.setLineWidth(.8);
-      doc.line(M, y, ref ? PW - M - RW - 16 : PW - M, y);
-      y += 18;
+      y += 9;
+      draw(GOLDH); doc.setLineWidth(.8); doc.line(M, y, PW - M, y);
+      y += 19;
 
-      /* How tall it actually came out, not how tall the box allowed. A
-         landscape reference in a portrait box is half the height, and
-         reserving the box left a hand's width of nothing under every
-         character who had one. */
-      const picTop = blockTop - 11;
-      const drewH = ref ? picture(c.face, PW - M - RW, picTop, RW, RH) : 0;
-      const picBottom = picTop + drewH;
+      /* The picture starts level with the first field rather than level with
+         the name, so the rule above it is unbroken and the block reads as a
+         heading with two columns under it. How tall it actually came out, not
+         how tall the column allows: a landscape frame is two thirds the height
+         of a portrait one and reserving the taller box left a hand's width of
+         nothing under everybody who had a picture. */
+      const fieldsTop = y;
+      const drewH = ref ? picture(c.face, PW - M - RW, fieldsTop, RW, 200) : 0;
 
       written.forEach(f => {
         room(30);
         label(7.5, INK4);
         doc.text(f.label.toUpperCase(), M, y);
         serif(10.5, INK2);
-        // The text column stops short of the reference while it is beside it.
-        const wide = PW - M * 2 - 120 - (drewH && y < picBottom ? RW + 16 : 0);
-        const lines = doc.splitTextToSize(String(c[f.k]).trim(), wide);
-        lines.forEach((ln, i) => doc.text(ln, M + 120, y + i * 14));
+        const lines = doc.splitTextToSize(String(c[f.k]).trim(), TEXT - LBL);
+        lines.forEach((ln, i) => doc.text(ln, M + LBL, y + i * 14));
         y += Math.max(19, lines.length * 14 + 5);
       });
+
       // Never let the next character start inside this one's picture.
-      if (drewH) y = Math.max(y, picBottom + 10);
-      y += 20;
+      if (drewH) y = Math.max(y, fieldsTop + drewH + 8);
+      y += 26;
     });
   }
 

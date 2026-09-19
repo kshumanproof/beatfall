@@ -63,12 +63,32 @@ const PROJECT = {
           + 'phone. Mara has not seen a stranger ask for a phone in nine years.',
             'She gives it to him. He dials, says nothing, and hangs up.']
   },
-  characters: [{
-    id: 'c1', name: 'Mara Vance', role: 'Protagonist', face: 'u1/mara.jpg',
-    want: 'To keep the bar and keep it hers.',
-    need: 'To learn that knowing the truth and being able to fix it are not the same thing.',
-    flaw: 'She mistakes information for control.'
-  }],
+  /* Six people, three of them carrying a reference, and one who is a name and
+     a part and nothing else. That last one is the case that used to print a
+     heading, a rule and an inch of blank paper. A mixed list is also the only
+     way to see whether the right margin holds still down the page. */
+  characters: [
+    { id: 'c1', name: 'Mara Vance', role: 'Protagonist', face: 'u1/mara.jpg',
+      who: '51, keeps the bar her mother kept, has not left the county in nine years',
+      want: 'To keep the bar and keep it hers.',
+      need: 'To learn that knowing the truth and being able to fix it are not the same thing.',
+      voice: 'Controlled, observant, says the second thing she thinks of' },
+    { id: 'c2', name: 'Ellis Voss', role: 'Antagonist', face: 'u1/ellis.jpg',
+      who: "44, Mara's older brother, county commissioner",
+      lie: 'Believes protecting somebody gives him the right to decide for them.',
+      voice: 'Charming, always looks like the calmest person in the room' },
+    { id: 'c3', name: 'Jonah Pike', role: 'Ally', face: 'u1/jonah.jpg',
+      who: "36, sheriff's investigator and Mara's high-school boyfriend",
+      wound: 'Ended badly with Mara, and not because either of them cheated.',
+      voice: 'Patient, funny in a dry way' },
+    { id: 'c4', name: 'Ruth Voss', role: 'Secondary',
+      who: '68, their mother, former judge, dead before the story begins',
+      voice: 'Intimidating even in photographs' },
+    { id: 'c5', name: 'David Creel', role: 'Minor',
+      who: 'Now the county sheriff. In the photograph from 1998, at the wrecked car.' },
+    // a name and a part and nothing else: must not print at all
+    { id: 'c6', name: 'woman', role: 'Protagonist' }
+  ],
   is_sample: false, created_from: 'new_project', updated_at: '2026-09-01T00:00:00Z',
   cards: [
     {id:1, slot:'open',  declared:true, text:'A man finds a duffel bag full of cash buried behind his new house. He decides to keep it, then sees a news report about the violent robbery it came from.'},
@@ -83,6 +103,8 @@ const PROJECT = {
     {id:10, slot:'__none', text:'Another one waiting in the rail.'},
     // pictures: one on a character, two filed under a beat, three loose
     {id:11, slot:'__shelf', kind:'photo', img:'u1/mara.jpg',   text:'Mara, the way she stands behind the bar.'},
+    {id:17, slot:'__shelf', kind:'photo', img:'u1/ellis.jpg',  text:'Ellis at the county building.'},
+    {id:18, slot:'__shelf', kind:'photo', img:'u1/jonah.jpg',  text:'Jonah, leaning on the car door.'},
     {id:12, slot:'__shelf', kind:'photo', img:'u1/rain.jpg',   attachedTo:'open', text:'Rain on the glass at four in the afternoon.'},
     {id:13, slot:'__shelf', kind:'photo', img:'u1/lot.jpg',    attachedTo:'open', text:'The lot, empty, sign still on.'},
     {id:14, slot:'__shelf', kind:'photo', img:'u1/hands.jpg',  text:'His hands on the phone.'},

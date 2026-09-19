@@ -391,7 +391,13 @@ async function open(browser, projects, account = PAID) {
   {
     const proj = board('Night Haul', 15);
     proj.outline = {open: ['The lot at two in the morning.']};
-    proj.characters = [{id: 'c1', name: 'Dale Rusk', role: 'protagonist', want: 'to get through the weekend'}];
+    proj.characters = [
+      {id: 'c1', name: 'Dale Rusk', role: 'protagonist', want: 'to get through the weekend'},
+      /* A name and a part to play and nothing else. Role used to count as
+         something written, so this printed a heading, a rule, and an inch of
+         blank paper under it. */
+      {id: 'c2', name: 'Bystander', role: 'minor'}
+    ];
     proj.cards.push({id: 80, text: 'a note that is not a beat', slot: '__shelf', kind: 'research'});
     proj.cards.push({id: 82, slot: '__shelf', kind: 'research',
       text: Array.from({length: 98}, (_, i) => 'word' + i).join(' ')
@@ -423,6 +429,9 @@ async function open(browser, projects, account = PAID) {
       check('it carries the board', /the card for open/i.test(pdf.text));
       check('it carries the outline prose', /two in the morning/i.test(pdf.text));
       check('it carries the cast', /Dale Rusk/i.test(pdf.text));
+      check('and leaves out somebody who is only a name and a part',
+        !/Bystander/i.test(pdf.text),
+        'a character with nothing written about them printed an empty block');
       check('it carries what was set aside', /an idea set aside/i.test(pdf.text));
       check('it carries the other notes', /not a beat/i.test(pdf.text));
       check('and prints a long one whole rather than cutting it',

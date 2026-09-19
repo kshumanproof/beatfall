@@ -644,6 +644,20 @@ full 1600 would double the file for detail no printer shows. A picture that will
 not load is simply absent, because a document that refuses to build over a swept
 photograph is worse than one that prints the writing.
 
+**The Characters section is two fixed columns, the same two for everybody.**
+The text measure and the rule under each name do NOT change depending on whether
+that character has a reference. The first version let them, and down a page of
+six people the right margin moved in and out at random, which reads as broken
+rather than designed. The reference column is 150pt, about two inches on paper:
+at 108 a landscape film frame was a postage stamp. The label column is 122, set
+by the WIDEST label ("THE LIE THEY BELIEVE" is twenty letterspaced courier
+characters, almost exactly 104) and not by the average one.
+
+**A name and a part to play is not a character.** `role` counted as something
+written, so a row carrying only "woman, protagonist" printed a heading, a rule
+and an inch of blank paper. The filter now excludes every field the section does
+not print, which asks the only useful question: is there anything here to read.
+
 `picture(path, x, y, maxW, maxH)` RETURNS THE HEIGHT IT DREW. Use it. Reserving
 the box instead left a hand's width of nothing under every character with a
 landscape reference, since a 3:2 picture in a portrait box is half the height.
