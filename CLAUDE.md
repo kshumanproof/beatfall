@@ -592,6 +592,20 @@ sheet. `character.face` holds the path. Assigning does NOT consume the picture:
 it stays in Vision and also appears on the sheet, the same grammar as filing a
 note under a beat. One picture is one person's face at a time.
 
+**A face is managed from the character's own card, not only from Vision.** The
+card carries an × on the picture, which takes the face OFF and leaves the
+photograph in Vision, because swapping Monday's reference for Tuesday's better
+one is the common case and it is not a delete. A character with no face carries
+a dashed box with a plus that opens the same picker and the same upload, with
+`photoTarget` set: the picture goes on that character AND into Vision, so there
+is never a picture living somewhere the Notes page cannot see. The picker drops
+`multiple` for that route, because a character wears one face.
+
+**`.ccard` is a div with `role="button"`, not a `<button>`.** It has to be: the
+face carries controls of its own and a button inside a button is not markup a
+browser will build. Keyboard reach is restored by hand and the two face controls
+`stopPropagation()` so pressing them does not open the sheet underneath.
+
 Two things a photograph must never do, both enforced and both tested:
 - **be offered as a card on the board.** A beat card is a sentence describing
   what happens. A photo of a doorway is reference for the scene, not the scene.

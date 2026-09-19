@@ -863,6 +863,138 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  // ------------------------------------------ the face, from the character --
+  /* Two ways in and one way out, both on the character's own card.
+     Taking a face off is not deleting the picture: it stays in Vision, ready to
+     go on somebody else. That is how a writer who finds a better reference on
+     Tuesday swaps the one they found on Monday. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [
+      {id: 'c1', name: 'Mara Vance', role: 'Protagonist', want: 'the bar', face: 'u1/face.jpg'},
+      {id: 'c2', name: 'Dale Rusk',  role: 'Antagonist',  want: 'out'}
+    ];
+    proj.cards.push({id: 70, slot: '__shelf', kind: 'photo', img: 'u1/face.jpg',
+                     text: 'a face in the crowd'});
+
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('cast', true); });
+    await page.waitForTimeout(400);
+
+    const shelf = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('.ccard')];
+      return {
+        count: cards.length,
+        // a button inside a button is not a thing a browser will build
+        anyNestedButtons: cards.some(c => c.tagName === 'BUTTON' && c.querySelector('button')),
+        reachable: cards.every(c => c.getAttribute('role') === 'button'
+                                 && c.getAttribute('tabindex') === '0'),
+        withFace: cards.filter(c => c.querySelector('.cface img')).length,
+        removers: cards.filter(c => c.querySelector('.cface .facex')).length,
+        adders:   cards.filter(c => c.querySelector('.cface-add')).length,
+        src: (cards[0].querySelector('.cface img') || {}).getAttribute
+             ? cards[0].querySelector('.cface img').getAttribute('src') : ''
+      };
+    });
+    check('a character wearing a face shows it', shelf.withFace === 1, JSON.stringify(shelf));
+    check('and the picture really loads there',
+      String(shelf.src).indexOf('data:image') === 0, String(shelf.src).slice(0, 30));
+    check('only the one wearing a face offers to take it off', shelf.removers === 1);
+    check('and only the one without offers to add one', shelf.adders === 1);
+    check('the card is still reachable by keyboard after losing its button',
+      shelf.reachable === true, 'role or tabindex missing');
+    check('and no button was nested inside another one',
+      shelf.anyNestedButtons === false, 'a browser will not build that markup');
+
+    // ---- taking it off, and what survives
+    const removed = await page.evaluate(async () => {
+      document.querySelector('.ccard .cface .facex').click();
+      await new Promise(r => setTimeout(r, 200));
+      const p = state.projects[0];
+      return {
+        face: (p.characters.find(c => c.id === 'c1') || {}).face || '',
+        photos: p.cards.filter(c => c.kind === 'photo').length,
+        sheetOpened: !document.getElementById('sheetchar').hidden
+      };
+    });
+    check('taking a face off the card removes it from the character',
+      removed.face === '', JSON.stringify(removed));
+    check('and the picture is still in Vision, ready for somebody else',
+      removed.photos === 1, 'taking a face off deleted the photograph');
+    check('and pressing the little x did not open the sheet underneath it',
+      removed.sheetOpened === false, 'the click went through to the card');
+
+    // ---- and it comes back
+    const back = await page.evaluate(async () => {
+      undo();
+      await new Promise(r => setTimeout(r, 200));
+      return (state.projects[0].characters.find(c => c.id === 'c1') || {}).face || '';
+    });
+    check('and undo puts the face back', back === 'u1/face.jpg', back);
+    check('no page errors around faces', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // ---------------------------------- adding a face from the character card --
+  /* The same upload as the Notes page, told where it is going. The picture
+     lands on that character AND in Vision: never a picture that lives somewhere
+     the Notes page cannot see. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [{id: 'c1', name: 'Mara Vance', role: 'Protagonist', want: 'the bar'}];
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('cast', true); });
+    await page.waitForTimeout(300);
+
+    const PNG = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8//8/AzZgYmJiYmL'
+      + '6//8/AzbAxMTExMTEBABPQwX1eN5ZzAAAAABJRU5ErkJggg==', 'base64');
+
+    await page.evaluate(() => { document.querySelector('.ccard .cface-add').click(); });
+    const one = await page.evaluate(() =>
+      !document.getElementById('photofile').hasAttribute('multiple'));
+    check('a character card asks for one picture, because it wears one face',
+      one === true, 'the picker still allows several');
+
+    await page.setInputFiles('#photofile', [
+      { name: 'mara_reference.png', mimeType: 'image/png', buffer: PNG }
+    ]);
+    await page.waitForTimeout(800);
+
+    const landed = await page.evaluate(() => {
+      const p = state.projects[0];
+      const shot = p.cards.filter(c => c.kind === 'photo');
+      return {
+        onCharacter: (p.characters[0] || {}).face || '',
+        inVision: shot.length,
+        samePicture: shot.length === 1 && shot[0].img === (p.characters[0] || {}).face,
+        caption: (shot[0] || {}).text || '',
+        showing: !!document.querySelector('.ccard .cface img')
+      };
+    });
+    check('a picture added from a character card goes on that character',
+      !!landed.onCharacter, JSON.stringify(landed));
+    check('and into Vision with everything else', landed.inVision === 1);
+    check('and they are the same picture, not two copies',
+      landed.samePicture === true, JSON.stringify(landed));
+    check('and it carries a caption like any other note',
+      landed.caption === 'mara reference', landed.caption);
+    check('and the card is showing it straight away', landed.showing === true);
+
+    // The Notes page must not inherit that one-picture rule afterwards.
+    await page.evaluate(() => { setView('notes', true); });
+    await page.waitForTimeout(200);
+    const many = await page.evaluate(() => {
+      document.getElementById('photoadd').click();
+      return document.getElementById('photofile').hasAttribute('multiple');
+    });
+    check('and the Notes page can still add several at once',
+      many === true, 'the one-picture rule leaked out of the character card');
+
+    check('no page errors adding a face', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);
