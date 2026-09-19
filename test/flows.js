@@ -401,11 +401,22 @@ async function open(browser, projects, account = PAID) {
     // that beat, and nowhere else.
     proj.cards.push({id: 83, text: 'a clue filed under theme', slot: '__shelf',
                      kind: 'clue', attachedTo: 'theme'});
+    /* Pictures, in the three states that print differently: one filed under a
+       beat, one worn by a character, and one filed against nothing. */
+    proj.characters[0].face = 'u1/dale.jpg';
+    proj.cards.push({id: 84, slot: '__shelf', kind: 'photo', img: 'u1/dale.jpg',
+                     text: 'Dale on the loading dock'});
+    proj.cards.push({id: 85, slot: '__shelf', kind: 'photo', img: 'u1/rain.jpg',
+                     attachedTo: 'open', text: 'rain on the windscreen'});
+    proj.cards.push({id: 86, slot: '__shelf', kind: 'photo', img: 'u1/loose.jpg',
+                     text: 'a road nobody has decided about'});
     const { page, errors } = await open(browser, [proj]);
     const pdf = await page.evaluate(async () => {
       await exportPDF(P());
       return window.__PDF__ || null;
     });
+    // Everything after the Vision heading, which is where the contact sheet is.
+    const loose0 = t => (String(t).split(/\bVISION\b/i)[1] || '');
     check('the PDF builds', !!pdf, 'nothing produced');
     if (pdf) {
       check('it carries the project name', /Night Haul/i.test(pdf.text), pdf.name);
@@ -439,6 +450,28 @@ async function open(browser, projects, account = PAID) {
       const loose = pdf.text.split(/LOOSE NOTES/i)[1] || '';
       check('a filed note is not repeated in the loose pile',
         !/a clue filed under theme/i.test(loose), 'the same note printed twice');
+
+      /* THE PICTURES PRINT WHERE THEY BELONG, AND EACH ONE ONCE.
+         Until now the document left every photograph out, so a picture filed
+         under Opening Image showed in the app and printed as nothing. The
+         three states go to three different places, and a picture printed in
+         one of them is not repeated in the contact sheet, the same rule a
+         filed note already follows. */
+      check('the document has a Vision section for pictures filed against nothing',
+        /VISION/i.test(pdf.text), 'no Vision section');
+      check('and the loose one is in it',
+        /a road nobody has decided about/i.test(loose0(pdf.text)),
+        'the undecided picture is missing from the contact sheet');
+      check('a picture filed under a beat prints under that beat',
+        /rain on the windscreen/i.test((pdf.text.split(/THE OUTLINE/i)[1] || '')
+          .split(/\bVISION\b/i)[0] || ''),
+        'a filed picture did not print with its beat');
+      check('and is not repeated in the contact sheet',
+        !/rain on the windscreen/i.test(loose0(pdf.text)),
+        'the same picture printed twice');
+      check('a character\u2019s reference is not repeated either',
+        !/Dale on the loading dock/i.test(loose0(pdf.text)),
+        'a reference already on a character printed again in Vision');
 
       check('the filename is the project', /night-haul/i.test(pdf.name || ''), pdf.name);
     }

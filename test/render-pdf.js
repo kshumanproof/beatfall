@@ -64,7 +64,7 @@ const PROJECT = {
             'She gives it to him. He dials, says nothing, and hangs up.']
   },
   characters: [{
-    id: 'c1', name: 'Mara Vance', role: 'Protagonist',
+    id: 'c1', name: 'Mara Vance', role: 'Protagonist', face: 'u1/mara.jpg',
     want: 'To keep the bar and keep it hers.',
     need: 'To learn that knowing the truth and being able to fix it are not the same thing.',
     flaw: 'She mistakes information for control.'
@@ -80,7 +80,14 @@ const PROJECT = {
     {id:7, slot:'__shelf', kind:'line',     text:'"You can know a thing and still be no use to anybody."'},
     {id:8, slot:'__shelf', kind:'research', text:'Check how long a rural sheriff can hold somebody without charging them in Georgia.'},
     {id:9,  slot:'__none', text:'A note that reached the board and never found a beat.'},
-    {id:10, slot:'__none', text:'Another one waiting in the rail.'}
+    {id:10, slot:'__none', text:'Another one waiting in the rail.'},
+    // pictures: one on a character, two filed under a beat, three loose
+    {id:11, slot:'__shelf', kind:'photo', img:'u1/mara.jpg',   text:'Mara, the way she stands behind the bar.'},
+    {id:12, slot:'__shelf', kind:'photo', img:'u1/rain.jpg',   attachedTo:'open', text:'Rain on the glass at four in the afternoon.'},
+    {id:13, slot:'__shelf', kind:'photo', img:'u1/lot.jpg',    attachedTo:'open', text:'The lot, empty, sign still on.'},
+    {id:14, slot:'__shelf', kind:'photo', img:'u1/hands.jpg',  text:'His hands on the phone.'},
+    {id:15, slot:'__shelf', kind:'photo', img:'u1/road.jpg',   text:'Two lanes out of town, which is the whole title.'},
+    {id:16, slot:'__shelf', kind:'photo', img:'u1/vault.jpg',  text:'A bank vault door, four counties over.'}
   ]
 };
 

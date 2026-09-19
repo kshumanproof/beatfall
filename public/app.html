@@ -5831,8 +5831,71 @@ async function exportPDF(which){
     setTimeout(() => say("Save as PDF"), 2600);
     return;
   }
+  /* THE PICTURES, FETCHED BEFORE A LINE IS DRAWN.
+
+     jsPDF wants the bytes, and the bytes live behind a signed link. So every
+     photograph this document will print is collected, signed for in one
+     request, loaded, and redrawn smaller before the document starts. Smaller
+     because a reference prints about two inches wide: nine hundred pixels is
+     three hundred dots to the inch at that size, and shipping the full
+     sixteen hundred would double the file for detail no printer will show.
+
+     A picture that cannot be loaded is simply absent. Almost always that means
+     it was swept thirty days after a plan ended, and a document that stops
+     building because of it would be worse than one that prints the writing. */
+  say("Fetching pictures\u2026");
+  const PICS = new Map();
+  async function loadPictures(){
+    const want = [...new Set(
+      (proj.cards || []).filter(c => c.img).map(c => c.img)
+        .concat(cast(proj).map(c => c.face).filter(Boolean))
+    )];
+    if (!want.length) return;
+    let urls = {};
+    try {
+      const r = await BF.api("/api/images?paths=" + encodeURIComponent(want.join(",")));
+      urls = r.urls || {};
+    } catch (e) { return; }
+
+    await Promise.all(Object.keys(urls).map(path => new Promise(done => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onerror = () => done();
+      im.onload = () => {
+        try {
+          const scale = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight));
+          const w = Math.max(1, Math.round(im.naturalWidth  * scale));
+          const h = Math.max(1, Math.round(im.naturalHeight * scale));
+          const cv = document.createElement("canvas");
+          cv.width = w; cv.height = h;
+          const cx = cv.getContext("2d");
+          cx.fillStyle = "#ffffff"; cx.fillRect(0, 0, w, h);
+          cx.drawImage(im, 0, 0, w, h);
+          PICS.set(path, {data: cv.toDataURL("image/jpeg", .86), w, h});
+        } catch (e) { /* a picture that will not draw is a picture left out */ }
+        done();
+      };
+      im.src = urls[path];
+    })));
+  }
+  await loadPictures();
+  say("Saving\u2026");
+
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit: "pt", format: "letter"});
+
+  /* Draw one picture inside a box, keeping its shape, and say how tall it
+     ended up so the caller knows where the next thing goes. Returns 0 when
+     there is nothing to draw, which is what an absent picture looks like. */
+  function picture(path, x, y, maxW, maxH){
+    const pic = PICS.get(path);
+    if (!pic) return 0;
+    const scale = Math.min(maxW / pic.w, maxH / pic.h);
+    const w = Math.round(pic.w * scale), h = Math.round(pic.h * scale);
+    try { doc.addImage(pic.data, "JPEG", x, y, w, h); } catch (e) { return 0; }
+    draw(RULE); doc.setLineWidth(.6); doc.rect(x, y, w, h);
+    return h;
+  }
   /* ==========================================================================
      THE DOCUMENT.
 
@@ -5846,9 +5909,10 @@ async function exportPDF(which){
        1. Cover        what this is, and where it stands
        2. The board    the wall at a glance, one or two pages
        3. The outline  the body: every beat in order, with everything in it
-       4. Characters
-       5. Set aside    what did not find a home
-       6. Loose notes  notes filed under no beat
+       4. Characters   with the reference picture each one is wearing
+       5. Vision       pictures filed against nothing yet, as a contact sheet
+       6. Set aside    what did not find a home
+       7. Loose notes  notes filed under no beat
 
      The board and the outline both carry the card text, on purpose. They are
      not the same document twice: the board is the map you glance at, and the
@@ -6070,14 +6134,11 @@ async function exportPDF(which){
      four. */
   function outlineBeat(slot, actName){
     const cards = proj.cards.filter(c => c.slot === slot.id);
-    /* Pictures are left out of the document for now, rather than printed as a
-       list of their captions, which is a page of filenames pretending to be
-       content. They come back as real pictures in the next pass: a face on the
-       character block and a contact sheet for the rest. */
-    const notes = proj.cards.filter(c => c.slot === "__shelf"
-      && c.attachedTo === slot.id && c.kind !== "photo");
+    const filed   = proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slot.id);
+    const notes   = filed.filter(c => c.kind !== "photo");
+    const filedPics = filed.filter(c => c.kind === "photo" && PICS.has(c.img));
     const prose = outlineList(proj, slot.id);
-    const has   = cards.length || notes.length || prose.length;
+    const has   = cards.length || notes.length || prose.length || filedPics.length;
 
     // Keep the heading with at least the start of its body.
     room(64);
@@ -6132,6 +6193,35 @@ async function exportPDF(which){
       });
       y += 9;
     });
+
+    /* THE PICTURES FILED UNDER THIS BEAT, AS PICTURES.
+
+       This is the point of filing one here. A writer working on the Opening
+       Image wants the frame they are working from on the same page as the
+       words, not a caption telling them a photograph exists somewhere else. A
+       row across, wrapping, each with its caption under it. */
+    if (filedPics.length){
+      const COLS = 3, GUT = 12;
+      const cw = (PW - M * 2 - GUT * (COLS - 1)) / COLS;
+      const ch = Math.round(cw * .66);
+      for (let i = 0; i < filedPics.length; i += COLS){
+        const row = filedPics.slice(i, i + COLS);
+        // Measure the captions first: the row's height is the tallest of them.
+        serif(8.5, INK4, "italic");
+        const caps = row.map(c => doc.splitTextToSize(String(c.text || ""), cw));
+        const capH = Math.max(...caps.map(l => Math.min(l.length, 2) * 10)) + 4;
+        room(ch + capH + 12);
+        const top = y;
+        row.forEach((c, n) => {
+          const x = M + n * (cw + GUT);
+          picture(c.img, x, top, cw, ch);
+          serif(8.5, INK4, "italic");
+          caps[n].slice(0, 2).forEach((ln, k) => doc.text(ln, x, top + ch + 11 + k * 10));
+        });
+        y = top + ch + capH + 12;
+      }
+      y += 4;
+    }
 
     // and the prose, which is the beat once it has been written
     if (prose.length){
@@ -6226,31 +6316,91 @@ async function exportPDF(which){
     people.forEach(c => {
       const written = CFIELDS.filter(f => f.k !== "name" && f.k !== "role"
                                        && String(c[f.k] || "").trim());
-      room(78);
+      /* The reference, if they have one, at the top right of their block and
+         no bigger than that. It is how you recognise which one this is while
+         you read what they want; it is not the subject of the page. */
+      const ref = c.face && PICS.has(c.face);
+      const RW = 108, RH = 132;
+      room(ref ? Math.max(78, RH + 30) : 78);
+
+      const blockTop = y;
       serif(14, INK, "bold");
       doc.text(String(c.name || "Unnamed"), M, y);
       if (c.role){
         label(7.5, INK4);
-        doc.text(String(c.role).toUpperCase(), PW - M, y, {align: "right"});
+        doc.text(String(c.role).toUpperCase(), ref ? PW - M - RW - 16 : PW - M, y,
+                 {align: "right"});
         plain();
       }
       y += 8;
-      draw(GOLDH); doc.setLineWidth(.8); doc.line(M, y, PW - M, y);
+      draw(GOLDH); doc.setLineWidth(.8);
+      doc.line(M, y, ref ? PW - M - RW - 16 : PW - M, y);
       y += 18;
+
+      /* How tall it actually came out, not how tall the box allowed. A
+         landscape reference in a portrait box is half the height, and
+         reserving the box left a hand's width of nothing under every
+         character who had one. */
+      const picTop = blockTop - 11;
+      const drewH = ref ? picture(c.face, PW - M - RW, picTop, RW, RH) : 0;
+      const picBottom = picTop + drewH;
+
       written.forEach(f => {
         room(30);
         label(7.5, INK4);
         doc.text(f.label.toUpperCase(), M, y);
         serif(10.5, INK2);
-        const lines = doc.splitTextToSize(String(c[f.k]).trim(), PW - M * 2 - 120);
+        // The text column stops short of the reference while it is beside it.
+        const wide = PW - M * 2 - 120 - (drewH && y < picBottom ? RW + 16 : 0);
+        const lines = doc.splitTextToSize(String(c[f.k]).trim(), wide);
         lines.forEach((ln, i) => doc.text(ln, M + 120, y + i * 14));
         y += Math.max(19, lines.length * 14 + 5);
       });
+      // Never let the next character start inside this one's picture.
+      if (drewH) y = Math.max(y, picBottom + 10);
       y += 20;
     });
   }
 
-  /* --------------------------------------------------------- 5. set aside -- */
+  /* ------------------------------------------------------------- 5. vision --
+     Every picture that has not already been printed somewhere it belongs. One
+     filed under a beat appears under that beat; one on a character appears on
+     their block; those are not repeated here, for the same reason a note filed
+     under a beat is left out of Loose notes.
+
+     A contact sheet, not a page each. A printed board is something you spread
+     on a table, and a reference you have not decided about yet does not earn a
+     sheet of paper any more than a character with two lines written about them
+     does. */
+  {
+    const spoken = new Set(cast(proj).map(c => c.face).filter(Boolean));
+    const loose = proj.cards.filter(c =>
+      c.kind === "photo" && PICS.has(c.img) && !c.attachedTo && !spoken.has(c.img));
+
+    if (loose.length){
+      sectionHead("Vision", "Pictures you kept, filed against nothing yet.");
+      const COLS = 3, GUT = 14;
+      const cw = (PW - M * 2 - GUT * (COLS - 1)) / COLS;
+      const ch = Math.round(cw * .72);
+      for (let i = 0; i < loose.length; i += COLS){
+        const row = loose.slice(i, i + COLS);
+        serif(9, INK3, "italic");
+        const caps = row.map(c => doc.splitTextToSize(String(c.text || ""), cw));
+        const capH = Math.max(...caps.map(l => Math.min(l.length, 3) * 11)) + 6;
+        room(ch + capH + 16);
+        const top = y;
+        row.forEach((c, n) => {
+          const x = M + n * (cw + GUT);
+          picture(c.img, x, top, cw, ch);
+          serif(9, INK3, "italic");
+          caps[n].slice(0, 3).forEach((ln, k) => doc.text(ln, x, top + ch + 13 + k * 11));
+        });
+        y = top + ch + capH + 16;
+      }
+    }
+  }
+
+  /* --------------------------------------------------------- 6. set aside -- */
   const parked = proj.cards.filter(c => c.slot === "__none");
   if (parked.length){
     sectionHead("Set aside", "Notes that reached the board and have not found a beat yet.");
@@ -6270,7 +6420,7 @@ async function exportPDF(which){
     });
   }
 
-  /* ------------------------------------------------------- 6. loose notes --
+  /* ------------------------------------------------------- 7. loose notes --
      The cover page has always COUNTED these and the document did not print
      them, so a writer read "12 notes" on the front of a file that contained
      none of them. Everything the importer keeps that is not a beat lives here:

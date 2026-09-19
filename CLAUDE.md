@@ -631,9 +631,22 @@ card, because there should be one way to look at a picture properly. The viewer
 is built and thrown away per press rather than kept in the page: it holds a
 signed link that expires, and one nobody has opened should not be holding one.
 
-The PDF still leaves photographs out. That is the last place a filed picture
-does not appear, and it is the same job: a face on the character block, the
-filed ones under their beat, a contact sheet for the rest.
+**The PDF prints pictures, and each one exactly once.** Three states, three
+places: filed under a beat prints under that beat in the outline, a character's
+reference prints on their block, and everything else is a contact sheet in a
+Vision section. A picture printed in one of the first two is NOT repeated in the
+contact sheet, the same rule a filed note already follows for Loose notes.
+
+`exportPDF` fetches every picture it will need before it draws a line, signs for
+them in one request, and redraws each at 900px before embedding: a reference
+prints about two inches wide, which is 300dpi at that size, and shipping the
+full 1600 would double the file for detail no printer shows. A picture that will
+not load is simply absent, because a document that refuses to build over a swept
+photograph is worse than one that prints the writing.
+
+`picture(path, x, y, maxW, maxH)` RETURNS THE HEIGHT IT DREW. Use it. Reserving
+the box instead left a hand's width of nothing under every character with a
+landscape reference, since a 3:2 picture in a portrait box is half the height.
 
 **The word is "reference", never "face", anywhere a writer can read it.** A
 photograph pinned to a character is often not a face: it is the jacket, the car,
