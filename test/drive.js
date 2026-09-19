@@ -1081,6 +1081,79 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await ctx.close();
   }
 
+  // ------------------------------------ a picture filed under a beat, shown --
+  /* Filing a photograph under a beat used to print a Vision chip and a caption
+     in the Outline: the app telling you a picture exists and then not showing
+     it. The whole reason to file one under a beat is to have the frame beside
+     the box you are typing in. */
+  {
+    const proj = board('The Spillway', 15);
+    /* The Outline is gated until every beat has a card OR it has been opened
+       once before. Marking it started is the honest way in: it is the state a
+       writer who has been here already is in, and it does not depend on this
+       fixture's slot ids matching the structure exactly. */
+    proj.outline = {__started: true};
+    proj.cards.push({id: 70, slot: '__shelf', kind: 'photo', img: 'u1/rain.jpg',
+                     attachedTo: 'open', text: "A man sits in a car while it's raining."});
+    proj.cards.push({id: 71, slot: '__shelf', kind: 'research',
+                     attachedTo: 'open', text: 'a written note filed on the same beat'});
+
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('outline', true); });
+    await page.waitForTimeout(500);
+
+    const row = await page.evaluate(() => {
+      const beat = document.querySelector('#outlinebody .obeat[data-slot="open"]');
+      const pic  = beat && beat.querySelector('.anote.haspic');
+      const txt  = beat && beat.querySelector('.anote:not(.haspic)');
+      return {
+        beatThere: !!beat,
+        picRow: !!pic,
+        img: pic ? pic.querySelector('.athumb img').getAttribute('src') : '',
+        caption: pic ? pic.querySelector('.at').textContent : '',
+        stillUnpinnable: !!(pic && pic.querySelector('.unpin')),
+        // a written note filed on the same beat is untouched
+        textRow: !!txt,
+        textHasThumb: !!(txt && txt.querySelector('.athumb'))
+      };
+    });
+    check('the beat is in the Outline', row.beatThere === true);
+    check('a filed picture shows the actual picture, not just a caption',
+      String(row.img).indexOf('data:image') === 0, String(row.img).slice(0, 30));
+    check('and keeps its caption beside it',
+      /sits in a car/.test(row.caption), row.caption);
+    check('and can still be taken off the beat', row.stillUnpinnable === true);
+    check('a written note filed on the same beat is unchanged',
+      row.textRow === true && row.textHasThumb === false, JSON.stringify(row));
+
+    // ---- and one press makes it the size it was taken at
+    const big = await page.evaluate(async () => {
+      document.querySelector('.anote.haspic .athumb').click();
+      await new Promise(r => setTimeout(r, 200));
+      const v = document.querySelector('.picview');
+      return { open: !!v,
+               src: v ? v.querySelector('img').getAttribute('src') : '',
+               cap: v ? v.querySelector('.cap').textContent : '' };
+    });
+    check('pressing the thumbnail opens it full size', big.open === true);
+    check('and it is the same picture', String(big.src).indexOf('data:image') === 0);
+    check('and carries the caption', /sits in a car/.test(big.cap), big.cap);
+
+    const closed = await page.evaluate(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+      await new Promise(r => setTimeout(r, 150));
+      const stillOpen = !!document.querySelector('.picview');
+      // and the viewer does not leave a key listener behind to eat the next Escape
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+      return { stillOpen, leaks: document.querySelectorAll('.picview').length };
+    });
+    check('escape closes it', closed.stillOpen === false);
+    check('and it leaves nothing behind', closed.leaks === 0);
+
+    check('no page errors around filed pictures', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

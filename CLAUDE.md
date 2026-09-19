@@ -601,6 +601,20 @@ a dashed box with a plus that opens the same picker and the same upload, with
 is never a picture living somewhere the Notes page cannot see. The picker drops
 `multiple` for that route, because a character wears one face.
 
+**A picture filed under a beat IS the picture.** `attachedList` printed a
+Vision chip and a caption, so the Outline told a writer a photograph existed and
+then did not show it. Filing one under a beat is the whole reason the control
+exists: the frame you are working from belongs beside the box you are typing in.
+It renders as a 104px thumbnail in the row, and `openPicture(card)` puts it up
+full size on a dark ground. The same viewer opens from the picture on its Notes
+card, because there should be one way to look at a picture properly. The viewer
+is built and thrown away per press rather than kept in the page: it holds a
+signed link that expires, and one nobody has opened should not be holding one.
+
+The PDF still leaves photographs out. That is the last place a filed picture
+does not appear, and it is the same job: a face on the character block, the
+filed ones under their beat, a contact sheet for the rest.
+
 **The word is "reference", never "face", anywhere a writer can read it.** A
 photograph pinned to a character is often not a face: it is the jacket, the car,
 the hands, the way somebody stands. Kris also found "take this face off" creepy
