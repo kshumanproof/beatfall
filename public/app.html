@@ -5884,6 +5884,64 @@ async function exportPDF(which){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit: "pt", format: "letter"});
 
+  /* ==========================================================================
+     ONE CHARACTER THE FONT CANNOT SPELL POISONS THE WHOLE LINE.
+
+     The three fonts built into a PDF can only spell WinAnsi, which is Latin-1
+     plus a couple of dozen typographic extras. Hand jsPDF a character outside
+     it and the library falls back to writing the string as two bytes per
+     letter, so every letter arrives with a null in front of it. On paper that
+     is a line of text with a space between every character, running off the
+     right edge of the page, with a piece of garbage where the real character
+     was. The line before it is perfect, which is what makes it look like a
+     layout bug rather than an encoding one.
+
+     Kris found it on a note dictated into the phone. Speech to text is exactly
+     where these come from: a phone will happily put an emoji, a special space
+     or a stray control character into a sentence somebody spoke out loud.
+
+     So nothing reaches the page unwashed. Wrapping the two methods rather than
+     cleaning at the call sites means this covers every line in the document,
+     including the ones somebody adds next year. splitTextToSize has to be
+     wrapped too: it MEASURES, and measuring the dirty string while drawing the
+     clean one is how text overruns a margin it was told to fit inside.
+
+     What survives: everything a Latin alphabet needs, accents included, and
+     the smart quotes and dashes a writer actually types. What does not: emoji,
+     and any writing system a built-in PDF font simply has no letters for.
+     Embedding a font is the only real fix for that, and it is 300KB.
+     ====================================================================== */
+  const WINANSI_EXTRA =
+    "\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D"
+  + "\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178";
+
+  function spellable(t){
+    if (t == null) return "";
+    let str = String(t)
+      // Spaces that are not the space bar, which a phone inserts freely.
+      .replace(/[\u00A0\u2007\u2009\u200A\u202F\u205F\u3000]/g, " ")
+      // And the ones with no width at all, which are invisible going in and
+      // catastrophic coming out.
+      .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "");
+    let out = "";
+    for (const ch of str){
+      const c = ch.codePointAt(0);
+      if (c === 9 || c === 10 || c === 13){ out += " "; continue; }
+      if ((c >= 0x20 && c <= 0x7E) || (c >= 0xA0 && c <= 0xFF)
+          || WINANSI_EXTRA.indexOf(ch) >= 0) out += ch;
+      // Anything else is dropped. A writer loses an emoji; without this they
+      // lose the sentence.
+    }
+    return out;
+  }
+
+  const drawText = doc.text.bind(doc);
+  doc.text = function (t, ...rest){
+    return drawText(Array.isArray(t) ? t.map(spellable) : spellable(t), ...rest);
+  };
+  const measure = doc.splitTextToSize.bind(doc);
+  doc.splitTextToSize = function (t, ...rest){ return measure(spellable(t), ...rest); };
+
   /* Draw one picture inside a box, keeping its shape, and say how tall it
      ended up so the caller knows where the next thing goes. Returns 0 when
      there is nothing to draw, which is what an absent picture looks like. */

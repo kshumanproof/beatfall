@@ -416,6 +416,13 @@ async function open(browser, projects, account = PAID) {
                      attachedTo: 'open', text: 'rain on the windscreen'});
     proj.cards.push({id: 86, slot: '__shelf', kind: 'photo', img: 'u1/loose.jpg',
                      text: 'a road nobody has decided about'});
+    /* A note dictated into a phone. Speech to text puts characters in that the
+       three fonts built into a PDF cannot spell, and ONE of them used to turn
+       the whole line into letters with a space between each one, running off
+       the right edge of the page. */
+    proj.cards.push({id: 87, slot: 'theme', declared: true,
+      text: 'She leans down and kisses her husband \u{1F600} taking a walk'
+          + ' and\u00A0I got my AirPods\u200B in and I see something I like'});
     const { page, errors } = await open(browser, [proj]);
     const pdf = await page.evaluate(async () => {
       await exportPDF(P());
@@ -481,6 +488,20 @@ async function open(browser, projects, account = PAID) {
       check('a character\u2019s reference is not repeated either',
         !/Dale on the loading dock/i.test(loose0(pdf.text)),
         'a reference already on a character printed again in Vision');
+
+      /* NOTHING REACHES THE PAGE UNWASHED. A single character the font cannot
+         spell makes jsPDF write two bytes per letter, which prints as a line
+         with a space between every character running past the margin. The
+         words have to survive and the character has to go. */
+      const spoken = pdf.text.split(' | ').find(t => /AirPods/.test(t)) || '';
+      check('a note dictated into a phone still prints',
+        /kisses her husband/.test(spoken) && /something I like/.test(spoken), spoken);
+      check('and the character the font cannot spell is gone',
+        spoken.indexOf('\u{1F600}') < 0, 'an emoji reached the page');
+      check('and so is the one with no width at all',
+        spoken.indexOf('\u200B') < 0, 'a zero-width character reached the page');
+      check('and the space that is not a space became one',
+        spoken.indexOf('\u00A0') < 0 && /and I got/.test(spoken), spoken);
 
       check('the filename is the project', /night-haul/i.test(pdf.name || ''), pdf.name);
     }

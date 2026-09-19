@@ -644,6 +644,22 @@ full 1600 would double the file for detail no printer shows. A picture that will
 not load is simply absent, because a document that refuses to build over a swept
 photograph is worse than one that prints the writing.
 
+**ONE CHARACTER THE FONT CANNOT SPELL POISONS THE WHOLE LINE.** The three fonts
+built into a PDF only spell WinAnsi. Hand jsPDF anything outside it and the
+library writes two bytes per letter, which prints as a line with a space between
+every character, running off the right edge, with garbage where the real
+character was. The line before it is perfect, which is why it reads as a layout
+bug rather than an encoding one. Kris found it on a note dictated into the
+phone, and speech to text is exactly where these come from.
+
+`spellable()` in `exportPDF` washes every string, and it is applied by WRAPPING
+`doc.text` and `doc.splitTextToSize` rather than at the call sites, so it covers
+lines somebody adds next year. **`splitTextToSize` must be wrapped too**: it
+MEASURES, and measuring the dirty string while drawing the clean one is how text
+overruns a margin it was told to fit inside. Accents, smart quotes and dashes
+survive; emoji and any writing system the built-in fonts have no letters for are
+dropped. Embedding a font is the only real fix for the second one, at 300KB.
+
 **The Characters section is two fixed columns, the same two for everybody.**
 The text measure and the rule under each name do NOT change depending on whether
 that character has a reference. The first version let them, and down a page of
