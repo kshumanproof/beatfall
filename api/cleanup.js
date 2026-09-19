@@ -26,12 +26,56 @@ const DELETE_AFTER = 6 * MONTH;
 const WARN_GRACE   = 1 * MONTH;
 const BATCH = 200;              // a slow scheduled job is fine; a timeout is not
 
+/* PICTURES COME OFF A CLOSED ACCOUNT AFTER A MONTH. THE WRITING NEVER DOES.
+ *
+ * "Nothing is deleted" is promised on the billing page, in the Terms, on the
+ * locked screen and twice inside the app, and it stays true of every word
+ * anybody wrote. A whole board is a quarter of a megabyte of text, so keeping
+ * one forever costs about nothing and buys back the writer who comes at it
+ * again in two years, which in this industry is Tuesday.
+ *
+ * Photographs are the one thing here with real weight, and they are the one
+ * thing a lapsed account should not go on costing. So the clock is on the
+ * pictures alone: thirty days after a plan ends the images come off and the
+ * words stay. The card keeps its caption and says its picture is gone.
+ *
+ * This is separate from the six month sweep above and runs on its own: an
+ * account can be perfectly awake, signing in every week to read its closed
+ * boards, and still not be paying for the bucket it filled. */
+const IMAGES_AFTER_LAPSE = 30 * 24 * 60 * 60 * 1000;
+const BUCKET = 'vision';
+
 // Never touch an account that is still paying, or still inside its trial.
 const LIVE = ['active', 'trialing', 'past_due'];
 
 function send(res, status, body) {
   res.setHeader('Content-Type', 'application/json');
   res.status(status).send(JSON.stringify(body));
+}
+
+/* Take every stored picture belonging to one writer, files and rows both.
+ *
+ * Returns how many bytes came back, so the job can report something truthful
+ * rather than a count of rows nobody can check. Storage removes in batches
+ * because a writer at the quota has a few hundred objects and one enormous
+ * request is how a scheduled job starts timing out at four in the morning. */
+async function dropImages(db, userId) {
+  const { data: rows } = await db.from('images')
+    .select('path, bytes').eq('user_id', userId);
+  if (!rows || !rows.length) return { files: 0, bytes: 0 };
+
+  const store = admin().storage.from(BUCKET);
+  const paths = rows.map(r => r.path).filter(Boolean);
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error } = await store.remove(paths.slice(i, i + 100));
+    /* Stop on a storage failure rather than deleting the rows anyway. A row
+       with no file is untidy and self-correcting; a file with no row is
+       unfindable forever, which is the one outcome this whole function
+       exists to prevent. */
+    if (error) { console.error('image sweep failed', userId, error); return null; }
+  }
+  await db.from('images').delete().eq('user_id', userId);
+  return { files: rows.length, bytes: rows.reduce((n, r) => n + (r.bytes || 0), 0) };
 }
 
 async function warn(db, profile) {
@@ -151,6 +195,13 @@ export default async function handler(req, res) {
        on idle time alone. */
     if (idle >= DELETE_AFTER && warnedAt && now - warnedAt >= WARN_GRACE) {
       if (!dry) {
+        /* THE PICTURES GO FIRST, AND THE ORDER IS NOT A PREFERENCE.
+           Deleting the auth user cascades to public.images, and the moment
+           those rows are gone there is nothing left that knows where the files
+           are. The bucket would keep them, unreferenced and unreachable, which
+           is the Privacy Policy quietly becoming untrue about photographs of
+           people who never heard of Beatfall. */
+        await dropImages(db, p.id);
         // Deleting the auth user cascades to profile, projects, usage and events.
         const { error: delErr } = await db.auth.admin.deleteUser(p.id);
         if (delErr) { console.error('cleanup delete failed', p.id, delErr); continue; }
@@ -181,10 +232,101 @@ export default async function handler(req, res) {
                   'accounts. Check RESEND_API_KEY and MAIL_FROM.');
   }
 
+  /* ------------------------------------------ pictures off a closed account --
+     A separate pass with a separate clock, because it answers a different
+     question. The sweep above asks "has anybody been here lately". This asks
+     "is somebody still storing photographs a month after they stopped paying",
+     and the answer can be yes about a writer who signs in every week to read
+     their closed boards.
+
+     The words are never touched. See IMAGES_AFTER_LAPSE at the top of this
+     file for why the two are treated differently. */
+  const purged = [];
+  let purgedBytes = 0;
+  const lapsedBefore = new Date(now - IMAGES_AFTER_LAPSE).toISOString();
+
+  const { data: lapsed } = await db.from('profiles')
+    .select('id, subscription_status, current_period_end')
+    .not('subscription_status', 'in', '(' + LIVE.join(',') + ')')
+    .not('current_period_end', 'is', null)
+    .lt('current_period_end', lapsedBefore)
+    .limit(BATCH);
+
+  for (const p of lapsed || []) {
+    // Ask before sweeping. Most closed accounts never had a picture, and a
+    // storage call for every one of them is a slow job for no reason.
+    const { count } = await db.from('images')
+      .select('path', { count: 'exact', head: true }).eq('user_id', p.id);
+    if (!count) continue;
+
+    if (dry) { purged.push(p.id); continue; }
+    const gone = await dropImages(db, p.id);
+    if (gone) { purged.push(p.id); purgedBytes += gone.bytes; }
+  }
+
+  /* --------------------------------------------------- pictures nobody wants --
+     Deleting a photo note does NOT delete its file, and that is deliberate:
+     undo has to bring back a picture rather than a grey box, so the bytes wait
+     here instead. This is where they stop waiting.
+
+     An orphan is a stored image that no card in any of that writer's projects
+     points at. The day of grace is what makes undo safe, and it is generous:
+     undo lives in one browser session and never survives a night.
+
+     Without this the quota fills with pictures nobody can see, which is worse
+     than a bill. It is a writer being told there is no room, looking at four
+     photographs, and being right to think the app is broken. */
+  const ORPHAN_GRACE = 24 * 60 * 60 * 1000;
+  const orphanBefore = new Date(now - ORPHAN_GRACE).toISOString();
+  let orphans = 0, orphanBytes = 0;
+
+  const { data: old } = await db.from('images')
+    .select('path, user_id, bytes')
+    .lt('created_at', orphanBefore)
+    .limit(2000);
+
+  // Group by writer so each one's boards are read once, not once per picture.
+  const byUser = new Map();
+  (old || []).forEach(r => {
+    if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
+    byUser.get(r.user_id).push(r);
+  });
+
+  for (const [userId, rows] of byUser) {
+    const { data: boards } = await db.from('projects')
+      .select('cards').eq('user_id', userId);
+    /* Read the cards, not the images table. The cards are the truth about what
+       a writer can still see, and a path that has fallen out of every one of
+       them is a path nothing will ever ask for again. */
+    const live = new Set();
+    (boards || []).forEach(b => {
+      const cards = Array.isArray(b.cards) ? b.cards : [];
+      cards.forEach(c => { if (c && c.img) live.add(String(c.img)); });
+    });
+
+    const dead = rows.filter(r => !live.has(r.path));
+    if (!dead.length) continue;
+    if (dry) { orphans += dead.length; continue; }
+
+    const store = admin().storage.from(BUCKET);
+    const paths = dead.map(r => r.path);
+    let failed = false;
+    for (let i = 0; i < paths.length; i += 100) {
+      const { error } = await store.remove(paths.slice(i, i + 100));
+      if (error) { console.error('orphan sweep failed', userId, error); failed = true; break; }
+    }
+    if (failed) continue;
+    await db.from('images').delete().in('path', paths);
+    orphans += dead.length;
+    orphanBytes += dead.reduce((n, r) => n + (r.bytes || 0), 0);
+  }
+
   return send(res, 200, {
     ok: true, dry,
     could_not_warn: unwarnable.length,
     scanned: (stale || []).length,
-    warned: warned.length, deleted: deleted.length, skipped: skipped.length
+    warned: warned.length, deleted: deleted.length, skipped: skipped.length,
+    images_purged: purged.length, images_bytes: purgedBytes,
+    images_orphaned: orphans, images_orphan_bytes: orphanBytes
   });
 }

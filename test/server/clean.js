@@ -90,6 +90,101 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
   check('nothing is left unsubstituted', !/\$\{/.test(H) && !/\{\{/.test(H), '');
 }
 
+/* --------------------------------------------------- pictures, three sweeps --
+   The photographs are the only part of a closed account that costs anything
+   real, and the only part of a DELETED account that does not disappear on its
+   own: rows cascade off a user row, files in a bucket do not.
+
+   So three separate things have to be true, and all three are a promise on the
+   privacy page rather than housekeeping. */
+{
+  const store = { files: new Map(),
+    async remove(paths){ (paths||[]).forEach(p => store.files.delete(p)); return {error:null}; } };
+  globalThis.__STORE__ = store;
+
+  const now = Date.now();
+  const day = d => new Date(now - d*86400000).toISOString();
+
+  const profiles = [
+    // abandoned for well over six months, already warned, and it has pictures
+    {id:'gone', email:'g@x', last_seen_at: day(400), is_admin:false, is_internal:false,
+     subscription_status:null, trial_ends_at: day(300), current_period_end:null},
+    // wide awake, signs in weekly to read closed boards, stopped paying in June
+    {id:'lapsed', email:'l@x', last_seen_at: day(2), is_admin:false, is_internal:false,
+     subscription_status:'canceled', trial_ends_at: day(300), current_period_end: day(45)},
+    // cancelled last week; still inside the thirty days
+    {id:'fresh', email:'f@x', last_seen_at: day(1), is_admin:false, is_internal:false,
+     subscription_status:'canceled', trial_ends_at: day(300), current_period_end: day(5)},
+    // paying, and its pictures are none of this job's business
+    {id:'paying', email:'p@x', last_seen_at: day(1), is_admin:false, is_internal:false,
+     subscription_status:'active', trial_ends_at: day(300), current_period_end: day(-20)}
+  ];
+
+  const images = [
+    {path:'gone/a.jpg',   user_id:'gone',   bytes: 100, created_at: day(200)},
+    {path:'lapsed/a.jpg', user_id:'lapsed', bytes: 200, created_at: day(200)},
+    {path:'fresh/a.jpg',  user_id:'fresh',  bytes: 300, created_at: day(200)},
+    {path:'paying/a.jpg', user_id:'paying', bytes: 400, created_at: day(200)},
+    // deleted from the board yesterday: no card points at it any more
+    {path:'paying/orphan.jpg', user_id:'paying', bytes: 500, created_at: day(3)},
+    // deleted from the board an hour ago, still inside undo's day of grace
+    {path:'paying/justnow.jpg', user_id:'paying', bytes: 600, created_at: new Date(now).toISOString()}
+  ];
+  images.forEach(i => store.files.set(i.path, true));
+
+  const projects = [
+    {id:'p1', user_id:'paying', cards:[{id:1, img:'paying/a.jpg'}, {id:2, text:'words'}]},
+    {id:'p2', user_id:'lapsed', cards:[{id:3, img:'lapsed/a.jpg'}]},
+    {id:'p3', user_id:'fresh',  cards:[{id:4, img:'fresh/a.jpg'}]}
+  ];
+
+  const db = makeDb({id:'x'}, {profiles, images, projects});
+  /* makeDb seeds `events` itself, so an events array handed to it is quietly
+     ignored. Set it afterwards or the warning this account was already sent is
+     invisible and it falls into the warn branch instead of the delete one. */
+  db.state.events = [{user_id:'gone', name:'deletion_warned', created_at: day(60)}];
+  db.auth = { admin: { deleteUser: async id => { (globalThis.__DELETED2__ ||= []).push(id); return {error:null}; } } };
+  globalThis.__DB__ = db;
+  globalThis.__DELETED2__ = [];
+
+  const r2 = res();
+  await handler({ method:'GET', headers:{'x-cron-secret':'sec'}, query:{key:'sec'} }, r2);
+  check('the sweep runs with pictures in play', r2.code === 200,
+    r2.code + ' ' + JSON.stringify(r2.body).slice(0,200));
+
+  // 1. a deleted account takes its files with it
+  check('a deleted account loses its pictures too',
+    !store.files.has('gone/a.jpg'),
+    'the bucket kept files for an account that no longer exists');
+  check('and the account itself is gone',
+    (globalThis.__DELETED2__ || []).indexOf('gone') >= 0,
+    JSON.stringify(globalThis.__DELETED2__));
+  check('and the pictures go BEFORE the account, or nothing can find them',
+    !db.state.images.some(i => i.user_id === 'gone'),
+    'rows for a deleted account survived, which means files did too');
+
+  // 2. thirty days after a plan ends the pictures come off and the words stay
+  check('a plan that ended over a month ago loses its pictures',
+    !store.files.has('lapsed/a.jpg'), 'a lapsed account is still storing photographs');
+  check('but not the words', db.state.projects.some(p => p.user_id === 'lapsed'),
+    'the writing was deleted, which is the promise this job must never break');
+  check('a plan that ended last week keeps them for now',
+    store.files.has('fresh/a.jpg'),
+    'the thirty day window was not honoured');
+  check('and a paying account is left completely alone',
+    store.files.has('paying/a.jpg'), 'a live subscriber lost a picture');
+
+  // 3. pictures no card points at any more
+  check('a picture nothing points at is swept',
+    !store.files.has('paying/orphan.jpg'),
+    'deleted photographs would fill the quota invisibly');
+  check('but one deleted a moment ago is left, because undo has to work',
+    store.files.has('paying/justnow.jpg'),
+    'undo would bring back a grey box instead of a picture');
+  check('the job says what it took', (r2.body.images_purged || 0) >= 1
+    && (r2.body.images_orphaned || 0) >= 1, JSON.stringify(r2.body));
+}
+
 const failed = out.filter(x=>!x.ok);
 console.log('\n' + (out.length-failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

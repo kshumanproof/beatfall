@@ -643,6 +643,206 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  // ------------------------------------------------------------- vision --
+  /* A photograph is a note with a picture on it. These check that it really is
+     one, rather than a second system wearing a note's clothes: it groups and
+     filters with the others, it files under a beat, it deletes with the same
+     confirm, and the two things it must NOT do are be offered as a beat card
+     or be sent to a paid conversation about a filename. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [
+      {id: 'c1', name: 'Mara Vance', role: 'Protagonist', want: 'the bar'},
+      {id: 'c2', name: 'Dale Rusk',  role: 'Antagonist',  want: 'out'}
+    ];
+    proj.cards.push({id: 70, slot: '__shelf', kind: 'photo', img: 'u1/face.jpg',
+                     text: 'a face in the crowd'});
+    proj.cards.push({id: 71, slot: '__shelf', kind: 'research', text: 'a written note'});
+
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('notes', true); });
+    await page.waitForTimeout(400);
+
+    const seen = await page.evaluate(() => {
+      const card = [...document.querySelectorAll('.ncard.photo')][0];
+      const chips = [...document.querySelectorAll('.fchip')].map(b => b.textContent.trim());
+      const selects = card ? [...card.querySelectorAll('select')] : [];
+      return {
+        card: !!card,
+        chip: (card && card.querySelector('.chip').textContent) || '',
+        chips,
+        src: (card && card.querySelector('.nphoto img').getAttribute('src')) || '',
+        caption: (card && card.querySelector('.t').textContent) || '',
+        paid: !!(card && card.querySelector('.noteask')),
+        boardOption: selects.some(s => /Make it a card on the board/.test(s.innerHTML)),
+        fileOption:  selects.some(s => /Keep it a note, filed under/.test(s.innerHTML)),
+        faceOption:  selects.some(s => /Put this face on/.test(s.innerHTML))
+      };
+    });
+
+    check('a photo note appears in Notes like any other', seen.card === true);
+    check('and is labelled Vision', /Vision/.test(seen.chip), seen.chip);
+    check('and gets its own filter, because the project has pictures',
+      seen.chips.some(t => /^Vision/.test(t)), JSON.stringify(seen.chips));
+    check('the picture is actually fetched and shown',
+      seen.src.indexOf('data:image') === 0, seen.src.slice(0, 40));
+    check('and the filename became a caption you can edit',
+      /a face in the crowd/.test(seen.caption), seen.caption);
+    check('a picture is never offered as a card on the board',
+      seen.boardOption === false, 'a photo can be made a beat card');
+    check('but can still be filed under a beat', seen.fileOption === true);
+    check('and is never sent to a paid conversation about a filename',
+      seen.paid === false, 'the credit-charging control is on a photo card');
+
+    // ---- the whole point: put it on somebody
+    check('a photo offers the characters', seen.faceOption === true);
+    const assigned = await page.evaluate(async () => {
+      const card = document.querySelector('.ncard.photo');
+      const who = [...card.querySelectorAll('select')]
+        .find(s => /Put this face on/.test(s.innerHTML));
+      who.value = 'c1';
+      who.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 200));
+      const p = state.projects[0];
+      return {
+        face: (p.characters.find(c => c.id === 'c1') || {}).face || '',
+        other: (p.characters.find(c => c.id === 'c2') || {}).face || '',
+        says: (document.querySelector('.ncard.photo .face') || {}).textContent || '',
+        stillThere: p.cards.filter(c => c.kind === 'photo').length
+      };
+    });
+    check('assigning puts the face on that character', assigned.face === 'u1/face.jpg',
+      JSON.stringify(assigned));
+    check('and on nobody else', assigned.other === '');
+    check('and the card says whose sheet it is on',
+      /Mara Vance/.test(assigned.says), assigned.says);
+    check('and the picture stays in Vision rather than being consumed',
+      assigned.stillThere === 1, 'the photo left Notes when it was assigned');
+
+    // ---- one picture is never two people's face
+    const moved = await page.evaluate(async () => {
+      const card = document.querySelector('.ncard.photo');
+      const who = [...card.querySelectorAll('select')]
+        .find(s => /Put this face on/.test(s.innerHTML));
+      who.value = 'c2';
+      who.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 200));
+      const p = state.projects[0];
+      return [(p.characters.find(c => c.id === 'c1') || {}).face || '',
+              (p.characters.find(c => c.id === 'c2') || {}).face || ''];
+    });
+    check('moving a face to somebody else takes it off the first',
+      moved[0] === '' && moved[1] === 'u1/face.jpg', JSON.stringify(moved));
+
+    // ---- and it comes off the sheet when the picture is thrown away
+    await page.evaluate(() => { window.confirm = () => true; });
+    const afterDelete = await page.evaluate(async () => {
+      document.querySelector('.ncard.photo .del').click();
+      await new Promise(r => setTimeout(r, 200));
+      const p = state.projects[0];
+      return {
+        photos: p.cards.filter(c => c.kind === 'photo').length,
+        face: (p.characters.find(c => c.id === 'c2') || {}).face || ''
+      };
+    });
+    check('deleting a picture takes it off the sheet too', afterDelete.photos === 0
+      && afterDelete.face === '', JSON.stringify(afterDelete));
+
+    check('no page errors around pictures', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // --------------------------------------------- a picture that is gone --
+  /* Thirty days after a plan ends the pictures are swept and the words stay.
+     The card is still there and has to say what happened rather than showing a
+     broken image icon and letting the writer think the app lost it. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.cards.push({id: 72, slot: '__shelf', kind: 'photo', img: 'u1/missing.jpg',
+                     text: 'a picture that was swept'});
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('notes', true); });
+    await page.waitForTimeout(400);
+    const gone = await page.evaluate(() => {
+      const box = document.querySelector('.ncard.photo .nphoto');
+      return {said: box ? box.textContent : '',
+              note: !!document.querySelector('.ncard.photo'),
+              words: (document.querySelector('.ncard.photo .t') || {}).textContent || ''};
+    });
+    check('a swept picture still leaves its note behind', gone.note === true);
+    check('and the words are untouched', /a picture that was swept/.test(gone.words), gone.words);
+    check('and it says the picture is gone rather than showing a broken one',
+      /no longer stored/i.test(gone.said), gone.said);
+    check('no page errors on a missing picture', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // ------------------------------------------- pictures from this computer --
+  /* The desk half of the capture. A file goes in, it is redrawn smaller and
+     re-encoded as a JPEG before it ever reaches the network, and what lands is
+     a note like any other with the filename as its first caption. */
+  {
+    const proj = board('The Spillway', 4);
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('notes', true); });
+    await page.waitForTimeout(300);
+
+    // A real 8x8 PNG, so the canvas has something to decode.
+    const PNG = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHElEQVQoz2P8//8/AzZgYmJiYmL'
+      + '6//8/AzbAxMTExMTEBABPQwX1eN5ZzAAAAABJRU5ErkJggg==', 'base64');
+    await page.setInputFiles('#photofile', [
+      { name: 'the_bar_at_four.png', mimeType: 'image/png', buffer: PNG }
+    ]);
+    await page.waitForTimeout(700);
+
+    const got = await page.evaluate(() => {
+      const p = state.projects[0];
+      const shot = p.cards.filter(c => c.kind === 'photo');
+      return {
+        made: shot.length,
+        caption: (shot[0] || {}).text || '',
+        path: (shot[0] || {}).img || '',
+        shelf: (shot[0] || {}).slot || '',
+        sent: (window.__UPLOADED__ || []).map(u => u.type),
+        onScreen: document.querySelectorAll('.ncard.photo').length,
+        button: (document.getElementById('photoadd') || {}).disabled
+      };
+    });
+    check('a picture chosen on this computer becomes a note', got.made === 1,
+      JSON.stringify(got));
+    check('and lands in Notes with everything else', got.shelf === '__shelf', got.shelf);
+    check('and the filename becomes a readable caption',
+      got.caption === 'the bar at four', got.caption);
+    check('and it carries the path, not the bytes',
+      /^u1\//.test(got.path) && got.path.length < 40, got.path);
+    check('a PNG is re-encoded as a JPEG before it is sent',
+      JSON.stringify(got.sent) === '["image/jpeg"]', JSON.stringify(got.sent));
+    check('and it is on screen straight away', got.onScreen === 1);
+    check('and the button goes back to being pressable', got.button === false);
+
+    // ---- no room left
+    const refused = await page.evaluate(async () => {
+      window.__NO_ROOM__ = true;
+      const before = state.projects[0].cards.filter(c => c.kind === 'photo').length;
+      return before;
+    });
+    await page.setInputFiles('#photofile', [
+      { name: 'one_too_many.png', mimeType: 'image/png', buffer: PNG }
+    ]);
+    await page.waitForTimeout(700);
+    const full = await page.evaluate(() => ({
+      said: (document.getElementById('photoerr') || {}).textContent || '',
+      hidden: (document.getElementById('photoerr') || {}).hidden,
+      photos: state.projects[0].cards.filter(c => c.kind === 'photo').length
+    }));
+    check('a full account is told in words', /no room/i.test(full.said) && !full.hidden,
+      JSON.stringify(full));
+    check('and no empty card is left behind', full.photos === refused, JSON.stringify(full));
+    check('no page errors importing pictures', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

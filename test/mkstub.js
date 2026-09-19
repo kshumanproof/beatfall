@@ -48,6 +48,31 @@ window.jspdf = { jsPDF: function(){
     window.__CALLS__.push(path + ':' + (body.action || (opts && opts.method) || 'GET'));
     if (path === '/api/account' && (!opts || opts.method !== 'POST')) return ACCOUNT;
     if (path === '/api/billing') return {url: 'https://stripe.test/session'};
+
+    /* Vision. The real endpoint puts bytes in a private bucket and hands back
+       a path plus a signed link; this hands back the same shape so the app's
+       own upload and display paths run for real. The picture is a one pixel
+       PNG as a data URI, which an <img> loads offline. */
+    if (path.indexOf('/api/images') === 0) {
+      const PIX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+                + 'AAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      if (opts && opts.method === 'POST') {
+        if (window.__NO_ROOM__) { const e = new Error('No room.'); e.code = 'no_room'; throw e; }
+        const path2 = 'u1/' + (window.__IMG_N__ = (window.__IMG_N__ || 0) + 1) + '.jpg';
+        window.__UPLOADED__ = (window.__UPLOADED__ || []).concat([
+          {path: path2, bytes: (body.data || '').length, type: body.type}]);
+        return {path: path2, url: PIX, bytes: 1000,
+                used: window.__UPLOADED__.length * 1000, quota: 40000000};
+      }
+      if (opts && opts.method === 'DELETE') return {ok: true};
+      if (path.indexOf('usage=1') > 0) {
+        return {used: window.__USED__ || 0, quota: 40000000, count: 0};
+      }
+      const want = decodeURIComponent((path.split('paths=')[1] || '')).split(',').filter(Boolean);
+      const urls = {};
+      want.forEach(p => { if (String(p).indexOf('missing') < 0) urls[p] = PIX; });
+      return {urls};
+    }
     return {};
   };
   BF.ai = async () => ({text: '{}'});

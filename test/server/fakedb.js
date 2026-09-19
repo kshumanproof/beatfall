@@ -9,8 +9,12 @@ export function makeDb(profile, opts = {}) {
 
   function table(name) {
     const q = { _name: name, _filters: [], _patch: null, _op: 'select', _count: false };
-    const match = row => q._filters.every(([col, op, val]) => {
+    const match = row => q._filters.every(([col, op, val, negate]) => {
       const v = row[col];
+      if (negate) return !one(v, op, val);
+      return one(v, op, val);
+    });
+    const one = (v, op, val) => {
       if (op === 'eq')  return v === val;
       if (op === 'gt')  return v > val;
       if (op === 'gte') return v >= val;
@@ -20,7 +24,7 @@ export function makeDb(profile, opts = {}) {
       if (op === 'is')  return val === null ? (v === null || v === undefined) : v === val;
       if (op === 'in')  return Array.isArray(val) && val.includes(v);
       return true;
-    });
+    };
     // A test that seeds a whole profiles table wants that table; everything
     // else is the single-account case and gets the one row.
     const rows = () => (name === 'profiles'
@@ -38,6 +42,17 @@ export function makeDb(profile, opts = {}) {
       limit()   { return api; },
       is(c, v)  { q._filters.push([c, 'is', v]);  return api; },
       in(c, v)  { q._filters.push([c, 'in', v]);   return api; },
+      /* PostgREST's not(), which the cleanup job uses to find accounts that are
+         NOT live and whose period end is NOT null. The list form arrives as the
+         literal string "(active,trialing,past_due)", the way the query string
+         carries it, so it is unwrapped here rather than at the call site. */
+      not(c, op, v) {
+        const val = op === 'in' && typeof v === 'string'
+          ? String(v).replace(/^\(|\)$/g, '').split(',') : v;
+        q._filters.push([c, op, val, true]);
+        return api;
+      },
+      delete()  { q._op = 'delete'; return api; },
       update(p) { q._op = 'update'; q._patch = p; return api; },
       insert(r) { q._op = 'insert'; q._patch = r; return api; },
       upsert(r) { q._op = 'upsert'; q._patch = r; return api; },
@@ -108,6 +123,14 @@ export function makeDb(profile, opts = {}) {
         // The real table defaults created_at; without it every time filter misses.
         state[name].push({ created_at: new Date().toISOString(), ...q._patch });
         return { data: [q._patch], error: null };
+      }
+      /* A real delete, because Vision's whole promise rests on one: a file
+         with no row is unfindable forever, so the suite has to be able to see
+         that the rows really went. */
+      if (q._op === 'delete') {
+        const doomed = rows();
+        state[name] = (state[name] || []).filter(r => !doomed.includes(r));
+        return { data: doomed, error: null };
       }
       const r = rows();
       if (q._count) return { data: null, count: r.length, error: null };

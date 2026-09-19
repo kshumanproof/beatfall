@@ -576,6 +576,70 @@ account's allowance by 100 credits EVERY MONTH, forever. Kris found it by
 asking a question about rollover. Verified fixed by `/home/claude/credits.js`,
 which walks the spillover and asserts a new month still reads 150.
 
+### Vision: the pictures
+
+**A photograph is a note with a picture on it.** Not a new object, not a new
+drawer. It is a card in `projects.cards` with `kind: "photo"` and an `img` field
+holding a path, sitting in `__shelf` like every other note. That one decision is
+why it inherits grouping, the filter chips, search, file-under-a-beat, the
+delete confirm, undo and the date stamps without a line of new code for any of
+them. The Vision section Kris asked for is the Notes page filtered to photos,
+and "only present when the project has photos" came free, because every chip on
+that page already appears only when its group has something in it.
+
+The one thing a photograph can do that a sentence cannot is sit on a character
+sheet. `character.face` holds the path. Assigning does NOT consume the picture:
+it stays in Vision and also appears on the sheet, the same grammar as filing a
+note under a beat. One picture is one person's face at a time.
+
+Two things a photograph must never do, both enforced and both tested:
+- **be offered as a card on the board.** A beat card is a sentence describing
+  what happens. A photo of a doorway is reference for the scene, not the scene.
+- **reach a paid conversation.** `askAboutNote` reads the note's words. Run on a
+  caption that says "IMG 4471" it charges two credits to guess at a filename.
+
+**The bucket is private and the browser never touches it.** Same rule as every
+table in `schema.sql`: the server holds the only key. Uploads POST to
+`/api/images`, display goes through signed links that expire in an hour. This
+matters more here than anywhere else in the app, because a photograph is very
+often of a person who never heard of Beatfall.
+
+**EXIF is stripped server-side, in `api/images.js`.** Phone cameras write GPS
+into every JPEG. Both clients re-encode through a canvas, which drops it on its
+own; the server does it again because "the client already did it" is not a thing
+to believe about somebody's location. Hand-rolled JPEG segment walk, no
+dependency, tested against a JPEG built with a GPS tag in it.
+
+**Deletion is the whole reason `public.images` exists.** Rows cascade off a user
+row; files in a bucket do not. So every stored object gets a row, and three
+sweeps in `api/cleanup.js` use it:
+1. An account being deleted loses its files FIRST, before `deleteUser`. Delete
+   the user first and the cascade takes the rows, and then nothing on earth
+   knows where the files are.
+2. Pictures come off **30 days after a plan ends**. The writing never does. Text
+   is a quarter of a megabyte a board and costs nothing to hold forever; photos
+   are the only part of a closed account with real weight. This is promised on
+   billing.html, terms.html and the app's plan-ended screen, and those three
+   said "Nothing is deleted" until the sweep existed. **If you change this job,
+   change those three.**
+3. Orphans: a stored image no card points at, unreferenced for a day. Deleting a
+   photo note deliberately does NOT delete its file, because undo has to bring
+   back a picture and not a grey box. The day of grace is what makes that safe.
+
+**Storage numbers.** Supabase Free is 1GB for the whole platform, which is about
+3,300 shrunk photos. Clients shrink to 1600px on the long edge at quality .82,
+roughly 300KB. `QUOTA_BYTES` in `api/images.js` is 40MB per writer, about 130
+pictures. **That number is sized for the free plan and is the only thing holding
+usage down. Raise it on Pro,** where 100GB is included and storage stops being a
+question. Egress bites before storage does: serve thumbnails, let the browser
+cache, never re-download full size on every page view.
+
+**Not built yet, deliberately:** the phone half (needs `expo-image-picker` and
+`expo-image-manipulator`, which means a fresh native build, not a JS update) and
+the PDF (faces on character blocks, a contact sheet for the rest). Photos are
+filtered out of the PDF's text sections for now rather than printed as a page of
+filenames; see the comment in `outlineBeat`.
+
 ### Pricing
 
 **Changing a price is TWO changes, and `core.js` is only one of them.**

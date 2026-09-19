@@ -1101,6 +1101,21 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   transition:box-shadow .14s ease,transform .14s ease,border-color .14s ease;
 }
 .ccard:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px);border-color:var(--ink-4)}
+/* The face, if one has been put on this character. Small on the shelf card,
+   because the card is about how much of the character is written down and the
+   picture is a way of recognising which one it is, not the subject. */
+.ccard .cface{
+  width:100%;aspect-ratio:3/2;border-radius:var(--r-card);overflow:hidden;
+  background:var(--rule-soft);border:1px solid var(--rule);margin-bottom:2px;
+}
+.ccard .cface img{width:100%;height:100%;object-fit:cover;display:block}
+/* And large on the sheet itself, where you are actually looking at them. */
+.sheetface{
+  width:160px;aspect-ratio:3/4;border-radius:var(--r-card);overflow:hidden;
+  background:var(--rule-soft);border:1px solid var(--rule);flex:0 0 auto;
+}
+.sheetface img{width:100%;height:100%;object-fit:cover;display:block}
+.sheettop{display:flex;gap:20px;align-items:flex-start;margin-bottom:14px}
 .ccard .cn{
   font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
   letter-spacing:-.008em;overflow-wrap:anywhere;
@@ -1294,6 +1309,7 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .chip.image{background:var(--rule-soft);color:var(--ink-2)}
 .chip.clue{background:var(--blue-soft);color:var(--blue)}
 .chip.structural{background:var(--gold-soft);color:var(--gold)}
+.chip.photo{background:var(--gold-soft);color:var(--gold)}
 .chip.rule{background:var(--gold-soft);color:var(--gold)}
 
 /* =====================================================================
@@ -1436,6 +1452,40 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   position:relative;
 }
 .ncard .chip{align-self:flex-start}
+
+/* ------------------------------------------------------------- pictures --
+   A photo note is the same card as every other note, with the picture where
+   the first line of text would be. It is deliberately not a full-bleed tile:
+   the chip, the caption and the controls all have to stay legible, because a
+   picture in Beatfall is a note and not a gallery item.
+
+   The frame keeps its height before the bytes land, so a page of twenty
+   photographs does not jump around underneath the reader while the signed
+   links come back. */
+.nphoto{
+  width:100%;aspect-ratio:4/3;border-radius:var(--r-card);overflow:hidden;
+  background:var(--rule-soft);border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;
+}
+.nphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.nphoto.gone{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-4);text-align:center;padding:0 14px;line-height:1.5;
+}
+/* Says whose sheet this face is on, in the same voice as "Filed under". */
+.ncard .face{
+  font-size:12.5px;color:var(--gold);font-weight:500;
+}
+.photoerr{
+  font-size:13px;color:var(--gold-ink);background:var(--gold-soft);
+  border:1px solid var(--gold-hair);padding:9px 13px;border-radius:var(--r-ctl);
+  margin:0 0 14px;max-width:62ch;
+}
+/* The room left, said out loud only when it is nearly gone. A quota nobody
+   can see is a wall people walk into. */
+.photoroom{font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-4);margin:0 0 12px}
+.photoroom.low{color:var(--gold)}
 .ncard .t{font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--ink)}
 .ncard .r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .ncard select{font-size:11.5px;padding:5px 8px}
@@ -2818,8 +2868,25 @@ footer{
   <div class="slate-wrap">
     <div class="slate-head" style="margin-bottom:6px">
       <h2 class="slate-h">Other notes</h2>
+      <!-- Pictures arrive here the same way words do. The file input is the
+           real control and the button is what anybody sees: a bare file input
+           cannot be styled and reads as a form, not as a way into the app. -->
+      <div class="slate-acts">
+        <input type="file" id="photofile" accept="image/jpeg,image/png,image/webp"
+               multiple hidden>
+        <button class="bigbtn" id="photoadd"
+                data-tip="Add pictures from this computer. They cost no credits.">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2.2" y="3.4" width="11.6" height="9.2" rx="1.4"/>
+            <circle cx="5.9" cy="6.6" r="1.1"/>
+            <path d="M2.6 10.9l3.1-2.8 2.5 2.2 2.2-1.8 3 2.6"/>
+          </svg>
+          Add pictures</button>
+      </div>
     </div>
     <p class="figlede" id="noteslede"></p>
+    <p class="photoerr" id="photoerr" hidden></p>
     <div id="notesbody"></div>
   </div>
 </section>
@@ -5874,7 +5941,12 @@ async function exportPDF(which){
      four. */
   function outlineBeat(slot, actName){
     const cards = proj.cards.filter(c => c.slot === slot.id);
-    const notes = proj.cards.filter(c => c.slot === "__shelf" && c.attachedTo === slot.id);
+    /* Pictures are left out of the document for now, rather than printed as a
+       list of their captions, which is a page of filenames pretending to be
+       content. They come back as real pictures in the next pass: a face on the
+       character block and a contact sheet for the rest. */
+    const notes = proj.cards.filter(c => c.slot === "__shelf"
+      && c.attachedTo === slot.id && c.kind !== "photo");
     const prose = outlineList(proj, slot.id);
     const has   = cards.length || notes.length || prose.length;
 
@@ -6079,7 +6151,8 @@ async function exportPDF(which){
      Only the ones filed under nothing. A note the writer filed against a beat
      is printed in the outline, under that beat, where they put it; repeating it
      here would be the same note twice with no reason. */
-  const shelved = proj.cards.filter(c => c.slot === "__shelf" && !c.attachedTo);
+  const shelved = proj.cards.filter(c => c.slot === "__shelf"
+    && !c.attachedTo && c.kind !== "photo");        // see outlineBeat: pictures come next
   if (shelved.length){
     sectionHead("Loose notes", "Kept, and filed under no beat.");
     /* Flowing text, not card boxes. slotBox is built for a beat card: a fixed
@@ -6738,6 +6811,12 @@ let plan = null;
 let dumpCtl = null;
 
 const KINDS = {
+  /* A photograph. Called Vision because that is what the section is called on
+     the dashboard, and because "image" was already taken: an image note is a
+     written note ABOUT something visual, which the importer has classified
+     that way since long before a camera was involved. Two different things
+     needed two different words. */
+  photo:     "Vision",
   beat:      "Beat",
   character: "Character",
   theme:     "Voice & theme",
@@ -9899,7 +9978,12 @@ document.getElementById("outlinebtn").addEventListener("click", tryOpenOutline);
    board should show the story; character sketches and stray dialogue crowding
    it out is exactly the mess this app exists to end.
    ========================================================================= */
-const SHELVES = ["character","clue","image","structural","theme","line","question","rule","research"];
+/* Vision sits first because a page of pictures wants to be seen before a wall
+   of text, and because the filter chip for it only exists when the project has
+   photographs in it. That is not a special case: every chip on the Notes page
+   appears only when something is in its group, so "only present when photos
+   are part of the project" came free. */
+const SHELVES = ["photo","character","clue","image","structural","theme","line","question","rule","research"];
 const shelfKind = c => SHELVES.indexOf(c.kind) >= 0 ? c.kind : "research";
 
 let noteFilter = "all";
@@ -10002,7 +10086,8 @@ function renderCast(){
     const el = document.createElement("button");
     el.className = "ccard";
     el.innerHTML =
-        '<div class="cr">' + esc(c.role || "Part not set") + "</div>"
+        (c.face ? '<div class="cface"><img alt=""></div>' : "")
+      + '<div class="cr">' + esc(c.role || "Part not set") + "</div>"
       + '<div class="cn">' + esc(c.name || "Unnamed") + "</div>"
       + '<div class="cw' + (c.want ? "" : " none") + '">'
       + esc(c.want || "What they want isn't written down yet.") + "</div>"
@@ -10011,6 +10096,7 @@ function renderCast(){
       + (blanks ? '<b>' + blanks + " blank" + (blanks === 1 ? "" : "s") + "</b>" : "")
       + dateTag(c)
       + "</div>";
+    if (c.face) showPhoto(c.face, el.querySelector(".cface img"));
     el.addEventListener("click", () => openChar(c.id));
     grid.appendChild(el);
   });
@@ -10028,6 +10114,22 @@ function openChar(id){
   document.getElementById("chardel").hidden = !c;
   const body = document.getElementById("charfields");
   body.innerHTML = "";
+
+  /* The face, at the top of the sheet, where you are actually looking at them.
+     Only present when one has been put there, because a permanent empty grey
+     rectangle on every character is the app asking for something it does not
+     need. Assigned from the picture's own card in Vision, never from here:
+     one way to do a thing, in the place the thing is. */
+  if (c && c.face){
+    const top = document.createElement("div");
+    top.className = "sheettop";
+    top.innerHTML = '<div class="sheetface"><img alt=""></div>'
+      + '<p class="sheet-note" style="margin:0">This face came from Vision. '
+      + "Change it from the picture\u2019s own card there.</p>";
+    body.appendChild(top);
+    showPhoto(c.face, top.querySelector("img"));
+  }
+
   CFIELDS.forEach(f => {
     const wrap = document.createElement("div");
     wrap.className = "cfield";
@@ -10300,6 +10402,214 @@ document.getElementById("castwrite").addEventListener("click", async () => {
   }
 });
 
+/* ===========================================================================
+   VISION: the pictures.
+
+   A photograph in Beatfall is a note with a picture on it. It is not a new
+   kind of object and it does not get its own drawer. It arrives in Notes like
+   anything else, carries a caption you can edit, can be filed under a beat,
+   can be deleted with the same confirm and brought back with the same undo.
+   Everything on this page it inherited for nothing.
+
+   The one thing it can do that a sentence cannot is sit on a character sheet,
+   and that is the whole reason the feature exists: a face is how a writer
+   keeps somebody consistent across a hundred and ten pages, and it is the
+   first thing they show a director.
+
+   The card holds the PATH. The bytes live in a private bucket and are only
+   ever reached through a link the server signs and that stops working within
+   the hour, because a photograph is very often of a person who never agreed to
+   be in anybody's database.
+   =========================================================================== */
+
+/* Signed links, cached, and asked for in one request per page rather than one
+   per picture. Kept a little under the hour the server grants so a page left
+   open over lunch refreshes rather than going blank. */
+const PHOTO_URL  = new Map();        // path -> {url, at}
+const PHOTO_WAIT = new Map();        // path -> [img elements waiting]
+const PHOTO_TTL  = 50 * 60 * 1000;
+let photoTimer = null;
+
+function showPhoto(path, el){
+  if (!path || !el) return;
+  const hit = PHOTO_URL.get(path);
+  if (hit && Date.now() - hit.at < PHOTO_TTL){ el.src = hit.url; return; }
+  if (!PHOTO_WAIT.has(path)) PHOTO_WAIT.set(path, []);
+  PHOTO_WAIT.get(path).push(el);
+  // A tick's wait collapses a whole page of thumbnails into one request.
+  clearTimeout(photoTimer);
+  photoTimer = setTimeout(fetchPhotoUrls, 40);
+}
+
+async function fetchPhotoUrls(){
+  const paths = [...PHOTO_WAIT.keys()];
+  if (!paths.length) return;
+  const waiting = new Map(PHOTO_WAIT);
+  PHOTO_WAIT.clear();
+  let urls = {};
+  try {
+    const r = await BF.api("/api/images?paths=" + encodeURIComponent(paths.join(",")));
+    urls = r.urls || {};
+  } catch (e) { urls = {}; }
+  waiting.forEach((els, p) => {
+    if (urls[p]){
+      PHOTO_URL.set(p, {url: urls[p], at: Date.now()});
+      els.forEach(el => { el.src = urls[p]; });
+    } else {
+      /* The server knows nothing about this path. Almost always because the
+         picture was swept after a plan lapsed, which is the one thing that
+         gets removed from a closed account. Say that, rather than leaving a
+         broken image icon and letting the writer guess. */
+      els.forEach(el => {
+        const box = el.parentNode;
+        if (box && box.classList.contains("nphoto")){
+          box.classList.add("gone");
+          box.textContent = "Picture no longer stored";
+        }
+      });
+    }
+  });
+}
+
+/* SHRINK IT HERE, NOT THERE.
+
+   A phone photograph is four or five megabytes and none of that detail is any
+   use for remembering a face. Sixteen hundred pixels on the long edge is
+   indistinguishable for this job and about a tenth of the size, which is the
+   difference between a Notes page that paints and one that crawls on hotel
+   wifi. Redrawing through a canvas also drops EXIF, so the coordinates of the
+   bar the writer was sitting in never leave the machine. The server strips it
+   again anyway; neither of us should be the only one doing it. */
+const PHOTO_EDGE    = 1600;
+const PHOTO_QUALITY = .82;
+
+function shrinkPhoto(file){
+  return new Promise((ok, no) => {
+    const fr = new FileReader();
+    fr.onerror = () => no(new Error("That file could not be read."));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => no(new Error("That file is not a picture Beatfall can read."));
+      im.onload = () => {
+        const scale = Math.min(1, PHOTO_EDGE / Math.max(im.width, im.height));
+        const w = Math.max(1, Math.round(im.width  * scale));
+        const h = Math.max(1, Math.round(im.height * scale));
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext("2d");
+        // A PNG with transparency becomes black on a JPEG otherwise.
+        cx.fillStyle = "#ffffff"; cx.fillRect(0, 0, w, h);
+        cx.drawImage(im, 0, 0, w, h);
+        cv.toBlob(b => b ? ok(b) : no(new Error("That picture could not be prepared.")),
+                  "image/jpeg", PHOTO_QUALITY);
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+const blobBase64 = blob => new Promise((ok, no) => {
+  const fr = new FileReader();
+  fr.onerror = () => no(new Error("That picture could not be prepared."));
+  fr.onload = () => ok(String(fr.result).split(",")[1] || "");
+  fr.readAsDataURL(blob);
+});
+
+/* A caption, so a photo note is never a card with no words in it. Everything
+   else on this page reads c.text: the search box, the delete confirm, the
+   Outline, the export. An empty string would leave holes in all of them, so
+   the filename does the work until the writer types something better. */
+function captionFor(file){
+  const base = String(file && file.name || "").replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return base ? base.slice(0, 120) : "Picture";
+}
+
+function photoSay(msg){
+  const el = document.getElementById("photoerr");
+  if (!el) return;
+  el.hidden = !msg;
+  el.textContent = msg || "";
+}
+
+/* One at a time rather than all at once. Ten pictures posted in parallel is
+   ten shrinks running at once on a laptop and a quota check that can pass ten
+   times over the same remaining room. Slower and right beats quick and wrong,
+   and the button says what it is doing while it happens. */
+async function sendPhotos(files){
+  const proj = P();
+  const btn = document.getElementById("photoadd");
+  const list = [...files].slice(0, 25);
+  if (!list.length) return;
+
+  photoSay("");
+  if (btn){ btn.disabled = true; }
+  let added = 0, room = null;
+
+  for (let i = 0; i < list.length; i++){
+    if (btn) btn.textContent = "Adding " + (i + 1) + " of " + list.length + "…";
+    try {
+      const small = await shrinkPhoto(list[i]);
+      const data  = await blobBase64(small);
+      const r = await BF.api("/api/images", {
+        method: "POST",
+        body: JSON.stringify({ data, type: "image/jpeg", projectId: proj.id || null, source: "desk" })
+      });
+      if (!added) snapshot();
+      proj.cards.push(stampNew({
+        id: uid++, text: captionFor(list[i]), slot: "__shelf", kind: "photo", img: r.path
+      }));
+      added++;
+      room = r;
+    } catch (e) {
+      /* Stop on the first refusal rather than grinding through twenty four
+         more that will fail the same way. Whatever did land is kept. */
+      photoSay(e && e.code === "no_room"
+        ? "There is no room left for pictures on this account. Delete a few and try again."
+        : (e && e.message) || "That picture could not be added.");
+      break;
+    }
+  }
+
+  if (btn){ btn.disabled = false; btn.innerHTML = PHOTO_BTN; }
+  if (added){
+    save();
+    if (room) PHOTO_ROOM = {used: room.used, quota: room.quota};
+    renderNotes(); render();
+  }
+}
+
+/* What is left, and only said out loud once it is nearly gone. A quota nobody
+   can see is a wall people walk into at speed. */
+let PHOTO_ROOM = null;
+async function photoRoom(){
+  try { PHOTO_ROOM = await BF.api("/api/images?usage=1"); }
+  catch (e) { PHOTO_ROOM = null; }
+}
+
+/* Which character, if any, is wearing this picture as their face. */
+function faceOwner(proj, path){
+  return cast(proj).find(c => c.face === path) || null;
+}
+
+/* The button's own markup, kept so the label can say "Adding 3 of 9" while it
+   works and go back to itself afterwards. */
+const PHOTO_BTN = (document.getElementById("photoadd") || {}).innerHTML || "Add pictures";
+(function wirePhotos(){
+  const btn  = document.getElementById("photoadd");
+  const file = document.getElementById("photofile");
+  if (!btn || !file) return;
+  btn.addEventListener("click", () => { photoSay(""); file.click(); });
+  file.addEventListener("change", () => {
+    const picked = file.files;
+    // Cleared before the work, so choosing the same file twice in a row still
+    // fires a change event the second time.
+    setTimeout(() => { file.value = ""; }, 0);
+    sendPhotos(picked);
+  });
+})();
+
 function renderNotes(){
   const proj = P();
   const body = document.getElementById("notesbody");
@@ -10310,6 +10620,20 @@ function renderNotes(){
     ? all.length + " other note" + (all.length === 1 ? "" : "s") + " from " + proj.name
       + ", grouped by type. Change a type or send a note to a beat."
     : "Character details, dialogue, questions, rules, and research appear here.";
+
+  /* How much room is left for pictures, and only once it starts to matter.
+     A number that is always on screen is a number nobody reads; one that
+     appears at four fifths full is a warning. */
+  const old = body.parentNode.querySelector(".photoroom");
+  if (old) old.remove();
+  if (PHOTO_ROOM && PHOTO_ROOM.quota && PHOTO_ROOM.used / PHOTO_ROOM.quota > .8){
+    const left = Math.max(0, PHOTO_ROOM.quota - PHOTO_ROOM.used);
+    const line = document.createElement("p");
+    line.className = "photoroom low";
+    line.textContent = "Room for about " + Math.floor(left / 300000)
+      + " more pictures on this account";
+    body.parentNode.insertBefore(line, body);
+  }
 
   // filter bar: what it found, and how much of each
   const bar = document.createElement("div");
@@ -10361,9 +10685,14 @@ function renderNotes(){
         + '<button class="del" title="Delete note" aria-label="Delete this note">&times;</button>'
         + "</div>"
         + '<span class="chip ' + kind + '">' + esc(KINDS[kind]) + "</span>"
-        + '<div class="t"></div><div class="on" hidden></div><div class="r"></div>'
+        + (kind === "photo" ? '<div class="nphoto"><img alt=""></div>' : "")
+        + '<div class="t"></div><div class="on" hidden></div>'
+        + '<div class="face" hidden></div><div class="r"></div>'
         + dateTag(c);
       el.querySelector(".t").textContent = c.text;
+      /* The picture, once the server has signed a link for it. The frame is
+         already the right height, so nothing below it moves when it lands. */
+      if (kind === "photo") showPhoto(c.img, el.querySelector(".nphoto img"));
       const row = el.querySelector(".r");
 
       // if it's filed under a beat, say so here too, a note is never in only
@@ -10398,7 +10727,10 @@ function renderNotes(){
        * Same conversation, same price, offered in the place a stranded note
        * actually sits. Not offered for a note already filed under a beat: that
        * question has been answered. */
-      if (!isAttached(c, proj)){
+      /* Not offered on a photograph. The conversation reads the note's words
+         and works out which beat they describe; run on a caption that says
+         "IMG 4471" it would charge two credits to guess at a filename. */
+      if (!isAttached(c, proj) && kind !== "photo"){
         const settle = document.createElement("button");
         settle.className = "noteask"; settle.textContent = "Did we get it wrong?";
         settle.setAttribute("data-tip",
@@ -10478,10 +10810,16 @@ function renderNotes(){
       send.setAttribute("data-tip",
         "Make this note a card on the board, or keep it a note filed under a beat.");
       const beats = STRUCTURES[proj.structure].slots;
+      /* A picture can be filed under a beat and cannot become a card on it.
+         A beat card is a sentence describing what happens; a photograph of a
+         doorway is reference for the scene, not the scene. Offering the first
+         option would put an untitled picture in the middle of the board with
+         nothing to read. */
       send.innerHTML = '<option value="">Send this note to a beat&hellip;</option>'
-        + '<optgroup label="Make it a card on the board">'
-        + beats.map(x => '<option value="card:' + x.id + '">' + esc(x.name) + "</option>").join("")
-        + "</optgroup>"
+        + (kind === "photo" ? "" :
+           '<optgroup label="Make it a card on the board">'
+           + beats.map(x => '<option value="card:' + x.id + '">' + esc(x.name) + "</option>").join("")
+           + "</optgroup>")
         + '<optgroup label="Keep it a note, filed under">'
         + beats.map(x => '<option value="file:' + x.id + '"'
             + (x.id === c.attachedTo ? " selected" : "") + ">" + esc(x.name) + "</option>").join("")
@@ -10501,18 +10839,73 @@ function renderNotes(){
       });
       row.appendChild(send);
 
+      /* PUT THIS FACE ON SOMEBODY.
+
+         The whole point of the feature. A writer sees somebody who looks like
+         their character, catches them, and at the desk decides who that was.
+
+         Assigning does not CONSUME the picture. It stays here in Vision and
+         also appears on the sheet, exactly the way filing a note under a beat
+         leaves the note in Notes and also shows it under the beat. One grammar
+         for both, so nothing ever disappears into a place you did not put it.
+
+         A character wears one face. Picking a second replaces the first rather
+         than making a gallery, and the picture that lost the job is still
+         sitting right here. */
+      if (kind === "photo"){
+        const people = cast(proj).filter(x => String(x.name || "").trim());
+        const wearer = faceOwner(proj, c.img);
+        if (wearer){
+          const f = el.querySelector(".face");
+          f.hidden = false;
+          f.textContent = "On " + (wearer.name || "a character") + "\u2019s sheet";
+        }
+        if (people.length){
+          const who = document.createElement("select");
+          who.setAttribute("data-tip",
+            "Put this picture on a character's sheet. It stays here in Vision as well.");
+          who.innerHTML = '<option value="">Put this face on&hellip;</option>'
+            + (wearer ? '<option value="__off">Take it off ' + esc(wearer.name || "the sheet")
+                        + "</option>" : "")
+            + people.map(x => '<option value="' + x.id + '"'
+                + (wearer && wearer.id === x.id ? " selected" : "") + ">"
+                + esc(x.name) + "</option>").join("");
+          who.addEventListener("change", () => {
+            if (!who.value) return;
+            snapshot();
+            // Off the old sheet first, whichever it was, so one picture is
+            // never two people's face at once.
+            cast(proj).forEach(x => { if (x.face === c.img) delete x.face; });
+            if (who.value !== "__off"){
+              const person = cast(proj).find(x => x.id === who.value);
+              if (person) person.face = c.img;
+            }
+            save(); renderNotes(); renderCast();
+          });
+          row.appendChild(who);
+        }
+      }
+
       /* The corner X, and it asks first, the same as a board card does. A note
          is a sentence the writer typed; it should not leave the screen on one
          press with nothing in between. Undo takes it back either way. */
       const del = el.querySelector(".del");
-      del.setAttribute("data-tip", "Delete this note. You can undo.");
+      del.setAttribute("data-tip", kind === "photo"
+        ? "Delete this picture. You can undo."
+        : "Delete this note. You can undo.");
       del.addEventListener("click", () => {
-        if (!confirm("Delete this note?\n\n\u201c" + c.text.slice(0, 160)
+        if (!confirm((kind === "photo" ? "Delete this picture?" : "Delete this note?")
+            + "\n\n\u201c" + c.text.slice(0, 160)
             + (c.text.length > 160 ? "\u2026" : "")
             + "\u201d\n\nIt comes off Other notes. Undo will bring it back.")) return;
         snapshot();
+        /* The stored file is deliberately NOT removed here, and undo is the
+           reason. Ctrl+Z has to bring back a picture and not a grey box, so
+           the bytes wait for the nightly sweep, which takes any stored image
+           no card points at and that has been unreferenced for a day. */
+        cast(proj).forEach(x => { if (x.face === c.img) delete x.face; });
         proj.cards = proj.cards.filter(x => x.id !== c.id);
-        renderNotes(); render();
+        renderNotes(); render(); renderCast();
       });
       grid.appendChild(el);
     });
@@ -10585,7 +10978,17 @@ function setView(v, quiet){
   document.getElementById("castbtn").classList.toggle("on", v === "cast");
   document.getElementById("notesbtn").classList.toggle("on", v === "notes");
   if (v === "slate"){ hideAll(); renderSlate(); }
-  else if (v === "notes"){ hideAll(); render(); renderNotes(); }
+  else if (v === "notes"){
+    hideAll(); render(); renderNotes();
+    /* Ask how much room is left, once per visit to this page, and redraw only
+       if the answer is worth showing. Never blocks the page: a writer opening
+       Notes is not waiting to be told about storage. */
+    photoRoom().then(() => {
+      if (PHOTO_ROOM && PHOTO_ROOM.quota
+          && PHOTO_ROOM.used / PHOTO_ROOM.quota > .8
+          && state.view === "notes") renderNotes();
+    });
+  }
   else if (v === "outline"){ hideAll(); render(); renderOutline(); }
   else if (v === "cast"){ hideAll(); render(); renderCast(); }
   else { render(); try{ input.focus(); }catch(e){} }
@@ -11395,8 +11798,10 @@ function confirmCancel(go){
       <ul class="cx">
         <li><b>Your boards close.</b> A subscription is what opens them. Everything is still
           there, you just cannot work on it until you subscribe again.</li>
-        <li><b>Nothing is deleted.</b> Every project, card, note and outline stays exactly
-          where it is.</li>
+        <li><b>Your writing is not deleted.</b> Every project, card, note and outline stays
+          exactly where it is.</li>
+        <li><b>Pictures come off after thirty days.</b> The note each one was on stays, with
+          whatever you wrote on it. Download them before then and they are yours.</li>
         <li><b>You can still download all of it</b>, any time, including after your plan ends.
           Every board as its own PDF, or the whole account as one file. No conditions.</li>
         <li><b>${banked ? "Your " + banked + " bought credit" + (banked === 1 ? "" : "s") + " stay in your account."

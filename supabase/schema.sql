@@ -347,3 +347,61 @@ revoke all on public.work_days from anon, authenticated;
 -- Safe to re-run.
 -- ============================================================================
 alter table public.profiles add column if not exists trial_banked_at timestamptz;
+
+-- ============================================================================
+-- Vision: photographs (19 Sep 2026)
+--
+-- A photo is a note with a picture on it. It is not a new kind of object and
+-- it does not get its own drawer: it arrives in Notes like anything else, it
+-- can be filed under a beat or set aside, and it is deleted with the same
+-- confirm and brought back with the same undo. The one thing it can do that a
+-- written note cannot is sit on a character sheet, which is the whole reason
+-- the feature is worth building.
+--
+-- So there is no photo table. The note itself already lives in projects.cards
+-- as JSON, and it simply carries the path to its bytes.
+--
+-- What IS here is a ledger, and it exists for one reason: DELETION HAS TO BE
+-- ABLE TO FIND THE FILES.
+--
+-- The privacy page promises that an account nobody signs into is deleted along
+-- with everything in it. Rows go when the user row goes, because every table
+-- here cascades. Files in a storage bucket do not: they have no foreign key to
+-- cascade from, and a sweep that had to go looking for paths inside a JSON
+-- column would miss one the first time somebody edited a card by hand. An
+-- orphaned bucket of other people's faces is a broken promise of a different
+-- weight than an orphaned row of text, so the paths get a real table with a
+-- real cascade and the cleanup job gets a list it can trust.
+--
+-- It also answers the two questions nothing else can: how much is this writer
+-- storing, and what should come off first when a plan ends.
+--
+-- Safe to re-run.
+-- ============================================================================
+create table if not exists public.images (
+  -- Where the bytes are inside the bucket. The primary key, because a path is
+  -- unique by construction and re-sending the same upload should land on the
+  -- same row rather than making a second one, the same rule captures follows.
+  path        text primary key,
+  user_id     uuid not null references auth.users on delete cascade,
+  -- Null while a photo is still an unsorted capture from the phone: at dinner
+  -- you should not have to decide which script a face belongs to. It gets its
+  -- home at the desk, exactly like a written capture.
+  project_id  uuid references public.projects on delete cascade,
+  bytes       int  not null default 0,
+  created_at  timestamptz not null default now()
+);
+create index if not exists images_user_idx on public.images (user_id, created_at);
+
+-- A photo caught on the phone before it has been filed anywhere. The written
+-- body stays: a picture of a doorway is often worth a sentence, and a capture
+-- with a photo and no words simply has an empty one.
+alter table public.captures add column if not exists image_path text;
+
+-- Same rule as everything else in this file: every write goes through the
+-- server with the service key, and the browser gets nothing directly. That
+-- matters more here than anywhere. Photographs of real people are not card
+-- text, the bucket is private, and a browser never gets a URL that outlives
+-- the page it was drawn on.
+alter table public.images enable row level security;
+revoke all on public.images from anon, authenticated;
