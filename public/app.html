@@ -10774,17 +10774,34 @@ function renderNotes(){
       // No row.appendChild here any more: the pencil already lives in the
       // corner tools, and appending it would move it back down into the row.
 
-      const kindSel = document.createElement("select");
-      kindSel.setAttribute("data-tip", "Change how this note is grouped.");
-      kindSel.innerHTML = SHELVES.map(k =>
-        '<option value="' + k + '"' + (k === kind ? " selected" : "") + ">" + esc(KINDS[k]) + "</option>").join("");
-      kindSel.addEventListener("change", () => {
-        // renderNotes() alone does not save, and every other control in this row
-        // reaches save() one way or another. Regrouping a note and closing the
-        // tab lost the change, without even the unsaved-work warning.
-        snapshot(); c.kind = kindSel.value; save(); renderNotes();
-      });
-      row.appendChild(kindSel);
+      /* WHAT KIND OF NOTE THIS IS, AND NEVER ON A PHOTOGRAPH.
+       *
+       * The importer classifies a written note and sometimes gets it wrong, so
+       * every note carries a way to regroup itself. A photograph is never
+       * classified: it is a photograph because a camera made it.
+       *
+       * Leaving this control on a photo card was not merely one dropdown too
+       * many, it destroyed the picture. Setting the kind to anything else makes
+       * this stop being a photo card, and the frame that draws the image only
+       * exists on a photo card. The file stayed in storage and the caption
+       * stayed on the page, and the picture was gone from the app with no way
+       * to get it back. Three dropdowns is what Kris SAW; this is what it did.
+       *
+       * The two that remain are the only two things a picture can do: sit under
+       * a beat, or sit on a character. */
+      if (kind !== "photo"){
+        const kindSel = document.createElement("select");
+        kindSel.setAttribute("data-tip", "Change how this note is grouped.");
+        kindSel.innerHTML = SHELVES.filter(k => k !== "photo").map(k =>
+          '<option value="' + k + '"' + (k === kind ? " selected" : "") + ">" + esc(KINDS[k]) + "</option>").join("");
+        kindSel.addEventListener("change", () => {
+          // renderNotes() alone does not save, and every other control in this row
+          // reaches save() one way or another. Regrouping a note and closing the
+          // tab lost the change, without even the unsaved-work warning.
+          snapshot(); c.kind = kindSel.value; save(); renderNotes();
+        });
+        row.appendChild(kindSel);
+      }
 
       /* ONE CONTROL, TWO OUTCOMES, AND THE GROUP HEADINGS ARE THE EXPLANATION.
 

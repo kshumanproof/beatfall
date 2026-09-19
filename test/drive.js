@@ -676,7 +676,14 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
         paid: !!(card && card.querySelector('.noteask')),
         boardOption: selects.some(s => /Make it a card on the board/.test(s.innerHTML)),
         fileOption:  selects.some(s => /Keep it a note, filed under/.test(s.innerHTML)),
-        faceOption:  selects.some(s => /Put this face on/.test(s.innerHTML))
+        faceOption:  selects.some(s => /Put this face on/.test(s.innerHTML)),
+        kindOption:  selects.some(s => /Open question/.test(s.innerHTML)),
+        dropdowns:   selects.length,
+        // and the type control is still there on a written note, where it belongs
+        writtenKinds: (() => {
+          const w = [...document.querySelectorAll('.ncard')].find(e => !e.classList.contains('photo'));
+          return w ? [...w.querySelectorAll('select')].some(s => /Open question/.test(s.innerHTML)) : null;
+        })()
       };
     });
 
@@ -693,6 +700,19 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('but can still be filed under a beat', seen.fileOption === true);
     check('and is never sent to a paid conversation about a filename',
       seen.paid === false, 'the credit-charging control is on a photo card');
+
+    /* A PHOTOGRAPH HAS NO TYPE TO CHANGE, AND CHANGING IT DESTROYED THE PICTURE.
+       Setting the kind to anything else makes this stop being a photo card, and
+       the frame that draws the image only exists on a photo card: the file
+       stayed in storage, the caption stayed on screen, and the picture was gone
+       with no way back. Two controls, and they are the only two things a
+       picture can do. */
+    check('a picture is not offered a type to be reclassified as',
+      seen.kindOption === false, 'the type dropdown is on a photo card');
+    check('which leaves exactly two controls on it, a beat and a character',
+      seen.dropdowns === 2, seen.dropdowns + ' dropdowns on a photo card');
+    check('and a written note keeps its type control',
+      seen.writtenKinds === true, 'regrouping a misfiled note is no longer possible');
 
     // ---- the whole point: put it on somebody
     check('a photo offers the characters', seen.faceOption === true);
