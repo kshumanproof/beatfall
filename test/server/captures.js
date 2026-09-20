@@ -218,5 +218,80 @@ const note = (id, extra={}) => ({id, body:'the dog knows first', created_at: Dat
     JSON.stringify(r.body));
 }
 
+/* ---------- a photograph is a note with a picture on it
+ *
+ * The bytes never come here. They went to /api/images first and came back as
+ * a path, which is the only reason a picture can be quota checked, stripped
+ * of where it was taken and refused from a lapsed plan. All this endpoint has
+ * to do is carry the path, and not lose the note on the way.
+ */
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  const r = await hit(db, {method:'POST', body:{captures:[
+    // No words at all, which is what a picture taken in a hurry looks like.
+    {id:'ph1', body:'', image_path:'u1/aaa.jpg', created_at: Date.now(),
+     project_id:'p1', project_name:'Night Haul'},
+    // And one with a line under it.
+    {id:'ph2', body:'the porch light at noon', image_path:'u1/bbb.jpg',
+     created_at: Date.now(), project_id:'p1', project_name:'Night Haul'}
+  ]}});
+  check('a picture with no caption is still a note', r.code === 200
+    && (r.body.accepted || []).indexOf('ph1') >= 0,
+    r.code + ' ' + JSON.stringify(r.body));
+  const a = db.state.captures.find(c => c.id === 'ph1');
+  const b = db.state.captures.find(c => c.id === 'ph2');
+  check('and the path it came back with is carried through',
+    a && a.image_path === 'u1/aaa.jpg', JSON.stringify(a));
+  check('an empty caption stays empty rather than becoming (empty)',
+    a && a.body === '', JSON.stringify(a));
+  check('a picture with words keeps both', b && b.body === 'the porch light at noon'
+    && b.image_path === 'u1/bbb.jpg', JSON.stringify(b));
+}
+
+/* A path only ever comes from this server and always starts with the owner's
+   id. Anything else is dropped rather than refused: the words are the note and
+   must never be held hostage to a bad path. */
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  const r = await hit(db, {method:'POST', body:{captures:[
+    {id:'x1', body:'still mine', image_path:'u2/theirs.jpg', created_at: Date.now()}
+  ]}});
+  const row = db.state.captures.find(c => c.id === 'x1');
+  check('a picture path belonging to somebody else is dropped',
+    row && row.image_path === null, JSON.stringify(row));
+  check('and the words on that note still arrive',
+    r.code === 200 && row && row.body === 'still mine', JSON.stringify(row));
+}
+
+/* TWO CAPTIONLESS PICTURES ARE TWO PICTURES.
+   The twin check is a check of WORDS, and two photographs with nothing typed
+   under them are two empty strings. Left in, the second shot of an evening
+   would be thrown away as a repeat of the first and nobody would be told. */
+{
+  const db = makeDb(P(), {projects: mine, captures: [], work_days: []});
+  const r = await hit(db, {method:'POST', body:{captures:[
+    {id:'p1a', body:'', image_path:'u1/one.jpg', created_at: Date.now(), project_id:'p1'},
+    {id:'p2a', body:'', image_path:'u1/two.jpg', created_at: Date.now(), project_id:'p1'},
+    {id:'p3a', body:'', image_path:'u1/three.jpg', created_at: Date.now(), project_id:'p1'}
+  ]}});
+  check('three pictures with no captions are three notes',
+    db.state.captures.length === 3, JSON.stringify(db.state.captures.map(c => c.id)));
+  check('and all three are accepted', (r.body.accepted || []).length === 3,
+    JSON.stringify(r.body));
+}
+
+/* The desk cannot draw a picture it was never told about. */
+{
+  const db = makeDb(P(), {projects: mine, work_days: [], captures: [
+    {id:'w1', user_id:'u1', body:'', image_path:'u1/aaa.jpg', project_id:'p1',
+     created_at:'2026-09-19T00:00:00Z', sorted_at:null, deleted_at:null}
+  ]});
+  const r = await hit(db, {method:'GET', url:'/api/captures'});
+  check('the desk is handed the picture path with the note',
+    r.code === 200 && (r.body.captures || [])[0]
+    && r.body.captures[0].image_path === 'u1/aaa.jpg',
+    JSON.stringify(r.body).slice(0, 160));
+}
+
 console.log('\n' + out.filter(o => o.ok).length + ' of ' + out.length + ' passed');
 if (out.some(o => !o.ok)) { console.log('\nFAILED:'); out.filter(o => !o.ok).forEach(o => console.log('  ' + o.n)); process.exit(1); }

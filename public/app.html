@@ -2272,9 +2272,17 @@ footer{
 /* The pile from the phone. A row per script, because sorting is a per-script
    errand: one board, one read, one look at the results. */
 .pgroup{display:flex;align-items:center;gap:12px;padding:13px 0;
-  border-top:1px solid var(--rule-soft)}
+  border-top:1px solid var(--rule-soft);flex-wrap:wrap}
 .pgroup:first-child{border-top:0}
 .pgroup .pn{flex:1;min-width:0}
+/* WHAT THE PHONE ACTUALLY SENT, where the writer can see it before deciding.
+   A line reading "3 pictures" says nothing about whether they are the ones
+   worth keeping, and a photograph is the one kind of note that can be judged
+   at a glance. The strip takes the whole row under the buttons, so a batch
+   with eight in it does not squeeze the script's name into nothing. */
+.pthumbs{flex:1 0 100%;display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.pthumb{width:74px;height:56px;object-fit:cover;border-radius:6px;
+  border:1px solid var(--rule-soft);background:var(--rule-soft)}
 .pgroup .pt{font-family:var(--sans);font-size:12.5px;font-weight:600;
   letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
   overflow-wrap:anywhere}
@@ -7522,6 +7530,56 @@ function pendingGroups(){
   return [...by.values()].sort((a, b) => (a.key ? 0 : 1) - (b.key ? 0 : 1));
 }
 
+/* A BATCH OFF THE PHONE IS TWO DIFFERENT JOBS, AND THEY SPLIT HERE.
+ *
+ * Typed notes have words in them, so they go through the same door a pasted
+ * file does: the review sheet, or the paid read, with the writer watching.
+ *
+ * Photographs have nothing to read. Sending one to the read would be charging
+ * a writer to have a model guess at an empty string, and putting one on the
+ * review sheet would be offering a dropdown with one sensible answer on it.
+ * So a picture goes straight into Vision on the script it was filed under,
+ * which is where every picture in Beatfall lives and where the writer can
+ * move it, file it under a beat or put it on a character from.
+ */
+const picturesIn = (items) => (items || []).filter(c => c.image_path);
+const wordsIn    = (items) => (items || []).filter(c => !c.image_path);
+
+/* EVERY PICTURE IN A BATCH, ONTO ITS BOARD. Returns how many landed.
+ *
+ * A photograph arrives already paid for and already on the account: the phone
+ * uploaded the bytes before it sent the note, so all this does is make a card
+ * that points at them. The caption the writer typed on the phone becomes the
+ * card's words, and an empty one is allowed, the same as a picture dropped
+ * onto the Notes page at the desk with no name worth keeping. */
+async function landPictures(items, target){
+  const pics = picturesIn(items);
+  if (!pics.length || !target) return 0;
+  snapshot();
+  pics.forEach(c => {
+    target.cards.push(stampNew({
+      id: uid++, text: String(c.body || "").trim(), slot: "__shelf",
+      kind: "photo", img: c.image_path
+    }, c.created_at ? +new Date(c.created_at) : 0));
+  });
+  dirty.add(target);
+  save();
+
+  const ids = pics.map(c => c.id);
+  PENDING = PENDING.filter(c => ids.indexOf(c.id) < 0);
+  BF.track("phone_pictures_placed", {count: pics.length});
+  try {
+    await BF.api("/api/captures", {method: "PATCH",
+      body: JSON.stringify({sorted: ids, day: dayStamp()})});
+  } catch (e) {
+    /* The cards are already on the board and saved. Re-showing these in the
+       pile would have the writer place the same pictures twice, which is
+       worse than the tidy-up being a day late: the next load re-reads the
+       server and puts it right by itself. */
+  }
+  return pics.length;
+}
+
 /* One word, the same one every time. A greeting that changes with the clock
    is a small performance, and a small performance repeated daily becomes a
    tic. What earns its place here is the sentence under it, which is true and
@@ -7556,9 +7614,15 @@ function showPhoneHello(){
   const groups = pendingGroups();
   const n = PENDING.length;
   const g = groups.length;
+  const pics = picturesIn(PENDING).length;
   document.getElementById("phonehi").textContent = HELLO;
   document.getElementById("phonesum").innerHTML =
-      "<b>" + n + " note" + (n === 1 ? "" : "s") + "</b> came in from your phone"
+      "<b>" + n + " note" + (n === 1 ? "" : "s")
+    /* A photograph is a note, so it is inside that count rather than beside
+       it. Saying how many of them are pictures is worth a clause: a writer
+       who took four shots of a doorway wants to know they arrived. */
+    + (pics ? ", " + pics + " of them picture" + (pics === 1 ? "" : "s") : "")
+    + "</b> came in from your phone"
     + (g === 1
         ? " for <b>" + esc(groups[0].name) + "</b>."
         : ", across <b>" + g + "</b> script" + (g === 1 ? "" : "s") + ".")
@@ -7576,9 +7640,20 @@ function paintSortGroups(){
   }
   const open = state.projects.filter(p => !p.is_sample);
   box.innerHTML = groups.map(g => {
-    const n = g.items.length;
-    const count = n + " note" + (n === 1 ? "" : "s")
-                + " · free by hand, or " + costWords("import") + " to have them read";
+    const pics = picturesIn(g.items).length;
+    const n = g.items.length - pics;
+
+    /* WHAT IS ACTUALLY IN THIS BATCH, said plainly, because the two halves
+       behave differently and the buttons below cannot explain themselves.
+       Pictures never cost anything and never go through the read, so a batch
+       of four photographs must not sit under a line offering to charge for
+       them. */
+    const bits = [];
+    if (n)    bits.push(n + " note" + (n === 1 ? "" : "s"));
+    if (pics) bits.push(pics + " picture" + (pics === 1 ? "" : "s"));
+    const count = bits.join(" and ")
+      + (n ? " · free by hand, or " + costWords("import") + " to have them read"
+           : " · free");
     /* An unfiled batch has to be told where to go, and the honest options are
        every board on the shelf plus a new one. A batch that already names a
        board needs no question asked. */
@@ -7605,10 +7680,30 @@ function paintSortGroups(){
          it or to pay to have it read, so the writer had to file rubbish before
          they could delete it. */
       + '<button class="revbin" data-bin="' + esc(g.key) + '">Throw away</button>'
-      + '<button class="btn" data-hand="' + esc(g.key) + '">Place them myself</button>'
-      + '<button class="btn btn-gold" data-sort="' + esc(g.key) + '">Read them for me</button>'
+      /* A BATCH OF NOTHING BUT PICTURES IS NOT OFFERED A READ, because there
+         is nothing in it to read and the read charges. The one button says
+         what it will do rather than "Place them myself", which reads as work
+         when the work is a single press. */
+      + '<button class="btn" data-hand="' + esc(g.key) + '">'
+      + (n ? "Place them myself"
+           : "Add " + pics + " picture" + (pics === 1 ? "" : "s"))
+      + "</button>"
+      + (n ? '<button class="btn btn-gold" data-sort="' + esc(g.key)
+             + '">Read them for me</button>' : "")
+      + (pics
+          ? '<div class="pthumbs">'
+            + picturesIn(g.items).slice(0, 12).map(c =>
+                '<img class="pthumb" alt="" data-pic="' + esc(c.image_path) + '">').join("")
+            + "</div>"
+          : "")
       + "</div>";
   }).join("");
+
+  /* The links are signed and expire, so they are fetched now rather than
+     written into the markup: showPhoto batches every thumbnail on the sheet
+     into one request. */
+  box.querySelectorAll("img[data-pic]").forEach(img =>
+    showPhoto(img.getAttribute("data-pic"), img));
 }
 
 /* The whole group, gone. Asked out loud first, because these notes are not on
@@ -7618,8 +7713,13 @@ async function binGroup(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return;
   const n = items.length;
+  const pics = picturesIn(items);
   const ok = confirm("Throw away " + n + " note" + (n === 1 ? "" : "s") + " from "
     + groupName(key, items[0].project_name) + "?\n\n"
+    + (pics.length
+        ? "That includes " + pics.length + " picture" + (pics.length === 1 ? "" : "s")
+          + ", which will be deleted. "
+        : "")
     + "They are not on a board yet and your phone has already let them go, so "
     + "this is the only copy. It cannot be undone.");
   if (!ok) return;
@@ -7628,6 +7728,21 @@ async function binGroup(key){
   paintSortGroups();
   if (state && state.view === "slate") renderSlate();
   BF.track("phone_notes_binned", {count: n});
+
+  /* THE PICTURES GO OFF THE ACCOUNT, NOT JUST OUT OF THE PILE.
+     They were never on a board, so nothing will ever point at them again, and
+     a photograph of somebody who never heard of Beatfall should not sit in a
+     bucket waiting on a nightly sweep because a writer said no to it. */
+  for (const c of pics){
+    try {
+      await BF.api("/api/images?path=" + encodeURIComponent(c.image_path),
+        {method: "DELETE"});
+    } catch (e) {
+      /* The nightly sweep finds it after a day of grace. Nothing else here
+         should stop because one delete did not land. */
+    }
+  }
+
   try {
     await BF.api("/api/captures", {method: "PATCH", body: JSON.stringify({dropped: ids})});
   } catch (e) {
@@ -7685,7 +7800,7 @@ function collapse(items){
   return out;
 }
 
-function placeGroupByHand(key){
+async function placeGroupByHand(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return true;
   fromPile = true;
@@ -7694,7 +7809,32 @@ function placeGroupByHand(key){
      would leave a second empty script on the shelf every time. */
   const target = destinationFor(key);
   if (!target) return false;
-  sortingIds = items.map(c => c.id);
+
+  /* Set before the pictures land, not after. snapshot() stamps whichever
+     project is active, and undo has to come back to the board that changed. */
+  state.activeId = target.id || target.localId;
+
+  /* The pictures land first and without a sheet. There is nothing to review
+     about a photograph: it goes into Vision, and the writer moves it from
+     there the same way they move any other note. */
+  const landed = await landPictures(items, target);
+  const notes  = wordsIn(items);
+
+  /* A BATCH OF NOTHING BUT PICTURES HAS NOTHING TO REVIEW, so it does not get
+     a review sheet with no rows in it. The writer is put in front of the
+     pictures instead, which is the only useful thing to do next. */
+  if (!notes.length){
+    state.activeId = target.id || target.localId;
+    closeImport();
+    setView("notes");
+    if (state && state.view === "slate") renderSlate();
+    sayStrip("<b>" + landed + (landed === 1 ? " picture" : " pictures")
+      + " added to " + esc(target.name) + ".</b> They are in Vision with your "
+      + "other notes. Drag one onto a beat, or put one on a character.", "");
+    return true;
+  }
+
+  sortingIds = notes.map(c => c.id);
 
   state.activeId = target.id || target.localId;
   importIntoNew = false;
@@ -7705,7 +7845,7 @@ function placeGroupByHand(key){
     // row arrives honest: this is your note, tell me where it goes.
     // Copies collapse here, before the sheet is drawn. One row per note, and
     // that row remembers every capture it speaks for.
-    notes: collapse(items).map(v => ({ text: v.text, caps: v.caps,
+    notes: collapse(notes).map(v => ({ text: v.text, caps: v.caps,
                                        kind: "beat", beat: null, conf: 0, keep: true }))
   }];
   dedupePlan();
@@ -7735,15 +7875,32 @@ function destinationFor(key){
 /* Hand one batch to the importer. From here on it is the ordinary paste flow:
    the same read, the same review, the same "you see it before your board
    changes". Phone notes get no private door onto a board. */
-function sortGroup(key){
+async function sortGroup(key){
   const items = PENDING.filter(c => (c.project_id ? String(c.project_id) : "") === String(key));
   if (!items.length) return;
+
+  /* NOTHING TO READ MEANS NOTHING TO CHARGE FOR. The button that gets here is
+     not even drawn on a batch of pure pictures, and if it somehow is, this
+     hands the batch to the free route rather than billing for an empty read. */
+  const notes = wordsIn(items);
+  if (!notes.length){ await placeGroupByHand(key); return; }
+
   pileNext = true;
-  sortingIds = items.map(c => c.id);
+  sortingIds = notes.map(c => c.id);
   // Collapsed BEFORE the read, not after. Three copies of one line is one
   // line to think about, and the read is metered: sending all three would
   // charge the writer three times for the same sentence.
-  const text = collapse(items).map(v => v.text).join("\n");
+  const text = collapse(notes).map(v => v.text).join("\n");
+
+  /* A PICTURE NEVER GOES THROUGH THE READ. It has no words, so it would be a
+     charge for guessing at an empty string. It lands in Vision on whichever
+     board this batch is bound for, and the read gets the typing.
+
+     The one case with nowhere to put them is a new script nobody has named:
+     only the read can name that one, and it does not exist yet. The pictures
+     simply stay in the pile, where the group redraws with its own free button
+     on it, rather than being filed against a board that is not there. */
+  const land = async (p) => { if (p) await landPictures(items, p); };
 
   if (!key){
     const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
@@ -7754,17 +7911,23 @@ function sortGroup(key){
          line in the notes, is the app overruling them. */
       const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
       const named = box ? box.value.trim() : "";
-      if (named){ startBoard(named); setView("board"); openImport(false, text); return; }
+      if (named){
+        const made = startBoard(named);
+        await land(made);
+        setView("board"); openImport(false, text); return;
+      }
       openImport(true, text);
       return;
     }
     const p = state.projects.find(x => String(x.id || x.localId) === String(dest));
     if (p){ state.activeId = p.id || p.localId; setView("board"); }
+    await land(p);
     openImport(false, text);
     return;
   }
   const p = state.projects.find(x => String(x.id) === String(key));
   if (p){ state.activeId = p.id || p.localId; setView("board"); }
+  await land(p);
   openImport(p ? false : true, text);
 }
 
@@ -7946,7 +8109,7 @@ document.getElementById("phonelater").addEventListener("click", () => {
 });
 document.getElementById("phonego").addEventListener("click", showPhonePile);
 document.getElementById("sortclose").addEventListener("click", closeImport);
-document.getElementById("sortgroups").addEventListener("click", e => {
+document.getElementById("sortgroups").addEventListener("click", async e => {
   const read = e.target.closest("[data-sort]");
   if (read){ sortGroup(read.getAttribute("data-sort")); return; }
   const bin = e.target.closest("[data-bin]");
@@ -7954,7 +8117,11 @@ document.getElementById("sortgroups").addEventListener("click", e => {
   const hand = e.target.closest("[data-hand]");
   if (!hand) return;
   const key = hand.getAttribute("data-hand");
-  if (placeGroupByHand(key)) return;
+  /* AWAITED. This became a promise when pictures started landing before the
+     sheet is built, and a promise is always truthy: without the await the
+     "give it a working title" message below fired on every single press,
+     including the ones that worked. */
+  if (await placeGroupByHand(key)) return;
   /* The only way to get here now is a new script with no name typed into it. */
   const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
   const old = document.getElementById("handwhy");

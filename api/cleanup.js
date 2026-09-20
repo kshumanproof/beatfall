@@ -279,6 +279,24 @@ export default async function handler(req, res) {
       cards.forEach(c => { if (c && c.img) live.add(String(c.img)); });
     });
 
+    /* A PICTURE STILL IN THE PILE IS NOT AN ORPHAN.
+     *
+     * The cards are the truth about what is ON a board, and a photograph sent
+     * from a phone is deliberately not on one yet: it waits with the rest of
+     * the phone notes until somebody sits down. Waiting a day is ordinary.
+     * Waiting a fortnight, because the writer was shooting, is ordinary too.
+     *
+     * Without this, the sweep would look at the boards, see no card pointing
+     * at the file, and delete a photograph the writer had not even been shown.
+     * The pile would still list it and the desk would draw an empty frame.
+     *
+     * A capture the writer threw away is not counted, so a picture binned at
+     * the desk still gets swept if the desk's own delete never landed. */
+    const { data: waiting } = await db.from('captures')
+      .select('image_path').eq('user_id', userId).is('deleted_at', null)
+      .not('image_path', 'is', null);
+    (waiting || []).forEach(r => { if (r.image_path) live.add(String(r.image_path)); });
+
     const dead = rows.filter(r => !live.has(r.path));
     if (!dead.length) continue;
     if (dry) { orphans += dead.length; continue; }

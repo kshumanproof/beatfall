@@ -88,6 +88,28 @@ export async function deleteAccount(email) {
   });
 }
 
+/* A PICTURE, SENT AHEAD OF THE NOTE IT BELONGS TO.
+ *
+ * Two steps rather than one because they are two different sizes of thing. A
+ * note is a few hundred bytes and twenty of them go in a single request; a
+ * picture is a few hundred kilobytes and has to be quota-checked, stripped of
+ * the place it was taken, and refused outright if the writer's plan has
+ * lapsed. Squeezing that into the capture batch would mean one refused
+ * photograph could sink a whole evening's typing.
+ *
+ * Returns the path the account will know this picture by. That path is what
+ * the note carries; the bytes are never mentioned again. */
+export async function uploadPhoto(base64, projectId) {
+  const body = await call('/api/images', {
+    method: 'POST',
+    body: JSON.stringify({
+      data: base64, type: 'image/jpeg',
+      projectId: projectId || null, source: 'phone',
+    }),
+  });
+  return (body && body.path) || null;
+}
+
 /* Every working title in a batch, made real, in one place. Called by the
    sender the moment before it posts, because Send is the first point at which
    a connection is required anyway: a writer can type five notes under three

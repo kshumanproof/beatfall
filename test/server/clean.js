@@ -128,7 +128,14 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     // deleted from the board yesterday: no card points at it any more
     {path:'paying/orphan.jpg', user_id:'paying', bytes: 500, created_at: day(3)},
     // deleted from the board an hour ago, still inside undo's day of grace
-    {path:'paying/justnow.jpg', user_id:'paying', bytes: 600, created_at: new Date(now).toISOString()}
+    {path:'paying/justnow.jpg', user_id:'paying', bytes: 600, created_at: new Date(now).toISOString()},
+    /* SENT FROM THE PHONE AND NOT YET SORTED. No card points at it, because
+       that is the whole point of the pile: it waits until the writer sits
+       down. Waiting a day is ordinary and waiting a fortnight, because they
+       were shooting, is ordinary too. */
+    {path:'paying/waiting.jpg', user_id:'paying', bytes: 700, created_at: day(9)},
+    // thrown away at the desk, so nothing will ever point at it again
+    {path:'paying/binned.jpg',  user_id:'paying', bytes: 800, created_at: day(9)}
   ];
   images.forEach(i => store.files.set(i.path, true));
 
@@ -138,7 +145,14 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     {id:'p3', user_id:'fresh',  cards:[{id:4, img:'fresh/a.jpg'}]}
   ];
 
-  const db = makeDb({id:'x'}, {profiles, images, projects});
+  const captures = [
+    {id:'cap1', user_id:'paying', body:'', image_path:'paying/waiting.jpg',
+     sorted_at:null, deleted_at:null},
+    {id:'cap2', user_id:'paying', body:'', image_path:'paying/binned.jpg',
+     sorted_at:null, deleted_at: day(1)}
+  ];
+
+  const db = makeDb({id:'x'}, {profiles, images, projects, captures});
   /* makeDb seeds `events` itself, so an events array handed to it is quietly
      ignored. Set it afterwards or the warning this account was already sent is
      invisible and it falls into the warn branch instead of the delete one. */
@@ -181,6 +195,18 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
   check('but one deleted a moment ago is left, because undo has to work',
     store.files.has('paying/justnow.jpg'),
     'undo would bring back a grey box instead of a picture');
+  /* A PICTURE STILL IN THE PILE IS NOT AN ORPHAN. This was a real hole: the
+     sweep read the boards, saw no card pointing at a photograph a writer had
+     sent from their phone nine days ago, and deleted it before they had ever
+     been shown it. The pile would still list it and the desk would draw an
+     empty frame. */
+  check('a picture waiting in the pile is left alone',
+    store.files.has('paying/waiting.jpg'),
+    'a photograph off the phone was deleted before the writer ever saw it');
+  check('but one the writer threw away at the desk is still swept',
+    !store.files.has('paying/binned.jpg'),
+    'a binned picture would sit in the bucket for ever if the desk delete failed');
+
   check('the job says what it took', (r2.body.images_purged || 0) >= 1
     && (r2.body.images_orphaned || 0) >= 1, JSON.stringify(r2.body));
 }

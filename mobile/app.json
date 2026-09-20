@@ -40,7 +40,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Beatfall uses your photos so you can attach a reference picture to a note.",
+          "cameraPermission": "Beatfall uses the camera so you can photograph something for a note."
+        }
+      ]
     ]
   }
 }

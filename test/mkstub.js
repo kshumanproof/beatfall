@@ -234,7 +234,14 @@ window.jspdf = { jsPDF: function(){
         return {path: path2, url: PIX, bytes: 1000,
                 used: window.__UPLOADED__.length * 1000, quota: 40000000};
       }
-      if (opts && opts.method === 'DELETE') return {ok: true};
+      /* Recorded, not just answered. Throwing a batch of phone notes away has
+         to take the photographs off the account as well, and a stand-in that
+         says "ok" without saying WHAT it deleted cannot prove that. */
+      if (opts && opts.method === 'DELETE') {
+        window.__DELETED_PICS__ = (window.__DELETED_PICS__ || []).concat([
+          decodeURIComponent((path.split('path=')[1] || ''))]);
+        return {ok: true};
+      }
       if (path.indexOf('usage=1') > 0) {
         return {used: window.__USED__ || 0, quota: 40000000, count: 0};
       }

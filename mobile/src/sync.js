@@ -11,8 +11,9 @@
 // not poll. A timer that wakes up every thirty seconds to find no signal is a
 // battery cost with no upside.
 // ============================================================================
-import { call, realise } from './api';
+import { call, realise, uploadPhoto } from './api';
 import * as store from './store';
+import * as photos from './photos';
 
 let running = false;
 let again   = false;      // a run asked for while one was in flight
@@ -37,6 +38,11 @@ export async function runSync() {
      holding in memory. Reported on every result, including the failed ones:
      the titles can be created and the notes still not get sent. */
   let promoted = 0;
+  /* Why a picture did not go, if one did not. Carried out to the screen so it
+     can say the true thing: a lapsed plan is not a lost connection, and the
+     writer needs to be pointed at their computer rather than told to try
+     again with better signal. */
+  let refused = null;
   try {
     let pending = await store.pending();
     if (!pending.length) { result = { sent: 0, ok: true }; return result; }
@@ -67,11 +73,57 @@ export async function runSync() {
     const ready = pending.filter((r) => !store.isLocal(r.project_id));
     if (!ready.length) { result = { sent: 0, ok: false, why: 0 }; return result; }
 
-    const payload = ready.map((r) => ({
+    /* ------------------------------------------------- the pictures first --
+     *
+     * Bytes go ahead of the note that carries them, and a note is not sent
+     * until its picture is on the account. The other order would put a note on
+     * the desk with an empty frame on it and no way to ever fill it in.
+     *
+     * ONE REFUSAL ANSWERS FOR ALL OF THEM. If the plan has lapsed, every
+     * picture in this batch will be refused for the same reason, and trying
+     * twenty times means twenty round trips to be told once. The TYPED notes
+     * still go, which is the rule: words yes, pictures no. */
+    for (const r of ready) {
+      if (!r.photo_uri || r.image_path) continue;
+      if (refused) break;
+      let data = null;
+      try { data = await photos.bytes(r.photo_uri); } catch (e) { data = null; }
+      if (!data) {
+        /* The file is not there any more. Whatever words are on the note still
+           go home; a note with no words and no picture is nothing at all and
+           is dropped rather than carried for ever. */
+        await store.photoLost(r.id);
+        r.photo_uri = null;
+        continue;
+      }
+      try {
+        const path = await uploadPhoto(data, r.project_id);
+        if (path) {
+          await store.markUploaded(r.id, path);
+          r.image_path = path;
+        }
+      } catch (e) {
+        refused = { status: (e && e.status) || 0, code: e && e.code,
+                    message: (e && e.message) || '' };
+      }
+    }
+
+    /* A note still holding a picture that did not go waits here with it. Its
+       words are safe on this phone either way, and this is the only way the
+       writer ends up with the note and the photograph together at the desk
+       rather than one of each on different days. */
+    const sendable = ready.filter((r) => !r.photo_uri || r.image_path);
+    if (!sendable.length) {
+      result = { sent: 0, ok: false, why: refused && refused.status };
+      return result;
+    }
+
+    const payload = sendable.map((r) => ({
       id: r.id,
       body: r.body,
       project_id: r.project_id || null,
       project_name: r.project_name || null,
+      image_path: r.image_path || null,
       created_at: r.created_at,
       deleted: !!r.deleted,
     }));
@@ -93,9 +145,10 @@ export async function runSync() {
     result = { sent: 0, ok: false, why: e && e.status };
   } finally {
     running = false;
-    // Every exit above returns `result`, and there are five of them. Stamping
+    // Every exit above returns `result`, and there are six of them. Stamping
     // it here once is the only way this cannot be forgotten on a new one.
     result.promoted = promoted;
+    result.refused  = refused;
   }
   if (again) { again = false; runSync(); }
   return result;

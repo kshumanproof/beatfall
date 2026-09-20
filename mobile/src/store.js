@@ -12,6 +12,7 @@
 // visible stutter on a screen whose only job is to feel instant.
 // ============================================================================
 import * as SQLite from 'expo-sqlite';
+import * as photos from './photos';
 
 let dbp = null;
 
@@ -59,6 +60,24 @@ export async function init() {
   const has = (n) => cols.some((c) => c.name === n);
   if (!has('project_id'))   await db.execAsync('ALTER TABLE captures ADD COLUMN project_id TEXT');
   if (!has('project_name')) await db.execAsync('ALTER TABLE captures ADD COLUMN project_name TEXT');
+
+  /* A PICTURE ON A NOTE, IN TWO PIECES, BECAUSE THEY ARE TWO DIFFERENT FACTS.
+   *
+   *   photo_uri   the file on THIS PHONE. Written before the screen says the
+   *               note was kept, and deleted once the picture is safely on the
+   *               account. This is the one the phone can show while offline.
+   *
+   *   image_path  where the picture lives on the ACCOUNT, handed back by the
+   *               server after the upload. Named the same as the server's own
+   *               column on purpose: it is the same fact, and a second name
+   *               for one fact is how two halves of an app drift apart.
+   *
+   * Kept apart because the upload and the note are sent in two steps, and a
+   * phone that lost signal between them must know which step it got to. With
+   * one column it would either upload the same picture twice or send a note
+   * pointing at bytes that never arrived. */
+  if (!has('photo_uri'))   await db.execAsync('ALTER TABLE captures ADD COLUMN photo_uri TEXT');
+  if (!has('image_path'))  await db.execAsync('ALTER TABLE captures ADD COLUMN image_path TEXT');
   return db;
 }
 
@@ -144,9 +163,12 @@ export async function promoteProject(localId, real) {
   } catch (e) {}
 }
 
-export async function add(body, project) {
+export async function add(body, project, photo) {
   const text = String(body || '').trim();
-  if (!text) return null;
+  const pic  = (photo && photo.uri) || null;
+  // A picture with nothing typed under it is a whole note. Words with nothing
+  // in them still are not.
+  if (!text && !pic) return null;
   const db = await open();
 
   /* The same words, to the same script, in the last two minutes, is one note.
@@ -159,25 +181,58 @@ export async function add(body, project) {
    * Same words, not same string: capitals, stray spaces, curly quotes and a
    * full stop on the end are typing, not meaning. Matched here the way the
    * desk and the server match it, so all three agree on what one note is. */
-  const recent = await db.getAllAsync(
-    'SELECT * FROM captures WHERE deleted = 0 AND created_at > ?'
-    + ' AND ifnull(project_id, \'\') = ifnull(?, \'\')',
-    Date.now() - 120000, (project && project.id) || null
-  );
-  const twin = (recent || []).find((r) => same(r.body) === same(text));
-  if (twin) return twin;
+  /* A PICTURE IS NEVER A TWIN. Two photographs with nothing typed under them
+     are two empty strings, and the words test would call them one note. Four
+     shots of the same doorway are four shots of the same doorway. The server
+     takes the same view, so neither end can quietly eat one. */
+  if (!pic) {
+    const recent = await db.getAllAsync(
+      'SELECT * FROM captures WHERE deleted = 0 AND photo_uri IS NULL'
+      + ' AND created_at > ? AND ifnull(project_id, \'\') = ifnull(?, \'\')',
+      Date.now() - 120000, (project && project.id) || null
+    );
+    const twin = (recent || []).find((r) => same(r.body) === same(text));
+    if (twin) return twin;
+  }
 
   const row = {
     id: newId(), body: text, created_at: Date.now(), synced_at: null, deleted: 0,
     project_id:   (project && project.id)   || null,
     project_name: (project && project.name) || null,
+    photo_uri: pic, image_path: null,
   };
   await db.runAsync(
-    'INSERT INTO captures (id, body, created_at, synced_at, deleted, project_id, project_name)'
-    + ' VALUES (?, ?, ?, NULL, 0, ?, ?)',
-    row.id, row.body, row.created_at, row.project_id, row.project_name
+    'INSERT INTO captures (id, body, created_at, synced_at, deleted, project_id,'
+    + ' project_name, photo_uri) VALUES (?, ?, ?, NULL, 0, ?, ?, ?)',
+    row.id, row.body, row.created_at, row.project_id, row.project_name, row.photo_uri
   );
   return row;
+}
+
+/* The picture has reached the account. Written down the moment the server
+   says so and before the note is sent, so a connection that dies in between
+   costs one note re-sent rather than the same photograph uploaded twice. */
+export async function markUploaded(id, path) {
+  const db = await open();
+  await db.runAsync('UPDATE captures SET image_path = ? WHERE id = ?', path, id);
+}
+
+/* THE PICTURE IS NOT ON THIS PHONE ANY MORE AND NEVER REACHED THE ACCOUNT.
+ *
+ * Rare, and worth handling rather than ignoring: somebody cleared storage, or
+ * the move off the camera's temporary folder failed in a way that left nothing
+ * behind. The note is not held hostage to it. If there are words, they go home
+ * as an ordinary note. If there are no words, there is nothing left to send
+ * and carrying the row for ever would put a permanent "1 waiting" on a button
+ * that can never reach zero. */
+export async function photoLost(id) {
+  const db = await open();
+  const row = await db.getFirstAsync('SELECT body FROM captures WHERE id = ?', id);
+  if (row && String(row.body || '').trim()) {
+    await db.runAsync('UPDATE captures SET photo_uri = NULL WHERE id = ?', id);
+    return;
+  }
+  await db.runAsync('DELETE FROM captures WHERE id = ?', id);
 }
 
 /* Move a note to a different script. Un-syncs it, same as an edit does: the
@@ -215,12 +270,22 @@ export async function edit(id, body) {
  * ideas. */
 export async function remove(id) {
   const db = await open();
-  const row = await db.getFirstAsync('SELECT synced_at FROM captures WHERE id = ?', id);
+  const row = await db.getFirstAsync(
+    'SELECT synced_at, photo_uri FROM captures WHERE id = ?', id);
+  /* The picture goes off this phone either way. A note thrown away is thrown
+     away, and leaving the photograph behind would fill somebody's storage
+     with things they have already said they do not want.
+
+     If it had already been uploaded, the copy on the account is swept up by
+     the nightly orphan pass, because no board and no waiting note points at
+     it any more. Nothing here has to chase it. */
+  if (row && row.photo_uri) photos.drop(row.photo_uri);
   if (row && row.synced_at == null) {
     await db.runAsync('DELETE FROM captures WHERE id = ?', id);
     return;
   }
-  await db.runAsync('UPDATE captures SET deleted = 1, synced_at = NULL WHERE id = ?', id);
+  await db.runAsync(
+    'UPDATE captures SET deleted = 1, synced_at = NULL, photo_uri = NULL WHERE id = ?', id);
 }
 
 export async function undelete(id) {
@@ -270,6 +335,12 @@ export async function forgetSent(ids) {
   if (!ids || !ids.length) return;
   const db = await open();
   const holes = ids.map(() => '?').join(',');
+  /* The pictures go with them, and only now. The local copy is the only copy
+     until the server has confirmed the note, so deleting it any earlier than
+     this is the one mistake this whole file exists to prevent. */
+  const going = await db.getAllAsync(
+    `SELECT photo_uri FROM captures WHERE id IN (${holes}) AND photo_uri IS NOT NULL`, ...ids);
+  (going || []).forEach((r) => photos.drop(r.photo_uri));
   await db.runAsync(`DELETE FROM captures WHERE id IN (${holes})`, ...ids);
 }
 
@@ -304,5 +375,9 @@ export async function lastSent() {
  * that has to be rebuilt on the first note they type. */
 export async function wipe() {
   const db = await open();
+  // The pictures first. A row is what remembers where a file is, so taking the
+  // rows away before the files leaves photographs of real people on the phone
+  // with nothing left that knows they are there.
+  photos.dropAll();
   await db.execAsync('DELETE FROM captures; DELETE FROM kv;');
 }

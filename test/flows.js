@@ -781,7 +781,7 @@ async function open(browser, projects, account = PAID) {
      because the clearing worked by comparing text. */
   {
     const { page, errors } = await open(browser, [board('Night Haul', 6)]);
-    const seen = await page.evaluate(() => {
+    const seen = await page.evaluate(async () => {
       const same = 'a woman starts receiving voicemails from her dead sister';
       PENDING = [
         {id: 'c1', body: same, project_id: 'p-nighthaul', project_name: 'Night Haul'},
@@ -790,7 +790,7 @@ async function open(browser, projects, account = PAID) {
         {id: 'c4', body: 'he keeps the second phone in the glovebox',
          project_id: 'p-nighthaul', project_name: 'Night Haul'},
       ];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
       return {
         rows: rows.length,
@@ -900,12 +900,12 @@ async function open(browser, projects, account = PAID) {
   /* Throwing one away, and changing your mind about it. */
   {
     const { page, errors } = await open(browser, [board('Night Haul', 6)]);
-    const seen = await page.evaluate(() => {
+    const seen = await page.evaluate(async () => {
       PENDING = [
         {id: 'b1', body: 'a line worth keeping', project_id: 'p-nighthaul'},
         {id: 'b2', body: 'asdfasdf pocket dial', project_id: 'p-nighthaul'},
       ];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
       const bins = rows.map(r => r.querySelector('.revbin')).filter(Boolean);
       bins[1].click();
@@ -1043,8 +1043,10 @@ async function open(browser, projects, account = PAID) {
     });
     check('choosing a new script asks what it is called', opened === false);
 
-    const refused = await page.evaluate(() => {
+    const refused = await page.evaluate(async () => {
       document.querySelector('#sortgroups [data-hand]').click();
+      /* The pile handlers became async when pictures started landing before the sheet is built. One tick lets that finish. */
+      await new Promise(r => setTimeout(r, 0));
       return {why: (document.getElementById('handwhy') || {}).textContent || '',
               made: state.projects.length};
     });
@@ -1053,10 +1055,12 @@ async function open(browser, projects, account = PAID) {
     check('and no empty script is left behind', refused.made === 1,
       refused.made + ' projects');
 
-    const done = await page.evaluate(() => {
+    const done = await page.evaluate(async () => {
       const box = document.querySelector('#sortgroups .pgroup[data-key=""] .newname');
       box.value = 'The Duffel Bag';
       document.querySelector('#sortgroups [data-hand]').click();
+      /* The pile handlers became async when pictures started landing before the sheet is built. One tick lets that finish. */
+      await new Promise(r => setTimeout(r, 0));
       return {
         projects: state.projects.map(p => p.name),
         active: P().name,
@@ -1078,7 +1082,7 @@ async function open(browser, projects, account = PAID) {
      the reader invents from a line in the notes. */
   {
     const { page } = await open(browser, [board('Night Haul', 6)]);
-    const named = await page.evaluate(() => {
+    const named = await page.evaluate(async () => {
       PENDING = [{id: 'u1', body: 'the duffel bag is still there', project_id: null}];
       showPhonePile();
       const sel = document.querySelector('#sortgroups .pgroup[data-key=""] select');
@@ -1086,6 +1090,8 @@ async function open(browser, projects, account = PAID) {
       sel.dispatchEvent(new Event('change'));
       document.querySelector('#sortgroups .pgroup[data-key=""] .newname').value = 'Southbound Two';
       document.querySelector('#sortgroups [data-sort]').click();
+      /* The pile handlers became async when pictures started landing before the sheet is built. One tick lets that finish. */
+      await new Promise(r => setTimeout(r, 0));
       return {names: state.projects.map(p => p.name), active: P().name,
               intoNew: importIntoNew};
     });
@@ -1242,14 +1248,14 @@ async function open(browser, projects, account = PAID) {
   /* Caught by code alone, on the free route, with no reading paid for. */
   {
     const { page } = await open(browser, [board('Night Haul', 6)]);
-    const free = await page.evaluate(() => {
+    const free = await page.evaluate(async () => {
       PENDING = [
         {id: 'e1', body: 'He keeps the second phone in the glovebox of the truck',
          project_id: 'p-nighthaul', project_name: 'Night Haul'},
         {id: 'e2', body: 'In the glovebox of the truck he keeps the second phone.',
          project_id: 'p-nighthaul', project_name: 'Night Haul'},
       ];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const rows = Array.from(document.querySelectorAll('#revbody .revrow'));
       return {rows: rows.length,
               ticked: rows.map(r => !!r.querySelector('input[type=checkbox]:checked')),
@@ -1294,7 +1300,7 @@ async function open(browser, projects, account = PAID) {
         {id: 'p2', body: 'In the glovebox of the truck he keeps the second phone.',
          project_id: 'p-nighthaul'},
       ];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const out = [];
       const real = BF.api;
       BF.api = (u, o) => { out.push(JSON.parse(o.body)); return Promise.resolve({ok: true}); };
@@ -1460,7 +1466,7 @@ async function open(browser, projects, account = PAID) {
         text: 'The dog will not go past the shed'});
       PENDING = [{id: 'b9', body: 'the dog will not go past the shed.',
                   project_id: 'p-nighthaul', project_name: 'Night Haul'}];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const row = document.querySelector('#revbody .revrow');
       const go = document.getElementById('revgo');
       const before = {ticked: !!row.querySelector('input[type=checkbox]:checked'),
@@ -1519,9 +1525,9 @@ async function open(browser, projects, account = PAID) {
   // Back hands the batch back.
   {
     const { page } = await open(browser, [board('Night Haul', 6)]);
-    const after = await page.evaluate(() => {
+    const after = await page.evaluate(async () => {
       PENDING = [{id: 'r1', body: 'still mine', project_id: 'p-nighthaul'}];
-      placeGroupByHand('p-nighthaul');
+      await placeGroupByHand('p-nighthaul');
       const held = sortingIds.length;
       document.getElementById('revback').click();
       return {held, now: sortingIds.length};
@@ -1539,11 +1545,13 @@ async function open(browser, projects, account = PAID) {
     const { page, errors } = await open(browser, [board('Night Haul', 6)]);
 
     // Placing by hand never touches the paste box, so Back must skip it.
-    const hand = await page.evaluate(() => {
+    const hand = await page.evaluate(async () => {
       PENDING = [{id: 'n1', body: 'the porch light is on at noon',
                   project_id: 'p-nighthaul', project_name: 'Night Haul'}];
       showPhonePile();
       document.querySelector('#sortgroups [data-hand]').click();
+      /* The pile handlers became async when pictures started landing before the sheet is built. One tick lets that finish. */
+      await new Promise(r => setTimeout(r, 0));
       const onReview = !document.getElementById('sheetreview').hidden;
       document.getElementById('revback').click();
       return {onReview,
@@ -1557,11 +1565,13 @@ async function open(browser, projects, account = PAID) {
     check('and the batch goes back on the shelf', hand.held === 0, String(hand.held));
 
     // The paid route DOES go through the box, so the box gets its own Back.
-    const read = await page.evaluate(() => {
+    const read = await page.evaluate(async () => {
       PENDING = [{id: 'n2', body: 'he pays cash for the second phone',
                   project_id: 'p-nighthaul', project_name: 'Night Haul'}];
       showPhonePile();
       document.querySelector('#sortgroups [data-sort]').click();
+      /* The pile handlers became async when pictures started landing before the sheet is built. One tick lets that finish. */
+      await new Promise(r => setTimeout(r, 0));
       const box = {open: !document.getElementById('sheetpaste').hidden,
                    back: !document.getElementById('dumpback').hidden,
                    text: dumptext.value.length > 0};
@@ -1782,6 +1792,158 @@ async function open(browser, projects, account = PAID) {
 
     check('no page errors showing dates', errors.length === 0, errors.join('\n'));
     await page.close();
+  }
+
+  /* ================================ PICTURES OFF THE PHONE, AT THE DESK
+   *
+   * A photograph arrives in the pile the same way a typed note does, and then
+   * the two part company. A note has words, so it goes through the review
+   * sheet or the paid read with the writer watching. A photograph has none,
+   * so there is nothing to review and nothing to charge for: it goes into
+   * Vision on the script it was filed under, which is where every picture in
+   * Beatfall lives.
+   *
+   * Getting that wrong in either direction is expensive. Send a picture to
+   * the read and the writer is charged for a model guessing at an empty
+   * string. Leave it in the pile and it is a photograph they took and can
+   * never reach.
+   */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+
+    const mixed = await page.evaluate(async () => {
+      PENDING = [
+        {id: 'w1', body: 'the porch light is on at noon',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'i1', body: '', image_path: 'u1/door.jpg',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'i2', body: 'the truck from behind', image_path: 'u1/truck.jpg',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+      ];
+      showPhonePile();
+      const line = document.querySelector('#sortgroups .pgroup .pc').textContent;
+      const thumbs = document.querySelectorAll('#sortgroups .pthumb').length;
+      document.querySelector('#sortgroups [data-hand]').click();
+      await new Promise(r => setTimeout(r, 0));
+      const pics = P().cards.filter(c => c.kind === 'photo');
+      return {
+        line, thumbs,
+        imgs: pics.map(c => c.img).sort(),
+        shelf: pics.every(c => c.slot === '__shelf'),
+        caption: (pics.find(c => c.img === 'u1/truck.jpg') || {}).text,
+        rows: document.querySelectorAll('#revbody .revrow').length,
+        sheet: !document.getElementById('sheetreview').hidden,
+        left: PENDING.map(c => c.id),
+        held: sortingIds.slice(),
+      };
+    });
+    check('the pile says how much of a batch is pictures',
+      /1 note and 2 pictures/.test(mixed.line), mixed.line);
+    check('and shows them, because a photograph can be judged at a glance',
+      mixed.thumbs === 2, String(mixed.thumbs));
+    check('placing a mixed batch puts the pictures straight into Vision',
+      mixed.imgs.join(',') === 'u1/door.jpg,u1/truck.jpg' && mixed.shelf === true,
+      JSON.stringify(mixed.imgs));
+    check('and the caption typed on the phone comes with them',
+      mixed.caption === 'the truck from behind', String(mixed.caption));
+    check('the review sheet holds only the note, because a picture has nothing to review',
+      mixed.sheet === true && mixed.rows === 1,
+      'rows: ' + mixed.rows + ' sheet: ' + mixed.sheet);
+    check('and the batch waiting to be sorted is the note alone',
+      mixed.held.join(',') === 'w1', mixed.held.join(','));
+    check('the pictures have left the pile', mixed.left.join(',') === 'w1',
+      mixed.left.join(','));
+    await page.close();
+
+    /* A BATCH OF NOTHING BUT PICTURES IS NOT OFFERED A PAID READ, and does not
+       get a review sheet with no rows on it. */
+    const { page: p2 } = await open(browser, [board('Night Haul', 6)]);
+    const only = await p2.evaluate(async () => {
+      PENDING = [
+        {id: 'j1', body: '', image_path: 'u1/a.jpg',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'j2', body: '', image_path: 'u1/b.jpg',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+      ];
+      showPhonePile();
+      const hand = document.querySelector('#sortgroups [data-hand]');
+      const before = {label: hand.textContent,
+                      read: !!document.querySelector('#sortgroups [data-sort]'),
+                      line: document.querySelector('#sortgroups .pgroup .pc').textContent};
+      hand.click();
+      await new Promise(r => setTimeout(r, 0));
+      return Object.assign(before, {
+        pics: P().cards.filter(c => c.kind === 'photo').length,
+        sheet: !document.getElementById('sheetreview').hidden,
+        view: state.view,
+        left: PENDING.length,
+      });
+    });
+    check('a batch of only pictures is never offered the paid read',
+      only.read === false, 'the read button was drawn over notes with no words in them');
+    check('and is not priced, because nothing about it costs anything',
+      !/credit/i.test(only.line), only.line);
+    check('its one button says what pressing it does',
+      /Add 2 pictures/.test(only.label), only.label);
+    check('pressing it adds both to Vision', only.pics === 2, String(only.pics));
+    check('and opens no review sheet with nothing on it',
+      only.sheet === false && only.view === 'notes',
+      'sheet: ' + only.sheet + ' view: ' + only.view);
+    check('and the pile is empty', only.left === 0, String(only.left));
+    await p2.close();
+
+    /* THE PAID READ NEVER SEES A PICTURE. It is metered, and an empty string
+       is not worth a credit. */
+    const { page: p3 } = await open(browser, [board('Night Haul', 6)]);
+    const read = await p3.evaluate(async () => {
+      PENDING = [
+        {id: 'k1', body: 'he pays cash for the second phone',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'k2', body: '', image_path: 'u1/c.jpg',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+      ];
+      showPhonePile();
+      document.querySelector('#sortgroups [data-sort]').click();
+      await new Promise(r => setTimeout(r, 0));
+      return {text: dumptext.value,
+              pics: P().cards.filter(c => c.kind === 'photo').map(c => c.img),
+              held: sortingIds.slice()};
+    });
+    check('the read is handed the words and nothing else',
+      read.text === 'he pays cash for the second phone', JSON.stringify(read.text));
+    check('while the picture goes to Vision on the same script',
+      read.pics.join(',') === 'u1/c.jpg', read.pics.join(','));
+    check('and the picture is not in the batch being read',
+      read.held.join(',') === 'k1', read.held.join(','));
+    await p3.close();
+
+    /* THROWING A BATCH AWAY TAKES THE PHOTOGRAPHS OFF THE ACCOUNT.
+       They were never on a board, so nothing will ever point at them again,
+       and a photograph is very often of somebody who never heard of us. */
+    const { page: p4 } = await open(browser, [board('Night Haul', 6)]);
+    const binned = await p4.evaluate(async () => {
+      PENDING = [
+        {id: 'm1', body: 'a pocket dial', project_id: 'p-nighthaul'},
+        {id: 'm2', body: '', image_path: 'u1/bin1.jpg', project_id: 'p-nighthaul'},
+        {id: 'm3', body: '', image_path: 'u1/bin2.jpg', project_id: 'p-nighthaul'},
+      ];
+      showPhonePile();
+      let said = '';
+      window.confirm = (m) => { said = m; return true; };
+      window.__DELETED_PICS__ = [];
+      document.querySelector('#sortgroups [data-bin]').click();
+      await new Promise(r => setTimeout(r, 60));
+      return {said, gone: (window.__DELETED_PICS__ || []).slice().sort(),
+              left: PENDING.length};
+    });
+    check('throwing a batch away says the pictures go too',
+      /2 pictures, which will be deleted/.test(binned.said), binned.said);
+    check('and they really do come off the account',
+      binned.gone.join(',') === 'u1/bin1.jpg,u1/bin2.jpg', binned.gone.join(','));
+    check('and the whole batch leaves the pile', binned.left === 0, String(binned.left));
+    check('no page errors handling pictures off the phone',
+      errors.length === 0, errors.join('\n'));
+    await p4.close();
   }
 
   await browser.close();

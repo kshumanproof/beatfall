@@ -10,7 +10,7 @@
 // ============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, FlatList, Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform,
+  Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform,
   Pressable, StyleSheet, Text, TextInput, UIManager, View, useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ import { palette, radius, font } from './theme';
 import { Lockup } from './Mark';
 import { SYNC_ENABLED, BUILD } from './config';
 import * as store from './store';
+import * as photos from './photos';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
 import Account from './Account';
 import { runSync } from './sync';
@@ -55,6 +56,14 @@ export default function Capture({ email }) {
   const s = sheet(c);
 
   const [draft, setDraft] = useState('');
+  /* THE PICTURE ATTACHED TO THE NOTE BEING TYPED, and nothing more than that.
+     It is already a file on this phone's own disk by the time it gets here:
+     the picking, the shrinking and the move out of the camera's temporary
+     folder all happened before this state was set, so a force quit between
+     taking the shot and pressing Keep costs a row in a table and never the
+     photograph. */
+  const [pic, setPic] = useState(null);
+  const [picking2, setPicking2] = useState(false);   // a picker is open
   const [rows, setRows] = useState([]);
   const [tally, setTally] = useState({ total: 0, waiting: 0 });
   const [saving, setSaving] = useState(false);
@@ -115,6 +124,24 @@ export default function Capture({ email }) {
       setEverSent(true);
       setJustSent(r.sent);
       setTimeout(() => setJustSent(0), 4000);
+    }
+
+    /* A PICTURE THAT WAS REFUSED IS NOT A PICTURE THAT FAILED TO SEND, and
+     * saying the wrong one wastes somebody's evening. A lapsed plan does not
+     * get better with signal, so the message points at the computer rather
+     * than at the weather. The server writes that sentence and the phone
+     * repeats it, so there is one version of it in the world. */
+    if (r && r.refused) {
+      const f = r.refused;
+      Alert.alert(
+        f.status === 402 ? 'Pictures need a plan'
+          : f.status === 507 ? 'No room for pictures'
+          : 'Picture not sent yet',
+        f.status === 402 || f.status === 507
+          ? f.message
+          : "Your typed notes have gone. The picture is still on this phone and "
+            + 'nothing is lost; press Send again when you have signal.'
+      );
     } else if (r && !r.ok) {
       Alert.alert('Not sent yet',
         "Beatfall couldn't reach the server, so your notes are still here and nothing is lost. "
@@ -174,11 +201,56 @@ export default function Capture({ email }) {
      it again for a question they have now answered. */
   const pendingKeep = useRef(false);
   useEffect(() => {
-    if (script && !picking && draft.trim() && pendingKeep.current){
+    if (script && !picking && (draft.trim() || pic) && pendingKeep.current){
       pendingKeep.current = false;
       keep();
     }
   }, [script, picking]);
+
+  /* ------------------------------------------------------------ pictures --
+   *
+   * A photograph is a note with a picture on it, the same way it is at the
+   * desk. So the picture attaches to whatever is in the box, the box still
+   * takes words, and Keep is still the one thing that saves anything. There
+   * is no separate photo mode and no second Keep.
+   *
+   * A caption is optional on purpose. Somebody photographing a doorway from a
+   * moving car has time for the shutter and not for a sentence, and the note
+   * is worth having either way. */
+  const attach = useCallback(async (how) => {
+    if (picking2) return;
+    Keyboard.dismiss();
+    setPicking2(true);
+    let got = null;
+    try { got = how === 'camera' ? await photos.fromCamera() : await photos.fromLibrary(); }
+    catch (e) { got = null; }
+    setPicking2(false);
+
+    if (got && got.denied) {
+      Alert.alert(
+        got.denied === 'camera' ? 'Beatfall cannot open the camera'
+                                : 'Beatfall cannot see your photos',
+        'You can turn this on for Beatfall in your phone’s Settings. '
+        + 'Your typed notes work either way.');
+      return;
+    }
+    if (!got || !got.uri) return;     // they backed out, or it would not save
+
+    // Swapping one picture for another takes the first one off the phone.
+    // Keeping it would fill up their storage with a shot they rejected.
+    if (pic && pic.uri && pic.uri !== got.uri) photos.drop(pic.uri);
+    settle();
+    setPic(got);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }, [pic, picking2]);
+
+  /* Taken back off before it was kept, so the file goes with it. Nothing has
+     been written to the notes table yet, which is why this can simply delete. */
+  const unpin = useCallback(() => {
+    if (pic && pic.uri) photos.drop(pic.uri);
+    settle();
+    setPic(null);
+  }, [pic]);
 
   /* Switching scripts changes nothing about the notes already on this phone.
      Repainting when the picker closes is belt and braces: whatever the list
@@ -190,17 +262,23 @@ export default function Capture({ email }) {
   // do NOT clear the field: the words on screen are the last copy.
   const keep = async () => {
     const text = draft.trim();
-    if (!text || saving) return;
+    // A picture on its own is a whole note. Empty words on their own are not.
+    if ((!text && !pic) || saving) return;
     /* Every note leaves this phone under a title. Nothing is lost by asking
        here: the words stay in the box, the picker opens on the naming field,
        and the note is kept the moment a title exists. */
     if (!script){ pendingKeep.current = true; setPicking(true); return; }
     setSaving(true);
     try {
-      await store.add(text, script);
+      await store.add(text, script, pic);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       settle();
       setDraft('');
+      /* Cleared AFTER the write, never before. The picture is on the phone's
+         disk either way, but until the row exists nothing knows where it is,
+         and a screen that has already let go of it would leave a file behind
+         that only the account delete would ever find. */
+      setPic(null);
       await refresh();
       field.current?.focus();
       /* Keep does NOT send. It used to, and the send was fast enough that the
@@ -221,9 +299,13 @@ export default function Capture({ email }) {
   };
 
   const scrub = (row) => {
+    const words = String(row.body || '').trim();
     Alert.alert(
-      'Throw this note away?',
-      row.body.length > 90 ? row.body.slice(0, 90) + '…' : row.body,
+      row.photo_uri && !words ? 'Throw this picture away?' : 'Throw this note away?',
+      words
+        ? (words.length > 90 ? words.slice(0, 90) + '…' : words)
+          + (row.photo_uri ? '\n\nThe picture goes too.' : '')
+        : 'The picture goes off this phone and is not sent.',
       [
         { text: 'Keep it', style: 'cancel' },
         {
@@ -234,7 +316,7 @@ export default function Capture({ email }) {
     );
   };
 
-  const ready = draft.trim().length > 0;
+  const ready = draft.trim().length > 0 || !!pic;
 
   return (
     <KeyboardAvoidingView
@@ -321,12 +403,51 @@ export default function Capture({ email }) {
           />
         </View>
 
+        {/* THE PICTURE, WHERE THE WRITER CAN SEE WHAT THEY ACTUALLY CAUGHT.
+            A photograph taken in a hurry is often not the one they meant, and
+            a thumbnail they can check is the difference between a useful
+            reference and a picture of somebody's shoe. */}
+        {pic && (
+          <View style={s.pinned}>
+            <Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" />
+            <Text style={s.pinnedWords} numberOfLines={2}>
+              Picture attached. Add a line about it if you want one.
+            </Text>
+            <Pressable
+              onPress={unpin}
+              hitSlop={12}
+              style={({ pressed }) => [s.pinnedX, pressed && s.scriptDown]}
+              accessibilityRole="button"
+              accessibilityLabel="Take this picture off the note"
+            >
+              <Text style={s.pinnedXText}>{'×'}</Text>
+            </Pressable>
+          </View>
+        )}
+
         <View style={s.actions}>
-          <Text style={s.hint} numberOfLines={2}>
-            {ready
-              ? 'Kept the moment you tap.'
-              : SYNC_ENABLED ? 'It syncs later. Type now.' : 'Type now, sort later.'}
-          </Text>
+          {/* Two buttons rather than one that asks which. Catching a thought
+              is a two second job and a menu in the middle of it is a second
+              decision nobody has time for. */}
+          <Pressable
+            onPress={() => attach('camera')}
+            disabled={picking2}
+            style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
+            accessibilityRole="button"
+            accessibilityLabel="Take a photograph for this note"
+          >
+            <Text style={s.picText}>Photo</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => attach('library')}
+            disabled={picking2}
+            style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
+            accessibilityRole="button"
+            accessibilityLabel="Choose a picture from this phone"
+          >
+            <Text style={s.picText}>Library</Text>
+          </Pressable>
+          <View style={s.grow} />
           <Pressable
             onPress={keep}
             disabled={!ready || saving}
@@ -341,6 +462,17 @@ export default function Capture({ email }) {
             <Text style={[s.keepText, !ready && s.keepTextOff]}>Keep</Text>
           </Pressable>
         </View>
+
+        {/* The hint sits under the row rather than inside it. With two picture
+            buttons in there as well, a phone at 390 points has no room for a
+            sentence beside them and the words were being squeezed to nothing. */}
+        <Text style={s.hint} numberOfLines={2}>
+          {pic
+            ? 'The picture goes with the note when you Send.'
+            : ready
+              ? 'Kept the moment you tap.'
+              : SYNC_ENABLED ? 'It syncs later. Type now.' : 'Type now, sort later.'}
+        </Text>
       </View>
 
       </View>
@@ -373,7 +505,15 @@ export default function Capture({ email }) {
         renderItem={({ item }) => (
           <Pressable onLongPress={() => scrub(item)} delayLongPress={350}>
             <View style={s.card}>
-              <Text style={s.body}>{item.body}</Text>
+              {/* Drawn from the file on this phone, never from the account.
+                  The whole point of the local copy is that this list is right
+                  in a basement with no signal. */}
+              {item.photo_uri
+                ? <Image source={{ uri: item.photo_uri }} style={s.cardPic} resizeMode="cover" />
+                : null}
+              {String(item.body || '').trim()
+                ? <Text style={s.body}>{item.body}</Text>
+                : <Text style={s.bodyNone}>Picture, no words</Text>}
               <View style={s.foot}>
                 <Text style={s.stamp}>{when(item.created_at)}</Text>
                 {item.project_name
@@ -496,8 +636,33 @@ const sheet = (c) => StyleSheet.create({
     flex: 1, padding: 0, margin: 0,
   },
 
-  actions: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 },
-  hint: { flex: 1, fontFamily: font.sans, fontSize: 11.5, color: c.ink3 },
+  /* The picture, pinned to the note being typed. It sits between the box and
+     the buttons because that is the reading order of what is about to be
+     kept: these words, this picture, then Keep. */
+  pinned: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10,
+    padding: 8, backgroundColor: c.surface,
+    borderWidth: 1, borderColor: c.ruleSoft, borderRadius: radius.ctl,
+  },
+  pinnedPic: { width: 56, height: 56, borderRadius: 6, backgroundColor: c.ruleSoft },
+  pinnedWords: { flex: 1, fontFamily: font.sans, fontSize: 12, lineHeight: 17, color: c.ink3 },
+  pinnedX: {
+    width: 30, height: 30, borderRadius: 15, alignItems: 'center',
+    justifyContent: 'center', backgroundColor: c.card,
+    borderWidth: 1, borderColor: c.rule,
+  },
+  pinnedXText: { fontFamily: font.sansSemi, fontSize: 16, lineHeight: 18, color: c.ink2 },
+
+  actions: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8 },
+  /* Outlined, not filled. Keep is the one thing on this screen that saves
+     anything, and it is the only filled button here for that reason. */
+  pic: {
+    paddingHorizontal: 14, minHeight: 44, justifyContent: 'center',
+    borderRadius: radius.ctl, borderWidth: 1, borderColor: c.rule,
+    backgroundColor: c.card,
+  },
+  picText: { fontFamily: font.sansMed, fontSize: 13, color: c.ink2 },
+  hint: { fontFamily: font.sans, fontSize: 11.5, color: c.ink3, marginTop: 10 },
   keep: {
     backgroundColor: c.blue, borderRadius: radius.ctl,
     paddingHorizontal: 26, minHeight: 44, justifyContent: 'center',
@@ -536,6 +701,16 @@ const sheet = (c) => StyleSheet.create({
     borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12,
   },
   body: { fontFamily: font.mono, fontSize: 14, lineHeight: 22, color: c.ink },
+  /* A picture with no caption still has to say something, or the card reads
+     as a note whose words went missing. */
+  bodyNone: { fontFamily: font.sans, fontSize: 13, color: c.ink3, fontStyle: 'italic' },
+  /* Wide rather than square. Almost everything a writer photographs for a
+     script is a place or a frame, and a square crop of a doorway is a crop of
+     the door handle. */
+  cardPic: {
+    width: '100%', height: 150, borderRadius: 6, marginBottom: 10,
+    backgroundColor: c.ruleSoft,
+  },
   foot: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
   stamp: { fontFamily: font.sans, fontSize: 11, color: c.ink4 },
   pend: { fontFamily: font.sans, fontSize: 11, color: c.gold },
