@@ -23,7 +23,7 @@
 //   and files do not, and a sweep that had to hunt for paths inside a JSON
 //   column would miss the first one somebody hand-edited.
 // ============================================================================
-import { admin, requireUser, send, readBody, track,
+import { admin, requireUser, send, readBody, track, entitlement,
          IMAGE_BUCKET } from './_lib/core.js';
 
 const BUCKET = IMAGE_BUCKET;
@@ -98,11 +98,35 @@ export default async function handler(req, res) {
   // writer out of the desk they left at home. Same reasoning as captures.
   const auth = await requireUser(req, { webDevice: false });
   if (auth.error) return send(res, auth.status, { error: auth.error });
-  const { db, user } = auth;
+  const { db, user, profile } = auth;
   const store = admin().storage.from(BUCKET);
 
   // ------------------------------------------------------------- arrive --
   if (req.method === 'POST') {
+    /* A LAPSED ACCOUNT MAY STILL SEND WORDS. IT MAY NOT SEND PICTURES.
+     *
+     * Captures deliberately takes a typed note from anybody, because a
+     * sentence somebody had on a Tuesday is theirs whether or not they are
+     * paying this month, and a sentence costs nothing to hold.
+     *
+     * A photograph is not that. It is bytes on a bill that keeps arriving
+     * every month after somebody stopped paying, and the writer who sent it
+     * cannot open the board it was meant for anyway. So the answer is no,
+     * and the answer says where to go to change it.
+     *
+     * Reading and deleting stay open on purpose. Somebody whose plan lapsed
+     * must always be able to look at what they already sent, and must always
+     * be able to take it away.
+     */
+    if (entitlement(profile).key === 'none') {
+      return send(res, 402, {
+        error: 'no_plan',
+        message: 'Pictures need an active plan. Notes you type still come '
+               + 'through. To send pictures again, pick a plan on Beatfall at '
+               + 'your computer. Everything you have already sent is safe.'
+      });
+    }
+
     const body = await readBody(req);
 
     const type = String(body.type || '').toLowerCase();

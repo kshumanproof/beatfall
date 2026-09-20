@@ -305,6 +305,58 @@ const post = (body) => ({ method:'POST', body });
     JSON.stringify(r.body));
 }
 
+/* ---------- a lapsed account: words yes, pictures no
+ *
+ * Captures takes a typed note from anybody on purpose. This endpoint must
+ * not, because a photograph is a bill that keeps arriving after somebody
+ * stopped paying. The refusal has to carry a sentence the phone can put on
+ * the screen, and it has to leave looking and deleting alone.
+ */
+{
+  const lapsed = () => P({ plan: 'none', subscription_status: 'canceled',
+                           trial_ends_at: '2026-01-01T00:00:00Z' });
+
+  const db = makeDb(lapsed(), { images: [
+    { path: 'u1/old.jpg', user_id: 'u1', bytes: 100 }
+  ]});
+  const store = makeStore();
+  store.files.set('u1/old.jpg', true);
+
+  const r = await hit(db, store, post({ data: jpegWithExif().toString('base64'),
+                                        type: 'image/jpeg' }));
+  check('a lapsed account cannot send a picture', r.code === 402, r.code);
+  check('and nothing of theirs reached the bucket',
+    store.files.size === 1, JSON.stringify([...store.files.keys()]));
+  check('and no row was written',
+    db.state.images.length === 1, JSON.stringify(db.state.images));
+  check('and the phone is told where to go to fix it',
+    /plan/i.test((r.body || {}).message || '')
+      && /computer/i.test((r.body || {}).message || ''),
+    JSON.stringify(r.body));
+
+  // Looking at what they already sent stays open. So does taking it away.
+  const look = await hit(db, store,
+    { method: 'GET', url: '/api/images?paths=u1/old.jpg' });
+  check('but they can still see the pictures they already sent',
+    look.code === 200 && !!(look.body.urls || {})['u1/old.jpg'],
+    JSON.stringify(look.body));
+
+  const gone = await hit(db, store,
+    { method: 'DELETE', url: '/api/images?path=u1/old.jpg' });
+  check('and they can still delete them',
+    gone.code === 200 && !store.files.has('u1/old.jpg'), gone.code);
+}
+
+/* ---------- a trial that has not run out is not lapsed */
+{
+  const db = makeDb(P({ plan: 'trial', subscription_status: null,
+                        trial_ends_at: '2099-01-01T00:00:00Z' }), { images: [] });
+  const store = makeStore();
+  const r = await hit(db, store, post({ data: jpegWithExif().toString('base64'),
+                                        type: 'image/jpeg' }));
+  check('somebody still inside their trial can send pictures', r.code === 200, r.code);
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);
