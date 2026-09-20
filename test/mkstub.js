@@ -9,15 +9,49 @@ const stub = `<script>
 // ---- jsPDF, enough of it that exportPDF runs and records what it was asked for
 window.jspdf = { jsPDF: function(){
   const calls = [];
+  let size = 10;                       // whatever setFontSize last said
   const api = {
     internal: {pageSize: {getWidth: () => 595, getHeight: () => 842}, getNumberOfPages: () => 1},
-    setFont(){return api}, setFontSize(){return api}, setTextColor(){return api},
+    setFont(){return api}, setFontSize(n){size = n || size; return api}, setTextColor(){return api},
     setDrawColor(){return api}, setFillColor(){return api}, setLineWidth(){return api},
-    text(t){calls.push(String(t)); return api}, line(){return api}, rect(){return api},
+    text(t){calls.push(String(t)); return api},
+    /* Recorded, not swallowed. A rule that runs the whole height of a page is
+       the shape of a page-break bug, and it is invisible to a suite that only
+       watches the words. */
+    line(x1,y1,x2,y2){ (window.__LINES__ = window.__LINES__ || []).push([x1,y1,x2,y2]); return api },
+    rect(){return api},
     roundedRect(){return api}, addPage(){return api}, setPage(){return api},
     setLineDashPattern(){return api}, setLineJoin(){return api}, setLineCap(){return api},
     addImage(){return api}, setProperties(){return api}, setCharSpace(){return api},
-    splitTextToSize(t){return [String(t)]}, getTextWidth(){return 10},
+    /* A REAL WRAP, ROUGHLY.
+       This used to hand the whole string back as one line, which meant nothing
+       in the document ever wrapped, nothing ever reached the foot of a page,
+       and no page break was ever taken. Every check about page breaks was
+       therefore passing on a document one line deep. A rule down the height of
+       a page shipped straight through it.
+       The measure does not have to be exact. It has to be wrong in the same
+       direction as a real font, so that long text takes many lines and short
+       text takes one. */
+    splitTextToSize(t, w){
+      const str = String(t == null ? '' : t);
+      const per = Math.max(8, Math.floor((w || 400) / (size * 0.55)));
+      const out = [];
+      // Double-escaped on purpose: this file is a template literal, so a single
+      // backslash-n would be emitted as an actual newline and the regex would
+      // arrive as /<newline>/, which is a syntax error that takes the whole app
+      // down before the suite has drawn anything.
+      str.split(/\\n/).forEach(para => {
+        let line = '';
+        para.split(/\\s+/).filter(Boolean).forEach(word => {
+          if (!line.length) { line = word; return; }
+          if ((line + ' ' + word).length <= per) line += ' ' + word;
+          else { out.push(line); line = word; }
+        });
+        out.push(line);
+      });
+      return out.length ? out : [''];
+    },
+    getTextWidth(t){return String(t || '').length * size * 0.55},
     save(name){ window.__PDF__ = {name, text: calls.join(' | ')}; return api }
   };
   return api;

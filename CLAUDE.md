@@ -644,6 +644,47 @@ full 1600 would double the file for detail no printer shows. A picture that will
 not load is simply absent, because a document that refuses to build over a swept
 photograph is worse than one that prints the writing.
 
+**THE STAND-IN jsPDF NOW WRAPS TEXT, AND THAT MATTERS MORE THAN IT SOUNDS.**
+`splitTextToSize` in `mkstub.js` used to hand the whole string back as one
+line. So in the suite nothing ever wrapped, nothing reached the foot of a page,
+and NO PAGE BREAK WAS EVER TAKEN. Every check about page breaks was passing
+against a document one line deep, which is how a rule running the full height of
+a page shipped. It wraps by a rough character count now, tracking `setFontSize`.
+It does not need to be accurate; it needs to be wrong in the same direction as a
+real font. The stub records `line()` calls too, so `flows.js` can assert that no
+vertical rule is ever near a page tall. Put the old bug back and that check
+reports 654pt; it bites.
+
+**`cardRun(text, after)` draws every run of card text.** Written once because it
+was written twice and both copies had the same two faults. `top` was read once
+before the lines were drawn, so a card breaking across a page closed its rule
+from the OLD page's top to the NEW page's y: a hairline from header to footer
+beside one stranded line. And a card could leave a single line alone on a page.
+A card that fits on a fresh page is MOVED to one; only a card too tall for any
+page breaks, and never with fewer than two lines either side. Loose notes use it
+too, because a run of one-line notes with no rule between them ("Skinny."
+"Quiet." "Funny.") printed as one double-spaced paragraph.
+
+**The character reference column is only reserved when somebody has one.**
+Holding it open for a cast with no pictures indents every line by a third of the
+page against an empty margin. Reserving it for the whole section the moment ONE
+person has a picture is what keeps the margin still, which was the point.
+
+**A character note can say who it is about.** `card.about` holds a character id.
+A character note is frequently one word, and "Skinny." is not a note until you
+know whose. The importer can tell a note is about a person and cannot tell which
+one, because the note does not say, so the writer says. Offered only on notes of
+kind `character`; on a clue it would be a control with nothing to do. It does
+NOT reach the Characters page: Kris asked for the attribution and said it did
+not need to, and the argument for showing a person their own notes is his to
+make. The PDF prints it under the note as "ABOUT <NAME>".
+
+**`last`, not `final`.** Save the Cat's fifteenth beat is Final Image and its id
+is `last`. Both test fixtures said `final`, so every test asking for a full
+fifteen-beat board got fourteen and believed otherwise, and a page-break fixture
+built on it exercised nothing at all. Same shape as the `.locked` collision: a
+name that reads right and is not the one in the code.
+
 **ONE CHARACTER THE FONT CANNOT SPELL POISONS THE WHOLE LINE.** The three fonts
 built into a PDF only spell WinAnsi. Hand jsPDF anything outside it and the
 library writes two bytes per letter, which prints as a line with a space between

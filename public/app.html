@@ -5942,6 +5942,56 @@ async function exportPDF(which){
   const measure = doc.splitTextToSize.bind(doc);
   doc.splitTextToSize = function (t, ...rest){ return measure(spellable(t), ...rest); };
 
+  /* A CARD, WITH THE RULE DOWN ITS LEFT EDGE.
+
+     Written once because it was written twice, and both copies carried the
+     same two faults.
+
+     The rule ran the whole height of a page. `top` was read once before the
+     lines were drawn and never read again, so when a card broke across a page
+     the closing rule was drawn from the OLD page's top down to the NEW page's
+     y. On paper that is a hairline running from the header to the footer of a
+     page with one line of text on it, which is what Kris found.
+
+     And a card could be left with a single line stranded on a page of its own.
+     A card that would fit on a fresh page is MOVED to one rather than broken,
+     which is what a typesetter would do and costs nothing but a page break
+     that was going to happen anyway. Only a card too tall for any page breaks
+     at all, and then never with fewer than two lines on either side of the
+     break. */
+  const LEAD = 13;
+  function cardRun(text, after){
+    mono(9.5, INK);
+    const lines = doc.splitTextToSize(String(text || ""), PW - M * 2 - 26);
+    if (!lines.length) return;
+
+    const need = lines.length * LEAD + 12;
+    const page = PH - M * 2 - 30;
+    // It fits on a page of its own, and not in what is left of this one.
+    if (need > PH - M - 16 - y && need <= page) newPage();
+
+    const rule = (a, b) => {
+      if (b - a < 2) return;
+      draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, a, M + 3, b);
+    };
+
+    mono(9.5, INK);
+    let top = y - 8;
+    lines.forEach((ln, i) => {
+      // Never break with one line alone on either side of it.
+      const widow = i === lines.length - 1 || i === 1;
+      if (y > PH - M - 28 - (widow ? LEAD : 0)){
+        rule(top, y - 10);
+        newPage();
+        mono(9.5, INK);
+        top = y - 8;                 // and the rule starts again HERE
+      }
+      doc.text(ln, M + 16, y); y += LEAD;
+    });
+    rule(top, y - 10);
+    y += (after == null ? 9 : after);
+  }
+
   /* Draw one picture inside a box, keeping its shape, and say how tall it
      ended up so the caller knows where the next thing goes. Returns 0 when
      there is nothing to draw, which is what an absent picture looks like. */
@@ -6218,24 +6268,7 @@ async function exportPDF(which){
     y += 7;
 
     // the cards, as source material: a rule down the left, not a box
-    cards.forEach(c => {
-      // mono() FIRST. splitTextToSize measures in whatever face is currently
-      // set, so splitting before this used the italic serif from the job line
-      // above and every card ran off the right edge of the page.
-      mono(9.5, INK);
-      const lines = doc.splitTextToSize(String(c.text || ""), PW - M * 2 - 26);
-      const top = y - 8;
-      lines.forEach(ln => {
-        if (y > PH - M - 28){
-          draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
-          newPage();
-          mono(9.5, INK);
-        }
-        doc.text(ln, M + 16, y); y += 13;
-      });
-      draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
-      y += 9;
-    });
+    cards.forEach(c => cardRun(c.text, 9));
 
     // notes filed against this beat, with the chip the screen gives them
     notes.forEach(c => {
@@ -6283,11 +6316,17 @@ async function exportPDF(which){
 
     // and the prose, which is the beat once it has been written
     if (prose.length){
-      if (cards.length || notes.length) y += 3;
+      if (cards.length || notes.length || filedPics.length) y += 3;
       prose.forEach(p => {
         serif(10.5, INK);
-        doc.splitTextToSize(String(p), PW - M * 2).forEach(ln => {
-          room(16); doc.text(ln, M, y); y += 15;
+        const lines = doc.splitTextToSize(String(p), PW - M * 2);
+        lines.forEach((ln, i) => {
+          /* Same rule the cards follow: never one line of a paragraph alone at
+             the foot of a page or at the head of the next one. This is the part
+             a writer actually reads, so it is the part that most deserves it. */
+          const widow = i === lines.length - 1 || i === 1;
+          room(16 + (widow ? 15 : 0));
+          doc.text(ln, M, y); y += 15;
         });
         y += 10;
       });
@@ -6390,8 +6429,14 @@ async function exportPDF(which){
        is landscape, so a hundred and eight points made it a postage stamp. A
        hundred and fifty is two inches on paper, which is a reference somebody
        can actually read a face in. */
-    const RW   = 150;                       // the reference column
-    const GUT  = 20;
+    /* The column is only reserved when SOMEBODY in this project has a picture.
+       Holding it open for a cast that has none indents every line by a third
+       of the page against a right margin with nothing in it. Reserving it for
+       the whole section the moment one person has one is what keeps the margin
+       still, which is the thing that mattered. */
+    const anyRef = people.some(c => c.face && PICS.has(c.face));
+    const RW   = anyRef ? 150 : 0;          // the reference column
+    const GUT  = anyRef ? 20 : 0;
     /* 122, not 104. "THE LIE THEY BELIEVE" is twenty characters of letterspaced
        courier, which measures almost exactly 104, so it ran straight into the
        sentence beside it. The widest label decides this column, not the
@@ -6483,20 +6528,7 @@ async function exportPDF(which){
   const parked = proj.cards.filter(c => c.slot === "__none");
   if (parked.length){
     sectionHead("Set aside", "Notes that reached the board and have not found a beat yet.");
-    parked.forEach(c => {
-      mono(9.5, INK);                       // before the split; see outlineBeat
-      const lines = doc.splitTextToSize(String(c.text || ""), PW - M * 2 - 26);
-      const top = y - 8;
-      lines.forEach(ln => {
-        if (y > PH - M - 28){
-          draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
-          newPage(); mono(9.5, INK);
-        }
-        doc.text(ln, M + 16, y); y += 13;
-      });
-      draw(RULE); doc.setLineWidth(1.4); doc.line(M + 3, top, M + 3, y - 10);
-      y += 13;
-    });
+    parked.forEach(c => cardRun(c.text, 13));
   }
 
   /* ------------------------------------------------------- 7. loose notes --
@@ -6518,7 +6550,6 @@ async function exportPDF(which){
        not - a research note or a run of dialogue goes well past that, and it was
        being cut mid-word with nothing on the page to say so. Nothing a writer
        typed gets trimmed here. */
-    const WIDTH = PW - M * 2 - 16;
     SHELVES.forEach(kind => {
       const items = shelved.filter(c => shelfKind(c) === kind);
       if (!items.length) return;
@@ -6530,14 +6561,26 @@ async function exportPDF(which){
       draw(SOFT); doc.setLineWidth(.5); doc.line(M, y + 5, PW - M, y + 5);
       y += 19;
 
+      /* Each one gets the rule down its left edge, the same as a card.
+         Without it a run of short notes, and a writer's notes ARE short,
+         printed as twenty lines with nothing to say where one ended and the
+         next began: "Skinny." "Intelligent." "Quiet." read as one paragraph
+         somebody had double spaced. */
       items.forEach(c => {
-        mono(9, INK2);
-        doc.splitTextToSize(String(c.text || ""), WIDTH).forEach(ln => {
-          room(14); doc.text(ln, M + 16, y); y += 12;
-        });
-        y += 9;
+        cardRun(c.text, 3);
+        /* Who it is about, when the writer has said. "Skinny." is not a note
+           until you know whose. The screen says it, so the page says it. */
+        const about = c.about && cast(proj).find(x => x.id === c.about);
+        if (about){
+          room(14);
+          label(7, INK4, .5);
+          doc.text("ABOUT " + String(about.name || "").toUpperCase(), M + 16, y);
+          plain();
+          y += 11;
+        }
+        y += 4;
       });
-      y += 8;
+      y += 10;
     });
   }
   const fname = (proj.name.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase()
@@ -11455,6 +11498,51 @@ function renderNotes(){
         }
       });
       row.appendChild(send);
+
+      /* WHOSE NOTE IS THIS?
+
+         A character note is frequently one word. "Skinny." "Quiet." "Funny."
+         Those are not notes about the story, they are notes about a PERSON,
+         and without knowing which person they mean nothing at all. The
+         importer can tell that a note is about somebody; it cannot tell who,
+         because the note usually does not say.
+
+         So the writer says. Same grammar as everything else on this card:
+         choosing does not consume the note, it stays in Notes and says who it
+         belongs to. Only on a note the importer called a character, because on
+         a clue or a line it would be a control with nothing to do.
+
+         Deliberately NOT wired into the Characters page yet. Kris asked for
+         the attribution and said it does not need to reach that screen; the
+         argument for showing a person their own notes when they open them is
+         good and is his to make, not mine to assume. */
+      if (kind === "character"){
+        const people = cast(proj).filter(x => String(x.name || "").trim());
+        const about = people.find(x => x.id === c.about);
+        if (about){
+          const f = el.querySelector(".face");
+          f.hidden = false;
+          f.textContent = "About " + (about.name || "a character");
+        }
+        if (people.length){
+          const who = document.createElement("select");
+          who.setAttribute("data-tip",
+            "Say which character this note is about. It stays here in Notes.");
+          who.innerHTML = '<option value="">This note is about&hellip;</option>'
+            + (about ? '<option value="__off">Nobody in particular</option>' : "")
+            + people.map(x => '<option value="' + x.id + '"'
+                + (about && about.id === x.id ? " selected" : "") + ">"
+                + esc(x.name) + "</option>").join("");
+          who.addEventListener("change", () => {
+            if (!who.value) return;
+            snapshot();
+            if (who.value === "__off") delete c.about;
+            else c.about = who.value;
+            save(); renderNotes();
+          });
+          row.appendChild(who);
+        }
+      }
 
       /* PUT THIS FACE ON SOMEBODY.
 

@@ -423,13 +423,29 @@ async function open(browser, projects, account = PAID) {
     proj.cards.push({id: 87, slot: 'theme', declared: true,
       text: 'She leans down and kisses her husband \u{1F600} taking a walk'
           + ' and\u00A0I got my AirPods\u200B in and I see something I like'});
+    /* Enough long cards on one beat to force a break in the middle of one.
+       That is the only condition under which the left rule was drawn from the
+       old page's top to the new page's y, producing a hairline down the whole
+       height of a page with one line of text on it. */
+    for (let i = 0; i < 26; i++){
+      proj.cards.push({id: 200 + i, slot: 'last', declared: true,
+        text: 'A long card that has to wrap at least twice on the page so that '
+            + 'the run of them reaches the foot of one and carries on to the next, '
+            + 'which is card number ' + (i + 1) + ' of the pile.'});
+    }
     const { page, errors } = await open(browser, [proj]);
     const pdf = await page.evaluate(async () => {
+      window.__LINES__ = [];
       await exportPDF(P());
       return window.__PDF__ || null;
     });
+    const rules = await page.evaluate(() => window.__LINES__ || []);
     // Everything after the Vision heading, which is where the contact sheet is.
     const loose0 = t => (String(t).split(/\bVISION\b/i)[1] || '');
+    /* The stand-in jsPDF wraps text the way a real one does now, so a sentence
+       arrives as several separate draw calls. Anything looking for a phrase has
+       to look at the document rather than at one call. */
+    const whole = pdf ? pdf.text.split(' | ').join(' ') : '';
     check('the PDF builds', !!pdf, 'nothing produced');
     if (pdf) {
       check('it carries the project name', /Night Haul/i.test(pdf.text), pdf.name);
@@ -442,7 +458,7 @@ async function open(browser, projects, account = PAID) {
       check('it carries what was set aside', /an idea set aside/i.test(pdf.text));
       check('it carries the other notes', /not a beat/i.test(pdf.text));
       check('and prints a long one whole rather than cutting it',
-        /ninety ninth word of this research note/i.test(pdf.text),
+        /ninety ninth word of this research note/i.test(whole),
         'a long note was truncated');
       check('and heads that section', /loose notes/i.test(pdf.text));
 
@@ -493,15 +509,30 @@ async function open(browser, projects, account = PAID) {
          spell makes jsPDF write two bytes per letter, which prints as a line
          with a space between every character running past the margin. The
          words have to survive and the character has to go. */
-      const spoken = pdf.text.split(' | ').find(t => /AirPods/.test(t)) || '';
+      const spoken = whole;
       check('a note dictated into a phone still prints',
-        /kisses her husband/.test(spoken) && /something I like/.test(spoken), spoken);
+        /kisses her husband/.test(spoken) && /something I like/.test(spoken),
+        spoken.slice(0, 200));
       check('and the character the font cannot spell is gone',
         spoken.indexOf('\u{1F600}') < 0, 'an emoji reached the page');
       check('and so is the one with no width at all',
         spoken.indexOf('\u200B') < 0, 'a zero-width character reached the page');
       check('and the space that is not a space became one',
         spoken.indexOf('\u00A0') < 0 && /and I got/.test(spoken), spoken);
+
+      /* NO RULE RUNS THE HEIGHT OF A PAGE. The card rule is drawn from where
+         the card started to where it ended. When a card broke across a page
+         the start was never re-read, so the closing rule was drawn from the
+         previous page's bottom up to this page's top: a hairline from header
+         to footer beside one stranded line. Letter is 792pt tall with 42pt
+         margins, so nothing vertical should ever be near 700. */
+      const tallest = rules.reduce((n, [x1, y1, x2, y2]) =>
+        x1 === x2 ? Math.max(n, Math.abs(y2 - y1)) : n, 0);
+      check('no rule is drawn down the whole height of a page', tallest < 640,
+        'the tallest vertical rule is ' + Math.round(tallest)
+        + 'pt, which is most of a page');
+      check('and some rules were actually drawn, so that proves something',
+        rules.length > 20, rules.length + ' lines drawn');
 
       check('the filename is the project', /night-haul/i.test(pdf.name || ''), pdf.name);
     }

@@ -7,7 +7,12 @@ const path = require('path');
 const PAGE = 'file://' + path.resolve('stub.html');
 
 function board(name, filled, structure = 'stc') {
-  const slots = ['open','theme','setup','cat','debate','br2','bstory','fun','mid','bad','lost','dark','br3','fin','final'];
+  /* 'last', not 'final'. Save the Cat's fifteenth beat is Final Image and its
+     id is `last`, so this fixture spent its life filling fourteen beats while
+     every test that asked for fifteen believed it had them. Same trap as the
+     `.locked` collision: a name that reads right and is not the one in the
+     code. flows.js has the same list; keep them the same. */
+  const slots = ['open','theme','setup','cat','debate','br2','bstory','fun','mid','bad','lost','dark','br3','fin','last'];
   return {
     id: 'p-' + name.toLowerCase().replace(/\W/g,''), name, structure, brief: {}, outline: {},
     characters: [], is_sample: false, created_from: 'new_project',
@@ -1259,6 +1264,81 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       ontoPerson.same === true, JSON.stringify(ontoPerson));
 
     check('no page errors dropping or pasting', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  // ------------------------------------------------- whose note is this --
+  /* A character note is frequently one word. "Skinny." "Quiet." "Funny." Those
+     are notes about a PERSON, and without knowing which person they mean
+     nothing. The importer can tell a note is about somebody and cannot tell
+     who, because the note does not say. So the writer says. */
+  {
+    const proj = board('The Spillway', 4);
+    proj.characters = [
+      {id: 'c1', name: 'Luke',   role: 'Protagonist', want: 'out'},
+      {id: 'c2', name: 'Nicole', role: 'Deuteragonist', want: 'in'}
+    ];
+    proj.cards.push({id: 90, slot: '__shelf', kind: 'character', text: 'Skinny.'});
+    proj.cards.push({id: 91, slot: '__shelf', kind: 'clue', text: 'A trap, reset.'});
+
+    const { page, errors } = await open(browser, {account: PAID, projects: [proj]});
+    await page.evaluate(() => { state.activeId = state.projects[0].id; setView('notes', true); });
+    await page.waitForTimeout(400);
+
+    const offered = await page.evaluate(() => {
+      const pick = k => {
+        const card = [...document.querySelectorAll('.ncard.' + k)][0];
+        return card ? [...card.querySelectorAll('select')]
+          .some(s => /This note is about/.test(s.innerHTML)) : null;
+      };
+      return { character: pick('character'), clue: pick('clue') };
+    });
+    check('a character note offers the people in the story', offered.character === true);
+    check('and a clue does not, because it would do nothing there',
+      offered.clue === false, 'the attribution control is on a note it cannot serve');
+
+    const said = await page.evaluate(async () => {
+      const card = document.querySelector('.ncard.character');
+      const who = [...card.querySelectorAll('select')]
+        .find(s => /This note is about/.test(s.innerHTML));
+      who.value = 'c1';
+      who.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 200));
+      const p = state.projects[0];
+      return {
+        about: (p.cards.find(c => c.id === 90) || {}).about || '',
+        says: (document.querySelector('.ncard.character .face') || {}).textContent || '',
+        stillANote: p.cards.filter(c => c.kind === 'character').length
+      };
+    });
+    check('choosing somebody records it on the note', said.about === 'c1',
+      JSON.stringify(said));
+    check('and the card says whose it is', /Luke/.test(said.says), said.says);
+    check('and the note stays in Notes rather than being consumed',
+      said.stillANote === 1, 'the note left Notes when it was attributed');
+
+    const cleared = await page.evaluate(async () => {
+      const card = document.querySelector('.ncard.character');
+      const who = [...card.querySelectorAll('select')]
+        .find(s => /This note is about/.test(s.innerHTML));
+      who.value = '__off';
+      who.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 200));
+      return (state.projects[0].cards.find(c => c.id === 90) || {}).about || '';
+    });
+    check('and it can be taken back off again', cleared === '', cleared);
+
+    // and the page says it too
+    const printed = await page.evaluate(async () => {
+      const p = state.projects[0];
+      p.cards.find(c => c.id === 90).about = 'c2';
+      await exportPDF(p);
+      return (window.__PDF__ || {}).text || '';
+    });
+    check('and the PDF prints who a note is about',
+      /ABOUT NICOLE/i.test(printed), 'the attribution is on screen and not on paper');
+
+    check('no page errors attributing a note', errors.length === 0, errors.join('\n'));
     await page.close();
   }
 
