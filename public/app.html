@@ -6030,8 +6030,7 @@ async function exportPDF(which){
      the app lost a writer's work in the only place it gets seen.
      ====================================================================== */
   const PW = 612, PH = 792, M = 42;
-  const COLS = 2, CW = (PW - M*2 - 18) / COLS, CH = 132, GAP = 16;
-  let col = 0, row = 0;
+  const COLS = 2, CW = (PW - M*2 - 18) / COLS, GAP = 16;
   const b = proj.brief || {};
 
   /* The site's palette, not five flat greys. Beatfall is warm: the ink is a
@@ -6105,7 +6104,7 @@ async function exportPDF(which){
 
   let y = M + 14;
 
-  function newPage(){ doc.addPage(); pageNo++; header(); y = M + 14; col = 0; }
+  function newPage(){ doc.addPage(); pageNo++; header(); y = M + 14; }
   function room(n){ if (y + n > PH - M - 16) newPage(); }
 
   /* A section opens on its own page with its name and one line saying what it
@@ -6180,48 +6179,114 @@ async function exportPDF(which){
   }
 
   /* --------------------------------------------------------- 2. the board -- */
-  function slotBox(s, only){
-    if (col === 0 && y + CH > PH - M - 16) newPage();
-    const x = M + col * (CW + 18);
-    const cards = only || proj.cards.filter(c => c.slot === s.id);
+  /* A ROW OF BEATS, AS TALL AS THE ROW NEEDS.
 
-    if (cards.length){ fill(PAPER); doc.rect(x, y, CW, CH, "F"); }
-    draw(cards.length ? RULE : SOFT);
-    doc.setLineWidth(cards.length ? .9 : .6);
-    if (!cards.length) doc.setLineDashPattern([3, 3], 0);
-    doc.rect(x, y, CW, CH);
+     Every box used to be 132pt whatever was in it. On a fifteen beat board
+     that reads beautifully, because most beats are empty and a wall of equal
+     cards is the whole point. On a structure with one beat per act, which is
+     what a five act hour and a half hour comedy both are, it reads as three
+     index cards adrift on a sheet of paper with sixty points of nothing under
+     each one. Kris exported the same story into four shapes and the difference
+     was obvious.
+
+     So a ROW is measured before it is drawn and every box in it gets the same
+     height, which is what keeps it reading as a grid rather than as a ransom
+     note. Under a floor so an empty beat is still a card, and under a ceiling
+     so one enormous beat cannot ask for a page and a half.
+
+     And when a beat has more than the box can hold it now SAYS so. It always
+     truncated; it never admitted it, which on a board with a lot in one beat
+     is the document quietly dropping a writer's work again. */
+  const CH_MIN = 96, CH_MAX = 300, CARD_LINES = 7, BOX_LINES = 22;
+
+  function slotPlan(s, cards){
+    if (!cards.length){
+      serif(9, INK4, "italic");
+      return {empty: true, fn: doc.splitTextToSize(s.fn, CW - 22).slice(0, 4)};
+    }
+    mono(9.5, INK);
+    const runs = cards.map(c => doc.splitTextToSize(String(c.text || ""), CW - 22));
+    const shown = [];
+    let used = 0, cut = false;
+    for (const r of runs){
+      const kept = r.slice(0, CARD_LINES);
+      if (kept.length < r.length) cut = true;
+      if (used >= BOX_LINES){ cut = true; break; }
+      if (used + kept.length > BOX_LINES){
+        shown.push(kept.slice(0, BOX_LINES - used)); used = BOX_LINES; cut = true;
+      } else { shown.push(kept); used += kept.length; }
+    }
+    if (shown.length < runs.length) cut = true;
+    return {empty: false, shown, cut};
+  }
+
+  function slotNeeds(plan){
+    if (plan.empty) return 39 + plan.fn.length * 11 + 22;
+    const lines = plan.shown.reduce((n, r) => n + r.length, 0);
+    return 37 + lines * 12 + Math.max(0, plan.shown.length - 1) * 5
+         + (plan.cut ? 14 : 0) + 8;
+  }
+
+  function drawSlot(s, plan, x, top, h){
+    const full = !plan.empty;
+    if (full){ fill(PAPER); doc.rect(x, top, CW, h, "F"); }
+    draw(full ? RULE : SOFT);
+    doc.setLineWidth(full ? .9 : .6);
+    if (!full) doc.setLineDashPattern([3, 3], 0);
+    doc.rect(x, top, CW, h);
     doc.setLineDashPattern([], 0);
 
-    label(7.5, cards.length ? INK3 : INK4);
-    doc.text(s.name.toUpperCase(), x + 11, y + 17);
+    label(7.5, full ? INK3 : INK4);
+    doc.text(s.name.toUpperCase(), x + 11, top + 17);
     plain();
-    draw(cards.length ? RULE : SOFT); doc.setLineWidth(.5);
-    doc.line(x + 11, y + 23, x + CW - 11, y + 23);
+    draw(full ? RULE : SOFT); doc.setLineWidth(.5);
+    doc.line(x + 11, top + 23, x + CW - 11, top + 23);
 
-    if (cards.length){
+    if (full){
       mono(9.5, INK);
-      let ty = y + 37;
-      cards.forEach(c => {
-        doc.splitTextToSize(c.text, CW - 22).slice(0, 7).forEach(ln => {
-          if (ty < y + CH - 8){ doc.text(ln, x + 11, ty); ty += 12; }
+      let ty = top + 37;
+      // The row's height is the last word on what fits. Nothing is drawn past
+      // the bottom of the box even if the measuring was wrong, because a line
+      // outside its own box lands on the row underneath.
+      const floor = top + h - (plan.cut ? 20 : 8);
+      let spilled = false;
+      plan.shown.forEach(run => {
+        run.forEach(ln => {
+          if (ty > floor){ spilled = true; return; }
+          doc.text(ln, x + 11, ty); ty += 12;
         });
         ty += 5;
       });
+      if (plan.cut || spilled){
+        label(7, INK4, .5);
+        doc.text("MORE IN THE OUTLINE", x + 11, top + h - 9);
+        plain();
+      }
     } else {
       serif(9, INK4, "italic");
-      doc.splitTextToSize(s.fn, CW - 22).slice(0, 4)
-        .forEach((ln, i) => doc.text(ln, x + 11, y + 39 + i * 11));
+      plan.fn.forEach((ln, i) => doc.text(ln, x + 11, top + 39 + i * 11));
       label(7, GOLD);
-      doc.text("OPEN", x + 11, y + CH - 12);
+      doc.text("OPEN", x + 11, top + h - 11);
       plain();
     }
+  }
 
-    if (++col >= COLS){ col = 0; y += CH + GAP; }
+  function slotRow(slots){
+    const plans = slots.map(s => slotPlan(s, proj.cards.filter(c => c.slot === s.id)));
+    /* The TALLEST box in the row decides the row, then the floor and the
+       ceiling. Written as one nested Math.min/Math.max this said the opposite
+       and took the SHORTEST, so a beat with two cards beside a beat with one
+       was given the one-card height and spilled its second card out through
+       the bottom of its own box and across the row underneath. */
+    const need = Math.max(...plans.map(slotNeeds));
+    const h = Math.max(CH_MIN, Math.min(CH_MAX, need));
+    if (y + h > PH - M - 16) newPage();
+    slots.forEach((s, i) => drawSlot(s, plans[i], M + i * (CW + 18), y, h));
+    y += h + GAP;
   }
 
   function actHeading(name){
-    if (col !== 0){ col = 0; y += CH + GAP; }          // finish the row first
-    if (y + 26 + CH > PH - M - 16) newPage();
+    if (y + 26 + CH_MIN > PH - M - 16) newPage();
     label(8.5, INK2, 1);
     doc.text(name.toUpperCase(), M, y + 8);
     plain();
@@ -6357,9 +6422,9 @@ async function exportPDF(which){
 
   S.acts.forEach((actName, ai) => {
     actHeading(actName);
-    S.slots.filter(x => x.act === ai).forEach(x => slotBox(x));   // not .forEach(slotBox), or the index would land in `only`
+    const inAct = S.slots.filter(x => x.act === ai);
+    for (let i = 0; i < inAct.length; i += COLS) slotRow(inAct.slice(i, i + COLS));
   });
-  if (col !== 0){ col = 0; y += CH + GAP; }
 
   sectionHead("The outline", "The story beat by beat, with everything standing in each one.");
   S.acts.forEach((actName, ai) => {
@@ -10978,10 +11043,31 @@ const blobBase64 = blob => new Promise((ok, no) => {
    else on this page reads c.text: the search box, the delete confirm, the
    Outline, the export. An empty string would leave holes in all of them, so
    the filename does the work until the writer types something better. */
+/* AND A FILENAME IS NOT ALWAYS WORDS.
+
+   A picture made by an image tool arrives called something like
+   "u3318617226 Black man 52 years old post apocalyptic survivor 421fec12 2780
+   40ab b02a 6c7193860d6f 1.png", and printing that whole thing as the caption
+   gives a writer three lines of hexadecimal under a thumbnail. The useful part
+   is in the middle, so the identifiers are shaved off each END and whatever is
+   left between them is kept. Only the ends: a number in the middle of a
+   sentence is usually "52 years old" and belongs there. */
+const idish = t =>
+     /^[0-9]+$/.test(t)                                   // a bare number
+  || /^[a-z]?[0-9]{6,}$/i.test(t)                         // u3318617226
+  || (/^[0-9a-f]{4,}$/i.test(t) && /[0-9]/.test(t) && /[a-z]/i.test(t))
+  || (t.length >= 12 && !/[aeiou]/i.test(t))              // a long run with no vowels
+  || (t.length >= 6 && /[0-9]/.test(t) && /[a-z]/i.test(t) && !/[aeiou]/i.test(t));
+                                                          // DSC00123, IMG4471
+
 function captionFor(file){
-  const base = String(file && file.name || "").replace(/\.[^.]+$/, "")
-    .replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return base ? base.slice(0, 120) : "Picture";
+  let words = String(file && file.name || "").replace(/\.[^.]+$/, "")
+    .replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  while (words.length && idish(words[0])) words.shift();
+  while (words.length && idish(words[words.length - 1])) words.pop();
+  const base = words.join(" ");
+  // What is left of "IMG_4471" is "IMG", which is not a caption either.
+  return base.length >= 4 ? base.slice(0, 120) : "Picture";
 }
 
 /* Pictures can be added from two pages, so a refusal has to be able to appear

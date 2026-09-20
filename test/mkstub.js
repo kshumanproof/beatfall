@@ -10,17 +10,29 @@ const stub = `<script>
 window.jspdf = { jsPDF: function(){
   const calls = [];
   let size = 10;                       // whatever setFontSize last said
+  let page = 1;                        // and which sheet we are on
   const api = {
     internal: {pageSize: {getWidth: () => 595, getHeight: () => 842}, getNumberOfPages: () => 1},
     setFont(){return api}, setFontSize(n){size = n || size; return api}, setTextColor(){return api},
     setDrawColor(){return api}, setFillColor(){return api}, setLineWidth(){return api},
-    text(t){calls.push(String(t)); return api},
+    /* WHERE a word landed, not just that it was asked for. A card drawn
+       outside its own box is still on the page, so a suite watching only the
+       words cannot see it: it took a writer opening the file to notice a card
+       spilling through the bottom of its box onto the row underneath. */
+    text(t, x, y){
+      calls.push(String(t));
+      (window.__TEXTS__ = window.__TEXTS__ || []).push({page, t: String(t), x, y});
+      return api;
+    },
     /* Recorded, not swallowed. A rule that runs the whole height of a page is
        the shape of a page-break bug, and it is invisible to a suite that only
        watches the words. */
     line(x1,y1,x2,y2){ (window.__LINES__ = window.__LINES__ || []).push([x1,y1,x2,y2]); return api },
-    rect(){return api},
-    roundedRect(){return api}, addPage(){return api}, setPage(){return api},
+    rect(x, y, w, h){
+      (window.__RECTS__ = window.__RECTS__ || []).push({page, x, y, w, h});
+      return api;
+    },
+    roundedRect(){return api}, addPage(){ page++; return api }, setPage(){return api},
     setLineDashPattern(){return api}, setLineJoin(){return api}, setLineCap(){return api},
     addImage(){return api}, setProperties(){return api}, setCharSpace(){return api},
     /* A REAL WRAP, ROUGHLY.

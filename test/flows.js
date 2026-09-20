@@ -433,15 +433,40 @@ async function open(browser, projects, account = PAID) {
             + 'the run of them reaches the foot of one and carries on to the next, '
             + 'which is card number ' + (i + 1) + ' of the pile.'});
     }
+    /* Every board card carries a word nothing else in the document uses, so
+       the check below can find them among everything else drawn. */
+    proj.cards.forEach(c => { if (c.slot !== '__shelf' && c.slot !== '__none')
+      c.text = 'BOARDCARD ' + c.text; });
+    /* A second card on the beat that shares the first row with a beat holding
+       one. That is the shape the row measurement got wrong: taking the
+       SHORTEST need rather than the tallest gave this row the one-card height
+       and this card was silently clipped out of the document. */
+    /* One token, because the stand-in wraps text now and a phrase long enough
+       to be distinctive is also long enough to be split across two draw calls,
+       which is how a check goes red against code that is correct. */
+    proj.cards.push({id: 300, slot: 'theme', declared: true,
+      text: 'BOARDCARD SECONDCARD'});
+
     const { page, errors } = await open(browser, [proj]);
     const pdf = await page.evaluate(async () => {
-      window.__LINES__ = [];
+      window.__LINES__ = []; window.__TEXTS__ = []; window.__RECTS__ = [];
       await exportPDF(P());
       return window.__PDF__ || null;
     });
-    const rules = await page.evaluate(() => window.__LINES__ || []);
-    // Everything after the Vision heading, which is where the contact sheet is.
-    const loose0 = t => (String(t).split(/\bVISION\b/i)[1] || '');
+    const rules  = await page.evaluate(() => window.__LINES__ || []);
+    const texts  = await page.evaluate(() => window.__TEXTS__ || []);
+    const boxes  = await page.evaluate(() => window.__RECTS__ || []);
+    /* Everything the document drew AFTER a given section heading.
+       Splitting on the words themselves was wrong the moment a board card
+       could say "MORE IN THE OUTLINE": the split then cut at the marker rather
+       than at the heading and handed back a scrap of the board section. A
+       heading is a draw call all of its own, so match the whole call. */
+    const after = (t, head) => {
+      const calls = String(t).split(' | ');
+      const at = calls.findIndex(c => c.trim().toUpperCase() === head);
+      return at < 0 ? '' : calls.slice(at + 1).join(' ');
+    };
+    const loose0 = t => after(t, 'VISION');
     /* The stand-in jsPDF wraps text the way a real one does now, so a sentence
        arrives as several separate draw calls. Anything looking for a phrase has
        to look at the document rather than at one call. */
@@ -467,7 +492,7 @@ async function open(browser, projects, account = PAID) {
          cards and no typed passage appeared nowhere at all and a writer's work
          vanished in the only place it gets seen. Everything standing in a beat
          prints under that beat now. */
-      const outline = pdf.text.split(/THE OUTLINE/i)[1] || '';
+      const outline = after(pdf.text, 'THE OUTLINE');
       check('the outline section exists at all', !!outline, 'no OUTLINE heading');
       check('and carries the cards standing in each beat',
         /the card for open/i.test(outline), 'cards are missing from the outline');
@@ -495,8 +520,7 @@ async function open(browser, projects, account = PAID) {
         /a road nobody has decided about/i.test(loose0(pdf.text)),
         'the undecided picture is missing from the contact sheet');
       check('a picture filed under a beat prints under that beat',
-        /rain on the windscreen/i.test((pdf.text.split(/THE OUTLINE/i)[1] || '')
-          .split(/\bVISION\b/i)[0] || ''),
+        /rain on the windscreen/i.test(outline.split(' VISION ')[0] || ''),
         'a filed picture did not print with its beat');
       check('and is not repeated in the contact sheet',
         !/rain on the windscreen/i.test(loose0(pdf.text)),
@@ -533,6 +557,42 @@ async function open(browser, projects, account = PAID) {
         + 'pt, which is most of a page');
       check('and some rules were actually drawn, so that proves something',
         rules.length > 20, rules.length + ' lines drawn');
+
+      /* A CARD STAYS INSIDE ITS OWN BOX.
+         The board sizes each row to the tallest beat in it. Written once as a
+         nested Math.min/Math.max that said the opposite, it took the SHORTEST,
+         so a beat with two cards beside a beat with one was given the one-card
+         height and spilled its second card out through the bottom of its box
+         and across the row underneath. Still on the page, still in the right
+         order, invisible to anything watching only the words. */
+      /* Only the BOARD section. The same card text is drawn again in the
+         outline, where it has a rule down its left and no box at all, so a
+         check that simply demanded a box would fail on the section that is
+         correct. A board line starts at a box's own left inset, so a line
+         sharing an x with some box on its page is a board line, and then it
+         has to sit inside one of them. */
+      const inset = (t, b) => Math.abs(t.x - (b.x + 11)) < 2;
+      const strays = texts.filter(t => /^BOARDCARD/.test(t.t)).filter(t => {
+        const cols = boxes.filter(b => b.page === t.page && inset(t, b));
+        if (!cols.length) return false;                 // not the board section
+        return !cols.some(b => t.y >= b.y - 1 && t.y <= b.y + b.h + 1);
+      });
+      check('every board card is drawn inside its own box', strays.length === 0,
+        strays.length + ' lines outside any box, first: '
+        + JSON.stringify(strays[0] || null));
+      /* AND NOTHING WAS QUIETLY CLIPPED OUT OF ITS BOX. The check above proves
+         no card is drawn OUTSIDE its box; it cannot tell a box that was too
+         short, because the drawing stops at the edge either way. This is the
+         other half: a card that had room has to actually be on the board. */
+      const onBoard = texts.filter(t =>
+        boxes.some(b => b.page === t.page && Math.abs(t.x - (b.x + 11)) < 2));
+      check('a beat sharing a row with a shorter one still prints all its cards',
+        onBoard.some(t => /SECONDCARD/.test(t.t)),
+        'the row took its height from the SHORTER beat and clipped the taller one');
+
+      check('and there were cards on the board to check',
+        texts.filter(t => /^BOARDCARD/.test(t.t)).length > 5,
+        'the fixture drew no board cards, so that check proved nothing');
 
       check('the filename is the project', /night-haul/i.test(pdf.name || ''), pdf.name);
     }

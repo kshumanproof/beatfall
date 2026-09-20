@@ -644,6 +644,47 @@ full 1600 would double the file for detail no printer shows. A picture that will
 not load is simply absent, because a document that refuses to build over a swept
 photograph is worse than one that prints the writing.
 
+**THE BOARD SIZES EACH ROW TO ITS TALLEST BEAT.** Every box used to be 132pt
+whatever was in it. On a fifteen beat board that reads beautifully, because
+most beats are empty and a wall of equal cards is the point. On a five act hour
+or a half hour comedy, which have ONE beat per act, it reads as three index
+cards adrift on a sheet of paper. Kris exported the same story into four shapes
+and the difference was obvious. `slotRow` measures the row first, under a floor
+(`CH_MIN`) so an empty beat is still a card and a ceiling (`CH_MAX`) so one
+enormous beat cannot ask for half a page. A box that cannot show everything now
+says MORE IN THE OUTLINE; it always truncated, it never admitted it.
+
+Two traps, both hit:
+- `Math.max(CH_MIN, Math.min(CH_MAX, ...needs))` takes the SHORTEST need, not
+  the tallest. A beat with two cards beside a beat with one got the one-card
+  height and spilled its second card through the bottom of its box onto the row
+  underneath. Measure with an explicit `Math.max(...needs)` and cap after.
+- `drawSlot` also clips at the box edge, which is belt and braces AND the reason
+  one test was not enough: with the clip in place the bad height stops spilling
+  and starts silently dropping. `flows.js` checks both halves, that nothing is
+  drawn outside a box and that a beat sharing a row with a shorter one still
+  prints all its cards. Put the bug back and only the second one goes red.
+
+**The stand-in records WHERE text and boxes land, not just what was asked for.**
+A card drawn outside its own box is still on the page and still in the right
+order, so a suite watching only the words cannot see it. `__TEXTS__` and
+`__RECTS__` carry page, x and y.
+
+**A section heading is a whole draw call. Match it as one.** `split(/THE
+OUTLINE/i)` broke the moment a board card could say "MORE IN THE OUTLINE": the
+split cut at the marker and handed back a scrap of the board section. Use the
+`after(text, 'THE OUTLINE')` helper, which finds the call that IS the heading.
+
+**And a test phrase cannot be longer than a line.** The stand-in wraps now, so a
+distinctive phrase is also a phrase that gets split across two draw calls. Assert
+on a single token.
+
+**A filename is not always words.** An image tool names a file
+"u3318617226 Black man 52 years old post apocalyptic survivor 421fec12 2780 40ab
+b02a 6c7193860d6f 1.png", and the caption was all of it. `captionFor` shaves
+identifier-looking tokens off each END and keeps what is between them, because a
+number in the middle of a sentence is usually "52 years old" and belongs there.
+
 **THE STAND-IN jsPDF NOW WRAPS TEXT, AND THAT MATTERS MORE THAN IT SOUNDS.**
 `splitTextToSize` in `mkstub.js` used to hand the whole string back as one
 line. So in the suite nothing ever wrapped, nothing reached the foot of a page,
