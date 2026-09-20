@@ -3,6 +3,10 @@
 import fs from 'fs';
 fs.mkdirSync('api/_lib', { recursive: true });
 fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
+/* core.js is copied whole, so anything in it that reaches a real boundary has
+   to be swapped here too. dropImages lives there now because it is called from
+   BOTH the nightly sweep and the delete button, and the bucket it is handed
+   comes from the caller, which is where the swap below already bites. */
 // The email bodies are plain modules with no boundary to swap, so they are
 // copied as they are and the suite exercises the real markup.
 fs.mkdirSync('api/_email', { recursive: true });

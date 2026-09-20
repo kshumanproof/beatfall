@@ -818,6 +818,21 @@ own; the server does it again because "the client already did it" is not a thing
 to believe about somebody's location. Hand-rolled JPEG segment walk, no
 dependency, tested against a JPEG built with a GPS tag in it.
 
+**THERE ARE TWO WAYS TO DELETE AN ACCOUNT AND BOTH MUST SWEEP THE BUCKET.**
+The nightly job in `api/cleanup.js` always did. `api/account.js`, the button a
+person presses in their own Settings, did not: it cancelled Stripe, deleted the
+user, and left every photograph in the bucket forever, because the rows that say
+where the files are cascade off the user row and files do not. Kris found it by
+asking whether deleting an account removes the photographs. The Privacy Policy
+promises it does, and the path people actually use was the one that did not.
+
+`dropImages(db, store, userId)` lives in `_lib/core.js` now, called from both,
+and takes the bucket as an argument so the test harness's boundary swap still
+bites at the call site. **If a third way to delete an account ever exists, it
+calls this too.** If it fails, the delete is abandoned whole: a half-deleted
+account whose pictures survive is recoverable because the rows can still find
+them; the other order is not recoverable at all.
+
 **Deletion is the whole reason `public.images` exists.** Rows cascade off a user
 row; files in a bucket do not. So every stored object gets a row, and three
 sweeps in `api/cleanup.js` use it:

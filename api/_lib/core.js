@@ -487,6 +487,48 @@ export function markWorkDay(db, userId, day) {
    is counted from the days this returns, so the fetch was the cap. 400 covers
    thirteen months and is about 8KB on the wire. THE CLIENT'S OWN LIMIT HAS TO
    MATCH: see CHAIN_MAX in public/app.html. */
+/* ============================================================================
+   TAKING SOMEBODY'S PHOTOGRAPHS AWAY, PROPERLY.
+
+   This lives here, and takes the bucket as an argument, because it has to be
+   called from TWO places and the second one was missed.
+
+   Rows in public.images cascade off the user row. Files in a storage bucket do
+   not: they have no foreign key to cascade from. So the files must go FIRST,
+   while the rows that say where they are still exist. Delete the user first
+   and the rows vanish and the photographs stay in the bucket forever,
+   unreferenced and unreachable by anything.
+
+   The nightly sweep got that right. `api/account.js`, which is the button an
+   actual person presses in their own settings, did not: it cancelled Stripe
+   and deleted the user, and left every picture behind. Kris found it by asking
+   whether deleting an account removes the photographs. The privacy page
+   promises it does, and the path people actually use was the one that did not
+   honour it.
+
+   One copy, called from both. If a third way to delete an account ever exists,
+   it calls this too.
+   ============================================================================ */
+export const IMAGE_BUCKET = 'vision';
+
+export async function dropImages(db, store, userId) {
+  const { data: rows } = await db.from('images')
+    .select('path, bytes').eq('user_id', userId);
+  if (!rows || !rows.length) return { files: 0, bytes: 0 };
+
+  const paths = rows.map(r => r.path).filter(Boolean);
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error } = await store.remove(paths.slice(i, i + 100));
+    /* Stop on a storage failure rather than deleting the rows anyway. A row
+       with no file is untidy and self-correcting; a file with no row is
+       unfindable forever, which is the one outcome this whole function exists
+       to prevent. */
+    if (error) { console.error('image sweep failed', userId, error); return null; }
+  }
+  await db.from('images').delete().eq('user_id', userId);
+  return { files: rows.length, bytes: rows.reduce((n, r) => n + (r.bytes || 0), 0) };
+}
+
 export async function workDays(db, userId, limit = 400) {
   const { data } = await db.from('work_days')
     .select('day').eq('user_id', userId)

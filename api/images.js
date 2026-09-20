@@ -23,9 +23,10 @@
 //   and files do not, and a sweep that had to hunt for paths inside a JSON
 //   column would miss the first one somebody hand-edited.
 // ============================================================================
-import { admin, requireUser, send, readBody, track } from './_lib/core.js';
+import { admin, requireUser, send, readBody, track,
+         IMAGE_BUCKET } from './_lib/core.js';
 
-const BUCKET = 'vision';
+const BUCKET = IMAGE_BUCKET;
 
 /* SIZED FOR THE FREE PLAN, WHICH IS ONE GIGABYTE FOR THE WHOLE PLATFORM.
  *

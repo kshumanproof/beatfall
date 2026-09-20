@@ -13,7 +13,7 @@
 // Called by a scheduled request, never by a browser. It authenticates on
 // CRON_SECRET, so without that set it refuses to do anything at all.
 // ============================================================================
-import { admin } from './_lib/core.js';
+import { admin, dropImages, IMAGE_BUCKET } from './_lib/core.js';
 import { DELETION_WARNING_HTML } from './_email/deletion-warning.js';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
@@ -43,7 +43,7 @@ const BATCH = 200;              // a slow scheduled job is fine; a timeout is no
  * account can be perfectly awake, signing in every week to read its closed
  * boards, and still not be paying for the bucket it filled. */
 const IMAGES_AFTER_LAPSE = 30 * 24 * 60 * 60 * 1000;
-const BUCKET = 'vision';
+const BUCKET = IMAGE_BUCKET;
 
 // Never touch an account that is still paying, or still inside its trial.
 const LIVE = ['active', 'trialing', 'past_due'];
@@ -51,31 +51,6 @@ const LIVE = ['active', 'trialing', 'past_due'];
 function send(res, status, body) {
   res.setHeader('Content-Type', 'application/json');
   res.status(status).send(JSON.stringify(body));
-}
-
-/* Take every stored picture belonging to one writer, files and rows both.
- *
- * Returns how many bytes came back, so the job can report something truthful
- * rather than a count of rows nobody can check. Storage removes in batches
- * because a writer at the quota has a few hundred objects and one enormous
- * request is how a scheduled job starts timing out at four in the morning. */
-async function dropImages(db, userId) {
-  const { data: rows } = await db.from('images')
-    .select('path, bytes').eq('user_id', userId);
-  if (!rows || !rows.length) return { files: 0, bytes: 0 };
-
-  const store = admin().storage.from(BUCKET);
-  const paths = rows.map(r => r.path).filter(Boolean);
-  for (let i = 0; i < paths.length; i += 100) {
-    const { error } = await store.remove(paths.slice(i, i + 100));
-    /* Stop on a storage failure rather than deleting the rows anyway. A row
-       with no file is untidy and self-correcting; a file with no row is
-       unfindable forever, which is the one outcome this whole function
-       exists to prevent. */
-    if (error) { console.error('image sweep failed', userId, error); return null; }
-  }
-  await db.from('images').delete().eq('user_id', userId);
-  return { files: rows.length, bytes: rows.reduce((n, r) => n + (r.bytes || 0), 0) };
 }
 
 async function warn(db, profile) {
@@ -201,7 +176,7 @@ export default async function handler(req, res) {
            are. The bucket would keep them, unreferenced and unreachable, which
            is the Privacy Policy quietly becoming untrue about photographs of
            people who never heard of Beatfall. */
-        await dropImages(db, p.id);
+        await dropImages(db, admin().storage.from(BUCKET), p.id);
         // Deleting the auth user cascades to profile, projects, usage and events.
         const { error: delErr } = await db.auth.admin.deleteUser(p.id);
         if (delErr) { console.error('cleanup delete failed', p.id, delErr); continue; }
@@ -260,7 +235,7 @@ export default async function handler(req, res) {
     if (!count) continue;
 
     if (dry) { purged.push(p.id); continue; }
-    const gone = await dropImages(db, p.id);
+    const gone = await dropImages(db, admin().storage.from(BUCKET), p.id);
     if (gone) { purged.push(p.id); purgedBytes += gone.bytes; }
   }
 

@@ -222,6 +222,89 @@ const post = (body) => ({ method:'POST', body });
     + '  (a phone posting a photo would sign the writer out of their desk)');
 }
 
+// ---------- the button a person actually presses
+/* THE OTHER DOOR INTO THE SAME ROOM.
+ *
+ * The nightly sweep always removed an abandoned account's photographs before
+ * removing the account, in that order, because rows cascade off a user row and
+ * files in a bucket do not: delete the user first and nothing is left that
+ * knows where the pictures are.
+ *
+ * The delete button in Settings did not. It cancelled Stripe and deleted the
+ * user, and every photograph stayed in the bucket forever, unreachable. That
+ * is the path a real person uses, and the Privacy Policy promises an account
+ * is deleted along with everything in it. Kris found it by asking.
+ */
+{
+  const account = (await import('./api/account.real.js')).default;
+  const db = makeDb(P({ stripe_subscription_id: null }), { images: [
+    { path: 'u1/a.jpg', user_id: 'u1', bytes: 100 },
+    { path: 'u1/b.jpg', user_id: 'u1', bytes: 200 },
+    { path: 'u2/theirs.jpg', user_id: 'u2', bytes: 300 }
+  ]});
+  db.auth = { admin: { deleteUser: async id => {
+    (globalThis.__GONE__ = globalThis.__GONE__ || []).push(id);
+    /* The order is the whole point, so record what the bucket looked like at
+       the moment the user row went. If the pictures had not gone by now they
+       never would: this is where the rows that find them disappear. */
+    globalThis.__FILES_AT_DELETE__ = [...store.files.keys()];
+    return { error: null };
+  } } };
+  globalThis.__GONE__ = [];
+  const store = makeStore();
+  ['u1/a.jpg', 'u1/b.jpg', 'u2/theirs.jpg'].forEach(p => store.files.set(p, true));
+
+  globalThis.__AUTH__  = { db, user: { id: 'u1', email: 'w@x.y' }, profile: db.state.profile };
+  globalThis.__STORE__ = store;
+  const r = res();
+  await account({ headers: {}, method: 'POST',
+    body: { action: 'delete_account', confirm: 'w@x.y' } }, r);
+
+  check('deleting your own account succeeds', r.code === 200, r.code + ' ' + JSON.stringify(r.body));
+  check('and the account is gone', (globalThis.__GONE__ || []).indexOf('u1') >= 0);
+  check('your photographs go with it',
+    !store.files.has('u1/a.jpg') && !store.files.has('u1/b.jpg'),
+    'the bucket kept files for an account that no longer exists');
+  check('and they go BEFORE the account, or nothing can find them',
+    (globalThis.__FILES_AT_DELETE__ || []).every(p => p.indexOf('u1/') !== 0),
+    'the user row went first, which orphans every file it pointed at: '
+    + JSON.stringify(globalThis.__FILES_AT_DELETE__));
+  check('and the rows go too', !db.state.images.some(i => i.user_id === 'u1'),
+    JSON.stringify(db.state.images));
+  check('somebody else’s pictures are untouched', store.files.has('u2/theirs.jpg'));
+}
+
+// ---------- and if the bucket refuses, nothing happens at all
+{
+  const account = (await import('./api/account.real.js')).default;
+  const db = makeDb(P({ stripe_subscription_id: null }), { images: [
+    { path: 'u1/a.jpg', user_id: 'u1', bytes: 100 }
+  ]});
+  globalThis.__GONE2__ = [];
+  db.auth = { admin: { deleteUser: async id => {
+    globalThis.__GONE2__.push(id); return { error: null };
+  } } };
+  const store = makeStore();
+  store.files.set('u1/a.jpg', true);
+  store.remove = async () => ({ error: { message: 'storage down' } });
+
+  globalThis.__AUTH__  = { db, user: { id: 'u1', email: 'w@x.y' }, profile: db.state.profile };
+  globalThis.__STORE__ = store;
+  const r = res();
+  await account({ headers: {}, method: 'POST',
+    body: { action: 'delete_account', confirm: 'w@x.y' } }, r);
+
+  check('a bucket that refuses stops the whole delete', r.code === 502, r.code);
+  check('and the account is still there',
+    globalThis.__GONE2__.length === 0,
+    'the account was deleted anyway and its pictures are now unreachable');
+  check('and so are the rows that can still find the files',
+    db.state.images.length === 1, JSON.stringify(db.state.images));
+  check('and the writer is told nothing was removed',
+    /nothing has been deleted/i.test((r.body || {}).message || ''),
+    JSON.stringify(r.body));
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

@@ -5,7 +5,10 @@
 // ============================================================================
 import Stripe from 'stripe';
 import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE,
-         PRICE_MONTH, PRICE_YEAR, track } from './_lib/core.js';
+         PRICE_MONTH, PRICE_YEAR, track, admin, dropImages,
+         IMAGE_BUCKET } from './_lib/core.js';
+
+const BUCKET = IMAGE_BUCKET;
 
 export default async function handler(req, res) {
   /* THE PHONE IS LET IN THROUGH TWO DOORS AND NO OTHERS.
@@ -182,6 +185,33 @@ export default async function handler(req, res) {
           });
         }
       }
+      /* THE PHOTOGRAPHS GO FIRST, AND THIS IS NOT A PREFERENCE.
+
+         Rows in public.images cascade off the user row. Files in a storage
+         bucket do not. Delete the user first and the rows that say where the
+         files are vanish, and the pictures stay in the bucket forever with
+         nothing left that can find them.
+
+         The nightly sweep in api/cleanup.js has always done this in the right
+         order. THIS path, the button a person actually presses in their own
+         settings, did not, and it is the one that matters: the Privacy Policy
+         promises an account is deleted along with everything in it, and a
+         writer's photographs are very often of other people who never heard of
+         Beatfall.
+
+         If it fails, nothing else happens. A half-deleted account whose
+         pictures are still there is recoverable, because the rows are still
+         there to find them by; the other order is not recoverable at all. */
+      const swept = await dropImages(db, admin().storage.from(BUCKET), user.id);
+      if (swept === null) {
+        return send(res, 502, {
+          error: 'delete_failed',
+          message: "Your pictures couldn't be removed just now, so nothing has been "
+                 + 'deleted and nothing has changed. Try again in a moment, or write '
+                 + 'to support@beatfall.app.'
+        });
+      }
+
       // Written before the row it points at disappears.
       track(db, user.id, 'account_deleted');
       const { error: delErr } = await db.auth.admin.deleteUser(user.id);
