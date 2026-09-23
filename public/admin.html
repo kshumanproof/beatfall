@@ -25,6 +25,25 @@
     letter-spacing:.1em;color:var(--ink-3);margin:0 0 10px}
   .cap div{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
   .cap b{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  /* The second figure on a money row: how many PEOPLE, beside how many times.
+     Four exhaustions from one writer and four from four are the same number
+     and completely different news. */
+  .cap .who{font-family:var(--sans);font-size:11.5px;color:var(--ink-4);
+    font-weight:400;margin-left:6px}
+  /* A stage nobody has reached. Stated rather than blank, because zero is a
+     real answer here and an empty row reads as a panel that failed to load. */
+  .cap div.none b{color:var(--ink-4)}
+  .mine{margin:-6px 0 18px;font-size:12px}
+  .fold{margin:0 0 18px}
+  .fold summary{cursor:pointer;list-style:none;padding:11px 14px;
+    background:var(--surface);border:1px solid var(--rule);border-radius:2px;
+    font-family:var(--sans);font-size:12.5px;color:var(--ink-2)}
+  .fold summary::-webkit-details-marker{display:none}
+  .fold summary::before{content:"\203A";display:inline-block;margin-right:9px;
+    color:var(--ink-4);transition:transform .15s}
+  .fold[open] summary::before{transform:rotate(90deg)}
+  .fold summary:hover{border-color:var(--ink-4)}
+  .fold[open] summary{margin-bottom:14px}
   .kindbits{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
 
   /* The funnel. A bar chart rather than a list of numbers, because the useful
@@ -162,6 +181,22 @@
 
   <div id="body" hidden>
     <div class="stats" id="stats"></div>
+    <p class="muted mine" id="mine"></p>
+
+    <!-- THE MONEY PATH. First, because during a test it is the only thing on
+         this page that can tell you the product is a business rather than a
+         demo, and because running out of credits is the moment everything
+         turns on. -->
+    <div class="panel">
+      <h2>Does the money work</h2>
+      <p class="muted" style="margin-top:-6px;max-width:74ch">
+        Running out is not a fault to be rescued from, it is the test. Somebody hits the
+        wall and then they either buy or they stop, and both answers are worth having.
+        Your own accounts are counted here, unlike everywhere else on this page: this
+        asks whether the plumbing works, and you testing it is the evidence.
+      </p>
+      <div class="caps" id="money"></div>
+    </div>
 
     <div class="panel">
       <h2>Where the caps should sit</h2>
@@ -171,6 +206,14 @@
       </p>
       <div class="caps" id="caps"></div>
     </div>
+
+    <!-- FOLDED AWAY UNTIL THERE ARE ENOUGH WRITERS TO SAY ANYTHING.
+         These four read "nobody has done this yet" at five accounts, and a
+         page that mostly says that teaches you to stop opening it. They are
+         the right panels and this is the wrong month for them, so they are
+         one press away rather than gone. -->
+    <details class="fold" id="growth">
+      <summary><span>Growth, once there are enough people to mean anything</span></summary>
 
     <div class="panel">
       <h2>The funnel</h2>
@@ -210,6 +253,15 @@
     </div>
 
     <div class="panel">
+      <h2>What people are doing</h2>
+      <div class="kindbits" id="events"></div>
+    </div>
+
+    </details>
+
+    <!-- OUT of the fold. The whole point of the test is finding what breaks,
+         so this is the panel to read every morning. -->
+    <div class="panel">
       <h2>What went wrong</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
         Churn because Beatfall did not help is a product problem. Churn because the import
@@ -217,11 +269,6 @@
       </p>
       <div class="kindbits" id="failures"></div>
       <div class="kindbits" id="reasons" style="margin-top:10px"></div>
-    </div>
-
-    <div class="panel">
-      <h2>What people are doing</h2>
-      <div class="kindbits" id="events"></div>
     </div>
 
     <div class="panel">
@@ -268,8 +315,40 @@ async function load(days) {
     ['good', t.returned, 'came back after day one'],
     ['good', t.paying, 'paying'],
     ['warn', BF.money(t.cost_usd), 'API cost, ' + d.window_days + 'd'],
-    ['', t.calls, 'AI calls']
+    // "AI calls" was the last breach of the naming rule left anywhere in the
+    // product. Only you read this page, which is exactly why it survived.
+    ['', t.calls, 'writing help calls']
   ].map(([c,n,l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+
+  /* What was left out of those six tiles, said out loud. Every one of them
+     counts external accounts only now, and your own testing is real API money
+     even though it is not a customer signal. */
+  const mine = d.mine || {};
+  document.getElementById('mine').textContent = mine.people
+    ? `Plus ${mine.people} of your own account${mine.people === 1 ? '' : 's'}: `
+      + `${mine.calls} call${mine.calls === 1 ? '' : 's'}, ${BF.money(mine.cost_usd)}. `
+      + 'Kept out of the figures above so they answer questions about writers.'
+    : '';
+
+  /* ------------------------------------------------------------- money ----
+     Two chains rather than a pile of event names. The question is never "how
+     many people ran out", it is "of the people who ran out, how many bought",
+     and that only reads as a sequence. */
+  const mstage = s => `<div${s.n ? '' : ' class="none"'}><span>${esc(s.label)}</span>`
+    + `<b>${s.n}<span class="who">${s.who} ${s.who === 1 ? 'person' : 'people'}</span></b></div>`;
+  const mn = d.money || {topup: [], plan: []};
+  document.getElementById('money').innerHTML = `
+    <div class="cap"><h3>Running out, and topping up</h3>
+      ${(mn.topup || []).map(mstage).join('')}</div>
+    <div class="cap"><h3>Subscribing</h3>
+      ${(mn.plan || []).map(mstage).join('')}</div>
+    <div class="cap"><h3>${d.stripe_configured
+        ? (d.stripe_live ? 'Stripe is live' : 'Stripe is in test mode')
+        : 'Stripe is not connected'}</h3>
+      <div><span>Cards that work</span><b>${d.stripe_live ? 'real' : 'test only'}</b></div>
+      <div><span>Money that moves</span><b>${d.stripe_live ? 'real' : 'none'}</b></div>
+      <div><span>Every other step</span><b>real</b></div>
+    </div>`;
 
   const c = d.credits_per_active_user, m = d.cost_per_active_user_usd;
   // Falls back only so an older deployed API doesn't blank the card. The

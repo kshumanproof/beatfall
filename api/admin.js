@@ -27,7 +27,11 @@ export default async function handler(req, res) {
       // that true rather than a promise. card_count is maintained by a trigger
       // in the database, so counting never requires the text.
       db.from('projects').select('user_id, card_count, updated_at, is_sample'),
-      db.from('events').select('user_id, name, created_at').gte('created_at', since).limit(5000)
+      /* `props` joins the select so the money path can tell a top-up checkout
+         from a subscription one. They are the same event name with a different
+         plan on them, and without this the two are indistinguishable. */
+      db.from('events').select('user_id, name, props, created_at')
+        .gte('created_at', since).limit(5000)
     ]);
 
   const byUser = {};
@@ -182,17 +186,86 @@ export default async function handler(req, res) {
   const reasons = {};
   ext.forEach(r => { if (r.cancel_reason) reasons[r.cancel_reason] = (reasons[r.cancel_reason] || 0) + 1; });
 
+  /* ----------------------------------------------------- the money path --
+   *
+   * Running out of credits is not a failure to be rescued from. It is the one
+   * moment that decides whether this is a business, and it has to be watched
+   * rather than prevented: somebody hits the wall, and then they either buy
+   * more or they stop. Both answers are worth knowing and only one of them is
+   * visible anywhere today.
+   *
+   * All three events already existed. They sat in an undifferentiated list of
+   * event names and counts, which is a debug view: it can tell you that four
+   * people ran out and two bought credits, and it cannot tell you whether
+   * those two were among the four.
+   *
+   * EVERYONE IS COUNTED HERE, INCLUDING YOUR OWN ACCOUNTS, and that is the one
+   * deliberate exception on this page. Everything else answers "how are
+   * customers behaving", where your own testing is noise. This answers "does
+   * the plumbing work at all", where your own testing is the evidence: the
+   * top-up webhook has never once fired against a real Stripe event, and the
+   * first time it does it will probably be you pressing the button. */
+  const stage = (label, rows) => ({
+    label,
+    n: rows.length,                                   // how many times
+    who: new Set(rows.map(e => e.user_id)).size       // how many people
+  });
+  const named = (name, test) => (events || []).filter(e =>
+    e.name === name && (!test || test(e.props || {})));
+
+  const money = {
+    topup: [
+      stage('Ran out of credits', named('credits_exhausted')),
+      stage('Opened the top-up',  named('checkout_started', p => p.plan === 'topup')),
+      stage('Credits landed',     named('credits_purchased'))
+    ],
+    plan: [
+      stage('Opened checkout', named('checkout_started', p => p.plan && p.plan !== 'topup')),
+      stage('Subscribed',      (events || []).filter(e =>
+        e.name === 'subscription_active' || e.name === 'subscription_trialing')),
+      stage('Cancelled',       named('subscription_canceled'))
+    ]
+  };
+
   return send(res, 200, {
     window_days: days,
+    /* SIX TILES, ONE POPULATION.
+       They used to count two. "Used it in 30d" was external accounts and the
+       other five were everybody, so the numbers sitting side by side were
+       answering different questions and could not be compared with each
+       other: five people, three of whom used it, where two of the five were
+       Kris. Every tile is external now, and what was excluded is stated
+       underneath rather than folded in silently. */
     totals: {
-      people: rows.length,
+      people: ext.length,
       active_in_window: active.length,
-      returned: rows.filter(r => r.last_seen_at
+      returned: ext.filter(r => r.last_seen_at
         && new Date(r.last_seen_at) - new Date(r.created_at) > 86400000).length,
-      paying: rows.filter(r => ['active', 'past_due'].includes(r.status || '')).length,
-      cost_usd: rows.reduce((n, r) => n + r.cost_usd, 0),
-      calls: rows.reduce((n, r) => n + r.calls, 0)
+      paying: ext.filter(r => ['active', 'past_due'].includes(r.status || '')).length,
+      cost_usd: ext.reduce((n, r) => n + r.cost_usd, 0),
+      calls: ext.reduce((n, r) => n + r.calls, 0)
     },
+    // Yours, kept separate rather than hidden. The API bill is real money
+    // whoever spent it, so it is still worth seeing, just not mixed in.
+    mine: {
+      people: rows.length - ext.length,
+      cost_usd: rows.reduce((n, r) => n + r.cost_usd, 0) - ext.reduce((n, r) => n + r.cost_usd, 0),
+      calls: rows.reduce((n, r) => n + r.calls, 0) - ext.reduce((n, r) => n + r.calls, 0)
+    },
+    money,
+
+    /* WHICH STRIPE THIS IS, read off the key rather than written down.
+     *
+     * A test-mode deployment takes only test cards and moves no money, and
+     * every other number on this page looks identical either way. Typing
+     * "test mode" into the page would be a literal that goes stale the hour
+     * the live key is pasted into Vercel, which is the exact bug this codebase
+     * has now had three times over prices. The key knows; ask the key.
+     *
+     * The prefix is all that is read, and the prefix is not a secret. Nothing
+     * here ever returns any part of the key itself. */
+    stripe_live: String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_'),
+    stripe_configured: !!process.env.STRIPE_SECRET_KEY,
     // set the caps from these, not from guesses
     credits_per_active_user: {
       median: pct(creds, .5), p75: pct(creds, .75), p90: pct(creds, .9),

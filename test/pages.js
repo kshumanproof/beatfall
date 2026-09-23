@@ -35,8 +35,23 @@ const STUB = `<script>
       const e = new Error('Your subscription could not be reached.'); e.status = 502; throw e;
     }
     if (p.indexOf('/api/account') === 0) return ACCOUNT;
+    /* The admin reports. This page had no suite at all, which is how it went
+       on quoting a stale top-up size for a day and how an unguarded field
+       could blank the whole thing. */
+    if (p.indexOf('/api/admin') === 0) {
+      if (window.__DENIED__) { const e = new Error('not_admin'); e.status = 403; throw e; }
+      return window.__ADMIN__ || {};
+    }
     return {};
   };
+  // Enough of the shared platform layer for the pages that are not the app.
+  BF.readMode  = () => 'light';
+  BF.applyMode = () => {};
+  BF.cycleMode = () => {};
+  BF.requireSession = async () => ({user:{id:'u1', email: ACCOUNT.email}});
+  BF.signOut = () => window.__CALLS__.push('signout');
+  BF.money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+  BF.when  = iso => iso ? 'recently' : '·';
   BF.sb = { auth: {
     signInWithOtp: async (o) => {
       window.__CALLS__.push('otp:' + o.email);
@@ -71,7 +86,7 @@ function check(name, ok, detail) {
   console.log((ok ? '  PASS  ' : '  FAIL  ') + name + (ok || !detail ? '' : '\n          ' + detail));
 }
 
-async function page(browser, url, before) {
+async function page(browser, url, before, arg) {
   const p = await browser.newPage();
   const errors = [];
   p.on('pageerror', e => errors.push(String(e)));
@@ -84,7 +99,7 @@ async function page(browser, url, before) {
       errors.push('console: ' + t);
     }
   });
-  if (before) await p.addInitScript(before);
+  if (before) await p.addInitScript(before, arg);
   await p.goto(url);
   await p.waitForTimeout(350);
   return { p, errors };
@@ -298,6 +313,151 @@ async function page(browser, url, before) {
     check('and it comes off on a phone rather than blurring', small === 'none', small);
     const wide = await p.evaluate(() => document.documentElement.scrollWidth);
     check('and nothing runs off a 390px phone', wide <= 391, String(wide));
+    await p.close();
+  }
+
+  /* ==================================================== THE ADMIN REPORTS
+   *
+   * This page has never had a suite, and the two things that have actually
+   * gone wrong on it are both things a suite catches: a figure typed into the
+   * template that went stale when the real one moved, and a field read without
+   * a guard that blanks the whole page when the server is a version behind.
+   *
+   * It is also the page Kris will read every morning during the test, so what
+   * it says has to be true.
+   */
+  const adminUrl = build('admin.html');
+
+  const REPORT = {
+    window_days: 30,
+    totals: {people: 6, active_in_window: 4, returned: 3, paying: 2,
+             cost_usd: 2.41, calls: 512},
+    mine: {people: 2, cost_usd: 1.13, calls: 214},
+    money: {
+      topup: [
+        {label: 'Ran out of credits', n: 5, who: 3},
+        {label: 'Opened the top-up',  n: 2, who: 2},
+        {label: 'Credits landed',     n: 1, who: 1}
+      ],
+      plan: [
+        {label: 'Opened checkout', n: 3, who: 3},
+        {label: 'Subscribed',      n: 2, who: 2},
+        {label: 'Cancelled',       n: 0, who: 0}
+      ]
+    },
+    stripe_configured: true,
+    stripe_live: false,
+    credits_per_active_user: {median: 40, p75: 62, p90: 71, max: 88},
+    cost_per_active_user_usd: {median: 0.31, p90: 0.62, max: 0.71},
+    plans: {trial: {credits: 25}, beatfall: {credits: 75}},
+    pricing: {month: 15, year: 149, topup_credits: 25, topup_price: 6},
+    events: {placed_by_hand: 40, import_completed: 6},
+    funnel: [{label: 'Signed up', n: 6, from_prev: null},
+             {label: 'Paying', n: 2, from_prev: 33}],
+    internal_count: 2,
+    by_path: [{key: 'import', users: 3, meaningful: 2, d1: 2, d7: 1, paid: 1}],
+    sources: [{key: 'direct', users: 6, activated: 3, paid: 2, cost_usd: 2.41}],
+    failures: [{name: 'import_failed', n: 1}, {name: 'ai_request_failed', n: 0}],
+    cancel_reasons: {},
+    users: [{id: 'u1', email: 'w@example.com', name: 'Writer', plan: 'beatfall',
+             status: 'active', created_at: '2026-09-01T00:00:00Z',
+             last_seen_at: '2026-09-22T00:00:00Z', real_projects: 2, real_cards: 40,
+             calls: 120, credits: 60, allowance: 75, cost_usd: 0.31, kinds: {import: 3}}]
+  };
+
+  {
+    const { p, errors } = await page(browser, adminUrl,
+      r => { window.__ADMIN__ = r; }, REPORT);
+    const seen = await p.evaluate(() => ({
+      up: !document.getElementById('body').hidden,
+      denied: !document.getElementById('denied').hidden,
+      tiles: [...document.querySelectorAll('#stats .stat .n')].map(e => e.textContent),
+      mine: document.getElementById('mine').textContent,
+      money: [...document.querySelectorAll('#money .cap')].map(c =>
+        c.querySelector('h3').textContent),
+      chain: [...document.querySelectorAll('#money .cap:first-child div b')]
+        .map(b => b.textContent),
+      growthOpen: document.getElementById('growth').open,
+      // Panels that must NOT be folded away: this is the morning read.
+      wrong: [...document.querySelectorAll('.panel h2')]
+        .filter(h => !h.closest('#growth')).map(h => h.textContent),
+      people: document.querySelectorAll('#rows tr').length
+    }));
+
+    check('the admin page draws', seen.up === true && seen.denied === false);
+    check('the six tiles are the six external figures',
+      seen.tiles.join(',') === '6,4,3,2,$2.41,512', seen.tiles.join(','));
+    check('and what was left out of them is said out loud',
+      /2 of your own accounts/.test(seen.mine) && /\$1\.13/.test(seen.mine), seen.mine);
+    check('the money path is the first thing after the tiles',
+      /Running out/.test(seen.money[0] || ''), JSON.stringify(seen.money));
+    check('each stage says how many times AND how many people',
+      seen.chain[0] === '53 people', JSON.stringify(seen.chain));
+    check('a stage nobody reached still prints its zero',
+      seen.chain.length === 3 && /^1/.test(seen.chain[2]), JSON.stringify(seen.chain));
+    check('the growth panels start folded away', seen.growthOpen === false);
+    check('what went wrong is not folded away',
+      seen.wrong.some(h => /went wrong/i.test(h)), seen.wrong.join(' | '));
+    check('and neither are the people', seen.wrong.some(h => /People/.test(h)));
+    check('the People table lists everybody', seen.people === 1, String(seen.people));
+    check('no page errors on the admin reports', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
+  /* WHICH STRIPE THIS IS, read off the server rather than typed here. It was
+     a literal in the template for about an hour, which would have gone stale
+     the moment the live key was pasted into Vercel. */
+  {
+    const { p } = await page(browser, adminUrl,
+      r => { window.__ADMIN__ = r; }, Object.assign({}, REPORT, {stripe_live: false}));
+    const t = await p.evaluate(() =>
+      document.querySelectorAll('#money .cap h3')[2].textContent);
+    check('test mode says test mode', /test mode/i.test(t), t);
+    await p.close();
+  }
+  {
+    const { p } = await page(browser, adminUrl,
+      r => { window.__ADMIN__ = r; }, Object.assign({}, REPORT, {stripe_live: true}));
+    const live = await p.evaluate(() => ({
+      head: document.querySelectorAll('#money .cap h3')[2].textContent,
+      cards: document.querySelectorAll('#money .cap')[2]
+        .querySelectorAll('b')[0].textContent
+    }));
+    check('and a live key says live, with no edit to the page',
+      /is live/i.test(live.head) && live.cards === 'real', JSON.stringify(live));
+    await p.close();
+  }
+
+  // A version of the server that does not know about the new fields must not
+  // blank the page. Kris deploys these separately, so this state is real.
+  {
+    const older = Object.assign({}, REPORT);
+    delete older.money; delete older.mine;
+    delete older.stripe_live; delete older.stripe_configured;
+    const { p, errors } = await page(browser, adminUrl,
+      r => { window.__ADMIN__ = r; }, older);
+    const ok = await p.evaluate(() => ({
+      up: !document.getElementById('body').hidden,
+      people: document.querySelectorAll('#rows tr').length
+    }));
+    check('an older server does not blank the page',
+      ok.up === true && ok.people === 1, JSON.stringify(ok));
+    check('and throws nothing while doing it', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
+  // Not an admin. The request 401s or 403s and nothing is drawn.
+  {
+    const { p, errors } = await page(browser, adminUrl, () => { window.__DENIED__ = true; });
+    const st = await p.evaluate(() => ({
+      denied: !document.getElementById('denied').hidden,
+      body: !document.getElementById('body').hidden,
+      figures: document.querySelectorAll('#stats .stat').length
+    }));
+    check('a refused account sees the denied line', st.denied === true);
+    check('and no figures are drawn at all',
+      st.body === false && st.figures === 0, JSON.stringify(st));
+    check('no page errors being refused', errors.length === 0, errors.join('\n'));
     await p.close();
   }
 
