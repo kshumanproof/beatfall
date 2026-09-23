@@ -217,6 +217,120 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
     'found ' + JSON.stringify(packs) + ', core.js says ' + core.TOPUP_CREDITS);
 }
 
+/* ===================================== THE HELP TEXT QUOTES REAL NUMBERS
+ *
+ * Every figure in the help content is a sentence somebody will read and act
+ * on, and one of them will be read aloud by the help chat to a writer asking
+ * what Beatfall costs. Prose goes stale exactly the way a page does: this
+ * codebase has already shipped a billing page advertising an allowance the
+ * app had moved off, twice.
+ *
+ * So every price, allowance and credit cost written into the help is checked
+ * against core.js here. If the plan moves and the help does not, this goes
+ * red on the same run.
+ */
+{
+  const { HELP, SECTIONS } = await import('./api/_help/content.js');
+  const core = await import('./api/_lib/core.js');
+  const all = HELP.map(h => h.q + '\n' + h.a).join('\n\n');
+
+  check('there is help content to check', HELP.length > 40, HELP.length + ' entries');
+
+  // ---- the numbers
+  const dollars = [...all.matchAll(/\$(\d+)/g)].map(m => Number(m[1]));
+  const known = [core.PRICE_MONTH, core.PRICE_YEAR, core.TOPUP_PRICE];
+  check('every price in the help is a price Beatfall actually charges',
+    dollars.length >= 3 && dollars.every(n => known.includes(n)),
+    'found ' + JSON.stringify(dollars) + ', core.js says ' + JSON.stringify(known));
+  check('and all three of them are mentioned somewhere',
+    known.every(n => dollars.includes(n)),
+    'missing from the help: '
+      + JSON.stringify(known.filter(n => !dollars.includes(n))));
+
+  const say = (n, what) => new RegExp('\\b' + n + ' ' + what).test(all);
+  check('the monthly allowance in the help is the real one',
+    say(core.PLANS[PAID_PLAN].credits, 'a month')
+      || say(core.PLANS[PAID_PLAN].credits, 'credits a month'),
+    'core.js says ' + core.PLANS[PAID_PLAN].credits);
+  check('and so is the trial allowance',
+    say(core.PLANS.trial.credits, 'credits'),
+    'core.js says ' + core.PLANS.trial.credits);
+  check('and so is the size of a pack',
+    say(core.TOPUP_CREDITS, 'credits for \\$' + core.TOPUP_PRICE),
+    'core.js says ' + core.TOPUP_CREDITS + ' for $' + core.TOPUP_PRICE);
+
+  /* What each action costs, read off COST rather than typed here. The help
+     names five of them in prose and every one has to match. */
+  const priced = {
+    conversation: 'A conversation about an empty beat is',
+    ideas:        'A set of ideas is',
+    logline:      'A logline is',
+    character:    'A character interview is',
+    import:       'Reading in a file of notes is'
+  };
+  const wrong = Object.entries(priced).filter(([kind, lead]) =>
+    !all.includes(lead + ' ' + core.COST[kind]));
+  check('every action price in the help matches what the server charges',
+    wrong.length === 0,
+    wrong.map(([k, l]) => l + ' ' + core.COST[k] + '  (not found)').join('\n          '));
+
+  // ---- the shape of the thing
+  const ids = HELP.map(h => h.id);
+  check('no two entries share an id',
+    new Set(ids).size === ids.length,
+    JSON.stringify(ids.filter((x, i) => ids.indexOf(x) !== i)));
+  check('every entry has a question and an answer',
+    HELP.every(h => h.id && h.section && h.q && h.a && h.a.length > 40),
+    JSON.stringify(HELP.filter(h => !(h.q && h.a && h.a.length > 40)).map(h => h.id)));
+  const dangling = [];
+  HELP.forEach(h => (h.also || []).forEach(a => {
+    if (!ids.includes(a)) dangling.push(h.id + ' points at ' + a);
+  }));
+  check('nothing points at an entry that is not there',
+    dangling.length === 0, dangling.join('\n          '));
+  const used = [...new Set(HELP.map(h => h.section))];
+  check('every section is in the running order and every one has entries',
+    used.every(s => SECTIONS.includes(s)) && SECTIONS.every(s => used.includes(s)),
+    'orphan sections: ' + JSON.stringify(used.filter(s => !SECTIONS.includes(s)))
+      + ' empty sections: ' + JSON.stringify(SECTIONS.filter(s => !used.includes(s))));
+
+  // ---- the house rules, which apply here more than anywhere
+  /* The character itself is written as an escape so this file does not trip
+     the very rule it is checking for. */
+  const EMDASH = String.fromCharCode(0x2014);
+  check('no em dashes anywhere in the help', all.indexOf(EMDASH) < 0,
+    (all.split(EMDASH)[0] || '').slice(-60));
+  check('the help never says AI, Claude or the model',
+    !/\bAI\b|Claude|the model/.test(all),
+    (all.match(/.{0,60}(\bAI\b|Claude|the model).{0,60}/) || [''])[0]);
+  check('and it names the support address it is meant to hand off to',
+    all.includes('support@beatfall.app'), '');
+
+  /* The questions the help chat exists to answer. Kris named the first one
+     himself and it was missing from the old help page, which is what started
+     this. These are the everyday ones: if any of them stops being covered,
+     somebody is writing to support instead. */
+  const MUST_COVER = [
+    /add a new project/i,
+    /delete (a|my) project/i,
+    /sign in/i,
+    /free trial/i,
+    /run out of credits/i,
+    /cancel/i,
+    /delete my account/i,
+    /phone/i,
+    /picture|photograph/i,
+    /Outline/i,
+    /PDF/i,
+    /structure/i,
+    /undo/i
+  ];
+  const uncovered = MUST_COVER.filter(re => !HELP.some(h => re.test(h.q)));
+  check('the everyday questions all have an entry of their own',
+    uncovered.length === 0,
+    'nothing asks about: ' + uncovered.map(String).join(', '));
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

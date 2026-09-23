@@ -13,6 +13,13 @@ fs.mkdirSync('api/_email', { recursive: true });
 fs.readdirSync('../../api/_email').forEach(f =>
   fs.copyFileSync('../../api/_email/' + f, 'api/_email/' + f));
 
+/* The help content, for the same reason and with the same swap of nothing at
+   all: it is prose with no boundary to cross, and the suite reads the real
+   words a writer will be shown rather than a copy of them. */
+fs.mkdirSync('api/_help', { recursive: true });
+fs.readdirSync('../../api/_help').forEach(f =>
+  fs.copyFileSync('../../api/_help/' + f, 'api/_help/' + f));
+
 fs.writeFileSync('api/shim.js',
   "export * from './_lib/core.js';\n" +
   /* The options are recorded, not just swallowed. Which endpoints waive the
