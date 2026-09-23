@@ -28,7 +28,12 @@ fs.writeFileSync('api/shim.js',
      the phone gets a 409 doing something it is required by Apple to be able
      to do. A suite that cannot see the flag cannot check either. */
   "export const requireUser = async (req, options) => { globalThis.__AUTHOPTS__ = options || {}; return globalThis.__AUTH__; };\n" +
-  "export const track = (...a) => { (globalThis.__TRACKED__ = globalThis.__TRACKED__ || []).push(a[2]); };\n");
+  /* The NAME in __TRACKED__, which every suite that watches events already
+     reads, and the PROPS alongside it in a second list. The help desk records
+     whether it could answer and must never record the question, and a suite
+     that cannot see the props cannot check either half. */
+  "export const track = (...a) => { (globalThis.__TRACKED__ = globalThis.__TRACKED__ || []).push(a[2]);"
+  + " (globalThis.__TRACKED_PROPS__ = globalThis.__TRACKED_PROPS__ || []).push(a[3] || {}); };\n");
 
 const swap = (from, to, extra = s => s) => {
   let s = fs.readFileSync(from, 'utf8');
@@ -49,6 +54,7 @@ swap('../../api/account.js',        'api/account.real.js');
 swap('../../api/captures.js',       'api/captures.real.js');
 swap('../../api/cleanup.js',        'api/cleanup.real.js');
 swap('../../api/images.js',         'api/images.real.js');
+swap('../../api/help.js',           'api/help.real.js');
 swap('../../api/stripe-webhook.js', 'api/hook.real.js', s =>
   s.replace("import Stripe from 'stripe';",
             "const Stripe = function(){ return { webhooks: { constructEvent: () => globalThis.__EVENT__ } }; };"));

@@ -437,7 +437,11 @@ const SAFE_PROPS = {
   items_bucket: 1, status: 1,
   // booleans
   first_time: 1, sample: 1, authenticated: 1, had_user_content: 1,
-  include_title: 1, unlimited: 1
+  include_title: 1, unlimited: 1,
+  /* Whether the help desk could answer. A boolean and never the question
+     itself: this table holds counts, enums and booleans, and the words
+     somebody typed are not any of those. */
+  answered: 1
 };
 
 const ENUM_MAX = 64;

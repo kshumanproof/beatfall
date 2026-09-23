@@ -37,6 +37,43 @@
   .support{display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center;background:var(--blue);color:var(--on-blue);border-radius:var(--r-panel);padding:28px 30px;margin-top:46px}.support h2{font-family:var(--serif);font-size:27px;line-height:1.1;margin:0 0 7px}.support p{font-size:13.5px;line-height:1.55;margin:0;opacity:.84}.support .btn{background:var(--card);color:var(--blue);border-color:var(--card);text-decoration:none;min-height:42px;display:inline-flex;align-items:center}.support .btn:hover{background:var(--surface)}
   .footlinks{display:flex;gap:18px;flex-wrap:wrap;margin-top:25px;font-size:12.5px}.footlinks a{color:var(--ink-3)}
   .no-results{background:var(--gold-soft);border:1px solid var(--gold-hair);padding:18px 20px;border-radius:var(--r-panel);color:var(--ink-2);margin-bottom:42px}
+  /* ---- drawn from /api/help ---- */
+  .topics .group{margin:0 0 42px}
+  .loading{font-size:13px;color:var(--ink-4);margin:0 0 42px}
+  .no-results p{margin:0 0 14px;font-size:13.5px;line-height:1.6}
+  .nr-acts{display:flex;gap:10px;flex-wrap:wrap}
+  .nr-acts .btn{text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
+
+  /* ---- ask ----
+     A panel on the page rather than a bubble in the corner. A writer who has
+     come to the help page has already decided to ask something, and a floating
+     circle that follows them around the board while they are working is the
+     thing every other product does and nobody wants. */
+  .ask{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
+    box-shadow:var(--shadow);padding:24px 26px;margin:0 0 42px}
+  .ask h2{font-family:var(--serif);font-size:25px;line-height:1.1;margin:0 0 6px}
+  .ask .sub{font-size:13px;line-height:1.55;color:var(--ink-3);margin:0 0 17px}
+  .askrow{display:flex;gap:10px;align-items:flex-start}
+  .askrow textarea{flex:1;min-width:0;font-family:var(--sans);font-size:14.5px;line-height:1.5;
+    color:var(--ink);background:var(--surface);border:1px solid var(--rule);
+    border-radius:var(--r-ctl);padding:11px 13px;resize:none;min-height:44px;max-height:132px}
+  .askrow textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+  .askrow .btn{flex:0 0 auto;min-height:44px}
+  .thread{margin-top:19px;display:flex;flex-direction:column;gap:14px}
+  .thread:empty{display:none}
+  .turn .said{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-4);margin:0 0 5px}
+  .turn .body{font-size:14.5px;line-height:1.65;color:var(--ink-2);margin:0;white-space:pre-wrap}
+  .turn.you .body{color:var(--ink)}
+  .turn.out{border-top:1px solid var(--rule-soft);padding-top:14px}
+  /* The hand off. Gold would mean it costs a credit, and this is free, so the
+     panel that says "nobody has written this down" is quiet rather than loud. */
+  .handoff{margin-top:12px;padding:13px 15px;background:var(--surface);
+    border:1px solid var(--rule);border-radius:var(--r-ctl);font-size:13px;line-height:1.55}
+  .handoff a{font-weight:600}
+  .thinking{font-size:13px;color:var(--ink-4)}
+  @media(max-width:700px){.ask{padding:21px 19px}.askrow{flex-direction:column}
+    .askrow .btn{width:100%;justify-content:center}}
   @media(max-width:700px){.topbar-in .right{margin-left:auto}.help{padding:44px 20px 80px}.answers{grid-template-columns:1fr}.keys{grid-template-columns:1fr 1fr}.key:nth-child(3){border-left:0;border-top:1px solid var(--rule)}.key:nth-child(4){border-top:1px solid var(--rule)}.support{grid-template-columns:1fr;gap:19px;padding:25px 22px}.support .btn{justify-self:start}}
   @media(max-width:430px){.topbar-in .right .btn{padding:8px 12px}.keys{grid-template-columns:1fr}.key+.key{border-left:0;border-top:1px solid var(--rule)}}
 </style>
@@ -62,44 +99,39 @@
     <button id="clearsearch" type="button" hidden>Clear</button>
   </div>
   <div class="search-status" id="searchstatus" role="status" aria-live="polite"></div>
-  <div class="no-results" id="noresults" hidden>No matching answer. Try a simpler word, or report the problem below.</div>
-
-  <section class="group" data-group>
-    <h2>Getting notes into Beatfall</h2>
-    <div class="answers">
-      <article class="answer" data-answer data-search="start import paste file notes text md sort new project"><h3>Start from a notes file</h3><p>Open the project menu beside its title and choose <strong>Paste in your notes</strong>. Paste text or drop in a .txt or .md file. Beatfall shows you the results before adding anything to the board.</p></article>
-      <article class="answer" data-answer data-search="add write type note place capture bar enter"><h3>Add one note</h3><p>Type the note in the bar below the header, then choose <strong>Place it</strong>. Beatfall suggests where it belongs. You make the final choice.</p></article>
+  <p class="loading" id="loading">Loading the answers…</p>
+  <div class="no-results" id="noresults" hidden>
+    <p>No answer here matches those words. Ask it as a question instead and Beatfall
+       will try to answer, or write to somebody about it.</p>
+    <div class="nr-acts">
+      <button class="btn btn-primary" type="button" id="asksearch">Ask about this</button>
+      <a class="btn" href="mailto:support@beatfall.app?subject=Beatfall%20question">Email support</a>
     </div>
+  </div>
+
+  <!-- EVERY ANSWER IS DRAWN FROM /api/help, which reads the one place
+       Beatfall's behaviour is written down. The answers used to be typed into
+       this page, which is how it came to be missing the first question Kris
+       thought of. Nothing here is a second copy of anything. -->
+  <!-- ASKING IN YOUR OWN WORDS.
+       The search above matches the words somebody typed against the words we
+       happened to write. This does not: it reads the question and answers from
+       everything Beatfall knows about itself. It needs no account on purpose,
+       because the likeliest reason anybody is here is that they cannot get
+       in. -->
+  <section class="ask">
+    <h2>Ask about Beatfall</h2>
+    <p class="sub">Type it however you would say it. This is about how the app works,
+      not about your script, and it costs nothing.</p>
+    <div class="askrow">
+      <textarea id="askbox" rows="1" placeholder="How do I start a new script?"
+        aria-label="Ask a question about Beatfall" maxlength="400"></textarea>
+      <button class="btn btn-primary" type="button" id="asksend">Ask</button>
+    </div>
+    <div class="thread" id="thread" role="log" aria-live="polite"></div>
   </section>
 
-  <section class="group" data-group>
-    <h2>Working on the board</h2>
-    <div class="answers">
-      <article class="answer" data-answer data-search="uncertain unsure review placement choose beat set aside wrong suggestion"><h3>Review an uncertain placement</h3><p>Choose the suggested beat that fits. If none fits, choose <strong>Set it aside for now</strong>. The note stays with the project until you decide.</p></article>
-      <article class="answer" data-answer data-search="move drag card pin settle lock placement circle"><h3>Move or settle a card</h3><p>Drag a card to another beat, or use its move control. Choose the circle on a card to mark that placement as settled so Beatfall will not move it later.</p></article>
-      <article class="answer" data-answer data-search="gap missing empty beat what goes here questions conversation ideas"><h3>Work on an empty beat</h3><p>Choose <strong>What goes here?</strong> under the empty beat. Beatfall asks about that specific gap and builds a card from your answers only after you approve it.</p></article>
-      <article class="answer" data-answer data-search="change switch story structure save the cat hero journey feature television half hour"><h3>Change the story structure</h3><p>The structure sits on its own bar below the note box, above the board. Choose another one from it and Beatfall places every board card into the new structure and shows you what moved. Anything written in the Outline under a beat the new structure does not have is kept and shown so you can drag it where it belongs. Notes you set aside stay set aside, and you can undo the whole change.</p></article>
-    </div>
-  </section>
-
-  <section class="group" data-group>
-    <h2>Your account and work</h2>
-    <div class="answers">
-      <article class="answer" data-answer data-search="export backup download everything json data save copy"><h3>Download everything</h3><p>Open <strong>Account → Settings → Your data</strong>, then choose <strong>Download</strong>. The file contains every project, card, and note in your account.</p></article>
-      <article class="answer" data-answer data-search="credits cost monthly allowance reset conversation import notes file ideas billing"><h3>Understand credits</h3><p>Adding, moving, and organizing notes is free. Conversations and idea sets use two credits. A logline or a character interview uses three. Reading a notes file uses five. See <a href="/billing.html">How billing works</a> for the full rules.</p></article>
-      <article class="answer" data-answer data-search="undo recover mistake restore refresh control z command z delete clear change"><h3>Recover from a mistake</h3><p>Choose <strong>Undo</strong> in the confirmation bar, or press <strong>Ctrl+Z</strong> on Windows and <strong>Command+Z</strong> on Mac. Undo is available until you refresh or close the page.</p></article>
-    </div>
-  </section>
-
-  <section class="group" data-group>
-    <h2>Keyboard shortcuts</h2>
-    <div class="keys" data-answer data-search="keyboard shortcuts keys undo enter line break close escape">
-      <div class="key"><kbd>Ctrl/⌘ + Z</kbd><b>Undo</b><span>Reverse the most recent board change.</span></div>
-      <div class="key"><kbd>Enter</kbd><b>Continue</b><span>Place a note or send an answer.</span></div>
-      <div class="key"><kbd>Shift + Enter</kbd><b>New line</b><span>Add a line without sending.</span></div>
-      <div class="key"><kbd>Esc</kbd><b>Close</b><span>Close the current menu, sheet, or conversation.</span></div>
-    </div>
-  </section>
+  <div id="topics" class="topics"></div>
 
   <section class="support">
     <div><h2>Still stuck?</h2><p>Tell us what you were trying to do, what happened, and which page you were on.</p></div>
@@ -110,30 +142,163 @@
 
 <script src="/app.js"></script>
 <script>
-  BF.applyMode(BF.readMode());
-  const input = document.getElementById('helpsearch');
-  const clear = document.getElementById('clearsearch');
-  const status = document.getElementById('searchstatus');
-  const noResults = document.getElementById('noresults');
-  const answers = [...document.querySelectorAll('[data-answer]')];
-  const groups = [...document.querySelectorAll('[data-group]')];
+BF.applyMode(BF.readMode());
 
-  function filterHelp(){
-    const query = input.value.trim().toLowerCase();
-    let visible = 0;
-    answers.forEach(answer => {
-      const matches = !query || (answer.dataset.search + ' ' + answer.textContent).toLowerCase().includes(query);
-      answer.hidden = !matches;
-      if (matches) visible++;
-    });
-    groups.forEach(group => { group.hidden = ![...group.querySelectorAll('[data-answer]')].some(answer => !answer.hidden); });
-    clear.hidden = !query;
-    noResults.hidden = visible !== 0;
-    status.textContent = query && visible ? visible + (visible === 1 ? ' answer' : ' answers') : '';
+const esc = t => String(t == null ? '' : t)
+  .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const input     = document.getElementById('helpsearch');
+const clear     = document.getElementById('clearsearch');
+const status    = document.getElementById('searchstatus');
+const noResults = document.getElementById('noresults');
+const topicsEl  = document.getElementById('topics');
+const loading   = document.getElementById('loading');
+const thread    = document.getElementById('thread');
+const askbox    = document.getElementById('askbox');
+const asksend   = document.getElementById('asksend');
+
+let SUPPORT = 'support@beatfall.app';
+
+/* PLAIN FETCH, NOT BF.api, AND THAT IS THE POINT.
+   BF.api attaches a Supabase session token, and the Supabase client only
+   exists once BF.init() has run. This page deliberately never calls it: it
+   must work with no account, on a phone, for somebody who cannot get in.
+   The help endpoint takes no account either, so there is nothing to attach. */
+async function helpApi(path, opts){
+  const r = await fetch(path, {
+    headers: {'Content-Type': 'application/json'},
+    ...(opts || {})
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok && !body.answer) throw new Error(body.error || 'failed');
+  return body;
+}
+
+/* This browser's own id, used by the server for the hourly count and nothing
+   else. Absent in a private window with storage blocked, which is fine: the
+   count simply does not apply to them. */
+const anon = (typeof BF !== 'undefined' && BF.anonId) ? BF.anonId() : null;
+
+/* ---------------------------------------------------------- the answers ----
+   Drawn from the server, which reads the one file that describes how Beatfall
+   behaves. If that request fails the page still has a working way to ask and a
+   working way to reach a person, which is the part that matters. */
+(async function draw(){
+  let d;
+  try { d = await helpApi('/api/help'); }
+  catch (e) {
+    loading.textContent = 'The written answers could not be loaded. Ask your question above, '
+      + 'or write to ' + SUPPORT + '.';
+    return;
   }
+  loading.hidden = true;
+  SUPPORT = d.support || SUPPORT;
+  const topics = d.topics || [];
+  topicsEl.innerHTML = (d.sections || []).map(section => {
+    const mine = topics.filter(t => t.section === section);
+    if (!mine.length) return '';
+    return '<section class="group" data-group><h2>' + esc(section) + '</h2>'
+      + '<div class="answers">'
+      + mine.map(t => '<article class="answer" data-answer id="' + esc(t.id) + '">'
+          + '<h3>' + esc(t.q) + '</h3>'
+          /* The answers carry blank lines between paragraphs. Splitting on them
+             rather than printing one block keeps a six sentence answer readable
+             on a page somebody is scanning. */
+          + esc(t.a).split(/\n{2,}/).map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('')
+          + '</article>').join('')
+      + '</div></section>';
+  }).join('');
+  filterHelp();
+}());
 
-  input.addEventListener('input', filterHelp);
-  clear.addEventListener('click', () => { input.value = ''; filterHelp(); input.focus(); });
+/* ------------------------------------------------------------- the search --
+   Still here, and still only a word match. It is fast and it is right when
+   somebody already knows what the thing is called. When it finds nothing, the
+   panel it raises now offers the question box rather than only an email. */
+function filterHelp(){
+  const query = input.value.trim().toLowerCase();
+  const answers = [...topicsEl.querySelectorAll('[data-answer]')];
+  const groups  = [...topicsEl.querySelectorAll('[data-group]')];
+  let visible = 0;
+  answers.forEach(a => {
+    const hit = !query || a.textContent.toLowerCase().includes(query);
+    a.hidden = !hit;
+    if (hit) visible++;
+  });
+  groups.forEach(g => { g.hidden = ![...g.querySelectorAll('[data-answer]')].some(a => !a.hidden); });
+  clear.hidden = !query;
+  noResults.hidden = !query || visible !== 0;
+  status.textContent = query && visible ? visible + (visible === 1 ? ' answer' : ' answers') : '';
+}
+input.addEventListener('input', filterHelp);
+clear.addEventListener('click', () => { input.value = ''; filterHelp(); input.focus(); });
+
+/* The search came up empty, so hand the words it could not match to the thing
+   that can read them. This is the whole reason the button is there. */
+document.getElementById('asksearch').addEventListener('click', () => {
+  askbox.value = input.value.trim();
+  grow();
+  askbox.scrollIntoView({behavior: 'smooth', block: 'center'});
+  askbox.focus();
+});
+
+/* ---------------------------------------------------------------- asking --- */
+function grow(){
+  askbox.style.height = 'auto';
+  askbox.style.height = Math.min(132, askbox.scrollHeight) + 'px';
+}
+askbox.addEventListener('input', grow);
+askbox.addEventListener('keydown', e => {
+  // Enter asks, Shift and Enter is a new line. The same bargain every other
+  // box in Beatfall makes.
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); }
+});
+asksend.addEventListener('click', ask);
+
+function turn(who, cls, html){
+  const el = document.createElement('div');
+  el.className = 'turn ' + cls;
+  el.innerHTML = '<p class="said">' + esc(who) + '</p>' + html;
+  thread.appendChild(el);
+  return el;
+}
+
+let asking = false;
+async function ask(){
+  const q = askbox.value.trim();
+  if (!q || asking) return;
+  asking = true;
+  asksend.disabled = true;
+  askbox.value = ''; grow();
+
+  turn('You', 'you', '<p class="body">' + esc(q) + '</p>');
+  const waiting = turn('Beatfall', 'out', '<p class="body thinking">Reading…</p>');
+
+  let r = null;
+  try {
+    r = await helpApi('/api/help', {method: 'POST',
+      body: JSON.stringify({question: q, anon: anon})});
+  }
+  catch (e) { r = null; }
+
+  /* Never a dead end. Whatever went wrong, the address is on the screen and
+     the writer is not left looking at a spinner that stopped. */
+  const answer = (r && r.answer)
+    || "Couldn't get an answer just now. Try again in a moment, or write to " + SUPPORT + '.';
+  if (r && r.support) SUPPORT = r.support;
+
+  waiting.innerHTML = '<p class="said">Beatfall</p><p class="body">' + esc(answer) + '</p>'
+    + (r && r.handoff
+        ? '<div class="handoff">Nobody has written that one down yet. Email '
+          + '<a href="mailto:' + esc(SUPPORT) + '?subject=' + encodeURIComponent('Beatfall: ' + q.slice(0, 80))
+          + '">' + esc(SUPPORT) + '</a> and it will be read. Say what you were trying to do '
+          + 'and which page you were on.</div>'
+        : '');
+
+  asking = false;
+  asksend.disabled = false;
+  waiting.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
 </script>
 </body>
 </html>

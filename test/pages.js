@@ -461,6 +461,165 @@ async function page(browser, url, before, arg) {
     await p.close();
   }
 
+  /* ====================================================== THE HELP PAGE
+   *
+   * Two things it has to do that it could not do before. Draw its answers
+   * from the one place Beatfall's behaviour is written down, rather than
+   * carrying a typed copy that goes stale. And, when the word search comes up
+   * empty, offer a way to ask rather than only an email address.
+   *
+   * It also has to work with NO ACCOUNT, which is why nothing on it calls
+   * BF.init and nothing on it uses BF.api: the likeliest reason somebody is
+   * here is that they cannot get in.
+   */
+  const helpUrl = build('help.html');
+
+  const TOPICS = {
+    support: 'support@beatfall.app',
+    sections: ['Starting out', 'Projects'],
+    topics: [
+      {id: 'signing-in', section: 'Starting out', q: 'How do I sign in?',
+       a: 'There is no password.\n\nBeatfall sends a six digit code.'},
+      {id: 'first-project', section: 'Projects', q: 'How do I add a new project?',
+       a: 'Press New project on the dashboard.'}
+    ]
+  };
+
+  /* The page talks to /api/help with a plain fetch, so that is what gets
+     stubbed. Using BF.api here would be testing something the page does not
+     do: it deliberately avoids it, because BF.api wants a Supabase client
+     that this page never builds. */
+  const netStub = (r) => {
+    window.__ASKED__ = [];
+    window.fetch = async (url, opts) => {
+      if (!opts || !opts.method || opts.method === 'GET') {
+        return {ok: true, json: async () => r.topics};
+      }
+      window.__ASKED__.push(JSON.parse(opts.body));
+      if (r.dead) throw new Error('offline');
+      return {ok: true, json: async () => r.reply};
+    };
+  };
+
+  {
+    const { p, errors } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS, reply: {answer: 'Press New project.', handoff: false}});
+    const drawn = await p.evaluate(() => ({
+      groups: document.querySelectorAll('#topics [data-group]').length,
+      answers: document.querySelectorAll('#topics [data-answer]').length,
+      heading: (document.querySelector('#topics h3') || {}).textContent || '',
+      /* The FIRST answer on the page, not the first in each group. Every
+         group's opening article is also a :first-child, so that selector
+         counts paragraphs from all of them at once. */
+      paras: document.querySelector('#topics [data-answer]')
+             .querySelectorAll('p').length,
+      loading: document.getElementById('loading').hidden,
+      askPanel: !!document.getElementById('askbox')
+    }));
+    check('the help page draws its answers from the server',
+      drawn.answers === 2 && drawn.groups === 2,
+      JSON.stringify(drawn));
+    check('the heading is the question somebody would ask',
+      /How do I sign in/.test(drawn.heading), drawn.heading);
+    check('a multi paragraph answer stays multi paragraph', drawn.paras === 2,
+      String(drawn.paras));
+    check('and the loading line goes away', drawn.loading === true);
+    check('the ask panel is on the page', drawn.askPanel === true);
+
+    /* THE DEAD END KRIS FOUND. Typing something the words do not match used to
+       offer an email address and nothing else. */
+    const empty = await p.evaluate(() => {
+      const box = document.getElementById('helpsearch');
+      box.value = 'two doves';
+      box.dispatchEvent(new Event('input'));
+      const nr = document.getElementById('noresults');
+      return {
+        shown: !nr.hidden,
+        ask: !!nr.querySelector('#asksearch'),
+        email: !!nr.querySelector('a[href^="mailto:"]'),
+        visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length
+      };
+    });
+    check('a search that matches nothing says so', empty.shown && empty.visible === 0,
+      JSON.stringify(empty));
+    check('and now offers a way to ask, not just an address',
+      empty.ask === true, 'the no results panel is still a dead end');
+    check('with the email still there beside it', empty.email === true);
+
+    // And pressing it carries the words across rather than making them retype.
+    const carried = await p.evaluate(() => {
+      document.getElementById('asksearch').click();
+      return document.getElementById('askbox').value;
+    });
+    check('pressing it carries what they typed into the question box',
+      carried === 'two doves', carried);
+
+    const asked = await p.evaluate(async () => {
+      const box = document.getElementById('askbox');
+      box.value = 'how do i start a new script';
+      document.getElementById('asksend').click();
+      await new Promise(r => setTimeout(r, 60));
+      return {
+        sent: window.__ASKED__.slice(),
+        turns: document.querySelectorAll('#thread .turn').length,
+        answer: (document.querySelector('#thread .turn.out .body') || {}).textContent || '',
+        handoff: !!document.querySelector('#thread .handoff'),
+        cleared: box.value
+      };
+    });
+    check('asking sends the question to the help endpoint',
+      asked.sent.length === 1 && asked.sent[0].question === 'how do i start a new script',
+      JSON.stringify(asked.sent));
+    check('and the thread shows what was asked and what came back',
+      asked.turns === 2 && /Press New project/.test(asked.answer), JSON.stringify(asked));
+    check('the box empties so the next question can be typed', asked.cleared === '');
+    check('an answer it had does not offer the address', asked.handoff === false);
+    check('no page errors on the help page', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
+  /* When nobody has written the answer down, the address is the answer. */
+  {
+    const { p } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS,
+       reply: {answer: 'I do not have that written down.', handoff: true,
+               support: 'support@beatfall.app'}});
+    const seen = await p.evaluate(async () => {
+      document.getElementById('askbox').value = 'can I share with a co-writer?';
+      document.getElementById('asksend').click();
+      await new Promise(r => setTimeout(r, 60));
+      const h = document.querySelector('#thread .handoff');
+      return {shown: !!h, mail: h ? h.querySelector('a').getAttribute('href') : ''};
+    });
+    check('a question nobody answered hands over the address', seen.shown === true);
+    check('and the email arrives with the question already in its subject',
+      /^mailto:support@beatfall\.app\?subject=/.test(seen.mail)
+        && /co-writer/.test(decodeURIComponent(seen.mail)), seen.mail);
+    await p.close();
+  }
+
+  /* NEVER A DEAD END. If the request itself fails, the person is still left
+     with somewhere to go rather than a line that says Reading and stops. */
+  {
+    const { p, errors } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS, dead: true});
+    const seen = await p.evaluate(async () => {
+      document.getElementById('askbox').value = 'anything at all';
+      document.getElementById('asksend').click();
+      await new Promise(r => setTimeout(r, 60));
+      const body = (document.querySelector('#thread .turn.out .body') || {}).textContent || '';
+      return {body, stillThinking: /Reading/.test(body),
+              enabled: !document.getElementById('asksend').disabled};
+    });
+    check('a failed request still leaves an address on screen',
+      /support@beatfall\.app/.test(seen.body), seen.body);
+    check('and never leaves them looking at a spinner', seen.stillThinking === false);
+    check('and the button works again', seen.enabled === true);
+    check('no page errors when the help endpoint is down',
+      errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');
