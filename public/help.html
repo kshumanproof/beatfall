@@ -45,35 +45,13 @@
   .nr-acts .btn{text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
 
   /* ---- ask ----
-     A panel on the page rather than a bubble in the corner. A writer who has
-     come to the help page has already decided to ask something, and a floating
-     circle that follows them around the board while they are working is the
-     thing every other product does and nobody wants. */
-  .ask{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-panel);
-    box-shadow:var(--shadow);padding:24px 26px;margin:0 0 42px}
-  .ask h2{font-family:var(--serif);font-size:25px;line-height:1.1;margin:0 0 6px}
-  .ask .sub{font-size:13px;line-height:1.55;color:var(--ink-3);margin:0 0 17px}
-  .askrow{display:flex;gap:10px;align-items:flex-start}
-  .askrow textarea{flex:1;min-width:0;font-family:var(--sans);font-size:14.5px;line-height:1.5;
-    color:var(--ink);background:var(--surface);border:1px solid var(--rule);
-    border-radius:var(--r-ctl);padding:11px 13px;resize:none;min-height:44px;max-height:132px}
-  .askrow textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
-  .askrow .btn{flex:0 0 auto;min-height:44px}
-  .thread{margin-top:19px;display:flex;flex-direction:column;gap:14px}
-  .thread:empty{display:none}
-  .turn .said{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.04em;
-    text-transform:uppercase;color:var(--ink-4);margin:0 0 5px}
-  .turn .body{font-size:14.5px;line-height:1.65;color:var(--ink-2);margin:0;white-space:pre-wrap}
-  .turn.you .body{color:var(--ink)}
-  .turn.out{border-top:1px solid var(--rule-soft);padding-top:14px}
-  /* The hand off. Gold would mean it costs a credit, and this is free, so the
-     panel that says "nobody has written this down" is quiet rather than loud. */
-  .handoff{margin-top:12px;padding:13px 15px;background:var(--surface);
-    border:1px solid var(--rule);border-radius:var(--r-ctl);font-size:13px;line-height:1.55}
-  .handoff a{font-weight:600}
-  .thinking{font-size:13px;color:var(--ink-4)}
-  @media(max-width:700px){.ask{padding:21px 19px}.askrow{flex-direction:column}
-    .askrow .btn{width:100%;justify-content:center}}
+     The asking itself lives in /helpchat.js, which draws the bubble in the
+     corner of EVERY page in Beatfall. This page does not carry a second copy
+     of it. It carries the way in: one button here, one on the panel the
+     search raises when it matches nothing. */
+  .askline{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 38px}
+  .askline .btn{min-height:44px;display:inline-flex;align-items:center}
+  .askline span{font-size:13px;line-height:1.5;color:var(--ink-3)}
   @media(max-width:700px){.topbar-in .right{margin-left:auto}.help{padding:44px 20px 80px}.answers{grid-template-columns:1fr}.keys{grid-template-columns:1fr 1fr}.key:nth-child(3){border-left:0;border-top:1px solid var(--rule)}.key:nth-child(4){border-top:1px solid var(--rule)}.support{grid-template-columns:1fr;gap:19px;padding:25px 22px}.support .btn{justify-self:start}}
   @media(max-width:430px){.topbar-in .right .btn{padding:8px 12px}.keys{grid-template-columns:1fr}.key+.key{border-left:0;border-top:1px solid var(--rule)}}
 </style>
@@ -99,6 +77,19 @@
     <button id="clearsearch" type="button" hidden>Clear</button>
   </div>
   <div class="search-status" id="searchstatus" role="status" aria-live="polite"></div>
+
+  <!-- ASKING IN YOUR OWN WORDS.
+       The search matches the words somebody typed against the words we
+       happened to write. Asking does not: it reads the question and answers
+       from everything Beatfall knows about itself. It needs no account on
+       purpose, because the likeliest reason anybody is here is that they
+       cannot get in. The panel it opens is the same one the bubble in the
+       corner of every page opens. -->
+  <div class="askline">
+    <button class="btn btn-primary" type="button" id="askopen">Ask a question</button>
+    <span>Say it however you would say it. It costs nothing.</span>
+  </div>
+
   <p class="loading" id="loading">Loading the answers…</p>
   <div class="no-results" id="noresults" hidden>
     <p>No answer here matches those words. Ask it as a question instead and Beatfall
@@ -113,24 +104,6 @@
        Beatfall's behaviour is written down. The answers used to be typed into
        this page, which is how it came to be missing the first question Kris
        thought of. Nothing here is a second copy of anything. -->
-  <!-- ASKING IN YOUR OWN WORDS.
-       The search above matches the words somebody typed against the words we
-       happened to write. This does not: it reads the question and answers from
-       everything Beatfall knows about itself. It needs no account on purpose,
-       because the likeliest reason anybody is here is that they cannot get
-       in. -->
-  <section class="ask">
-    <h2>Ask about Beatfall</h2>
-    <p class="sub">Type it however you would say it. This is about how the app works,
-      not about your script, and it costs nothing.</p>
-    <div class="askrow">
-      <textarea id="askbox" rows="1" placeholder="How do I start a new script?"
-        aria-label="Ask a question about Beatfall" maxlength="400"></textarea>
-      <button class="btn btn-primary" type="button" id="asksend">Ask</button>
-    </div>
-    <div class="thread" id="thread" role="log" aria-live="polite"></div>
-  </section>
-
   <div id="topics" class="topics"></div>
 
   <section class="support">
@@ -141,6 +114,7 @@
 </main>
 
 <script src="/app.js"></script>
+<script src="/helpchat.js"></script>
 <script>
 BF.applyMode(BF.readMode());
 
@@ -153,9 +127,6 @@ const status    = document.getElementById('searchstatus');
 const noResults = document.getElementById('noresults');
 const topicsEl  = document.getElementById('topics');
 const loading   = document.getElementById('loading');
-const thread    = document.getElementById('thread');
-const askbox    = document.getElementById('askbox');
-const asksend   = document.getElementById('asksend');
 
 let SUPPORT = 'support@beatfall.app';
 
@@ -173,11 +144,6 @@ async function helpApi(path, opts){
   if (!r.ok && !body.answer) throw new Error(body.error || 'failed');
   return body;
 }
-
-/* This browser's own id, used by the server for the hourly count and nothing
-   else. Absent in a private window with storage blocked, which is fine: the
-   count simply does not apply to them. */
-const anon = (typeof BF !== 'undefined' && BF.anonId) ? BF.anonId() : null;
 
 /* ---------------------------------------------------------- the answers ----
    Drawn from the server, which reads the one file that describes how Beatfall
@@ -234,71 +200,13 @@ input.addEventListener('input', filterHelp);
 clear.addEventListener('click', () => { input.value = ''; filterHelp(); input.focus(); });
 
 /* The search came up empty, so hand the words it could not match to the thing
-   that can read them. This is the whole reason the button is there. */
+   that can read them. This is the whole reason the button is there. Both ways
+   in open the same panel, which lives in /helpchat.js and is the only copy of
+   the asking in the product. */
 document.getElementById('asksearch').addEventListener('click', () => {
-  askbox.value = input.value.trim();
-  grow();
-  askbox.scrollIntoView({behavior: 'smooth', block: 'center'});
-  askbox.focus();
+  HelpChat.open(input.value.trim());
 });
-
-/* ---------------------------------------------------------------- asking --- */
-function grow(){
-  askbox.style.height = 'auto';
-  askbox.style.height = Math.min(132, askbox.scrollHeight) + 'px';
-}
-askbox.addEventListener('input', grow);
-askbox.addEventListener('keydown', e => {
-  // Enter asks, Shift and Enter is a new line. The same bargain every other
-  // box in Beatfall makes.
-  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); }
-});
-asksend.addEventListener('click', ask);
-
-function turn(who, cls, html){
-  const el = document.createElement('div');
-  el.className = 'turn ' + cls;
-  el.innerHTML = '<p class="said">' + esc(who) + '</p>' + html;
-  thread.appendChild(el);
-  return el;
-}
-
-let asking = false;
-async function ask(){
-  const q = askbox.value.trim();
-  if (!q || asking) return;
-  asking = true;
-  asksend.disabled = true;
-  askbox.value = ''; grow();
-
-  turn('You', 'you', '<p class="body">' + esc(q) + '</p>');
-  const waiting = turn('Beatfall', 'out', '<p class="body thinking">Reading…</p>');
-
-  let r = null;
-  try {
-    r = await helpApi('/api/help', {method: 'POST',
-      body: JSON.stringify({question: q, anon: anon})});
-  }
-  catch (e) { r = null; }
-
-  /* Never a dead end. Whatever went wrong, the address is on the screen and
-     the writer is not left looking at a spinner that stopped. */
-  const answer = (r && r.answer)
-    || "Couldn't get an answer just now. Try again in a moment, or write to " + SUPPORT + '.';
-  if (r && r.support) SUPPORT = r.support;
-
-  waiting.innerHTML = '<p class="said">Beatfall</p><p class="body">' + esc(answer) + '</p>'
-    + (r && r.handoff
-        ? '<div class="handoff">Nobody has written that one down yet. Email '
-          + '<a href="mailto:' + esc(SUPPORT) + '?subject=' + encodeURIComponent('Beatfall: ' + q.slice(0, 80))
-          + '">' + esc(SUPPORT) + '</a> and it will be read. Say what you were trying to do '
-          + 'and which page you were on.</div>'
-        : '');
-
-  asking = false;
-  asksend.disabled = false;
-  waiting.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-}
+document.getElementById('askopen').addEventListener('click', () => HelpChat.open());
 </script>
 </body>
 </html>
