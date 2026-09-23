@@ -31,6 +31,14 @@ async function open(browser, {account, projects, closed, reason, query, days, ca
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
+  /* Where the page tried to GO, which is not the same as where it ended up.
+     A redirect to /admin.html from a file on disk lands on a browser error
+     screen, so page.url() afterwards says chrome-error and nothing about
+     whether the app did the right thing. The request is the evidence. */
+  const navs = [];
+  page.on('request', r => {
+    if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navs.push(r.url());
+  });
   // Fonts and the favicon are not reachable offline and say nothing about the
   // code under test.
   page.on('console', m => {
@@ -48,7 +56,7 @@ async function open(browser, {account, projects, closed, reason, query, days, ca
   }, [account, projects, !!closed, reason || null, days || [], !!capfail, store || null]);
   await page.goto(PAGE + (query || ''));
   await page.waitForTimeout(700);
-  return { page, errors };
+  return { page, errors, navs };
 }
 
 /* Relative, not fixed. These used to be real dates, so as time passed the
@@ -209,6 +217,44 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('and pressing Save as PDF actually builds one', !!pdf && /Night Haul/i.test(pdf.text || ''),
       pdf ? pdf.name : 'no PDF produced');
     check('no page errors on the locked screen', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* ------------------- an admin address has no boards, and is not sold one
+   *
+   * Admin and unlimited used to be the same switch, so the account that reads
+   * the platform's numbers was necessarily the account somebody writes on.
+   * Split apart, an admin address arrives at a shut board, and the plan-ended
+   * screen is the wrong thing to show it: nothing has ended and there is
+   * nothing to buy. Beatfall would be trying to sell Kris a subscription for
+   * the account he uses to look at how many subscriptions he has sold. */
+  {
+    const { page, errors, navs } = await open(browser, {
+      account: Object.assign({}, PAID, {is_admin: true, plan: 'none', unlimited: false}),
+      closed: true, reason: 'plan_ended', projects: []});
+    await page.waitForTimeout(400);
+    check('an admin address at a shut board is sent to the reports',
+      navs.some(u => /admin\.html$/.test(u)), navs.join(' | '));
+    check('no page errors sending an admin to the reports',
+      errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* A writer whose plan really did end is not bounced anywhere. They get the
+     locked screen, which is true for them and offers them a way back in. */
+  {
+    const { page, navs } = await open(browser, {
+      account: Object.assign({}, PAID, {is_admin: false, plan: 'none'}),
+      closed: true, reason: 'plan_ended', projects: [board('Night Haul', 9)]});
+    await page.waitForTimeout(400);
+    const seen = await page.evaluate(() => ({
+      locked: !!document.querySelector('.locked'),
+      heading: (document.querySelector('.locked h1') || {}).textContent || ''
+    }));
+    check('a lapsed writer is not bounced anywhere',
+      !navs.some(u => /admin\.html$/.test(u)), navs.join(' | '));
+    check('they get the locked screen, as before',
+      seen.locked === true && /plan has ended/.test(seen.heading), seen.heading);
     await page.close();
   }
 

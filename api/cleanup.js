@@ -131,9 +131,14 @@ export default async function handler(req, res) {
 
      The ordering matters either way. Oldest first, so the queue drains. */
   const { data: stale, error } = await db.from('profiles')
-    .select('id, email, last_seen_at, subscription_status, trial_ends_at, is_admin, is_internal')
+    .select('id, email, last_seen_at, subscription_status, trial_ends_at,'
+          + ' is_admin, is_unlimited, is_internal')
     .lt('last_seen_at', new Date(now - WARN_AFTER).toISOString())
-    .eq('is_admin', false).eq('is_internal', false)
+    /* All three, because they are three different reasons to be left alone and
+       an account can now carry one without the others. An admin address exists
+       to read numbers and may go months without signing in, which is exactly
+       what this job deletes people for. */
+    .eq('is_admin', false).eq('is_unlimited', false).eq('is_internal', false)
     .order('last_seen_at', { ascending: true })
     .limit(BATCH);
   if (error) return send(res, 500, { error: 'read_failed' });
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
   const warned = [], deleted = [], skipped = [], unwarnable = [];
 
   for (const p of stale || []) {
-    if (p.is_admin || p.is_internal) { skipped.push(p.id); continue; }
+    if (p.is_admin || p.is_unlimited || p.is_internal) { skipped.push(p.id); continue; }
     if (LIVE.includes(p.subscription_status || '')) { skipped.push(p.id); continue; }
     if (p.trial_ends_at && new Date(p.trial_ends_at) > new Date()) { skipped.push(p.id); continue; }
 

@@ -17,7 +17,13 @@ create table if not exists public.profiles (
   period_start        timestamptz not null default date_trunc('month', now()),
   credits_used        int  not null default 0,                 -- reset when period_start rolls over
   credits_extra       int  not null default 0,                 -- topped-up credits, carried over
+  -- Two switches, and they are deliberately not the same one. is_admin opens
+  -- the admin portal and nothing else; is_unlimited is the Owner plan, boards
+  -- that never close and credits that never run out. An address that reads the
+  -- platform's numbers has no business holding somebody's scripts, and the
+  -- account holding the scripts has no business reading everybody's numbers.
   is_admin            boolean not null default false,
+  is_unlimited        boolean not null default false,
   current_period_end     timestamptz,                          -- when Stripe next bills, or when access ends
   cancel_at_period_end   boolean not null default false,
   created_at          timestamptz not null default now(),
@@ -405,3 +411,17 @@ alter table public.captures add column if not exists image_path text;
 -- the page it was drawn on.
 alter table public.images enable row level security;
 revoke all on public.images from anon, authenticated;
+
+-- ============================================================================
+-- ADMIN AND UNLIMITED ARE TWO DIFFERENT THINGS (23 Sep 2026)
+--
+-- They used to be one flag. See the note on the column above for why they are
+-- not any more. Safe to re-run.
+-- ============================================================================
+alter table public.profiles
+  add column if not exists is_unlimited boolean not null default false;
+
+-- Every account that was an admin before the split was also, necessarily, an
+-- owner. Without this line the split would close the boards of the only person
+-- using the product.
+update public.profiles set is_unlimited = true where is_admin = true;

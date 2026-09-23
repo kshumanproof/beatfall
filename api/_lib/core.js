@@ -240,11 +240,23 @@ export async function requireUser(req, options = {}) {
   return { db, user, profile };
 }
 
-// What plan is this person actually on right now, and what does it allow?
+/* What plan is this person actually on right now, and what does it allow?
+ *
+ * TWO SWITCHES, NOT ONE. `is_unlimited` is the Owner plan: boards that never
+ * close and credits that never run out. `is_admin` is the door to the admin
+ * portal. They used to be the same flag, which meant the person who can read
+ * the platform's numbers was necessarily also the person writing scripts on
+ * it, and there was no way to have one without the other.
+ *
+ * Kris wanted them apart: an address that can see the numbers and nothing
+ * else, and a writing account that never touches them. Keeping it as one flag
+ * made that impossible, so the flag became two. Anything asking "may this
+ * person use Beatfall" asks about is_unlimited; anything asking "may this
+ * person see everybody's Beatfall" asks about is_admin. */
 export function entitlement(profile) {
   // The owner is not a customer. Without this, the person who built the thing
   // gets locked out of it fourteen days after launch by his own trial clock.
-  if (profile.is_admin) {
+  if (profile.is_unlimited) {
     const used = profile.credits_used || 0;
     return {
       key: 'owner', plan: PLANS.owner, trialing: false, unlimited: true,

@@ -59,11 +59,13 @@ export default async function handler(req, res) {
       id: p.id,
       email: p.email,
       name: p.display_name,
-      owner: !!p.is_admin,
+      // Owner means the plan, not the portal. An admin address with no board
+      // access is not an owner of anything and should not be labelled one.
+      owner: !!p.is_unlimited,
       // is_internal is the switch that keeps Kris's own accounts, and any QA
       // account, out of the product numbers. They stay visible in People,
       // because hiding them would be a different kind of lie.
-      internal: !!p.is_internal || !!p.is_admin,
+      internal: !!p.is_internal || !!p.is_admin || !!p.is_unlimited,
       onboarding_choice: p.onboarding_choice,
       onboarding_seen_at: p.onboarding_first_seen_at,
       first_real_project_at: p.first_real_project_at,

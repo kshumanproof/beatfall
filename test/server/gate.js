@@ -6,7 +6,8 @@ const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
 
 const P = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
-  credits_used:0, credits_extra:0, is_admin:false, period_start:'2026-09-01T00:00:00Z',
+  credits_used:0, credits_extra:0, is_admin:false, is_unlimited:false,
+  period_start:'2026-09-01T00:00:00Z',
   trial_ends_at:null, stripe_subscription_id:null, ...extra });
 
 function res(){ const r={code:0,body:null,setHeader(){},status(c){r.code=c;return r;},
@@ -45,12 +46,37 @@ const rows = [{id:'p1', user_id:'u1', name:'Night Haul', structure:'stc', cards:
     r.code + ' closed=' + (r.body||{}).closed);
 }
 
-// ---------- the owner
+/* ---------- the owner, and the admin, which are no longer the same account
+ *
+ * They used to be one flag, so the person who reads the platform's numbers was
+ * necessarily also the person writing scripts on it. Two flags now, and each
+ * has to work without the other or the split has bought nothing. */
 {
-  const db = makeDb(P({is_admin:true, plan:'none', subscription_status:null}), {projects: rows});
+  const db = makeDb(P({is_unlimited:true, plan:'none', subscription_status:null}), {projects: rows});
   const r = await hit(projects, db, {method:'GET'});
   check('the owner is never locked out', r.code === 200 && !r.body.closed,
     r.code + ' closed=' + (r.body||{}).closed);
+}
+
+/* An address that only reads the numbers gets no boards. This is the point of
+   the split: admin is a door to the reports, not a free subscription. */
+{
+  const db = makeDb(P({is_admin:true, is_unlimited:false, plan:'none',
+    subscription_status:null, trial_ends_at:'2026-01-01T00:00:00Z'}), {projects: rows});
+  const r = await hit(projects, db, {method:'GET'});
+  check('an admin address does not get a free plan with it',
+    r.body.closed === true,
+    'admin alone opened the boards: ' + JSON.stringify(r.body).slice(0, 120));
+}
+
+/* And the reverse. Unlimited is a plan, not a set of keys: it must not let
+   somebody into the reports. */
+{
+  const admin = (await import('./api/admin.real.js')).default;
+  const db = makeDb(P({is_unlimited:true, is_admin:false}), {usage:[], projects:[], events:[]});
+  globalThis.__DB__ = db;
+  const r = await hit(admin, db, {method:'GET'});
+  check('an unlimited plan is not a key to the admin portal', r.code === 403, String(r.code));
 }
 
 // ---------- a lapsed plan: reads yes, writes no

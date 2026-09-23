@@ -13234,6 +13234,32 @@ document.addEventListener("click", e => {
 /* `why` is the reason the server gave with its 402. A trial that ran out and a
    subscription that lapsed both close the boards, and they are not the same
    thing to the person reading the screen: one of them never bought anything. */
+/* THE BOARDS ARE SHUT. WHY THEY ARE SHUT DECIDES WHAT TO SAY.
+ *
+ * For a writer whose plan ended, the locked screen is exactly right: their
+ * work is still there and a plan reopens it.
+ *
+ * For an ADMIN ADDRESS it is a lie in both directions. Nothing has ended,
+ * there is nothing to buy, and the account was never meant to hold a board:
+ * it exists to read the platform's numbers. Offering it a subscription would
+ * be Beatfall trying to sell Kris a plan for the account he uses to look at
+ * how many plans he has sold.
+ *
+ * So ask who this is first. One extra request, and only ever on the path
+ * where the boards are already shut, which is rare.
+ */
+async function closedDoor(){
+  try {
+    const me = await BF.api("/api/account");
+    if (me && me.is_admin){ location.replace("/admin.html"); return; }
+  } catch (e) {
+    /* Offline, or the account refused to answer. The locked screen is still
+       true and still the safe thing to show: it never claims a plan has
+       ended, only that the boards are shut, which they are. */
+  }
+  showLocked(BF.closedReason);
+}
+
 function showLocked(why){
   BF.ready();
   const trial = why === "trial_ended";
@@ -13408,7 +13434,7 @@ function showLoadFailure(){
      ever a write being refused. This is the read that succeeded and came back
      saying the boards are shut: the work is in memory, and the locked screen
      hands it back as PDFs rather than opening a board. */
-  if (BF.boardsClosed) return showLocked(BF.closedReason);
+  if (BF.boardsClosed) return closedDoor();
 
   // Always open on the slate. A writer arriving cold wants to see the whole
   // shelf first and choose; dropping them into whichever board they closed

@@ -4,12 +4,17 @@ const out=[]; const check=(n,ok,d)=>{out.push({n,ok});console.log((ok?'  PASS  '
 function res(){const r={code:0,body:null,setHeader(){},status(c){r.code=c;return r;},send(b){try{r.body=JSON.parse(b);}catch(e){r.body=b;}return r;}};return r;}
 const old = d => new Date(Date.now() - d*86400000).toISOString();
 
-// the query filters is_admin/is_internal, so the fake must honour them
+/* The query filters is_admin, is_unlimited and is_internal, so the fake has to
+   honour all three. They are three different reasons to be left alone and an
+   account can now carry one without the others: the admin address in
+   particular exists to read reports and may go months between sign-ins, which
+   is exactly what this job deletes people for. */
 const people = [
-  {id:'owner',    email:'k@x', last_seen_at: old(400), is_admin:true,  is_internal:false, subscription_status:null, trial_ends_at:old(300)},
-  {id:'qa',       email:'q@x', last_seen_at: old(400), is_admin:false, is_internal:true,  subscription_status:null, trial_ends_at:old(300)},
-  {id:'paying',   email:'p@x', last_seen_at: old(400), is_admin:false, is_internal:false, subscription_status:'active', trial_ends_at:old(300)},
-  {id:'gone',     email:'g@x', last_seen_at: old(400), is_admin:false, is_internal:false, subscription_status:null, trial_ends_at:old(300)}
+  {id:'owner',    email:'k@x', last_seen_at: old(400), is_admin:false, is_unlimited:true,  is_internal:false, subscription_status:null, trial_ends_at:old(300)},
+  {id:'admin',    email:'a@x', last_seen_at: old(400), is_admin:true,  is_unlimited:false, is_internal:false, subscription_status:null, trial_ends_at:old(300)},
+  {id:'qa',       email:'q@x', last_seen_at: old(400), is_admin:false, is_unlimited:false, is_internal:true,  subscription_status:null, trial_ends_at:old(300)},
+  {id:'paying',   email:'p@x', last_seen_at: old(400), is_admin:false, is_unlimited:false, is_internal:false, subscription_status:'active', trial_ends_at:old(300)},
+  {id:'gone',     email:'g@x', last_seen_at: old(400), is_admin:false, is_unlimited:false, is_internal:false, subscription_status:null, trial_ends_at:old(300)}
 ];
 process.env.CRON_SECRET = 'sec';
 globalThis.__DB__ = makeDb({id:'x'}, {profiles: people});
@@ -24,8 +29,9 @@ check('and nothing is deleted on a dry run', (globalThis.__DELETED__||[]).length
   JSON.stringify(globalThis.__DELETED__));
 // It reports counts, not ids, so assert on the counts and on who it touched.
 const b = r.body || {};
-check('the owner and the QA account are never even scanned', b.scanned === 2,
-  JSON.stringify(b) + '  (four accounts, two of them yours)');
+check('the owner, the admin address and the QA account are never even scanned',
+  b.scanned === 2,
+  JSON.stringify(b) + '  (five accounts, three of them yours)');
 check('the paying one is skipped', b.skipped === 1, JSON.stringify(b));
 check('and exactly one abandoned account is acted on',
   b.deleted + b.warned === 1, JSON.stringify(b));
@@ -39,7 +45,7 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
    deletion_warned event anywhere. */
 {
   const forgotten = [
-    {id:'never-told', email:'n@x', last_seen_at: old(400), is_admin:false, is_internal:false,
+    {id:'never-told', email:'n@x', last_seen_at: old(400), is_admin:false, is_unlimited:false, is_internal:false,
      subscription_status:null, trial_ends_at:old(380)}
   ];
   globalThis.__DB__ = makeDb({id:'x'}, {profiles: forgotten});
@@ -107,16 +113,16 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
 
   const profiles = [
     // abandoned for well over six months, already warned, and it has pictures
-    {id:'gone', email:'g@x', last_seen_at: day(400), is_admin:false, is_internal:false,
+    {id:'gone', email:'g@x', last_seen_at: day(400), is_admin:false, is_unlimited:false, is_internal:false,
      subscription_status:null, trial_ends_at: day(300), current_period_end:null},
     // wide awake, signs in weekly to read closed boards, stopped paying in June
-    {id:'lapsed', email:'l@x', last_seen_at: day(2), is_admin:false, is_internal:false,
+    {id:'lapsed', email:'l@x', last_seen_at: day(2), is_admin:false, is_unlimited:false, is_internal:false,
      subscription_status:'canceled', trial_ends_at: day(300), current_period_end: day(45)},
     // cancelled last week; still inside the thirty days
-    {id:'fresh', email:'f@x', last_seen_at: day(1), is_admin:false, is_internal:false,
+    {id:'fresh', email:'f@x', last_seen_at: day(1), is_admin:false, is_unlimited:false, is_internal:false,
      subscription_status:'canceled', trial_ends_at: day(300), current_period_end: day(5)},
     // paying, and its pictures are none of this job's business
-    {id:'paying', email:'p@x', last_seen_at: day(1), is_admin:false, is_internal:false,
+    {id:'paying', email:'p@x', last_seen_at: day(1), is_admin:false, is_unlimited:false, is_internal:false,
      subscription_status:'active', trial_ends_at: day(300), current_period_end: day(-20)}
   ];
 
