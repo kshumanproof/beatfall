@@ -27,7 +27,7 @@ function check(name, ok, detail) {
   console.log((ok ? '  PASS  ' : '  FAIL  ') + name + (ok || !detail ? '' : '\n          ' + detail));
 }
 
-async function open(browser, {account, projects, closed, reason, query}) {
+async function open(browser, {account, projects, closed, reason, query, days, capfail, store}) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
@@ -38,10 +38,14 @@ async function open(browser, {account, projects, closed, reason, query}) {
     if (m.type() === 'error' && !/ERR_TUNNEL|ERR_FILE_NOT_FOUND|ERR_NAME_NOT_RESOLVED|favicon/.test(t))
       errors.push('console: ' + t);
   });
-  await page.addInitScript(([a, p, c, r]) => {
+  await page.addInitScript(([a, p, c, r, d, f, ls]) => {
     window.__ACCOUNT__ = a; window.__PROJECTS__ = p;
     window.__CLOSED__ = c; window.__REASON__ = r;
-  }, [account, projects, !!closed, reason || null]);
+    window.__DAYS__ = d || []; window.__CAPFAIL__ = !!f;
+    /* Seeded BEFORE the app runs, because the whole question about the streak
+       is what this browser already had in it when somebody signed in. */
+    try { Object.keys(ls || {}).forEach(k => localStorage.setItem(k, ls[k])); } catch (e) {}
+  }, [account, projects, !!closed, reason || null, days || [], !!capfail, store || null]);
   await page.goto(PAGE + (query || ''));
   await page.waitForTimeout(700);
   return { page, errors };
@@ -1339,6 +1343,152 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       /ABOUT NICOLE/i.test(printed), 'the attribution is on screen and not on paper');
 
     check('no page errors attributing a note', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* ================================== THE STREAK BELONGS TO THE ACCOUNT
+   *
+   * It used to be a list in local storage added to whatever the server said,
+   * so it was the browser's streak rather than the writer's. Kris found it by
+   * signing back into an account he had not opened in a fortnight and being
+   * shown days he had worked on a different one.
+   */
+  {
+    const back = (n) => {                       // n days ago, as the app stamps them
+      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+           + '-' + String(d.getDate()).padStart(2, '0');
+    };
+    const run4 = [back(3), back(2), back(1), back(0)];
+
+    // 1. The account's own days are what gets counted.
+    const { page, errors } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)], days: run4});
+    const own = await page.evaluate(() => ({run: chain().run, loaded: chainLoaded}));
+    check('the streak counts the days the account worked', own.run === 4, String(own.run));
+    check('and knows the server answered', own.loaded === true);
+    check('no page errors reading the streak', errors.length === 0, errors.join('\n'));
+    await page.close();
+
+    /* 2. THE BUG ITSELF. Another account's days, and the old browser-wide
+          list, both sitting in this browser from an earlier sign-in. Neither
+          may be counted for whoever signs in next.
+
+          Run with the request FAILING on purpose. On a good connection the
+          stale key is cleaned up, and a check taken after that cleanup proves
+          only that the cleanup happened: put the bug back and it still passes,
+          because there is nothing left to read. Failing the request leaves
+          every one of those keys sitting there, which is the only way to ask
+          whether the streak would read them. */
+    const { page: p2 } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)],
+      capfail: true,
+      store: {'beatfall.days.someone-else@example.com': JSON.stringify(run4),
+              'beatfall.days': JSON.stringify(run4)}
+    });
+    const clean = await p2.evaluate(() => ({
+      run: chain().run,
+      stillThere: !!localStorage.getItem('beatfall.days'),
+      theirs: !!localStorage.getItem('beatfall.days.someone-else@example.com')
+    }));
+    check('somebody else’s streak on this computer is not yours',
+      clean.run === 0, clean.run + ' days inherited from another account');
+    check('with both stale lists still sitting in the browser',
+      clean.stillThere && clean.theirs, 'the test proved nothing, they were cleaned up first');
+    await p2.close();
+
+    // And on a good connection the old browser-wide list is swept away.
+    const { page: p2b } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)], days: run4,
+      store: {'beatfall.days': JSON.stringify([back(9)])}
+    });
+    const swept = await p2b.evaluate(() => ({
+      old: localStorage.getItem('beatfall.days'),
+      mine: JSON.parse(localStorage.getItem('beatfall.days.w@example.com') || 'null')
+    }));
+    check('the old browser-wide list is cleared out once the account answers',
+      swept.old === null, swept.old);
+    check('and this account caches its own days', (swept.mine || []).length === 4,
+      JSON.stringify(swept.mine));
+    await p2b.close();
+
+    /* 3. A request that failed is not a writer who did nothing. Zeroing the
+          streak on a dropped connection is the fix overshooting. */
+    const { page: p3 } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)],
+      capfail: true,
+      store: {'beatfall.days.w@example.com': JSON.stringify(run4)}
+    });
+    const held = await p3.evaluate(() => ({run: chain().run, loaded: chainLoaded}));
+    check('a streak survives a connection that dropped', held.run === 4, String(held.run));
+    check('and the app knows it is working from a cache', held.loaded === false);
+    await p3.close();
+  }
+
+  /* ============================== EVERY SCRIPT CAN BE THROWN AWAY
+   *
+   * Delete appeared only once there were two projects, so a writer with one
+   * had to make a second to get rid of the first. The guard existed because
+   * remove() left state.projects empty and P() reads its first entry.
+   */
+  {
+    const { page, errors } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)]});
+    const before = await page.evaluate(() => ({
+      cards: document.querySelectorAll('#slategrid .pcard:not(.newcard)').length,
+      del: document.querySelectorAll('#slategrid .pcard .btn.del').length
+    }));
+    check('a lone script can still be deleted', before.cards === 1 && before.del === 1,
+      'cards: ' + before.cards + ' delete buttons: ' + before.del);
+
+    const after = await page.evaluate(async () => {
+      window.confirm = () => true;
+      document.querySelector('#slategrid .pcard .btn.del').click();
+      await new Promise(r => setTimeout(r, 0));
+      return {
+        cards: document.querySelectorAll('#slategrid .pcard:not(.newcard)').length,
+        blanks: document.querySelectorAll('#slategrid .newcard').length,
+        lede: document.getElementById('slatelede').textContent.trim(),
+        // P() reading undefined is what the old guard was really protecting.
+        alive: !!P(),
+        placeholder: !!(state.projects[0] || {}).placeholder,
+        queued: dirty.size,
+        sent: window.__CALLS__.filter(c => c === 'delete').length
+      };
+    });
+    check('deleting the last one leaves the dashed box on its own',
+      after.cards === 0 && after.blanks === 1,
+      'cards: ' + after.cards + ' blanks: ' + after.blanks);
+    check('and the lede goes back to saying nothing is saved',
+      /Nothing saved yet/.test(after.lede), after.lede);
+    check('the app still has a project to read', after.alive === true);
+    check('and it is the blank, not a saved one', after.placeholder === true);
+    check('the delete really went to the server', after.sent === 1, String(after.sent));
+    check('and nothing is left queued to be written back',
+      after.queued === 0, after.queued + ' still in the save queue');
+    check('no page errors deleting the last script', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* A board deleted within the debounce of its own last edit was being written
+     back to the server after the delete had gone, so it reappeared. */
+  {
+    const { page } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9), board('The Duffel Bag', 3)]});
+    const after = await page.evaluate(async () => {
+      window.confirm = () => true;
+      const p = state.projects[0];
+      p.cards.push({id: 9001, slot: '__shelf', text: 'an edit made a moment ago'});
+      save();                                   // queues it, debounced
+      const queuedFirst = dirty.has(p);
+      document.querySelector('#slategrid .pcard .btn.del').click();
+      await new Promise(r => setTimeout(r, 0));
+      return {queuedFirst, stillQueued: dirty.has(p), left: state.projects.length};
+    });
+    check('an edit does queue the board it changed', after.queuedFirst === true);
+    check('deleting a board takes it out of the save queue',
+      after.stillQueued === false, 'it would have been written back after the delete');
+    check('and the other script is untouched', after.left === 1, String(after.left));
     await page.close();
   }
 

@@ -95,6 +95,16 @@ window.jspdf = { jsPDF: function(){
     if (path === '/api/account' && (!opts || opts.method !== 'POST')) return ACCOUNT;
     if (path === '/api/billing') return {url: 'https://stripe.test/session'};
 
+    /* The pile and the streak, which arrive in the same answer. The days list
+       is the ACCOUNT's, and it is the only thing the chain is allowed to
+       count, so a suite that cannot seed it cannot tell a streak from a
+       browser's memory of somebody else's. __CAPFAIL__ makes the request
+       throw, which is the case where the cache has to stand in. */
+    if (path.indexOf('/api/captures') === 0 && (!opts || opts.method === 'GET')) {
+      if (window.__CAPFAIL__) throw new Error('offline');
+      return {captures: window.__CAPTURES__ || [], days: window.__DAYS__ || []};
+    }
+
     /* Vision. The real endpoint puts bytes in a private bucket and hands back
        a path plus a signed link; this hands back the same shape so the app's
        own upload and display paths run for real. The picture is a one pixel

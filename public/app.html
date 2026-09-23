@@ -3966,8 +3966,24 @@ function save(){
    dashboard. So this hangs off save() and nothing else, a streak you can run
    up by opening a tab is not a streak, it's a lie with a number on it.
 
-   Local to this browser on purpose. It is a private nudge, not a stat we hold
-   over anyone, and it never leaves the machine. */
+   THE CHAIN BELONGS TO THE ACCOUNT, NOT TO THE COMPUTER.
+
+   It used to be a list in this browser's local storage, added to whatever the
+   server said, and that was wrong in both directions at once. Sign in as
+   somebody else on the same machine and you inherited their streak. Sign in on
+   a new laptop and you lost your own. Kris found the first half by signing back
+   into an account he had not touched in a fortnight and being shown a run of
+   days he had worked on a different account.
+
+   The server records a day whenever anything is written, from the desk
+   (api/projects.js) or from the phone (api/captures.js), so the account's own
+   list is the truth and it is the only thing counted.
+
+   Local storage still has one job, and it is a cache rather than a record: it
+   holds the last list the server gave THIS account, so a failed request shows
+   yesterday's answer instead of zeroing somebody's streak, and it holds today
+   the moment they work so the dot fills in before the next page load. Keyed to
+   the account, so two accounts on one machine cannot see each other. */
 /* How far back the streak is willing to look, and it has to be at least as far
    as the server sends (workDays in api/_lib/core.js). It was 90 in all three
    places below and that WAS the streak's ceiling: a writer who worked every day
@@ -3998,24 +4014,43 @@ const dayStamp = (d) => {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
        + "-" + String(d.getDate()).padStart(2, "0");
 };
-/* The account's days first, this browser's as a fallback and a head start.
-   The chain used to live only in local storage, which meant a new laptop wiped
-   it and a night of captures on a phone counted for nothing. The server now
-   records a day whenever anything changes, wherever it changed, and the local
-   list is kept so an existing streak survives the move and so today shows
-   immediately rather than after the next page load. */
+/* WHOSE STREAK THIS IS. The cache is keyed to the signed-in address, so the
+   next person to use this browser starts from their own account's days and not
+   from these. Empty until the account has answered, which is why nothing is
+   written before then: a day filed under nobody would be read by everybody. */
+function chainKey(){
+  const who = (typeof ME !== "undefined" && ME && ME.email) || "";
+  return who ? DAYS_KEY + "." + who.toLowerCase() : "";
+}
+function cachedDays(){
+  const k = chainKey();
+  if (!k) return [];
+  try { const a = JSON.parse(localStorage.getItem(k) || "[]");
+        return Array.isArray(a) ? a : []; } catch(e){ return []; }
+}
+function cacheDays(list){
+  const k = chainKey();
+  if (!k) return;
+  try { localStorage.setItem(k, JSON.stringify(list.slice(-CHAIN_MAX))); } catch(e){}
+}
+
+/* True once the server has answered about this account. Until it has, the
+   cache stands in, because a connection that dropped is not the same as a
+   writer who did nothing. */
+let chainLoaded = false;
 function workedDays(){
-  let local = [];
-  try { const a = JSON.parse(localStorage.getItem(DAYS_KEY) || "[]");
-        if (Array.isArray(a)) local = a; } catch(e){}
-  return local.concat(CHAIN_DAYS);
+  return chainLoaded ? CHAIN_DAYS : cachedDays();
 }
 function markWorked(){
   const today = dayStamp();
-  const days = workedDays();
-  if (days[days.length - 1] === today) return;
-  days.push(today);
-  try { localStorage.setItem(DAYS_KEY, JSON.stringify(days.slice(-CHAIN_MAX))); } catch(e){}
+  if (workedDays().indexOf(today) >= 0) return;
+  /* Both lists, deliberately. CHAIN_DAYS is what the rest of this page reads,
+     so the dot fills in the moment the writer changes something rather than
+     after the next load. The cache is what survives a reload taken while the
+     server is unreachable. The server itself is told by the save that carries
+     the work, so nothing here has to ask it. */
+  CHAIN_DAYS.push(today);
+  cacheDays(chainLoaded ? CHAIN_DAYS : cachedDays().concat([today]));
 }
 // How many days in a row, counting back from today, or from yesterday, so a
 // streak isn't declared broken before the writer has had a chance to sit down.
@@ -7503,9 +7538,18 @@ async function loadCaptures(){
     const r = await BF.api("/api/captures");
     PENDING    = Array.isArray(r.captures) ? r.captures : [];
     CHAIN_DAYS = Array.isArray(r.days) ? r.days : [];
+    /* The account has spoken, so its answer is the streak and it is written
+       down against this address for the next time it cannot be reached. */
+    chainLoaded = true;
+    cacheDays(CHAIN_DAYS);
+    // The old browser-wide list, which is the bug itself. Nothing reads it now.
+    try { localStorage.removeItem(DAYS_KEY); } catch (e) {}
   } catch (e) {
     // Not fatal in any way. The board is the product; this is an errand.
-    PENDING = []; CHAIN_DAYS = [];
+    // The chain is deliberately NOT zeroed here: a request that failed is not
+    // a writer who did nothing, so workedDays() falls back to what this
+    // account last saw rather than telling them their run is over.
+    PENDING = [];
   }
 }
 
@@ -12382,12 +12426,15 @@ function renderSlate(){
     go.className = "btn go";
     acts.appendChild(go);
     acts.appendChild(btn("Details", () => { open(p.id || p.localId); openIntake("edit"); }));
-    if (state.projects.length > 1){
-      const d = btn("Delete", () => remove(p));
-      d.className = "btn del";
-      d.setAttribute("data-tip", "Delete this project and everything in it permanently.");
-      acts.appendChild(d);
-    }
+    /* EVERY CARD CAN BE DELETED, INCLUDING THE LAST ONE.
+       This used to appear only once there were two, so a writer with one
+       script had no way to throw it away and had to make a second one to get
+       rid of the first. That was never a decision; it was a guard against
+       remove() leaving the shelf empty, and remove() puts the blank back now. */
+    const d = btn("Delete", () => remove(p));
+    d.className = "btn del";
+    d.setAttribute("data-tip", "Delete this project and everything in it permanently.");
+    acts.appendChild(d);
     into.appendChild(el);
   }
 
@@ -12398,7 +12445,28 @@ function renderSlate(){
         + (n ? n + (n === 1 ? " card goes" : " cards go") + " with it. " : "")
         + "This cannot be undone.")) return;
     if (p.id) BF.deleteProject(p.id).catch(() => {});
+    /* Out of the save queue as well as out of the shelf. flush() walks `dirty`
+       rather than the project list, so a board deleted within the debounce of
+       its own last edit was being written back to the server after the delete
+       had already gone: the script reappeared on the next load. */
+    dirty.delete(p);
+    savedFingerprints.delete(p);
     state.projects = state.projects.filter(x => x !== p);
+
+    /* THE LAST ONE LEAVES AN EMPTY SHELF, AND AN EMPTY SHELF NEEDS THE BLANK.
+       P() reads state.projects[0], so an empty list is not a tidy state, it is
+       every screen in the app reading from undefined. This is the same blank
+       load() puts in front of a brand new writer, with the same fingerprint
+       baseline so it is not dirty and never reaches the database. What the
+       writer sees is the dashboard they started with: the dashed New project
+       box on its own, and "Nothing saved yet". */
+    if (!state.projects.length){
+      const blank = blankProject("Untitled", "stc");
+      blank.placeholder = true;
+      state.projects.push(blank);
+      savedFingerprints.set(blank, projectFingerprint(blank));
+    }
+
     if (state.activeId === (p.id || p.localId))
       state.activeId = state.projects[0].id || state.projects[0].localId;
     save();
