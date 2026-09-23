@@ -590,6 +590,28 @@ async function page(browser, url, before, arg) {
       asked.blurb === false);
     check('an answer it had does not offer the address', asked.handoff === false);
 
+    /* THE FOLLOW-UP. Kris read an answer and typed "so that's it?", and it
+       came back saying it had no context, because every question went up on
+       its own. The turns before it travel with it now. */
+    const again = await p.evaluate(async () => {
+      const box = document.getElementById('hc-box');
+      box.value = "so that's it?";
+      document.getElementById('hc-send').click();
+      await new Promise(r => setTimeout(r, 60));
+      return window.__ASKED__.slice(-1)[0];
+    });
+    check('a follow-up carries what was already said',
+      (again.history || []).length === 2, JSON.stringify(again.history));
+    check('both halves of it, in order',
+      again.history[0].role === 'user'
+        && /start a new script/.test(again.history[0].content)
+        && again.history[1].role === 'assistant'
+        && /Press New project/.test(again.history[1].content),
+      JSON.stringify(again.history));
+    check('and the follow-up itself is not in its own history',
+      !JSON.stringify(again.history).includes("so that's it"),
+      JSON.stringify(again.history));
+
     /* Escape closes it, and closing does not throw the thread away: a writer
        who shuts the panel to look at their board and opens it again should
        not have to ask twice. */
@@ -604,7 +626,7 @@ async function page(browser, url, before, arg) {
     });
     check('Escape closes the panel', shut.closed === true);
     check('the bubble opens it again', shut.reopened === true);
-    check('and the thread is still there', shut.turns === 2, String(shut.turns));
+    check('and the thread is still there', shut.turns === 4, String(shut.turns));
 
     check('no page errors on the help page', errors.length === 0, errors.join('\n'));
     await p.close();
@@ -677,11 +699,21 @@ async function page(browser, url, before, arg) {
       document.getElementById('hc-send').click();
       await new Promise(r => setTimeout(r, 60));
       const body = (document.querySelector('#hc-thread .hc-out .hc-body') || {}).textContent || '';
+      /* Ask a second time, so what the first failure left behind can be seen. */
+      document.getElementById('hc-box').value = 'and again';
+      document.getElementById('hc-send').click();
+      await new Promise(r => setTimeout(r, 60));
       return {body, stillThinking: /Reading/.test(body),
-              enabled: !document.getElementById('hc-send').disabled};
+              enabled: !document.getElementById('hc-send').disabled,
+              carried: (window.__ASKED__.slice(-1)[0] || {}).history};
     });
     check('a failed request still leaves an address on screen',
       /support@beatfall\.app/.test(seen.body), seen.body);
+    /* An answer that never arrived is not put in the conversation as though
+       Beatfall had said it. The next question would otherwise be answered
+       against "couldn't get an answer just now". */
+    check('and a failure is not remembered as something Beatfall said',
+      (seen.carried || []).length === 0, JSON.stringify(seen.carried));
     check('and never leaves them looking at a spinner', seen.stillThinking === false);
     check('and the button works again', seen.enabled === true);
     check('no page errors when the help endpoint is down',

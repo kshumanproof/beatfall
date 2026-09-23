@@ -39,6 +39,25 @@ const SUPPORT = 'support@beatfall.app';
 const MAX_QUESTION = 400;    // a support question, not an essay
 const MAX_TOKENS   = 400;    // a support answer, not an essay either
 
+/* THE CONVERSATION HAS TO REMEMBER ITSELF.
+ *
+ * Kris asked how to make a project, read the answer, and then typed "so that's
+ * it? that's all i have to do?" It came back saying it did not have enough
+ * context and handed him the support address, because every question used to
+ * be sent on its own with nothing before it. That is not a help desk, it is a
+ * vending machine, and the follow-up is the most natural thing a person types.
+ *
+ * So the turns before it go with each question. Eight entries is four
+ * exchanges, which covers the follow-ups that actually happen ("so that's
+ * it?", "and then?", "where is that button") without carrying a whole
+ * afternoon into every request. Old turns fall off the front.
+ *
+ * The thread lives in the browser and nowhere else. Nothing here is written to
+ * the database and nothing is remembered between visits: closing the panel and
+ * coming back tomorrow starts clean. */
+const MAX_TURNS = 8;
+const MAX_TURN_CHARS = 700;
+
 /* A BOUNDED FREE THING, the same shape as the free board actions.
  *
  * Free was never the problem and is not in question: charging somebody a
@@ -64,6 +83,29 @@ function brief() {
   return HELP.map(h => 'Q: ' + h.q + '\nA: ' + h.a).join('\n\n---\n\n');
 }
 
+/* WHAT ARRIVES HERE IS WHATEVER THE BROWSER SENT, so it is rebuilt rather than
+ * trusted. The conversation must alternate, must begin with the person and
+ * must end with an answer before the new question goes on the end, or the
+ * request is refused upstream and the writer gets a failure instead of a
+ * reply. Anything that does not fit that shape is simply dropped: a turn
+ * missing from the history is a worse answer, a malformed request is no answer
+ * at all. */
+function past(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  let want = 'user';
+  raw.slice(-MAX_TURNS).forEach(m => {
+    if (!m || m.role !== want) return;
+    const text = String(m.content == null ? '' : m.content).trim().slice(0, MAX_TURN_CHARS);
+    if (!text) return;
+    out.push({ role: want, content: text });
+    want = want === 'user' ? 'assistant' : 'user';
+  });
+  // A trailing question with no answer under it would sit next to the new one.
+  if (out.length && out[out.length - 1].role === 'user') out.pop();
+  return out;
+}
+
 const SYSTEM = () => `You answer questions about Beatfall, a beat board for
 screenwriters, for people using it. You are its help desk.
 
@@ -72,9 +114,21 @@ IT. Never describe a button, a screen or a behaviour that is not in this
 material, even if it would be a reasonable guess about software of this kind.
 Inventing a control sends somebody looking for something that is not there.
 
+You are in the middle of a conversation, so read what has already been said
+before you answer. A short follow-up ("so that's it?", "and then?", "where is
+that?", "what about the other one") is about the answer you just gave. Answer
+it from there. Never say you lack context for a question the turns above
+already explain, and never make somebody repeat what they just told you.
+
 If the material does not answer the question, reply with the single word
 ${NO_ANSWER} on the first line and then one short sentence saying you do not
 have that one. Do not apologise at length and do not guess.
+
+If you could answer it but one detail is missing, ask for that detail instead.
+Ask the question on its own, with no ${NO_ANSWER} in front of it: that word
+hands the person to an inbox, and somebody who is mid conversation should be
+asked rather than sent away. Use it only when the material genuinely does not
+cover what they want.
 
 If the question is about signing in, a sign-in code not arriving, or being
 locked out, answer from the material AND then say plainly that if that does
@@ -158,7 +212,7 @@ export default async function handler(req, res) {
         model: MODEL,
         max_tokens: MAX_TOKENS,
         system: SYSTEM(),
-        messages: [{ role: 'user', content: question }]
+        messages: past(body && body.history).concat([{ role: 'user', content: question }])
       })
     });
     if (!r.ok) {

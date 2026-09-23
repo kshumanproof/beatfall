@@ -39,6 +39,15 @@
   var SUPPORT  = 'support@beatfall.app';
   var MAXCHARS = 400;                   // the server cuts at the same figure
 
+  /* THE THREAD IS SENT WITH EVERY QUESTION.
+     Without it, "so that's it?" is a question about nothing and comes back
+     saying it has no context, which is exactly what it did. Four exchanges is
+     what the server keeps, so there is no point sending more. It lives here in
+     the page and is gone the moment the tab is closed: nothing about this
+     conversation is stored anywhere. */
+  var MAX_TURNS = 8;
+  var history = [];
+
   /* --------------------------------------------------------------- styles --
      Injected rather than written into twelve stylesheets. Everything is
      namespaced under .hc so nothing here can reach a page's own markup, and
@@ -139,7 +148,11 @@
     return fetch('/api/help', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({question: question, anon: anonId()})
+      body: JSON.stringify({
+        question: question,
+        history: history.slice(-MAX_TURNS),
+        anon: anonId()
+      })
     }).then(function (r) {
       return r.json().catch(function () { return {}; });
     });
@@ -280,6 +293,16 @@
       waiting.innerHTML = '<p class="hc-said">Beatfall</p>'
         + '<p class="hc-body">' + esc(answer) + '</p>'
         + (r && r.handoff ? handoffBlock(q) : '');
+
+      /* Both halves, or the next question arrives with a hole in the middle of
+         what was said. An answer that never came is not recorded as one: a
+         request that failed would otherwise put "could not get an answer just
+         now" into the conversation as though Beatfall had said it. */
+      if (r && r.answer) {
+        history.push({role: 'user', content: q});
+        history.push({role: 'assistant', content: answer});
+        if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
+      }
 
       asking = false;
       send.disabled = false;
