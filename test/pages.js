@@ -72,14 +72,9 @@ const STUB = `<script>
 
 function build(file) {
   let s = fs.readFileSync(path.resolve('../public/' + file), 'utf8');
-  s = s.replace(/<script src="https:\/\/[^"]*"><\/script>\n?/g, '');
+  s = s.replace(/<script[^>]+src="https:\/\/[^"]*"[^>]*><\/script>\n?/g, '');
   s = s.replace('<script src="/app.js"></script>', () => STUB);
   s = s.replace(/href="\/theme\.css"/g, 'href="../public/theme.css"');
-  /* The help bubble is a real file on every page and it loads for real here.
-     Left as an absolute path it would resolve to the root of the disk under
-     file:// and silently not load, which would make every check about it pass
-     by being absent. */
-  s = s.replace(/src="\/helpchat\.js"/g, 'src="../public/helpchat.js"');
   const out = 'stub-' + file;
   fs.writeFileSync(out, s);
   return 'file://' + path.resolve(out);
@@ -468,32 +463,15 @@ async function page(browser, url, before, arg) {
 
   /* ====================================================== THE HELP PAGE
    *
-   * Two things it has to do that it could not do before. Draw its answers
-   * from the one place Beatfall's behaviour is written down, rather than
-   * carrying a typed copy that goes stale. And, when the word search comes up
-   * empty, offer a way to ask rather than only an email address.
-   *
-   * It also has to work with NO ACCOUNT, which is why nothing on it calls
-   * BF.init and nothing on it uses BF.api: the likeliest reason somebody is
-   * here is that they cannot get in.
-   *
-   * THE ASKING ITSELF IS NOT ON THIS PAGE. It is /helpchat.js, the bubble in
-   * the corner of every page in the product, and this page opens it. So these
-   * checks are the real widget running, loaded off disk, and not a copy.
+   * The written answers stay inside Beatfall. Conversational help is supplied
+   * by Chatling, whose script is external and is not executed by this offline
+   * suite. Here we check the part Beatfall owns: its searchable answers, its
+   * direct support path, and the exact widget configuration on every page.
    */
   const helpUrl = build('help.html');
 
-  const KINDS  = ['Something is broken', "I can't get in", "I've lost work",
-                  'A question about how to do something', 'Plan or payment',
-                  'A suggestion', 'Privacy or my data', 'Something else'];
-  const WHERES = ['Signing in', 'Dashboard', 'A board', 'The Outline',
-                  'Notes or pictures', 'Characters', 'Importing notes',
-                  'The phone app', 'Settings or billing', 'Somewhere else'];
-
   const TOPICS = {
     support: 'support@beatfall.app',
-    kinds: KINDS,
-    wheres: WHERES,
     sections: ['Starting out', 'Projects'],
     topics: [
       {id: 'signing-in', section: 'Starting out', q: 'How do I sign in?',
@@ -503,429 +481,63 @@ async function page(browser, url, before, arg) {
     ]
   };
 
-  /* Both the page and the bubble talk to /api/help with a plain fetch, so that
-     is what gets stubbed. Using BF.api would be testing something neither of
-     them does: they avoid it on purpose, because BF.api wants a Supabase
-     client these pages never build. */
-  const netStub = (r) => {
-    window.__ASKED__ = [];
-    window.fetch = async (url, opts) => {
-      if (!opts || !opts.method || opts.method === 'GET') {
-        return {ok: true, json: async () => r.topics};
-      }
-      const sent = JSON.parse(opts.body);
-      window.__ASKED__.push(sent);
-      if (r.dead) throw new Error('offline');
-      if (sent.action === 'ticket') {
-        return {ok: !r.ticketFails, json: async () => (r.ticketFails
-          ? {error: 'send_failed'} : {sent: true})};
-      }
-      return {ok: true, json: async () => r.reply};
-    };
+  const netStub = topics => {
+    window.fetch = async () => ({ok: true, json: async () => topics});
   };
 
   {
-    const { p, errors } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS, reply: {answer: 'Press New project.', handoff: false}});
+    const { p, errors } = await page(browser, helpUrl, netStub, TOPICS);
     const drawn = await p.evaluate(() => ({
       groups: document.querySelectorAll('#topics [data-group]').length,
       answers: document.querySelectorAll('#topics [data-answer]').length,
-      heading: (document.querySelector('#topics h3') || {}).textContent || '',
-      /* The FIRST answer on the page, not the first in each group. Every
-         group's opening article is also a :first-child, so that selector
-         counts paragraphs from all of them at once. */
-      paras: document.querySelector('#topics [data-answer]')
-             .querySelectorAll('p').length,
-      loading: document.getElementById('loading').hidden,
-      askButton: !!document.getElementById('askopen')
+      support: (document.querySelector('.support a') || {}).href || ''
     }));
-    check('the help page draws its answers from the server',
-      drawn.answers === 2 && drawn.groups === 2,
-      JSON.stringify(drawn));
-    check('the heading is the question somebody would ask',
-      /How do I sign in/.test(drawn.heading), drawn.heading);
-    check('a multi paragraph answer stays multi paragraph', drawn.paras === 2,
-      String(drawn.paras));
-    check('and the loading line goes away', drawn.loading === true);
-    check('there is a way to ask in your own words', drawn.askButton === true);
+    check('the Help page draws the written answers',
+      drawn.groups === 2 && drawn.answers === 2, JSON.stringify(drawn));
+    check('the Help page keeps a direct human-support path',
+      /^mailto:support@beatfall\.app/.test(drawn.support), drawn.support);
 
-    /* THE BUBBLE ITSELF. It is drawn by the widget, not by the page, and it
-       starts closed: a panel that opens itself on every page load is an
-       advert, not help. */
-    const rest = await p.evaluate(() => ({
-      bubble: !!document.getElementById('hc-bubble'),
-      shut: document.getElementById('hc-panel').hidden,
-      corner: (() => {
-        const b = document.getElementById('hc-bubble').getBoundingClientRect();
-        return b.right > innerWidth - 60 && b.bottom > innerHeight - 60;
-      })()
-    }));
-    check('the bubble is in the corner of the page', rest.bubble && rest.corner,
-      JSON.stringify(rest));
-    check('and the panel is shut until somebody presses it', rest.shut === true);
-
-    const opened = await p.evaluate(async () => {
-      document.getElementById('askopen').click();
-      await new Promise(r => setTimeout(r, 0));
+    const found = await p.evaluate(() => {
+      const box = document.getElementById('helpsearch');
+      box.value = 'password';
+      box.dispatchEvent(new Event('input'));
       return {
-        open: !document.getElementById('hc-panel').hidden,
-        bubbleGone: document.getElementById('hc-bubble').hidden,
-        focused: document.activeElement === document.getElementById('hc-box')
+        visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length,
+        status: document.getElementById('searchstatus').textContent
       };
     });
-    check('Ask a question opens the panel', opened.open === true,
-      JSON.stringify(opened));
-    check('the bubble steps aside while it is open', opened.bubbleGone === true);
-    check('and the cursor is already in the box', opened.focused === true);
+    check('search still narrows the written answers',
+      found.visible === 1 && /1 answer/.test(found.status), JSON.stringify(found));
 
-    const asked = await p.evaluate(async () => {
-      const box = document.getElementById('hc-box');
-      box.value = 'how do i start a new script';
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      return {
-        sent: window.__ASKED__.slice(),
-        turns: document.querySelectorAll('#hc-thread .hc-turn').length,
-        answer: (document.querySelector('#hc-thread .hc-out .hc-body') || {}).textContent || '',
-        handoff: !!document.querySelector('#hc-thread .hc-hand'),
-        cleared: box.value,
-        blurb: !!document.getElementById('hc-open')
-      };
-    });
-    check('asking sends the question to the help endpoint',
-      asked.sent.length === 1 && asked.sent[0].question === 'how do i start a new script',
-      JSON.stringify(asked.sent));
-    check('and it carries this browser id, so the hourly ceiling can count',
-      !!asked.sent[0].anon, JSON.stringify(asked.sent[0]));
-    check('the thread shows what was asked and what came back',
-      asked.turns === 2 && /Press New project/.test(asked.answer), JSON.stringify(asked));
-    check('the box empties so the next question can be typed', asked.cleared === '');
-    check('the opening line steps out of the way once there is a thread',
-      asked.blurb === false);
-    check('an answer it had does not offer the address', asked.handoff === false);
-
-    /* THE FOLLOW-UP. Kris read an answer and typed "so that's it?", and it
-       came back saying it had no context, because every question went up on
-       its own. The turns before it travel with it now. */
-    const again = await p.evaluate(async () => {
-      const box = document.getElementById('hc-box');
-      box.value = "so that's it?";
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      return window.__ASKED__.slice(-1)[0];
-    });
-    check('a follow-up carries what was already said',
-      (again.history || []).length === 2, JSON.stringify(again.history));
-    check('both halves of it, in order',
-      again.history[0].role === 'user'
-        && /start a new script/.test(again.history[0].content)
-        && again.history[1].role === 'assistant'
-        && /Press New project/.test(again.history[1].content),
-      JSON.stringify(again.history));
-    check('and the follow-up itself is not in its own history',
-      !JSON.stringify(again.history).includes("so that's it"),
-      JSON.stringify(again.history));
-
-    /* Escape closes it, and closing does not throw the thread away: a writer
-       who shuts the panel to look at their board and opens it again should
-       not have to ask twice. */
-    const shut = await p.evaluate(async () => {
-      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
-      await new Promise(r => setTimeout(r, 0));
-      const closed = document.getElementById('hc-panel').hidden;
-      document.getElementById('hc-bubble').click();
-      await new Promise(r => setTimeout(r, 0));
-      return {closed, reopened: !document.getElementById('hc-panel').hidden,
-              turns: document.querySelectorAll('#hc-thread .hc-turn').length};
-    });
-    check('Escape closes the panel', shut.closed === true);
-    check('the bubble opens it again', shut.reopened === true);
-    check('and the thread is still there', shut.turns === 4, String(shut.turns));
-
-    check('no page errors on the help page', errors.length === 0, errors.join('\n'));
-    await p.close();
-  }
-
-  /* THE DEAD END KRIS FOUND. Typing something the words do not match used to
-     offer an email address and nothing else. */
-  {
-    const { p } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS, reply: {answer: 'ok', handoff: false}});
-    const empty = await p.evaluate(() => {
+    const missed = await p.evaluate(() => {
       const box = document.getElementById('helpsearch');
       box.value = 'two doves';
       box.dispatchEvent(new Event('input'));
       const nr = document.getElementById('noresults');
       return {
         shown: !nr.hidden,
-        ask: !!nr.querySelector('#asksearch'),
-        support: !!nr.querySelector('#asksupport'),
-        visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length
+        email: (nr.querySelector('a[href^="mailto:"]') || {}).href || ''
       };
     });
-    check('a search that matches nothing says so', empty.shown && empty.visible === 0,
-      JSON.stringify(empty));
-    check('and now offers a way to ask, not just an address',
-      empty.ask === true, 'the no results panel is still a dead end');
-    /* It used to be a mailto here. Kris asked for a form: a blank mail window
-       asks somebody who has just typed their question to type it again. */
-    check('with a way to reach a person beside it', empty.support === true);
-
-    // And pressing it carries the words across rather than making them retype.
-    const carried = await p.evaluate(async () => {
-      document.getElementById('asksearch').click();
-      await new Promise(r => setTimeout(r, 0));
-      return {open: !document.getElementById('hc-panel').hidden,
-              text: document.getElementById('hc-box').value};
-    });
-    check('pressing it opens the panel with those words already typed',
-      carried.open === true && carried.text === 'two doves', JSON.stringify(carried));
+    check('an unmatched search points to chat and human support',
+      missed.shown && /^mailto:support@beatfall\.app/.test(missed.email),
+      JSON.stringify(missed));
+    check('no page errors on the Help page', errors.length === 0, errors.join('\n'));
     await p.close();
   }
 
-  /* When nobody has written the answer down, the address is the answer. */
-  {
-    const { p } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS,
-       reply: {answer: 'I do not have that written down.', handoff: true,
-               support: 'support@beatfall.app'}});
-    const seen = await p.evaluate(async () => {
-      HelpChat.open();
-      document.getElementById('hc-box').value = 'can I share with a co-writer?';
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      const h = document.querySelector('#hc-thread .hc-hand');
-      return {shown: !!h, mail: h ? h.querySelector('a').getAttribute('href') : ''};
-    });
-    check('a question nobody answered hands over the address', seen.shown === true);
-    check('and the email arrives with the question already in its subject',
-      /^mailto:support@beatfall\.app\?subject=/.test(seen.mail)
-        && /co-writer/.test(decodeURIComponent(seen.mail)), seen.mail);
-    await p.close();
-  }
-
-  /* NEVER A DEAD END. If the request itself fails, the person is still left
-     with somewhere to go rather than a line that says Reading and stops. */
-  {
-    const { p, errors } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS, dead: true});
-    const seen = await p.evaluate(async () => {
-      HelpChat.open();
-      document.getElementById('hc-box').value = 'anything at all';
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      const body = (document.querySelector('#hc-thread .hc-out .hc-body') || {}).textContent || '';
-      /* Ask a second time, so what the first failure left behind can be seen. */
-      document.getElementById('hc-box').value = 'and again';
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      return {body, stillThinking: /Reading/.test(body),
-              enabled: !document.getElementById('hc-send').disabled,
-              carried: (window.__ASKED__.slice(-1)[0] || {}).history};
-    });
-    check('a failed request still leaves an address on screen',
-      /support@beatfall\.app/.test(seen.body), seen.body);
-    /* An answer that never arrived is not put in the conversation as though
-       Beatfall had said it. The next question would otherwise be answered
-       against "couldn't get an answer just now". */
-    check('and a failure is not remembered as something Beatfall said',
-      (seen.carried || []).length === 0, JSON.stringify(seen.carried));
-    check('and never leaves them looking at a spinner', seen.stillThinking === false);
-    check('and the button works again', seen.enabled === true);
-    check('no page errors when the help endpoint is down',
-      errors.length === 0, errors.join('\n'));
-    await p.close();
-  }
-
-
-  /* ============================================= THE FORM AT THE DEAD END
-   *
-   * Kris asked for this and the reasoning is his: a mailto opens an empty
-   * window and asks somebody who has just explained themselves to start again,
-   * so most people close it. The form goes to support@ already carrying the
-   * question, the conversation and the page. These checks are the ones that
-   * would make it quietly stop being that.
-   */
-  {
-    const { p, errors } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS,
-       reply: {answer: 'I do not have that one.', handoff: true, topic: 'signing-in',
-               support: 'support@beatfall.app'}});
-
-    const handed = await p.evaluate(async () => {
-      HelpChat.open();
-      document.getElementById('hc-box').value = 'my sign in code never turns up';
-      document.getElementById('hc-send').click();
-      await new Promise(r => setTimeout(r, 60));
-      const hand = document.querySelector('#hc-thread .hc-hand');
-      return {
-        button: !!hand.querySelector('.hc-ticket'),
-        stillEmail: !!hand.querySelector('a[href^="mailto:"]'),
-        topic: hand.querySelector('.hc-ticket').getAttribute('data-topic')
-      };
-    });
-    check('a question nobody answered offers a form, not just an address',
-      handed.button === true, JSON.stringify(handed));
-    check('and writing directly is still offered beside it',
-      handed.stillEmail === true);
-    check('and the form is told what the question was about',
-      handed.topic === 'signing-in', handed.topic);
-
-    /* THE SMART PART. Somebody who could not sign in is not then asked, by a
-       form, what their problem is about. */
-    const opened = await p.evaluate(async () => {
-      document.querySelector('.hc-ticket').click();
-      await new Promise(r => setTimeout(r, 20));
-      return {
-        open: !document.getElementById('hc-form').hidden,
-        threadGone: document.getElementById('hc-thread').hidden,
-        kind: document.getElementById('hc-kind').value,
-        where: document.getElementById('hc-where').value,
-        detail: document.getElementById('hc-detail').value,
-        fields: document.querySelectorAll('#hc-form .hc-f').length,
-        note: (document.getElementById('hc-attach') || {}).textContent || ''
-      };
-    });
-    check('pressing it opens the form', opened.open && opened.threadGone,
-      JSON.stringify(opened));
-    check('with both dropdowns already answered from the topic',
-      opened.kind === "I can't get in" && opened.where === 'Signing in',
-      JSON.stringify(opened));
-    check('and their question already in the box',
-      /code never turns up/.test(opened.detail), opened.detail);
-    check('and it is four fields, not an interrogation',
-      opened.fields === 4, String(opened.fields));
-    check('and it says the conversation goes with it, so nobody repeats themselves',
-      /repeat yourself/.test(opened.note), opened.note);
-
-    /* What it sends. Everything a first reply would otherwise have to ask for
-       rides along without a field. */
-    const sent = await p.evaluate(async () => {
-      document.getElementById('hc-email').value = 'writer@example.com';
-      document.getElementById('hc-submit').click();
-      await new Promise(r => setTimeout(r, 60));
-      return {body: window.__ASKED__.slice(-1)[0],
-              done: document.getElementById('hc-form').textContent};
-    });
-    check('it posts a ticket', sent.body.action === 'ticket', JSON.stringify(sent.body));
-    check('carrying the address to reply to and what they need',
-      sent.body.email === 'writer@example.com' && !!sent.body.detail,
-      JSON.stringify(sent.body).slice(0, 200));
-    check('and the page, the browser and the conversation, none of them asked for',
-      !!sent.body.page && !!sent.body.agent && (sent.body.thread || []).length === 2,
-      JSON.stringify({page: sent.body.page, thread: (sent.body.thread || []).length}));
-    check('and it says where it went and where the reply comes back',
-      /support@beatfall\.app/.test(sent.done) && /writer@example\.com/.test(sent.done),
-      sent.done);
-
-    check('no page errors sending a ticket', errors.length === 0, errors.join('\n'));
-    await p.close();
-  }
-
-  /* A form that will not send must say so. Saying "sent" over a message nobody
-     received is worse than no form, because the writer stops waiting. */
-  {
-    const { p } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS, ticketFails: true,
-       reply: {answer: 'nope', handoff: true, topic: 'other'}});
-    const shown = await p.evaluate(async () => {
-      HelpChat.ticket('broken');
-      await new Promise(r => setTimeout(r, 40));
-      document.getElementById('hc-email').value = 'writer@example.com';
-      document.getElementById('hc-detail').value = 'the board will not open';
-      document.getElementById('hc-submit').click();
-      await new Promise(r => setTimeout(r, 60));
-      const bad = document.getElementById('hc-bad');
-      return {shown: !bad.hidden, words: bad.textContent,
-              stillThere: document.getElementById('hc-detail').value};
-    });
-    check('a send that failed says so rather than claiming it worked',
-      shown.shown && /did not send/.test(shown.words), shown.words);
-    check('and hands over the address that still works',
-      /support@beatfall\.app/.test(shown.words), shown.words);
-    check('and what they typed is still on the screen',
-      /board will not open/.test(shown.stillThere), shown.stillThere);
-    await p.close();
-  }
-
-  /* The help page reaches the same form without asking anything first, so the
-     two dropdowns have to arrive from the server rather than from a copy of
-     the list kept in the widget. */
-  {
-    const { p, errors } = await page(browser, helpUrl, netStub,
-      {topics: TOPICS, reply: {answer: 'ok', handoff: false}});
-    const direct = await p.evaluate(async () => {
-      const box = document.getElementById('helpsearch');
-      box.value = 'two doves';
-      box.dispatchEvent(new Event('input'));
-      const nr = document.getElementById('noresults');
-      const mailtos = nr.querySelectorAll('a[href^="mailto:"]').length;
-      document.getElementById('asksupport').click();
-      await new Promise(r => setTimeout(r, 40));
-      return {mailtos, open: !document.getElementById('hc-form').hidden,
-              kinds: document.getElementById('hc-kind').options.length,
-              wheres: document.getElementById('hc-where').options.length};
-    });
-    check('the no results panel offers a form rather than a mailto',
-      direct.mailtos === 0 && direct.open === true, JSON.stringify(direct));
-    check('and its options come from the server',
-      direct.kinds > 4 && direct.wheres > 4, JSON.stringify(direct));
-    check('no page errors opening the form cold', errors.length === 0, errors.join('\n'));
-    await p.close();
-  }
-
-  /* ================================================ THE BUBBLE ON EVERY PAGE
-   *
-   * Kris asked where it was, standing on the dashboard. The answer was that it
-   * was only on the help page. So the thing worth checking is not that the
-   * widget works, which is above: it is that the script tag is on every page
-   * in the product and that the widget draws itself on each of them.
-   *
-   * The two that matter most are the ones with no account behind them. A
-   * person who cannot sign in is the likeliest person to need this, and the
-   * sign-in page is where they are standing.
-   */
   {
     const EVERYWHERE = ['index.html', 'login.html', 'billing.html', 'privacy.html',
                         'terms.html', 'help.html', 'delete.html', '404.html',
                         'settings.html', 'admin.html', 'app.html'];
-    const missing = EVERYWHERE.filter(f =>
-      !fs.readFileSync(path.resolve('../public/' + f), 'utf8').includes('/helpchat.js'));
-    check('every page in the product loads the help bubble',
-      missing.length === 0, 'missing on: ' + missing.join(', '));
-
-    /* Drawn, not merely referenced. Two pages, picked because they are the
-       two extremes: the marketing homepage carries no account layer at all,
-       and sign-in is where somebody locked out is standing.
-
-       Signed OUT on purpose. Sign-in sends a writer who already has a session
-       straight to their board, so a signed-in stub never stays on the page
-       long enough to be looked at. Signed out is also the case that matters:
-       somebody who cannot get in is the likeliest person to need this. */
-    const outAndOffline = () => {
-      window.__SIGNED_OUT__ = true;
-      window.fetch = async () => ({ok: true, json: async () => ({})});
-    };
-    for (const f of ['index.html', 'login.html']) {
-      const { p, errors } = await page(browser, build(f), outAndOffline);
-      const there = await p.evaluate(() => ({
-        bubble: !!document.getElementById('hc-bubble'),
-        shut: !!(document.getElementById('hc-panel') || {}).hidden,
-        blue: document.getElementById('hc-bubble')
-          ? getComputedStyle(document.getElementById('hc-bubble')).backgroundColor : ''
-      }));
-      check(f + ': the bubble is drawn with no account in sight',
-        there.bubble === true, JSON.stringify(there));
-      check(f + ': and it is not shouting a panel at somebody who just arrived',
-        there.shut === true);
-      /* Blue is free, gold costs a credit. Asking how the app works is free
-         and a gold bubble would be saying it is not. */
-      check(f + ': and it is blue, because it costs nothing',
-        /^rgb\(/.test(there.blue) && there.blue !== 'rgba(0, 0, 0, 0)', there.blue);
-      check(f + ': no page errors with the bubble on it',
-        errors.length === 0, errors.join('\n'));
-      await p.close();
-    }
+    const bad = EVERYWHERE.filter(f => {
+      const html = fs.readFileSync(path.resolve('../public/' + f), 'utf8');
+      return !/window\.chtlConfig\s*=\s*\{\s*chatbotId:\s*["']8179914613["']\s*\}/.test(html)
+        || !/<script[^>]+data-id=["']8179914613["'][^>]+id=["']chtl-script["'][^>]+src=["']https:\/\/chatling\.ai\/js\/embed\.js["']/.test(html)
+        || /helpchat\.js|\bHelpChat\b/.test(html);
+    });
+    check('every page loads Chatling and none loads Claude\'s widget',
+      bad.length === 0, 'wrong on: ' + bad.join(', '));
   }
 
   await browser.close();

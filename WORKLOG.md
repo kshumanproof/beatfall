@@ -2955,3 +2955,26 @@ so the next note goes to a script that no longer exists and the next Send makes
 a second one with the same name.
 
 418 checks across ten suites, all passing.
+
+## 24 September 2026: Chatling replaces the custom help chat
+
+The customer-support bubble is now Chatling chatbot `8179914613` on every page
+that previously loaded Beatfall's custom widget. The old `public/helpchat.js`
+widget and the Anthropic-backed question-answering branch of `api/help.js`
+were removed, along with their model pricing constants and obsolete tests.
+
+The written Help & shortcuts page remains. Its searchable answers still come
+from `api/_help/content.js` through a read-only GET on `/api/help`, and direct
+email to `support@beatfall.app` remains available when search does not answer
+the question.
+
+The Chatling knowledge sources were deliberately preserved:
+
+- `beatfall-manual.txt` and `beatfall-answers.txt` were not edited.
+- `api/_help/manual.js` and `api/_help/content.js` remain as the maintainable
+  source material.
+- The six webpages Chatling imported were not rewritten; only their old widget
+  script was exchanged for Chatling's embed.
+
+Chatling currently shows Auto Sync as Never for the imported webpages. Any
+future source correction has to be manually resynced or re-uploaded there.

@@ -44,14 +44,6 @@
   .nr-acts{display:flex;gap:10px;flex-wrap:wrap}
   .nr-acts .btn{text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
 
-  /* ---- ask ----
-     The asking itself lives in /helpchat.js, which draws the bubble in the
-     corner of EVERY page in Beatfall. This page does not carry a second copy
-     of it. It carries the way in: one button here, one on the panel the
-     search raises when it matches nothing. */
-  .askline{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 38px}
-  .askline .btn{min-height:44px;display:inline-flex;align-items:center}
-  .askline span{font-size:13px;line-height:1.5;color:var(--ink-3)}
   @media(max-width:700px){.topbar-in .right{margin-left:auto}.help{padding:44px 20px 80px}.answers{grid-template-columns:1fr}.keys{grid-template-columns:1fr 1fr}.key:nth-child(3){border-left:0;border-top:1px solid var(--rule)}.key:nth-child(4){border-top:1px solid var(--rule)}.support{grid-template-columns:1fr;gap:19px;padding:25px 22px}.support .btn{justify-self:start}}
   @media(max-width:430px){.topbar-in .right .btn{padding:8px 12px}.keys{grid-template-columns:1fr}.key+.key{border-left:0;border-top:1px solid var(--rule)}}
 </style>
@@ -78,25 +70,12 @@
   </div>
   <div class="search-status" id="searchstatus" role="status" aria-live="polite"></div>
 
-  <!-- ASKING IN YOUR OWN WORDS.
-       The search matches the words somebody typed against the words we
-       happened to write. Asking does not: it reads the question and answers
-       from everything Beatfall knows about itself. It needs no account on
-       purpose, because the likeliest reason anybody is here is that they
-       cannot get in. The panel it opens is the same one the bubble in the
-       corner of every page opens. -->
-  <div class="askline">
-    <button class="btn btn-primary" type="button" id="askopen">Ask a question</button>
-    <span>Say it however you would say it. It costs nothing.</span>
-  </div>
-
   <p class="loading" id="loading">Loading the answers…</p>
   <div class="no-results" id="noresults" hidden>
-    <p>No answer here matches those words. Ask it as a question instead and Beatfall
-       will try to answer, or write to somebody about it.</p>
+    <p>No written answer matches those words. Ask in the chat at the bottom of
+       the page, or write to somebody about it.</p>
     <div class="nr-acts">
-      <button class="btn btn-primary" type="button" id="asksearch">Ask about this</button>
-      <button class="btn" type="button" id="asksupport">Message support</button>
+      <a class="btn" href="mailto:support@beatfall.app">Message support</a>
     </div>
   </div>
 
@@ -108,13 +87,14 @@
 
   <section class="support">
     <div><h2>Still stuck?</h2><p>Tell us what you were trying to do, what happened, and which page you were on.</p></div>
-    <button class="btn" type="button" id="reportproblem">Report a problem</button>
+    <a class="btn" href="mailto:support@beatfall.app?subject=Beatfall%20support">Report a problem</a>
   </section>
   <nav class="footlinks" aria-label="More information"><a href="/billing.html">How billing works</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav>
 </main>
 
 <script src="/app.js"></script>
-<script src="/helpchat.js"></script>
+<script>window.chtlConfig = { chatbotId: "8179914613" };</script>
+<script async data-id="8179914613" id="chtl-script" type="text/javascript" src="https://chatling.ai/js/embed.js"></script>
 <script>
 BF.applyMode(BF.readMode());
 
@@ -199,23 +179,6 @@ function filterHelp(){
 input.addEventListener('input', filterHelp);
 clear.addEventListener('click', () => { input.value = ''; filterHelp(); input.focus(); });
 
-/* The search came up empty, so hand the words it could not match to the thing
-   that can read them. This is the whole reason the button is there. Both ways
-   in open the same panel, which lives in /helpchat.js and is the only copy of
-   the asking in the product. */
-document.getElementById('asksearch').addEventListener('click', () => {
-  HelpChat.open(input.value.trim());
-});
-document.getElementById('askopen').addEventListener('click', () => HelpChat.open());
-
-/* Straight to a person, on a form that already carries what they typed, rather
-   than a mailto that opens an empty window and asks them to start again. */
-document.getElementById('asksupport').addEventListener('click', () => {
-  HelpChat.ticket('other');
-});
-document.getElementById('reportproblem').addEventListener('click', () => {
-  HelpChat.ticket('broken');
-});
 </script>
 </body>
 </html>
