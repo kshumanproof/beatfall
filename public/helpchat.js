@@ -69,10 +69,9 @@
       'box-shadow:0 2px 6px rgba(0,0,0,.10),0 24px 48px -20px rgba(0,0,0,.5);overflow:hidden}',
     '.hc-panel[hidden]{display:none}',
 
-    '.hc-head{flex:0 0 auto;display:flex;align-items:flex-start;gap:12px;padding:16px 16px 13px;',
+    '.hc-head{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:14px 16px;',
       'border-bottom:1px solid var(--rule-soft);background:var(--surface)}',
-    '.hc-head h2{font-family:var(--serif);font-size:18px;line-height:1.15;margin:0 0 3px}',
-    '.hc-head p{font-size:12px;line-height:1.45;color:var(--ink-3);margin:0}',
+    '.hc-head h2{font-family:var(--serif);font-size:18px;line-height:1.15;margin:0}',
     '.hc-x{flex:0 0 auto;margin-left:auto;width:30px;height:30px;border:0;background:none;',
       'color:var(--ink-3);cursor:pointer;border-radius:var(--r-ctl);display:flex;',
       'align-items:center;justify-content:center;font-size:19px;line-height:1}',
@@ -191,8 +190,10 @@
     panel.hidden = true;
     panel.innerHTML =
       '<div class="hc-head">'
-      +   '<div><h2>Ask about Beatfall</h2>'
-      +   '<p>How the app works, not about your script. It costs nothing.</p></div>'
+      /* No subtitle. It explained the panel to somebody who had already opened
+         it, which is a caption doing no product job, and the placeholder in
+         the box below says the same thing by example. */
+      +   '<div><h2>Ask about Beatfall</h2></div>'
       +   '<button type="button" class="hc-x" id="hc-close" aria-label="Close">&#215;</button>'
       + '</div>'
       + '<div class="hc-thread" id="hc-thread" role="log" aria-live="polite">'

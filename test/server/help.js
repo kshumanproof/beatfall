@@ -97,6 +97,16 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
     /ANSWER ONLY FROM/i.test(sys) && /Never describe a button/i.test(sys), '');
   check('and told what to do when it cannot',
     /NO_ANSWER/.test(sys), '');
+  /* KRIS ASKED WHETHER TWO PROJECTS COULD BE MERGED. It answered correctly,
+     that Beatfall has no merge, and then pasted the support address under its
+     own right answer. A feature that does not exist is knowledge, not a gap,
+     and the difference has to be spelled out or the desk apologises for being
+     useful. */
+  check('and that a feature not existing is an answer rather than a gap',
+    /IS AN ANSWER\. IT IS NOT A GAP/.test(sys)
+      && /Beatfall cannot do X/.test(sys), '');
+  check('and to say what CAN be done in the same breath',
+    /nearest real way/i.test(sys), '');
   check('sign-in questions are always pointed at a person as well',
     /signing in[\s\S]{0,200}support@beatfall\.app/i.test(sys), '');
   check('the house rules travel with it',

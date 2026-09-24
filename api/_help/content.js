@@ -117,6 +117,27 @@ export const HELP = [
    + "project box, the same as a new account.",
   also: ["download-everything", "undo"]
 },
+/* Kris asked this one of the help chat on 24 September and nothing here
+   covered it. Two projects where there should be one is an ordinary thing to
+   do by accident, from a double press or from the phone, and the honest
+   answer is short. Written down so the desk stops treating a real answer as a
+   gap it has to apologise for. */
+{
+  id: "merge-projects",
+  section: "Projects",
+  q: "Can I merge two projects into one? I duplicated one by mistake.",
+  a: "There is no merge, and cards cannot be moved from one project to "
+   + "another. A card belongs to the project it was made in.\n\n"
+   + "If one of the two is the copy you do not want, open both and keep the "
+   + "one with more on its board, then press Delete on the other's card on "
+   + "the dashboard. The confirm tells you how many cards go with it, which "
+   + "is the quickest way to be sure you are deleting the emptier one.\n\n"
+   + "If real work has gone into both, there is no tidy way to join them. You "
+   + "would have to type the cards you want into the one you are keeping "
+   + "before deleting the other. Download everything in Settings first if you "
+   + "want a copy of both as they stand.",
+  also: ["delete-project", "download-everything", "duplicate-notes"]
+},
 {
   id: "how-many-projects",
   section: "Projects",
