@@ -900,16 +900,15 @@ export const HELP = [
 {
   id: "conflict",
   section: "Rules worth knowing",
-  q: "Beatfall says my changes conflict with a saved version.",
-  a: "Two browsers began with the same version of a project and both tried to "
-   + "save. Rather than quietly overwrite one of them, Beatfall stops and asks "
-   + "you.\n\n"
-   + "Save my changes as a copy keeps both: the newer saved version stays, and "
-   + "your work becomes a second project with “recovered copy” in "
-   + "the name. Discard my changes throws away what is in front of you and "
-   + "keeps what was saved.\n\n"
-   + "Nothing is decided until you choose, and your work stays in the browser "
-   + "until it is.",
+  q: "What happens if I have the same project open in two places?",
+  a: "Only one browser can edit an account at a time. Opening Beatfall "
+   + "somewhere else takes over, and the first one blocks itself with a button "
+   + "to take the account back.\n\n"
+   + "Within that, the last save wins. A tab that has been sitting in the "
+   + "background reloads before it is allowed to save, so an old copy cannot "
+   + "land on top of newer work.\n\n"
+   + "Tabs in the same browser are one browser. Your phone is not counted: the "
+   + "app only adds notes and can never overwrite a board.",
   also: ["one-browser", "save-failed"]
 },
 
