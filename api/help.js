@@ -33,6 +33,7 @@
 // ============================================================================
 import { send, readBody, admin, track, HELP_MODEL } from './_lib/core.js';
 import { HELP, SECTIONS } from './_help/content.js';
+import { MANUAL_TEXT } from './_help/manual.js';
 
 const SUPPORT = 'support@beatfall.app';
 
@@ -119,16 +120,27 @@ function past(raw) {
 const INSTRUCTIONS = `You are Beatfall's help desk. Beatfall is a beat board
 for screenwriters. You are talking to somebody using it, or trying to.
 
-Everything Beatfall has written down about itself follows these instructions.
-ANSWER ONLY FROM IT. Never describe a button, a screen or a behaviour that is
-not in that material, even when it would be a reasonable guess about software
-of this kind. Inventing a control sends somebody looking for something that is
-not there, and they write to support angrier than when they started.
+Everything Beatfall has written down about itself follows these instructions,
+in two parts. Part one is the manual: a complete description of the product,
+and the authority. Part two is a set of common questions already answered,
+which are worked examples of the manual rather than a second source of truth.
 
-Within that, be useful rather than careful. You may put two written answers
-together, work out what somebody's words mean in our terms, walk them through
-something in order, and answer the question behind the question. The rule is
-about not inventing facts. It is not an instruction to quote.
+ANSWER ONLY FROM THAT MATERIAL. Never describe a button, a screen or a
+behaviour that is not in it, even when it would be a reasonable guess about
+software of this kind. Inventing a control sends somebody looking for
+something that is not there, and they write to support angrier than when they
+started.
+
+Within that, be useful rather than careful. The manual is a description, not a
+list of answers, so most questions are answered by READING IT AND WORKING OUT
+WHAT IT MEANS rather than by finding a matching sentence. Put two parts of it
+together. Work out what somebody's words mean in our terms. Walk them through
+something in order. Answer the question behind the question. The rule is about
+not inventing facts. It is not an instruction to quote.
+
+The manual's last part lists what Beatfall deliberately does not do. That list
+is knowledge, not a gap, and so is anything the manual describes fully enough
+for you to be sure a thing is absent.
 
 THIS IS A CONVERSATION.
 Read what has already been said before you answer. A short follow-up ("so
@@ -194,7 +206,28 @@ Writers say "script" where this says "project", "beat sheet" where it says
 the trial. Work out what they meant and answer that. Only ask them to rephrase
 when you truly cannot tell.`;
 
-const MATERIAL = () => 'WHAT BEATFALL HAS WRITTEN DOWN ABOUT ITSELF:\n\n' + brief();
+/* THE MANUAL FIRST, THE WRITTEN ANSWERS SECOND, AND THE ORDER IS THE POINT.
+ *
+ * The manual is a description of the product: every screen, every control,
+ * every rule, and a closing list of what deliberately does not exist. It can
+ * answer a question nobody anticipated, which is most of them. Kris asked
+ * whether two projects could be merged, nothing covered it, and the desk
+ * handed him an inbox for a question the manual answers in a line.
+ *
+ * The written answers are the help page's own cards. They are kept because
+ * they are worked examples in a writer's own words, and a good answer to a
+ * common question is worth more than a paragraph of description. They are
+ * second because the manual is the authority when the two ever differ, and
+ * the instructions say so out loud. */
+const MATERIAL = () =>
+  'PART ONE: THE MANUAL. A COMPLETE DESCRIPTION OF BEATFALL.\n'
+  + 'This is the authority. If anything below it disagrees, this is right.\n'
+  + MANUAL_TEXT()
+  + '\n\n=============================================================================\n'
+  + 'PART TWO: COMMON QUESTIONS, ALREADY ANSWERED IN A WRITER\'S OWN WORDS.\n'
+  + 'Worked examples of the above, not a separate source of truth.\n'
+  + '=============================================================================\n\n'
+  + brief();
 
 export default async function handler(req, res) {
   // ------------------------------------------------------- the material --
@@ -268,9 +301,19 @@ export default async function handler(req, res) {
            The material has to be identical byte for byte to be reused, which
            is why the marked block holds ONLY the written answers. Anything
            that varied per request would miss the cache every time. */
+        /* AN HOUR, NOT FIVE MINUTES, AND THE REASON IS THIS PRODUCT'S TRAFFIC.
+           A cache costs more to write than to read and it only pays back when
+           a later question lands inside its window. Five minutes fits a site
+           with somebody asking something every minute; on a product with ten
+           writers, almost every question would arrive cold and pay the write
+           price on its own. An hour is long enough that a morning's questions
+           share one write, which is several times cheaper here even though an
+           hour costs more to lay down. Revisit this if the traffic ever gets
+           busy enough that five minutes is never idle. */
         system: [
           { type: 'text', text: INSTRUCTIONS },
-          { type: 'text', text: MATERIAL(), cache_control: { type: 'ephemeral' } }
+          { type: 'text', text: MATERIAL(),
+            cache_control: { type: 'ephemeral', ttl: '1h' } }
         ],
         messages: past(body && body.history).concat([{ role: 'user', content: question }])
       })

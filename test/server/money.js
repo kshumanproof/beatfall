@@ -1,4 +1,5 @@
-import { charge, refund, entitlement, spend, PLANS, PAID_PLAN } from './api/_lib/core.js';
+import { charge, refund, entitlement, spend, PLANS, PAID_PLAN, PRICE_MONTH,
+         PRICE_YEAR, COST, lowMark, lastMark, TOPUP_CREDITS, TOPUP_PRICE } from './api/_lib/core.js';
 
 /* The allowance a paid month carries. These tests used to type 150, so the
    day the plan moved to 100 four of them failed for the only reason a test
@@ -8,6 +9,7 @@ import { charge, refund, entitlement, spend, PLANS, PAID_PLAN } from './api/_lib
 const ALL = PLANS[PAID_PLAN].credits;
 const FULL_BUT_ONE = ALL - 1;
 import { makeDb } from './fakedb.js';
+import { MANUAL_TEXT } from './api/_help/manual.js';
 
 const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
@@ -329,6 +331,85 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
   check('the everyday questions all have an entry of their own',
     uncovered.length === 0,
     'nothing asks about: ' + uncovered.map(String).join(', '));
+}
+
+/* ---------- THE MANUAL
+ *
+ * The 75 written answers can only answer the 75 questions somebody thought of.
+ * Kris asked whether two projects could be merged, nobody had written it down,
+ * and the desk handed him an inbox for a question a description of the product
+ * answers in a line. The manual is that description, and these checks are the
+ * things that would make it quietly stop being one.
+ */
+{
+  const M = MANUAL_TEXT();
+  /* The manual is wrapped prose, so a figure can land with a line break in the
+     middle of the phrase that carries it. Match against a flattened copy, or
+     these checks go red for the one reason a test must never go red: the test
+     was wrong. */
+  const FLAT = M.replace(/\s+/g, ' ');
+
+  check('the manual is a description of the product, not a summary of one',
+    M.length > 40000, M.length + ' characters');
+
+  /* Every surface a writer can stand on. A manual missing one of these is a
+     manual that will hand somebody an email address about it. */
+  const SURFACES = ['THE DASHBOARD', 'THE BOARD', 'THE OUTLINE', 'THE NOTES PAGE',
+                    'CHARACTERS', 'PICTURES', 'CREDITS, PLANS AND BILLING',
+                    'SETTINGS', 'THE PHONE APP', 'TAKING WORK OUT',
+                    'ACCOUNTS AND SIGNING IN', 'NOTES FROM YOUR PHONE'];
+  const missing = SURFACES.filter(s => M.indexOf(s) < 0);
+  check('every surface of the product is described',
+    missing.length === 0, 'nothing describes: ' + missing.join(', '));
+
+  /* THE LIST THAT ANSWERS THE MERGE QUESTION. A feature that does not exist is
+     knowledge, and it is only knowledge if it is written down. */
+  check('and what Beatfall deliberately does not do is written down too',
+    /DELIBERATELY DOES NOT DO/.test(M), '');
+  ['merge', 'collaborat', 'screenplay', 'revision history', 'custom structure']
+    .forEach(word => check('  the absent things include ' + word,
+      new RegExp(word, 'i').test(M.slice(M.indexOf('DELIBERATELY DOES NOT DO'))), ''));
+
+  /* All nine, by name, with their beats. A writer asking "does it do half hour
+     comedy" is asking a question this has to answer without a round trip. */
+  const NINE = ['Save the Cat', 'Classic Three-Act', 'Story Circle', 'Short film',
+                'One episode', 'Season arc', 'Broadcast Hour', 'Streaming Hour',
+                'Half-Hour Comedy'];
+  const gone = NINE.filter(n => M.toLowerCase().indexOf(n.toLowerCase()) < 0);
+  check('all nine structures are named', gone.length === 0, gone.join(', '));
+  check('and their beats are listed, not just their names',
+    /Bad Guys Close In/.test(M) && /The Paywall Turn/.test(M)
+      && /Act Four Climax/.test(M), '');
+
+  /* EVERY FIGURE IS INTERPOLATED, NEVER TYPED. This is the bug this product has
+     fixed three times, and a 58KB file of prose is the easiest place yet to
+     reintroduce it. */
+  check('the prices in the manual are the prices in core.js',
+    FLAT.indexOf('$' + PRICE_MONTH + ' a month') >= 0
+      && FLAT.indexOf('$' + PRICE_YEAR + ' a year') >= 0
+      && FLAT.indexOf(PLANS[PAID_PLAN].credits + ' credits a month') >= 0,
+    PRICE_MONTH + '/' + PRICE_YEAR + '/' + PLANS[PAID_PLAN].credits);
+  check('and the pack is too',
+    FLAT.indexOf(TOPUP_CREDITS + ' credits for $' + TOPUP_PRICE) >= 0,
+    TOPUP_CREDITS + ' for ' + TOPUP_PRICE);
+  check('and so are the action costs',
+    FLAT.indexOf('Reading in a notes file ' + COST.import + ' credits') >= 0
+      && FLAT.indexOf('A conversation about a beat ' + COST.conversation + ' credits') >= 0
+      && FLAT.indexOf('A character interview ' + COST.character + ' credits') >= 0,
+    JSON.stringify(COST));
+  check('and so are the two warning marks',
+    FLAT.indexOf('At ' + lowMark(PLANS[PAID_PLAN].credits) + ' left on a plan') >= 0
+      && FLAT.indexOf('At ' + lastMark(PLANS[PAID_PLAN].credits) + ' left') >= 0,
+    lowMark(PLANS[PAID_PLAN].credits) + '/' + lastMark(PLANS[PAID_PLAN].credits));
+
+  /* The house rules travel into prose more easily than into a Q and A, because
+     prose is where a conversational register creeps back in. */
+  check('no em dashes in the manual',
+    M.indexOf(String.fromCharCode(0x2014)) < 0, '');
+  check('and it never names the model',
+    !/\bAI\b|Claude|the model/.test(M), '');
+  check('and it calls the paid feature the writing help',
+    /the writing help/.test(M), '');
 }
 
 const failed = out.filter(r => !r.ok);

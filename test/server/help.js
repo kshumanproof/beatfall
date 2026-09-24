@@ -119,7 +119,8 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
   const blocks = sent.system || [];
   check('the written material is marked to be cached',
     Array.isArray(blocks) && blocks.length === 2
-      && blocks[1].cache_control && blocks[1].cache_control.type === 'ephemeral',
+      && blocks[1].cache_control && blocks[1].cache_control.type === 'ephemeral'
+      && blocks[1].cache_control.ttl === '1h',
     JSON.stringify(blocks.map(b => ({len: (b.text || '').length, c: !!b.cache_control}))));
   check('and the cached block is the material, which never varies',
     /How do I add a new project/.test(blocks[1].text || '')

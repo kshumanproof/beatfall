@@ -136,7 +136,7 @@ export const HELP = [
    + "would have to type the cards you want into the one you are keeping "
    + "before deleting the other. Download everything in Settings first if you "
    + "want a copy of both as they stand.",
-  also: ["delete-project", "download-everything", "duplicate-notes"]
+  also: ["delete-project", "download-everything", "duplicates"]
 },
 {
   id: "how-many-projects",
