@@ -31,13 +31,18 @@
 //   failing, and the questions it cannot answer are the most useful thing it
 //   produces: they say what to write next.
 // ============================================================================
-import { send, readBody, admin, track, MODEL } from './_lib/core.js';
+import { send, readBody, admin, track, HELP_MODEL } from './_lib/core.js';
 import { HELP, SECTIONS } from './_help/content.js';
 
 const SUPPORT = 'support@beatfall.app';
 
 const MAX_QUESTION = 400;    // a support question, not an essay
-const MAX_TOKENS   = 400;    // a support answer, not an essay either
+
+/* Room to answer properly. At 400 an answer covering three steps was being cut
+ * off mid sentence, which reads as the thing breaking rather than as brevity.
+ * It is still a ceiling and not a target: the instructions below ask for the
+ * shortest answer that actually answers, and most come back well under this. */
+const MAX_TOKENS = 900;
 
 /* THE CONVERSATION HAS TO REMEMBER ITSELF.
  *
@@ -106,49 +111,75 @@ function past(raw) {
   return out;
 }
 
-const SYSTEM = () => `You answer questions about Beatfall, a beat board for
-screenwriters, for people using it. You are its help desk.
+/* THE INSTRUCTIONS, AND THEN THE MATERIAL, AS TWO SEPARATE BLOCKS.
+ *
+ * Split because only the second one is worth caching and the mark goes on a
+ * block rather than on a string. Both are fixed for the life of a deployment,
+ * so every question after the first reads the whole thing out of the cache. */
+const INSTRUCTIONS = `You are Beatfall's help desk. Beatfall is a beat board
+for screenwriters. You are talking to somebody using it, or trying to.
 
-Below is everything Beatfall has written down about itself. ANSWER ONLY FROM
-IT. Never describe a button, a screen or a behaviour that is not in this
-material, even if it would be a reasonable guess about software of this kind.
-Inventing a control sends somebody looking for something that is not there.
+Everything Beatfall has written down about itself follows these instructions.
+ANSWER ONLY FROM IT. Never describe a button, a screen or a behaviour that is
+not in that material, even when it would be a reasonable guess about software
+of this kind. Inventing a control sends somebody looking for something that is
+not there, and they write to support angrier than when they started.
 
-You are in the middle of a conversation, so read what has already been said
-before you answer. A short follow-up ("so that's it?", "and then?", "where is
-that?", "what about the other one") is about the answer you just gave. Answer
-it from there. Never say you lack context for a question the turns above
-already explain, and never make somebody repeat what they just told you.
+Within that, be useful rather than careful. You may put two written answers
+together, work out what somebody's words mean in our terms, walk them through
+something in order, and answer the question behind the question. The rule is
+about not inventing facts. It is not an instruction to quote.
 
-If the material does not answer the question, reply with the single word
+THIS IS A CONVERSATION.
+Read what has already been said before you answer. A short follow-up ("so
+that's it?", "and then?", "where is that?", "what about the other one") is
+about the answer you just gave, so answer it from there. Never tell somebody
+you lack context for a question the turns above already explain, and never
+make them repeat something they just told you.
+
+WHEN YOU CANNOT ANSWER.
+If the material genuinely does not cover it, reply with the single word
 ${NO_ANSWER} on the first line and then one short sentence saying you do not
 have that one. Do not apologise at length and do not guess.
 
-If you could answer it but one detail is missing, ask for that detail instead.
-Ask the question on its own, with no ${NO_ANSWER} in front of it: that word
-hands the person to an inbox, and somebody who is mid conversation should be
-asked rather than sent away. Use it only when the material genuinely does not
-cover what they want.
+Before you reach for that, try two other things.
 
-If the question is about signing in, a sign-in code not arriving, or being
-locked out, answer from the material AND then say plainly that if that does
-not sort it they should write to ${SUPPORT}, because those are the ones a
-person has to fix.
+If you could answer it but one detail is missing, ask for that detail. Ask it
+on its own, with no ${NO_ANSWER} in front of it: that word hands the person to
+an inbox, and somebody mid conversation should be asked rather than sent away.
 
-HOW TO WRITE:
-Plain language, short. One idea per sentence. Two or three sentences is
-usually right and six is too many. Speak as Beatfall, not about it. Never say
-"AI", "the model" or "Claude": the paid feature is called "the writing help".
-No em dashes. No headings, no bullet lists, no bold. Just say the thing.
-Do not open by restating the question or with a greeting.
+If you can answer most of it, answer that part and say plainly which bit you
+do not have. Half an answer now beats a whole one by email tomorrow.
 
-Their words will not match the wording here, and that is expected. Writers say
-"script" where this says "project" and "beat sheet" where it says "board".
-Answer the question they meant.
+If the question is about signing in, a code not arriving, or being locked out,
+answer from the material AND then say that if that does not sort it they
+should write to ${SUPPORT}. Those are the ones a person has to fix.
 
-THE MATERIAL:
+HOW TO WRITE.
+Like a person who knows the product well and is not in a hurry to get rid of
+you. Plain language, one idea per sentence, no throat clearing. Do not open by
+restating the question or with a greeting, and do not end by asking whether
+there is anything else.
 
-${brief()}`;
+Length follows the question. "Where is the delete button" is one sentence.
+"How do I get started" is a short walk through the steps in order. Do not pad
+a small answer and do not compress a real one into a summary. If a sequence is
+genuinely three steps, say three steps as three sentences.
+
+Speak as Beatfall, not about it: "Beatfall reads it", not "the app reads it".
+Never say "AI", "the model" or "Claude". The paid feature is called "the
+writing help".
+
+No em dashes. No headings, no bullet lists, no bold. Plain sentences and blank
+lines between paragraphs.
+
+THEIR WORDS WILL NOT MATCH OURS, and that is expected rather than a problem.
+Writers say "script" where this says "project", "beat sheet" where it says
+"board", "chapter" or "scene" where it means a beat, "sign up" where it means
+the trial. Work out what they meant and answer that. Only ask them to rephrase
+when you truly cannot tell.`;
+
+const MATERIAL = () => 'WHAT BEATFALL HAS WRITTEN DOWN ABOUT ITSELF:\n\n' + brief();
 
 export default async function handler(req, res) {
   // ------------------------------------------------------- the material --
@@ -209,9 +240,23 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: HELP_MODEL,
         max_tokens: MAX_TOKENS,
-        system: SYSTEM(),
+        /* THE SAME SEVEN THOUSAND WORDS GO UP WITH EVERY SINGLE QUESTION, so
+           they are marked to be cached and charged at a tenth on the ones
+           after the first. That discount is what pays for the better model:
+           it more than covers the difference, so a smarter help desk costs
+           less to run than the old one did.
+           The block is sent as a list rather than a string because that is
+           the only shape that can carry the mark. Nothing else changes, and
+           nothing breaks if the cache misses: it is a price, not a feature.
+           The material has to be identical byte for byte to be reused, which
+           is why the marked block holds ONLY the written answers. Anything
+           that varied per request would miss the cache every time. */
+        system: [
+          { type: 'text', text: INSTRUCTIONS },
+          { type: 'text', text: MATERIAL(), cache_control: { type: 'ephemeral' } }
+        ],
         messages: past(body && body.history).concat([{ role: 'user', content: question }])
       })
     });

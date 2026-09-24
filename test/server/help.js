@@ -12,6 +12,7 @@
  */
 import help from './api/help.real.js';
 import { makeDb } from './fakedb.js';
+import { HELP_MODEL, MODEL } from './api/shim.js';
 
 const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
@@ -33,6 +34,13 @@ function upstream(text, opts = {}) {
              json: async () => ({ content: [{ type: 'text', text }] }) };
   };
 }
+
+/* The system prompt is a LIST of blocks now, not a string: one carries the
+   instructions and one carries the written material, and only the second is
+   marked to be cached. Everything that used to read it as a string reads it
+   through here. */
+const sysText = () => ((globalThis.__SENT__ || {}).system || [])
+  .map(b => (b && b.text) || '').join('\n');
 
 const ask = async (db, body) => {
   globalThis.__DB__ = db;
@@ -80,7 +88,7 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
   const db = makeDb({}, { events: [] });
   await ask(db, { question: 'how do I add a new project?' });
   const sent = globalThis.__SENT__ || {};
-  const sys = String(sent.system || '');
+  const sys = sysText();
   check('the whole help document goes with every question',
     sys.length > 15000, sys.length + ' characters of instructions');
   check('and it contains the answer to the question asked',
@@ -94,6 +102,27 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
   check('the house rules travel with it',
     /No em dashes/.test(sys) && /the writing help/.test(sys)
       && /Never say[\s\S]{0,40}AI/.test(sys), '');
+  /* THE CACHE MARK IS A BILL. The same seven thousand words go up with every
+     question, and the mark is what makes the repeats cost a tenth. Drop it and
+     nothing breaks, nothing goes red on a screen, and the cost quietly
+     quadruples. So it is checked here. */
+  const blocks = sent.system || [];
+  check('the written material is marked to be cached',
+    Array.isArray(blocks) && blocks.length === 2
+      && blocks[1].cache_control && blocks[1].cache_control.type === 'ephemeral',
+    JSON.stringify(blocks.map(b => ({len: (b.text || '').length, c: !!b.cache_control}))));
+  check('and the cached block is the material, which never varies',
+    /How do I add a new project/.test(blocks[1].text || '')
+      && !/NO_ANSWER/.test(blocks[1].text || ''), '');
+
+  /* The help desk runs on a bigger model than the board on purpose: the board
+     reads notes, this reads a person. Not the same decision, not the same
+     constant. */
+  check('it runs on the model chosen for reading a question',
+    sent.model === HELP_MODEL && sent.model !== MODEL, sent.model);
+  check('and it has room to answer in more than one breath',
+    sent.max_tokens >= 700, String(sent.max_tokens));
+
   check('only the question is sent, and nothing about their work',
     (sent.messages || []).length === 1
       && sent.messages[0].content === 'how do I add a new project?',
@@ -126,7 +155,7 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
   check('and the new question is the last thing said',
     m[2] && m[2].content === "so that's it? that's all i have to do?", JSON.stringify(m[2]));
   check('and it is told to read the conversation before giving up',
-    /follow-up/i.test(String((globalThis.__SENT__ || {}).system || '')), '');
+    /follow-up/i.test(sysText()), '');
 }
 {
   upstream('ok');
