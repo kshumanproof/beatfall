@@ -483,8 +483,17 @@ async function page(browser, url, before, arg) {
    */
   const helpUrl = build('help.html');
 
+  const KINDS  = ['Something is broken', "I can't get in", "I've lost work",
+                  'A question about how to do something', 'Plan or payment',
+                  'A suggestion', 'Privacy or my data', 'Something else'];
+  const WHERES = ['Signing in', 'Dashboard', 'A board', 'The Outline',
+                  'Notes or pictures', 'Characters', 'Importing notes',
+                  'The phone app', 'Settings or billing', 'Somewhere else'];
+
   const TOPICS = {
     support: 'support@beatfall.app',
+    kinds: KINDS,
+    wheres: WHERES,
     sections: ['Starting out', 'Projects'],
     topics: [
       {id: 'signing-in', section: 'Starting out', q: 'How do I sign in?',
@@ -504,8 +513,13 @@ async function page(browser, url, before, arg) {
       if (!opts || !opts.method || opts.method === 'GET') {
         return {ok: true, json: async () => r.topics};
       }
-      window.__ASKED__.push(JSON.parse(opts.body));
+      const sent = JSON.parse(opts.body);
+      window.__ASKED__.push(sent);
       if (r.dead) throw new Error('offline');
+      if (sent.action === 'ticket') {
+        return {ok: !r.ticketFails, json: async () => (r.ticketFails
+          ? {error: 'send_failed'} : {sent: true})};
+      }
       return {ok: true, json: async () => r.reply};
     };
   };
@@ -645,7 +659,7 @@ async function page(browser, url, before, arg) {
       return {
         shown: !nr.hidden,
         ask: !!nr.querySelector('#asksearch'),
-        email: !!nr.querySelector('a[href^="mailto:"]'),
+        support: !!nr.querySelector('#asksupport'),
         visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length
       };
     });
@@ -653,7 +667,9 @@ async function page(browser, url, before, arg) {
       JSON.stringify(empty));
     check('and now offers a way to ask, not just an address',
       empty.ask === true, 'the no results panel is still a dead end');
-    check('with the email still there beside it', empty.email === true);
+    /* It used to be a mailto here. Kris asked for a form: a blank mail window
+       asks somebody who has just typed their question to type it again. */
+    check('with a way to reach a person beside it', empty.support === true);
 
     // And pressing it carries the words across rather than making them retype.
     const carried = await p.evaluate(async () => {
@@ -718,6 +734,143 @@ async function page(browser, url, before, arg) {
     check('and the button works again', seen.enabled === true);
     check('no page errors when the help endpoint is down',
       errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
+
+  /* ============================================= THE FORM AT THE DEAD END
+   *
+   * Kris asked for this and the reasoning is his: a mailto opens an empty
+   * window and asks somebody who has just explained themselves to start again,
+   * so most people close it. The form goes to support@ already carrying the
+   * question, the conversation and the page. These checks are the ones that
+   * would make it quietly stop being that.
+   */
+  {
+    const { p, errors } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS,
+       reply: {answer: 'I do not have that one.', handoff: true, topic: 'signing-in',
+               support: 'support@beatfall.app'}});
+
+    const handed = await p.evaluate(async () => {
+      HelpChat.open();
+      document.getElementById('hc-box').value = 'my sign in code never turns up';
+      document.getElementById('hc-send').click();
+      await new Promise(r => setTimeout(r, 60));
+      const hand = document.querySelector('#hc-thread .hc-hand');
+      return {
+        button: !!hand.querySelector('.hc-ticket'),
+        stillEmail: !!hand.querySelector('a[href^="mailto:"]'),
+        topic: hand.querySelector('.hc-ticket').getAttribute('data-topic')
+      };
+    });
+    check('a question nobody answered offers a form, not just an address',
+      handed.button === true, JSON.stringify(handed));
+    check('and writing directly is still offered beside it',
+      handed.stillEmail === true);
+    check('and the form is told what the question was about',
+      handed.topic === 'signing-in', handed.topic);
+
+    /* THE SMART PART. Somebody who could not sign in is not then asked, by a
+       form, what their problem is about. */
+    const opened = await p.evaluate(async () => {
+      document.querySelector('.hc-ticket').click();
+      await new Promise(r => setTimeout(r, 20));
+      return {
+        open: !document.getElementById('hc-form').hidden,
+        threadGone: document.getElementById('hc-thread').hidden,
+        kind: document.getElementById('hc-kind').value,
+        where: document.getElementById('hc-where').value,
+        detail: document.getElementById('hc-detail').value,
+        fields: document.querySelectorAll('#hc-form .hc-f').length,
+        note: (document.getElementById('hc-attach') || {}).textContent || ''
+      };
+    });
+    check('pressing it opens the form', opened.open && opened.threadGone,
+      JSON.stringify(opened));
+    check('with both dropdowns already answered from the topic',
+      opened.kind === "I can't get in" && opened.where === 'Signing in',
+      JSON.stringify(opened));
+    check('and their question already in the box',
+      /code never turns up/.test(opened.detail), opened.detail);
+    check('and it is four fields, not an interrogation',
+      opened.fields === 4, String(opened.fields));
+    check('and it says the conversation goes with it, so nobody repeats themselves',
+      /repeat yourself/.test(opened.note), opened.note);
+
+    /* What it sends. Everything a first reply would otherwise have to ask for
+       rides along without a field. */
+    const sent = await p.evaluate(async () => {
+      document.getElementById('hc-email').value = 'writer@example.com';
+      document.getElementById('hc-submit').click();
+      await new Promise(r => setTimeout(r, 60));
+      return {body: window.__ASKED__.slice(-1)[0],
+              done: document.getElementById('hc-form').textContent};
+    });
+    check('it posts a ticket', sent.body.action === 'ticket', JSON.stringify(sent.body));
+    check('carrying the address to reply to and what they need',
+      sent.body.email === 'writer@example.com' && !!sent.body.detail,
+      JSON.stringify(sent.body).slice(0, 200));
+    check('and the page, the browser and the conversation, none of them asked for',
+      !!sent.body.page && !!sent.body.agent && (sent.body.thread || []).length === 2,
+      JSON.stringify({page: sent.body.page, thread: (sent.body.thread || []).length}));
+    check('and it says where it went and where the reply comes back',
+      /support@beatfall\.app/.test(sent.done) && /writer@example\.com/.test(sent.done),
+      sent.done);
+
+    check('no page errors sending a ticket', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+
+  /* A form that will not send must say so. Saying "sent" over a message nobody
+     received is worse than no form, because the writer stops waiting. */
+  {
+    const { p } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS, ticketFails: true,
+       reply: {answer: 'nope', handoff: true, topic: 'other'}});
+    const shown = await p.evaluate(async () => {
+      HelpChat.ticket('broken');
+      await new Promise(r => setTimeout(r, 40));
+      document.getElementById('hc-email').value = 'writer@example.com';
+      document.getElementById('hc-detail').value = 'the board will not open';
+      document.getElementById('hc-submit').click();
+      await new Promise(r => setTimeout(r, 60));
+      const bad = document.getElementById('hc-bad');
+      return {shown: !bad.hidden, words: bad.textContent,
+              stillThere: document.getElementById('hc-detail').value};
+    });
+    check('a send that failed says so rather than claiming it worked',
+      shown.shown && /did not send/.test(shown.words), shown.words);
+    check('and hands over the address that still works',
+      /support@beatfall\.app/.test(shown.words), shown.words);
+    check('and what they typed is still on the screen',
+      /board will not open/.test(shown.stillThere), shown.stillThere);
+    await p.close();
+  }
+
+  /* The help page reaches the same form without asking anything first, so the
+     two dropdowns have to arrive from the server rather than from a copy of
+     the list kept in the widget. */
+  {
+    const { p, errors } = await page(browser, helpUrl, netStub,
+      {topics: TOPICS, reply: {answer: 'ok', handoff: false}});
+    const direct = await p.evaluate(async () => {
+      const box = document.getElementById('helpsearch');
+      box.value = 'two doves';
+      box.dispatchEvent(new Event('input'));
+      const nr = document.getElementById('noresults');
+      const mailtos = nr.querySelectorAll('a[href^="mailto:"]').length;
+      document.getElementById('asksupport').click();
+      await new Promise(r => setTimeout(r, 40));
+      return {mailtos, open: !document.getElementById('hc-form').hidden,
+              kinds: document.getElementById('hc-kind').options.length,
+              wheres: document.getElementById('hc-where').options.length};
+    });
+    check('the no results panel offers a form rather than a mailto',
+      direct.mailtos === 0 && direct.open === true, JSON.stringify(direct));
+    check('and its options come from the server',
+      direct.kinds > 4 && direct.wheres > 4, JSON.stringify(direct));
+    check('no page errors opening the form cold', errors.length === 0, errors.join('\n'));
     await p.close();
   }
 

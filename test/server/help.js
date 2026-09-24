@@ -335,6 +335,181 @@ process.env.ANTHROPIC_API_KEY = 'sk-test-not-a-real-key';
   check('an unsupported method says so', r.code === 405, r.code);
 }
 
+/* ---------- THE DEAD END IS A FORM, NOT AN ADDRESS
+ *
+ * Kris asked for this: a mailto opens an empty window and asks somebody who
+ * has already explained themselves to start again, so most people close it and
+ * the ones who write send "it doesn't work". The form arrives at support@
+ * carrying what is worth knowing, and the two things it asks are already
+ * answered from the topic the desk hands back when it gives up.
+ */
+function mail(opts = {}) {
+  globalThis.__MAIL__ = null;
+  globalThis.fetch = async (url, init) => {
+    globalThis.__MAIL__ = { url, body: JSON.parse(init.body), auth: init.headers.authorization };
+    if (opts.down) throw new Error('network');
+    if (opts.status) return { ok: false, status: opts.status, text: async () => 'nope' };
+    return { ok: true, status: 200, json: async () => ({ id: 'sent' }) };
+  };
+}
+
+const ticket = async (db, body) => ask(db, Object.assign({ action: 'ticket' }, body));
+
+const FULL = { email: 'writer@example.com', detail: 'my board will not open',
+               kind: 'Something is broken', where: 'A board' };
+
+process.env.RESEND_API_KEY = 'rs-test';
+process.env.MAIL_FROM = 'noreply@beatfall.app';
+
+{
+  /* THE TOPIC IS THE SMART PART. The desk says what the question was about, and
+     that is what stops the form asking somebody who could not sign in what
+     their problem is about. */
+  upstream('NO_ANSWER\nTOPIC: signing-in\nI do not have that one.');
+  const db = makeDb({}, { events: [] });
+  const r = await ask(db, { question: 'my code never turns up' });
+  check('when it gives up it also says what the question was about',
+    r.body.topic === 'signing-in', JSON.stringify(r.body));
+  check('and the marker lines never reach the person reading',
+    !/NO_ANSWER|TOPIC:/.test(r.body.answer), r.body.answer);
+  check('and the form gets its two lists from the server, not a second copy',
+    Array.isArray(r.body.kinds) && Array.isArray(r.body.wheres)
+      && r.body.kinds.length > 4, JSON.stringify(r.body.kinds));
+
+  upstream('NO_ANSWER\nTOPIC: badger\nI do not have that one.');
+  const bad = await ask(db, { question: 'anything' });
+  check('a topic nobody defined is dropped rather than trusted',
+    bad.body.topic === null && !/badger/.test(bad.body.answer), JSON.stringify(bad.body));
+
+  upstream('NO_ANSWER\nI do not have that one.');
+  const none = await ask(db, { question: 'anything' });
+  check('and a reply with no topic on it still hands over',
+    none.body.handoff === true && none.body.topic === null, JSON.stringify(none.body));
+}
+
+{
+  mail();
+  const db = makeDb({}, { events: [] });
+  const r = await ticket(db, Object.assign({}, FULL, {
+    page: '/app', agent: 'TestBrowser/1', signedIn: false,
+    thread: [{ role: 'user', content: 'why will my board not open' },
+             { role: 'assistant', content: 'I do not have that one.' }]
+  }));
+  const m = globalThis.__MAIL__ || { body: {} };
+  check('the form sends, and says it sent', r.code === 200 && r.body.sent === true,
+    JSON.stringify(r.body));
+  check('it goes to support, not to a mailbox nobody reads',
+    m.body.to === 'support@beatfall.app', m.body.to);
+  /* THE WHOLE POINT. Kris presses reply and it reaches the writer. */
+  check('and reply goes back to the person who sent it',
+    m.body.reply_to === 'writer@example.com', m.body.reply_to);
+  check('the subject is triage, not "Beatfall question"',
+    /Something is broken/.test(m.body.subject) && /A board/.test(m.body.subject),
+    m.body.subject);
+  check('what they typed is in it', /my board will not open/.test(m.body.text), '');
+
+  /* EVERYTHING IT DID NOT ASK FOR. The page, the browser and the conversation
+     answer the questions a first reply always has to ask, and none of them is
+     worth a field when the browser already knows all three. */
+  check('and so is the page they were standing on', /\/app/.test(m.body.text), '');
+  check('and the browser they were in', /TestBrowser/.test(m.body.text), '');
+  check('and the conversation, so nobody is made to repeat themselves',
+    /why will my board not open/.test(m.body.text), m.body.text.slice(-300));
+}
+
+{
+  mail();
+  const db = makeDb({}, { events: [] });
+  const bad = await ticket(db, Object.assign({}, FULL, { email: 'not an address' }));
+  check('a message with nowhere to reply is refused', bad.code === 400, bad.code);
+  check('and nothing was sent', !globalThis.__MAIL__, '');
+
+  const empty = await ticket(db, Object.assign({}, FULL, { detail: '   ' }));
+  check('and so is one that says nothing', empty.code === 400, empty.code);
+
+  /* Anything but the server's own options is a value the server chose, not one
+     a browser sent. */
+  mail();
+  await ticket(db, Object.assign({}, FULL, { kind: 'URGENT!!!', where: '<script>' }));
+  const m = globalThis.__MAIL__.body;
+  check('a made up option becomes the catch-all rather than travelling',
+    /Something else/.test(m.text) && /Somewhere else/.test(m.text)
+      && !/URGENT/.test(m.text) && !/script/.test(m.text), m.text.slice(0, 200));
+}
+
+{
+  /* NEVER PRETEND IT SENT. A form that says "sent" over a message nobody got is
+     worse than no form, because the writer stops waiting for a reply. */
+  const db = makeDb({}, { events: [] });
+
+  mail({ down: true });
+  const a = await ticket(db, FULL);
+  check('a send that failed says so rather than claiming success',
+    a.code === 502 && !a.body.sent, JSON.stringify(a.body));
+
+  mail({ status: 422 });
+  const b = await ticket(db, FULL);
+  check('and so does one the mail service refused', b.code === 502, b.code);
+
+  const key = process.env.RESEND_API_KEY;
+  delete process.env.RESEND_API_KEY;
+  mail();
+  const c = await ticket(db, FULL);
+  check('and a deployment with no mail set up does not swallow it',
+    c.code === 503 && !globalThis.__MAIL__, JSON.stringify(c.body));
+  process.env.RESEND_API_KEY = key;
+}
+
+{
+  /* An open endpoint that sends mail needs a tighter ceiling than one that
+     answers questions. */
+  mail();
+  const many = [];
+  for (let i = 0; i < 6; i++) {
+    many.push({ user_id: null, anon_id: 'loop', name: 'help_ticket',
+                created_at: new Date().toISOString() });
+  }
+  const db = makeDb({}, { events: many });
+  db.state.events = many;
+  const r = await ticket(db, Object.assign({}, FULL, { anon: 'loop' }));
+  check('one browser cannot fill an inbox', r.code === 429, r.code);
+  check('and is told the earlier ones arrived',
+    /have arrived/.test(r.body.message || ''), r.body.message);
+
+  const other = await ticket(db, Object.assign({}, FULL, { anon: 'somebody-else' }));
+  check('while everybody else is unaffected', other.code === 200, other.code);
+}
+
+{
+  /* The same rule as every other event here. What they wrote is in an inbox,
+     which is where a support message belongs, and not in a table of counts. */
+  mail();
+  const db = makeDb({}, { events: [] });
+  globalThis.__TRACKED__ = []; globalThis.__TRACKED_PROPS__ = [];
+  await ticket(db, Object.assign({}, FULL, {
+    detail: 'my card number is 4242 4242 4242 4242', anon: 'browser-1' }));
+  const all = JSON.stringify(db.state.events) + JSON.stringify(globalThis.__TRACKED__)
+            + JSON.stringify(globalThis.__TRACKED_PROPS__);
+  check('the message itself is never written to the events table',
+    all.indexOf('4242') < 0, all.slice(0, 200));
+  check('only that one was sent',
+    (globalThis.__TRACKED__ || []).indexOf('help_ticket') >= 0,
+    JSON.stringify(globalThis.__TRACKED__));
+}
+
+{
+  /* Somebody whose help desk is broken must still be able to reach a person,
+     so the form must not depend on the writing help working at all. */
+  mail();
+  const key = process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY;
+  const db = makeDb({}, { events: [] });
+  const r = await ticket(db, FULL);
+  check('and the form works with no writing help configured at all',
+    r.code === 200 && r.body.sent === true, JSON.stringify(r.body));
+  process.env.ANTHROPIC_API_KEY = key;
+}
+
 const failed = out.filter(r => !r.ok);
 console.log('\n' + (out.length - failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

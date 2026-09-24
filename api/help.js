@@ -85,6 +85,44 @@ const ASKS_PER_HOUR = 30;
  * never sees it. */
 const NO_ANSWER = 'NO_ANSWER';
 
+/* THE HAND-OFF IS A FORM, NOT AN ADDRESS.
+ *
+ * A mailto opens an empty message and asks somebody who has already explained
+ * themselves once to explain themselves again, into a blank window, with no
+ * idea what would be useful. Most people close it. The ones who do write send
+ * "it doesn't work", and then the first reply has to be four questions.
+ *
+ * So the dead end is a form that arrives at support@ already carrying what is
+ * worth knowing. Writing directly still works and is still offered: this only
+ * means the person who uses the form does not have to think about what to say.
+ *
+ * WHAT IT ASKS FOR IS EVERYTHING THAT CANNOT BE WORKED OUT, AND NOTHING ELSE.
+ * The question they typed, the conversation, the page they were standing on,
+ * whether they were signed in, and their browser are all already known, so
+ * asking for any of them would be the form wasting the one thing it is
+ * spending: their patience. Four fields, two of which arrive answered.
+ *
+ * THE TOPIC IS ANSWERED BY THE DESK, NOT BY THE WRITER. When it gives up it
+ * also says what the question was about, and that preselects both dropdowns.
+ * Somebody who asked about a sign-in code should not then have to tell a form
+ * that their problem is signing in. */
+const TOPICS = ['signing-in', 'billing', 'broken', 'lost-work', 'how-to',
+                'pictures', 'phone', 'privacy', 'suggestion', 'other'];
+
+/* The two dropdowns. KIND is what Kris needs to triage, because a lost board
+   and a feature request are not the same morning's work. WHERE is what he
+   needs to reproduce it. They are deliberately different questions: an
+   overlapping pair of selects reads as one question asked twice. */
+const KINDS = ['Something is broken', "I can't get in", "I've lost work",
+               'A question about how to do something', 'Plan or payment',
+               'A suggestion', 'Privacy or my data', 'Something else'];
+const WHERES = ['Signing in', 'Dashboard', 'A board', 'The Outline',
+                'Notes or pictures', 'Characters', 'Importing notes',
+                'The phone app', 'Settings or billing', 'Somewhere else'];
+
+const MAX_TICKET = 4000;     // a support message, not a manuscript
+const TICKETS_PER_HOUR = 5;  // a ceiling on an open endpoint that sends mail
+
 function brief() {
   return HELP.map(h => 'Q: ' + h.q + '\nA: ' + h.a).join('\n\n---\n\n');
 }
@@ -166,8 +204,15 @@ tell them the nearest real way to get there.
 
 WHEN YOU GENUINELY CANNOT ANSWER.
 If the material says nothing about it either way, reply with the single word
-${NO_ANSWER} on the first line and then one short sentence saying you do not
-have that one. Do not apologise at length and do not guess.
+${NO_ANSWER} on the first line, then a line reading TOPIC: followed by ONE of
+the words below, then one short sentence saying you do not have that one. Do
+not apologise at length and do not guess.
+
+The topic is not for the person reading. It decides which fields are already
+filled in on the form that opens next, so that somebody who has just been told
+"I don't know" is not then asked four questions they have already answered.
+Pick the closest, and pick other when nothing fits:
+${TOPICS.join(', ')}
 
 Before you reach for that, try two other things.
 
@@ -182,23 +227,53 @@ If the question is about signing in, a code not arriving, or being locked out,
 answer from the material AND then say that if that does not sort it they
 should write to ${SUPPORT}. Those are the ones a person has to fix.
 
-HOW TO WRITE.
-Like a person who knows the product well and is not in a hurry to get rid of
-you. Plain language, one idea per sentence, no throat clearing. Do not open by
-restating the question or with a greeting, and do not end by asking whether
-there is anything else.
+HOW TO WRITE. THIS IS THE PART THAT DECIDES WHETHER ANYBODY USES YOU TWICE.
 
-Length follows the question. "Where is the delete button" is one sentence.
-"How do I get started" is a short walk through the steps in order. Do not pad
-a small answer and do not compress a real one into a summary. If a sequence is
-genuinely three steps, say three steps as three sentences.
+You are a person who knows this product inside out, sitting next to somebody
+who is trying to get something done. Not a manual with a search box. The
+difference shows up in the first sentence and in how much you say.
+
+ANSWER FIRST. Lead with the actual answer in a sentence or two, in plain
+words. Then add only what that answer needs to stand up. A writer who wanted
+more will ask, and asking again is free.
+
+SAY THE ONE THING THAT MATTERS, NOT EVERYTHING YOU KNOW. This is the hardest
+one and it is the one that goes wrong. Asked something broad like "what is the
+best way to use this", do not itemise the whole product. Pick the single thing
+that would change how they work, say it properly, and offer the rest. Six
+paragraphs each covering a different feature is a briefing document, not an
+answer, and nobody reads to the bottom of it.
+
+LENGTH FOLLOWS THE QUESTION. "Where is the delete button" is one sentence.
+"How do I get started" is a short walk through, in order. Three or four short
+paragraphs is usually the ceiling. If you are writing a fifth, you have
+stopped answering and started reciting.
+
+SOUND LIKE SOMEBODY, NOT LIKE A DOCUMENT. Contractions are fine. So is an
+opinion where the material supports one: if pasting the whole file at once is
+plainly better than trickling notes in, say so in those words rather than
+laying out both options neutrally. You are allowed to be warm. You are allowed
+to say a thing is the good bit.
+
+DO NOT PRICE EVERYTHING. Mention what something costs when cost is the
+question, or when it genuinely changes the advice. Hanging a credit figure off
+every feature you name turns an answer into an invoice.
+
+END ON THE NEXT STEP, NOT ON YOURSELF. Where it helps, close by naming the one
+thing to go and do, or ask what they are working on so the next answer can be
+about their script rather than about the app in general. Do not end with "let
+me know if you need anything else", which is a call centre saying goodbye.
+
+Do not open by restating the question, and do not open with a greeting unless
+they greeted you first, in which case be brief and human about it.
 
 Speak as Beatfall, not about it: "Beatfall reads it", not "the app reads it".
 Never say "AI", "the model" or "Claude". The paid feature is called "the
 writing help".
 
 No em dashes. No headings, no bullet lists, no bold. Plain sentences and blank
-lines between paragraphs.
+lines between paragraphs. If something is genuinely a sequence, say it as
+sentences in order rather than as a list.
 
 THEIR WORDS WILL NOT MATCH OURS, and that is expected rather than a problem.
 Writers say "script" where this says "project", "beat sheet" where it says
@@ -229,6 +304,125 @@ const MATERIAL = () =>
   + '=============================================================================\n\n'
   + brief();
 
+/* Pulls the two marker lines off the front of a reply and hands back what the
+   person is actually meant to read. A topic that is not on the list is dropped
+   rather than trusted: it decides which options a form opens on, and a made-up
+   one would open it on nothing. */
+function unmark(text) {
+  let out = String(text || '').trim();
+  const handoff = out.indexOf(NO_ANSWER) === 0;
+  if (!handoff) return { text: out, handoff: false, topic: null };
+
+  out = out.slice(NO_ANSWER.length).trim();
+  let topic = null;
+  const m = /^TOPIC:\s*([a-z-]+)\s*/i.exec(out);
+  if (m) {
+    const t = m[1].toLowerCase();
+    if (TOPICS.indexOf(t) >= 0) topic = t;
+    out = out.slice(m[0].length).trim();
+  }
+  return { text: out, handoff: true, topic };
+}
+
+const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+
+/* An address is checked for shape and nothing more. A stricter pattern refuses
+   real addresses, and the only thing riding on this is whether a reply can be
+   sent, which the sender will notice long before we would. */
+const looksLikeEmail = a => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a);
+
+/* ---------------------------------------------------------- the ticket --- */
+async function sendTicket(db, body, who, user) {
+  const email  = clip(body.email, 200);
+  const detail = clip(body.detail, MAX_TICKET);
+  const kind   = KINDS.indexOf(clip(body.kind, 80)) >= 0 ? clip(body.kind, 80) : 'Something else';
+  const where  = WHERES.indexOf(clip(body.where, 80)) >= 0 ? clip(body.where, 80) : 'Somewhere else';
+
+  if (!looksLikeEmail(email)) return { code: 400, out: { error: 'bad_email' } };
+  if (!detail) return { code: 400, out: { error: 'bad_request' } };
+
+  /* A ceiling, lower than the chat's, because this one sends mail. Somebody
+     with a genuinely bad morning can send five, which is more than anybody
+     needs and few enough that a loop cannot fill an inbox. */
+  if (who) {
+    const since = new Date(Date.now() - 3600000).toISOString();
+    const { count } = await db.from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('anon_id', who).eq('name', 'help_ticket').gte('created_at', since);
+    if ((count || 0) >= TICKETS_PER_HOUR) {
+      return { code: 429, out: { error: 'too_many',
+        message: 'That is several messages in a short time. The earlier ones '
+               + 'have arrived. Write to ' + SUPPORT + ' if it is urgent.' } };
+    }
+  }
+
+  /* EVERYTHING THE FORM DID NOT ASK FOR. The page they were on and the browser
+     they were in answer the two questions a first reply always has to ask, and
+     neither is worth a field when the browser already knows both. */
+  const page    = clip(body.page, 300);
+  const agent   = clip(body.agent, 300);
+  const signed  = body.signedIn ? 'yes' : 'no';
+  const thread  = Array.isArray(body.thread) ? body.thread.slice(-MAX_TURNS) : [];
+  const talk = thread.map(t => (t && t.role === 'assistant' ? 'Beatfall: ' : 'Them: ')
+                             + clip(t && t.content, MAX_TURN_CHARS)).join('\n\n');
+
+  const lines = [
+    'Kind:       ' + kind,
+    'Where:      ' + where,
+    'From:       ' + email + (user ? ' (signed in)' : ''),
+    'Signed in:  ' + signed,
+    'Page:       ' + (page || 'not given'),
+    'Browser:    ' + (agent || 'not given'),
+    '',
+    'WHAT THEY SAID',
+    detail,
+    '',
+    talk ? 'WHAT THEY ASKED THE HELP DESK FIRST\n\n' + talk
+         : 'They opened the form without asking the help desk anything.'
+  ].join('\n');
+
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+
+  /* NEVER SWALLOW ONE. A form that says "sent" over a message nobody received
+     is worse than no form, because the writer stops waiting for a reply that
+     was never coming. If mail is not configured or the send is refused, say so
+     and hand back the address, which still works. */
+  if (!key || !from) {
+    console.error('help ticket could not be sent: RESEND_API_KEY or MAIL_FROM unset');
+    return { code: 503, out: { error: 'no_mail' } };
+  }
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key },
+      body: JSON.stringify({
+        from,
+        to: SUPPORT,
+        /* The whole point. Kris presses reply and it goes to the writer rather
+           than to a mailbox nobody reads. */
+        reply_to: email,
+        subject: 'Beatfall support: ' + kind + ' (' + where + ')',
+        text: lines
+      })
+    });
+    if (!r.ok) {
+      console.error('help ticket send failed', r.status, (await r.text()).slice(0, 300));
+      return { code: 502, out: { error: 'send_failed' } };
+    }
+  } catch (e) {
+    console.error('help ticket send threw', e && e.message);
+    return { code: 502, out: { error: 'send_failed' } };
+  }
+
+  /* Counts and enums only, the same rule as every other event. What they wrote
+     is in Kris's inbox, which is where a support message belongs, and nowhere
+     near a table that holds analytics. */
+  track(db, user, 'help_ticket', { answered: false }, who ? { anon_id: who } : {});
+  return { code: 200, out: { sent: true } };
+}
+
 export default async function handler(req, res) {
   // ------------------------------------------------------- the material --
   /* The page draws itself from this rather than carrying its own copy of the
@@ -237,12 +431,35 @@ export default async function handler(req, res) {
      when somebody opens the page. */
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
-    return send(res, 200, { sections: SECTIONS, topics: HELP, support: SUPPORT });
+    /* The form's two dropdowns come from here as well, so the widget never
+       carries its own copy of a list the server validates against. Two copies
+       of one list is how a form starts offering an option the server refuses. */
+    return send(res, 200, { sections: SECTIONS, topics: HELP, support: SUPPORT,
+                            kinds: KINDS, wheres: WHERES });
   }
 
   if (req.method !== 'POST') return send(res, 405, { error: 'method' });
 
   const body = await readBody(req);
+
+  /* Who is asking, as far as anything here can tell. `who` is the browser's
+     own id, which every Beatfall page already has, and it is used for the two
+     hourly counts and nothing else. A signed-in writer's id is passed through
+     when the page has one, purely so a count follows the person rather than
+     the browser they happen to be on. */
+  const who = String((body && body.anon) || '').slice(0, 64) || null;
+  const user = String((body && body.user) || '').slice(0, 64) || null;
+
+  const db = admin();
+
+  /* The form. It goes first because it needs no question, no writing help and
+     no key: somebody whose help desk is down or out of answers must still be
+     able to reach a person. */
+  if (body && body.action === 'ticket') {
+    const r = await sendTicket(db, body, who, user);
+    return send(res, r.code, r.out);
+  }
+
   const question = String((body && body.question) || '').trim().slice(0, MAX_QUESTION);
   if (!question) return send(res, 400, { error: 'bad_request' });
 
@@ -253,16 +470,6 @@ export default async function handler(req, res) {
       handoff: true
     });
   }
-
-  const db = admin();
-
-  /* Who is asking, as far as anything here can tell. `who` is the browser's
-     own id, which every Beatfall page already has, and it is used for the
-     hourly count and nothing else. A signed-in writer's id is passed through
-     when the page has one, purely so the count follows the person rather than
-     the browser they happen to be on. */
-  const who = String((body && body.anon) || '').slice(0, 64) || null;
-  const user = String((body && body.user) || '').slice(0, 64) || null;
 
   if (who) {
     const since = new Date(Date.now() - 3600000).toISOString();
@@ -333,14 +540,15 @@ export default async function handler(req, res) {
     });
   }
 
-  let text = (reply.content || []).filter(c => c.type === 'text')
-    .map(c => c.text).join('').trim();
-
-  const handoff = text.indexOf(NO_ANSWER) === 0;
-  if (handoff) text = text.slice(NO_ANSWER.length).trim();
-  if (!text) {
-    text = 'I do not have an answer to that one written down.';
-  }
+  const raw = (reply.content || []).filter(c => c.type === 'text')
+    .map(c => c.text).join('');
+  const read = unmark(raw);
+  const handoff = read.handoff;
+  const topic = read.topic;
+  /* An empty reply is a failure whichever branch it came back on, so it gets
+     a sentence rather than a blank turn. */
+  let text = read.text
+    || 'I do not have an answer to that one written down.';
 
   /* WHAT IT COULD NOT ANSWER IS THE POINT OF MEASURING THIS.
    *
@@ -356,5 +564,8 @@ export default async function handler(req, res) {
         who ? { anon_id: who } : {});
   if (handoff) console.log('help had no answer for:', question.slice(0, 200));
 
-  return send(res, 200, { answer: text, handoff, support: SUPPORT });
+  /* The topic rides back so the form can open with its two dropdowns already
+     answered. It reaches no screen on its own. */
+  return send(res, 200, { answer: text, handoff, topic, support: SUPPORT,
+                          kinds: KINDS, wheres: WHERES });
 }

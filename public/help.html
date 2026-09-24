@@ -96,7 +96,7 @@
        will try to answer, or write to somebody about it.</p>
     <div class="nr-acts">
       <button class="btn btn-primary" type="button" id="asksearch">Ask about this</button>
-      <a class="btn" href="mailto:support@beatfall.app?subject=Beatfall%20question">Email support</a>
+      <button class="btn" type="button" id="asksupport">Message support</button>
     </div>
   </div>
 
@@ -108,7 +108,7 @@
 
   <section class="support">
     <div><h2>Still stuck?</h2><p>Tell us what you were trying to do, what happened, and which page you were on.</p></div>
-    <a class="btn" href="mailto:support@beatfall.app?subject=Beatfall%20problem">Report a problem</a>
+    <button class="btn" type="button" id="reportproblem">Report a problem</button>
   </section>
   <nav class="footlinks" aria-label="More information"><a href="/billing.html">How billing works</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav>
 </main>
@@ -207,6 +207,15 @@ document.getElementById('asksearch').addEventListener('click', () => {
   HelpChat.open(input.value.trim());
 });
 document.getElementById('askopen').addEventListener('click', () => HelpChat.open());
+
+/* Straight to a person, on a form that already carries what they typed, rather
+   than a mailto that opens an empty window and asks them to start again. */
+document.getElementById('asksupport').addEventListener('click', () => {
+  HelpChat.ticket('other');
+});
+document.getElementById('reportproblem').addEventListener('click', () => {
+  HelpChat.ticket('broken');
+});
 </script>
 </body>
 </html>
