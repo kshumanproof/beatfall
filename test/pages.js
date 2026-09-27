@@ -72,7 +72,7 @@ const STUB = `<script>
 
 function build(file) {
   let s = fs.readFileSync(path.resolve('../public/' + file), 'utf8');
-  s = s.replace(/<script[^>]+src="https:\/\/[^"]*"[^>]*><\/script>\n?/g, '');
+  s = s.replace(/<script src="https:\/\/[^"]*"><\/script>\n?/g, '');
   s = s.replace('<script src="/app.js"></script>', () => STUB);
   s = s.replace(/href="\/theme\.css"/g, 'href="../public/theme.css"');
   const out = 'stub-' + file;
@@ -463,10 +463,15 @@ async function page(browser, url, before, arg) {
 
   /* ====================================================== THE HELP PAGE
    *
-   * The written answers stay inside Beatfall. Conversational help is supplied
-   * by Chatling, whose script is external and is not executed by this offline
-   * suite. Here we check the part Beatfall owns: its searchable answers, its
-   * direct support path, and the exact widget configuration on every page.
+   * The written answers, and nothing else. The asking moved to Chatling on
+   * 26 September: the bubble, the chat panel and the support form that used
+   * to live in /helpchat.js are gone, along with the endpoint behind them.
+   *
+   * What is left still has to do the two things this page was rebuilt to do.
+   * Draw its answers from the one place Beatfall's behaviour is written down,
+   * rather than carrying a typed copy that goes stale. And work with NO
+   * ACCOUNT, which is why nothing on it calls BF.init and nothing on it uses
+   * BF.api: the likeliest reason somebody is here is that they cannot get in.
    */
   const helpUrl = build('help.html');
 
@@ -481,63 +486,100 @@ async function page(browser, url, before, arg) {
     ]
   };
 
-  const netStub = topics => {
-    window.fetch = async () => ({ok: true, json: async () => topics});
+  /* The page talks to /api/help with a plain fetch, so that is what gets
+     stubbed. Using BF.api would be testing something the page does not do: it
+     avoids it on purpose, because BF.api wants a Supabase client this page
+     never builds. The endpoint is GET only now, so this stub is too. */
+  const netStub = (r) => {
+    window.fetch = async () => ({ok: true, json: async () => r.topics});
   };
 
   {
-    const { p, errors } = await page(browser, helpUrl, netStub, TOPICS);
+    const { p, errors } = await page(browser, helpUrl, netStub, {topics: TOPICS});
     const drawn = await p.evaluate(() => ({
       groups: document.querySelectorAll('#topics [data-group]').length,
       answers: document.querySelectorAll('#topics [data-answer]').length,
-      support: (document.querySelector('.support a') || {}).href || ''
+      heading: (document.querySelector('#topics h3') || {}).textContent || '',
+      /* The FIRST answer on the page, not the first in each group. Every
+         group's opening article is also a :first-child, so that selector
+         counts paragraphs from all of them at once. */
+      paras: document.querySelector('#topics [data-answer]')
+             .querySelectorAll('p').length,
+      loading: document.getElementById('loading').hidden
     }));
-    check('the Help page draws the written answers',
-      drawn.groups === 2 && drawn.answers === 2, JSON.stringify(drawn));
-    check('the Help page keeps a direct human-support path',
-      /^mailto:support@beatfall\.app/.test(drawn.support), drawn.support);
+    check('the help page draws its answers from the server',
+      drawn.answers === 2 && drawn.groups === 2, JSON.stringify(drawn));
+    check('the heading is the question somebody would ask',
+      /How do I sign in/.test(drawn.heading), drawn.heading);
+    check('a multi paragraph answer stays multi paragraph', drawn.paras === 2,
+      String(drawn.paras));
+    check('and the loading line goes away', drawn.loading === true);
+    check('no page errors on the help page', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
 
-    const found = await p.evaluate(() => {
-      const box = document.getElementById('helpsearch');
-      box.value = 'password';
-      box.dispatchEvent(new Event('input'));
-      return {
-        visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length,
-        status: document.getElementById('searchstatus').textContent
-      };
-    });
-    check('search still narrows the written answers',
-      found.visible === 1 && /1 answer/.test(found.status), JSON.stringify(found));
-
-    const missed = await p.evaluate(() => {
+  /* THE DEAD END KRIS FOUND, in its current form. Typing something the words
+     do not match must not leave somebody holding nothing. It points at the
+     bubble, which is on this page too, and gives the address as the other way
+     through. */
+  {
+    const { p } = await page(browser, helpUrl, netStub, {topics: TOPICS});
+    const empty = await p.evaluate(() => {
       const box = document.getElementById('helpsearch');
       box.value = 'two doves';
       box.dispatchEvent(new Event('input'));
       const nr = document.getElementById('noresults');
       return {
         shown: !nr.hidden,
-        email: (nr.querySelector('a[href^="mailto:"]') || {}).href || ''
+        words: nr.textContent,
+        mail: !!nr.querySelector('a[href^="mailto:"]'),
+        visible: document.querySelectorAll('#topics [data-answer]:not([hidden])').length
       };
     });
-    check('an unmatched search points to chat and human support',
-      missed.shown && /^mailto:support@beatfall\.app/.test(missed.email),
-      JSON.stringify(missed));
-    check('no page errors on the Help page', errors.length === 0, errors.join('\n'));
+    check('a search that matches nothing says so', empty.shown && empty.visible === 0,
+      JSON.stringify(empty));
+    check('and it points at the chat rather than stopping there',
+      /chat/i.test(empty.words), empty.words);
+    check('with a way to reach a person beside it', empty.mail === true);
     await p.close();
   }
 
+  /* ============================================== THE BUBBLE ON EVERY PAGE
+   *
+   * Kris asked where it was, standing on the dashboard. The answer was that
+   * it was only on the help page. That is still the thing worth checking, and
+   * it is now Chatling's script rather than ours.
+   *
+   * Checked in the SOURCE and not in a browser, deliberately. The widget is
+   * fetched from chatling.ai, and build() strips every external script so
+   * these stubs cannot reach the network. A page that has lost the tag is the
+   * failure this guards against. Whether Chatling's own servers are up is not
+   * something a test here can answer, or should try to.
+   */
   {
     const EVERYWHERE = ['index.html', 'login.html', 'billing.html', 'privacy.html',
                         'terms.html', 'help.html', 'delete.html', '404.html',
                         'settings.html', 'admin.html', 'app.html'];
-    const bad = EVERYWHERE.filter(f => {
-      const html = fs.readFileSync(path.resolve('../public/' + f), 'utf8');
-      return !/window\.chtlConfig\s*=\s*\{\s*chatbotId:\s*["']8179914613["']\s*\}/.test(html)
-        || !/<script[^>]+data-id=["']8179914613["'][^>]+id=["']chtl-script["'][^>]+src=["']https:\/\/chatling\.ai\/js\/embed\.js["']/.test(html)
-        || /helpchat\.js|\bHelpChat\b/.test(html);
-    });
-    check('every page loads Chatling and none loads Claude\'s widget',
-      bad.length === 0, 'wrong on: ' + bad.join(', '));
+    const src = f => fs.readFileSync(path.resolve('../public/' + f), 'utf8');
+
+    const missing = EVERYWHERE.filter(f => !/chatling\.ai\/js\/embed\.js/.test(src(f)));
+    check('every page in the product loads the support bubble',
+      missing.length === 0, 'missing on: ' + missing.join(', '));
+
+    /* The id is what ties the widget to this account. A page carrying the
+       script with no id, or with a different one, loads a stranger's bot. */
+    const ids = EVERYWHERE.map(f => (src(f).match(/chatbotId:\s*"(\d+)"/) || [])[1]);
+    check('and all of them point at the same chatbot',
+      ids.every(Boolean) && new Set(ids).size === 1, JSON.stringify(ids));
+
+    /* The widget that was taken out must leave nothing behind. A stale tag
+       would 404 on every page load, which is invisible until somebody thinks
+       to read a console. */
+    const stale = EVERYWHERE.filter(f => /helpchat\.js/.test(src(f)));
+    check('and nothing still asks for the widget that was taken out',
+      stale.length === 0, 'still referenced by: ' + stale.join(', '));
+    check('and that file is gone from the site',
+      !fs.existsSync(path.resolve('../public/helpchat.js')), '');
   }
 
   await browser.close();
