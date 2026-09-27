@@ -471,3 +471,52 @@ create index if not exists restore_points_user_idx
 -- does for the pictures.
 alter table public.restore_points enable row level security;
 revoke all on public.restore_points from anon, authenticated;
+
+-- ============================================================================
+-- EXPLICIT GRANTS (27 Sep 2026)
+--
+-- Supabase stops automatically granting Data API access to NEW tables in the
+-- public schema on 30 October 2026. Existing tables keep what they have, so
+-- nothing about the live project changes. What does change is this file: it
+-- has only ever contained REVOKEs, which means every table in it has been
+-- relying on a grant nobody wrote down. Run it on a fresh project, a preview
+-- branch, or a local reset after that date and the tables would be created
+-- unreachable, including by the server.
+--
+-- So the grants are written down now. This restores exactly what is already
+-- true and widens nothing:
+--
+--   service_role is the server. Every endpoint holds that key and every table
+--   in this product is reached that way, so it gets the four verbs on all of
+--   them, plus the sequences behind the three bigserial keys.
+--
+--   authenticated gets SELECT on profiles and nothing else. That one is real
+--   and load bearing: the browser subscribes to its own profiles row over
+--   Realtime so a writer whose account is claimed by another browser finds
+--   out at once rather than on their next request. Every other table is read
+--   and written through /api, never from the page.
+--
+--   anon gets nothing. Sign-in runs through the auth service and not through
+--   the Data API, so it needs no table of its own.
+--
+-- ORDER MATTERS AND IT IS RIGHT. Every REVOKE in this file sits ABOVE this
+-- block and takes rights away from anon and authenticated only. Nothing below
+-- hands any of those back: the broad grant is to service_role, which was
+-- never revoked, and the only thing authenticated gains is the SELECT on
+-- profiles that the revoke above deliberately left alone. If a grant is ever
+-- added down here for anon or authenticated, move it above the revokes or it
+-- will quietly reopen a door this file spent six lines closing.
+--
+-- Safe to re-run.
+-- ============================================================================
+grant select, insert, update, delete on all tables    in schema public to service_role;
+grant usage,  select                 on all sequences in schema public to service_role;
+
+grant select on public.profiles to authenticated;
+
+-- And for anything added to this file later, so the next table does not have
+-- to remember. Applies to objects created by the role that runs this script.
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to service_role;
+alter default privileges in schema public
+  grant usage, select on sequences to service_role;
