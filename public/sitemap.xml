@@ -1,8 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- The public pages only. The board, Settings and Admin are behind a sign-in
+     and carry their own noindex; the deletion page and the 404 are noindex
+     too. Sign-in is left out deliberately: a sign-in page in a search result
+     helps nobody and competes with the homepage for the product's own name.
+
+     These are beatfall.app addresses and that domain is not pointed yet, so
+     this file describes the site as it will be rather than as it is. Nothing
+     crawls it in the meantime: robots.txt points at the same domain, and the
+     beta is refused at the header in vercel.json. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://beatfall.app/</loc></url>
-  <url><loc>https://beatfall.app/help</loc></url>
-  <url><loc>https://beatfall.app/billing</loc></url>
-  <url><loc>https://beatfall.app/privacy</loc></url>
-  <url><loc>https://beatfall.app/terms</loc></url>
+  <url>
+    <loc>https://beatfall.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://beatfall.app/help</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://beatfall.app/billing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://beatfall.app/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://beatfall.app/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

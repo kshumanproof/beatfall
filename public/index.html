@@ -10,14 +10,48 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Beatfall">
 <meta property="og:title" content="Beatfall · Turn scattered story notes into a beat board">
-<meta property="og:description" content="Beatfall finds the story beats in your notes, keeps everything else, and shows you what is still missing. It never writes your script.">
+<meta property="og:description" content="Beatfall organizes your story notes into a structured beat board, keeps everything else, and shows you what is still missing. It never writes your script.">
 <meta property="og:url" content="https://beatfall.app/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://beatfall.app/brand/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Beatfall. Where your story falls into place.">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Beatfall · Turn scattered story notes into a beat board">
-<meta name="twitter:description" content="Beatfall finds the story beats in your notes, keeps everything else, and shows you what is still missing. It never writes your script.">
+<meta name="twitter:description" content="Beatfall organizes your story notes into a structured beat board, keeps everything else, and shows you what is still missing. It never writes your script.">
+<meta name="twitter:image" content="https://beatfall.app/brand/og.png">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<!-- WHAT THIS IS, in the shape a search engine reads.
+
+     THE PRICE IN HERE IS A TYPED FIGURE, which is the thing this codebase has
+     had to fix three times. A script tag cannot carry the data-bf attribute
+     the rest of the page uses, so it cannot be painted from /api/config on
+     load. What holds it honest instead is a check in test/server/money.js
+     that reads this block and compares it with core.js. Move the price and
+     that check goes red before anybody sees a stale one in a search result. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Beatfall",
+  "url": "https://beatfall.app/",
+  "applicationCategory": "BusinessApplication",
+  "applicationSubCategory": "Writing software",
+  "operatingSystem": "Web browser",
+  "description": "Beatfall organizes story notes into a structured beat board, keeps everything else, and shows what is still missing. It never writes the script.",
+  "image": "https://beatfall.app/brand/og.png",
+  "publisher": { "@type": "Organization", "name": "Beatfall, LLC", "url": "https://beatfall.app/" },
+  "offers": {
+    "@type": "Offer",
+    "category": "subscription",
+    "priceCurrency": "USD",
+    "price": "15",
+    "url": "https://beatfall.app/billing"
+  }
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap">

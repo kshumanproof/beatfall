@@ -602,6 +602,90 @@ async function page(browser, url, before, arg) {
       !fs.existsSync(path.resolve('../public/helpchat.js')), '');
   }
 
+  /* ================================================== WHAT SEARCH ENGINES SEE
+   *
+   * None of this can be checked in a browser, because none of it is behaviour:
+   * it is what a crawler reads off the page before it renders anything. So
+   * these read the files.
+   *
+   * The one that matters most is the beta. Nobody has told Google this site
+   * exists, but a hostname is published to public certificate transparency
+   * logs the moment an HTTPS certificate is issued, and those are scraped. A
+   * beta that gets indexed before the real domain is pointed competes with the
+   * real domain for the product's own name, which is slow and annoying to
+   * unwind and free to prevent.
+   */
+  {
+    const src = f => fs.readFileSync(path.resolve('../public/' + f), 'utf8');
+    const PUBLIC  = ['index.html', 'login.html', 'billing.html', 'privacy.html',
+                     'terms.html', 'help.html'];
+    const PRIVATE = ['app.html', 'settings.html', 'admin.html',
+                     'delete.html', '404.html'];
+
+    /* THE BETA IS REFUSED AT THE HEADER, not by a tag in the HTML, and the
+       difference is the whole point. The real domain will be served by this
+       same project, so a tag would launch the live site invisible. */
+    const vercel = JSON.parse(fs.readFileSync(path.resolve('../vercel.json'), 'utf8'));
+    const rule = (vercel.headers || []).find(h =>
+      (h.headers || []).some(x => x.key === 'X-Robots-Tag'));
+    check('a preview domain is told not to index itself', !!rule,
+      'nothing stops the beta being indexed');
+    check('and it is conditional on the host, so the live site is not caught too',
+      !!rule && (rule.has || []).some(h => h.type === 'host' && /vercel/.test(h.value) && /app/.test(h.value)),
+      JSON.stringify(rule));
+    check('and it covers every page rather than the homepage',
+      !!rule && rule.source === '/(.*)', rule && rule.source);
+
+    /* The three signed-in surfaces should not be indexed on ANY domain, so
+       those carry a tag of their own as well. */
+    const bare = PRIVATE.filter(f => !/name="robots"[^>]*noindex/.test(src(f)));
+    check('every page behind a sign-in says noindex in its own right',
+      bare.length === 0, 'missing on: ' + bare.join(', '));
+    const wrongly = PUBLIC.filter(f => /name="robots"[^>]*noindex/.test(src(f)));
+    check('and no public page does, which would make the site invisible',
+      wrongly.length === 0, 'noindex on: ' + wrongly.join(', '));
+
+    /* A shared link is a card or it is a grey box, and the difference is four
+       tags. This used to be the homepage only. */
+    const missing = { canonical: [], title: [], image: [], desc: [] };
+    PUBLIC.forEach(f => {
+      const h = src(f);
+      if (!/<link rel="canonical" href="https:\/\/beatfall\.app/.test(h)) missing.canonical.push(f);
+      if (!/property="og:title"/.test(h)) missing.title.push(f);
+      if (!/property="og:image" content="https:\/\/beatfall\.app\/brand\/og\.png"/.test(h)) missing.image.push(f);
+      if (!/property="og:description" content="[^"]/.test(h)) missing.desc.push(f);
+    });
+    check('every public page says which address is the real one',
+      missing.canonical.length === 0, 'no canonical on: ' + missing.canonical.join(', '));
+    check('and carries a share card rather than posting as a grey box',
+      missing.title.length === 0 && missing.image.length === 0 && missing.desc.length === 0,
+      JSON.stringify(missing));
+    check('and the picture on that card exists',
+      fs.existsSync(path.resolve('../public/brand/og.png')), 'og.png is missing');
+
+    /* Two copies of a canonical link, or two og:title tags, is how a page ends
+       up telling a crawler two different things and having one picked for it. */
+    const doubled = PUBLIC.filter(f =>
+      (src(f).match(/rel="canonical"/g) || []).length > 1
+      || (src(f).match(/property="og:title"/g) || []).length > 1);
+    check('and says each of those things exactly once',
+      doubled.length === 0, 'duplicated on: ' + doubled.join(', '));
+
+    /* The sitemap is a list of addresses somebody should be able to land on.
+       A signed-in page in it is an invitation to a locked door. */
+    const map = fs.readFileSync(path.resolve('../public/sitemap.xml'), 'utf8');
+    const locs = (map.match(/<loc>([^<]+)<\/loc>/g) || [])
+      .map(l => l.replace(/<\/?loc>/g, ''));
+    check('the sitemap lists the public pages', locs.length === 5, JSON.stringify(locs));
+    check('and points at the real domain rather than the beta',
+      locs.every(l => l.startsWith('https://beatfall.app')), JSON.stringify(locs));
+    check('and offers nothing that needs a sign-in',
+      !locs.some(l => /\/(app|settings|admin|login|delete)\b/.test(l)), JSON.stringify(locs));
+    check('robots.txt points at that same sitemap',
+      /Sitemap: https:\/\/beatfall\.app\/sitemap\.xml/
+        .test(fs.readFileSync(path.resolve('../public/robots.txt'), 'utf8')), '');
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');

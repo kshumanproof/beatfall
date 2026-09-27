@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Behind a sign-in and of no use in a search result. This one is not
+     conditional on the domain the way the beta-wide rule in vercel.json
+     is: these three should never be indexed anywhere. -->
+<meta name="robots" content="noindex, nofollow">
 <title>Admin · Beatfall</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

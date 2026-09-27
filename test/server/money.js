@@ -413,6 +413,39 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
     /the writing help/.test(M), '');
 }
 
+/* ---------- THE ONE TYPED PRICE ON THE SITE
+ *
+ * The homepage carries a block of structured data describing the product for
+ * search engines, and a script tag cannot take the data-bf attribute every
+ * other figure on that page is painted through. So the price in it is typed,
+ * which is the exact bug this project has fixed three times. This is what
+ * stops the fourth: move PRICE_MONTH and the homepage's own description of
+ * its price goes red here rather than into somebody's search result.
+ */
+{
+  /* fs is imported per block in this file, the same way the data-bf check
+     above does it. */
+  const fs2 = await import('node:fs');
+  const home = fs2.readFileSync('../../public/index.html', 'utf8');
+  const m = home.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  check('the homepage still describes itself to a search engine', !!m, '');
+  if (m) {
+    let ld = null;
+    try { ld = JSON.parse(m[1]); } catch (e) {}
+    check('and that description is valid JSON', !!ld,
+      'a broken block is worse than none: it is silently ignored');
+    if (ld) {
+      check('it says what the product is', ld['@type'] === 'SoftwareApplication', ld['@type']);
+      check('AND THE PRICE IN IT IS THE PRICE IN core.js',
+        String((ld.offers || {}).price) === String(PRICE_MONTH),
+        'the homepage tells search engines $' + (ld.offers || {}).price
+          + ' and core.js says $' + PRICE_MONTH);
+      check('in the currency the site actually charges',
+        (ld.offers || {}).priceCurrency === 'USD', (ld.offers || {}).priceCurrency);
+    }
+  }
+}
+
 /* ---------- THE EVENTS ALLOWLIST
  *
  * This table holds counts, enums and booleans and never a sentence somebody
