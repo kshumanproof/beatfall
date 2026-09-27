@@ -9,6 +9,15 @@ import { requireUser, entitlement, send, readBody, markWorkDay } from './_lib/co
 const MAX_PROJECTS = 60;
 const MAX_BYTES    = 400_000;   // a very large board is ~40kb; this is generous
 
+/* RESTORE POINTS. Five per project, oldest dropped on each write.
+   Five is enough to get back past a bad run of decisions in one sitting and
+   small enough that the table cannot become the biggest thing in the
+   database. The reasons are a closed list because they are read back as
+   words on a screen, and an open one would let a bad client write anything
+   into a sentence a writer reads. */
+const KEEP_POINTS = 5;
+const REASONS = ['import', 'structure', 'empty', 'delete', 'restore'];
+
 export default async function handler(req, res) {
   /* ?list=1 is the shelf: id, name, structure. Nothing else.
      It is exempt from the one-active-browser lock, and that is not a hole.
@@ -75,6 +84,27 @@ export default async function handler(req, res) {
 
   // ---------------------------------------------------------------- read --
   if (req.method === 'GET') {
+    /* The restore list for one board. Deliberately without the snapshots:
+       the list is five rows of "what happened and when", and sending five
+       whole boards to draw it would be the heaviest read in the product. */
+    let wantPoints = null;
+    try {
+      wantPoints = new URL(req.url, 'http://x').searchParams.get('points');
+    } catch (e) {}
+    if (wantPoints) {
+      const { data, error } = await db.from('restore_points')
+        .select('id,project_id,reason,label,name,created_at')
+        .eq('user_id', user.id).eq('project_id', wantPoints)
+        /* BY ID, NOT BY DATE. The key is a bigserial and strictly increases;
+           created_at does not, because five points written inside the same
+           second carry the same timestamp and the order of a tie is whatever
+           the planner felt like. Newest first either way, but only one of the
+           two is actually deterministic. */
+        .order('id', { ascending: false }).limit(KEEP_POINTS);
+      if (error) return send(res, 500, { error: 'read_failed' });
+      return send(res, 200, { points: data || [] });
+    }
+
     /* ?list=1 asks for the shelf, not the shelf's contents: id, name and
        structure, nothing else. The phone needs this to draw a script picker,
        and a writer with a dozen boards would otherwise pull every card, every
@@ -95,6 +125,86 @@ export default async function handler(req, res) {
   // --------------------------------------------------------------- write --
   if (req.method === 'POST') {
     if (!body) body = await readBody(req);
+
+    /* ------------------------------------------------- a restore point --
+       Written by the client immediately BEFORE one of the four operations
+       that can eat work. It is the board as it stood, plus one sentence
+       saying what was about to happen to it. */
+    if (body.action === 'checkpoint') {
+      const pid  = String(body.project_id || '');
+      const snap = body.snapshot;
+      if (!pid || !snap || typeof snap !== 'object')
+        return send(res, 400, { error: 'bad_request' });
+      if (!REASONS.includes(body.reason))
+        return send(res, 400, { error: 'bad_reason' });
+      if (JSON.stringify(snap).length > MAX_BYTES)
+        return send(res, 413, { error: 'too_big' });
+
+      const { error } = await db.from('restore_points').insert({
+        user_id: user.id,
+        project_id: pid,
+        reason: body.reason,
+        label: String(body.label || '').slice(0, 160),
+        name:  String(body.name  || '').slice(0, 200),
+        snapshot: snap
+      });
+      if (error) return send(res, 500, { error: 'checkpoint_failed' });
+
+      /* Trim to the last five for this board, oldest first out. Read the ids
+         and delete by id rather than comparing dates: an exact match against a
+         timestamptz is the fragile thing this endpoint already learned not to
+         rely on once, and two points written in the same second tie. */
+      const { data: all } = await db.from('restore_points')
+        .select('id').eq('user_id', user.id).eq('project_id', pid)
+        .order('id', { ascending: false });
+      const spare = (all || []).slice(KEEP_POINTS).map(r => r.id);
+      if (spare.length) await db.from('restore_points').delete().in('id', spare);
+
+      return send(res, 200, { ok: true });
+    }
+
+    /* ---------------------------------------------------- put one back --
+       The project may or may not still exist: deleting a board is one of the
+       things a point is taken before, so restoring one has to be able to
+       bring the row back rather than only overwrite it. */
+    if (body.action === 'restore') {
+      const { data: pt, error: readErr } = await db.from('restore_points')
+        .select('*').eq('user_id', user.id).eq('id', body.point_id).single();
+      if (readErr || !pt) return send(res, 404, { error: 'no_point' });
+
+      const snap = pt.snapshot || {};
+      const back = {
+        user_id:    user.id,
+        name:       String(snap.name || pt.name || 'Untitled').slice(0, 200),
+        structure:  String(snap.structure || 'stc').slice(0, 40),
+        brief:      snap.brief   && typeof snap.brief   === 'object' ? snap.brief   : {},
+        cards:      Array.isArray(snap.cards) ? snap.cards : [],
+        outline:    snap.outline && typeof snap.outline === 'object' ? snap.outline : {},
+        characters: Array.isArray(snap.characters) ? snap.characters : [],
+        sort_order: Number.isFinite(snap.sort_order) ? snap.sort_order : 0,
+        is_sample:  !!snap.is_sample,
+        created_from: ['import', 'new_project', 'sample', 'other'].includes(snap.created_from)
+          ? snap.created_from : null
+      };
+
+      const { data: still } = await db.from('projects')
+        .select('id').eq('id', pt.project_id).eq('user_id', user.id).maybeSingle();
+
+      if (still) {
+        const { data, error } = await db.from('projects')
+          .update(back).eq('id', pt.project_id).eq('user_id', user.id).select();
+        if (error) return send(res, 500, { error: 'restore_failed' });
+        return send(res, 200, { project: (data || [])[0] });
+      }
+
+      /* The board was deleted. Bring it back under its own id, so every
+         restore point still pointing at it keeps pointing at it. */
+      const { data, error } = await db.from('projects')
+        .insert(Object.assign({ id: pt.project_id }, back)).select().single();
+      if (error) return send(res, 500, { error: 'restore_failed' });
+      return send(res, 200, { project: data, recreated: true });
+    }
+
     const p = body.project;
     if (!p || typeof p !== 'object') return send(res, 400, { error: 'bad_request' });
 

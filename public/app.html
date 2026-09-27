@@ -1354,6 +1354,20 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .field.needs label{color:var(--gold)}
 .field.needs .hint{color:var(--gold);font-style:normal;font-weight:500}
 
+/* ----------------------------------------------------- restore points -- */
+.rp{display:grid;gap:9px;margin-bottom:4px}
+.rp-row{
+  display:flex;align-items:center;gap:14px;background:var(--card);
+  border:1px solid var(--rule);border-radius:var(--r-card);padding:13px 15px;
+}
+.rp-what{flex:1;min-width:0}
+.rp-what b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.rp-what span{display:block;font-size:12px;color:var(--ink-3)}
+.rp-none{
+  font-family:var(--serif);font-size:14.5px;font-style:italic;color:var(--ink-3);
+  line-height:1.55;padding:15px 0 4px;
+}
+
 /* =====================================================================
    THE WALKTHROUGH
 
@@ -2580,6 +2594,9 @@ footer{
         <button class="popitem" id="pdf" data-tip="Download this board as a PDF organized by act.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M4.4 6.4V2.6h7.2v3.8M4.4 11h7.2v2.4H4.4z"/><path d="M2.6 6.4h10.8v4.6H2.6z"/></svg>
           <span class="lbl">Save as PDF</span></button>
+        <button class="popitem" id="restoreopen" data-tip="Go back to how this board stood before an import, a structure change, or emptying it.">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.8 8a5.2 5.2 0 1 0 1.6-3.8"/><path d="M2.4 3.2v2.6h2.6"/><path d="M8 5.4V8l1.8 1.1"/></svg>
+          Restore an earlier version</button>
         <button class="popitem" id="renproj" data-tip="Edit this project's title, format, logline, protagonist, and genre.">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M11.2 2.6l2.2 2.2L5.8 12.4l-3 .8.8-3 7.6-7.6z"/></svg>
           Project details</button>
@@ -3280,6 +3297,22 @@ footer{
   </div>
 </div>
 
+
+<!-- RESTORE POINTS. The list of ways back for the board in front of you.
+     Opened from "Restore an earlier version" in the project menu. -->
+<div class="scrim" id="restore" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Restore an earlier version">
+    <div class="sheet-title">Restore an earlier version</div>
+    <p class="sheet-note">Beatfall keeps the board as it stood just before an
+      import, a structure change, emptying it, or deleting it. The last five are
+      here. Restoring one keeps a point for where you are now, so this is not a
+      one-way door.</p>
+    <div id="restorelist"></div>
+    <div class="sheet-actions">
+      <button class="btn" type="button" id="restoreclose">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- THE WALKTHROUGH. Opened by showWalkthrough(); see the block beside
      showFirstRun() for who opens it and when. -->
@@ -5636,7 +5669,7 @@ function carryOutlineToStructure(proj, fromKey, toKey){
   return moved;
 }
 
-sel.addEventListener("change", () => {
+sel.addEventListener("change", async () => {
   if (state.view === "outline") commitOutlineBoxes();
   const proj = P();
   const from = proj.structure, to = sel.value;
@@ -5660,6 +5693,12 @@ sel.addEventListener("change", () => {
     sel.value = from;
     return;
   }
+
+  /* Awaited before a single card moves. A structure change rescores every
+     carried card and can send outline prose to the unplaced stack, and the
+     writer has just been told how much of that is about to happen. */
+  await keepPoint(proj, "structure",
+    "Before changing to " + structureLine(to));
   snapshot();
 
   const rebuilt = {structure: to, cards: parked.map(c => {
@@ -7467,7 +7506,7 @@ document.getElementById("loadsample").addEventListener("click", () => {
   sampleCTA();
   save();
 });
-document.getElementById("clear").addEventListener("click", () => {
+document.getElementById("clear").addEventListener("click", async () => {
   const proj = P();
   // Emptying the BOARD means the board. Your notes were never on it, so they
   // are not its to throw away.
@@ -7478,6 +7517,9 @@ document.getElementById("clear").addEventListener("click", () => {
       + onBoard.length + (onBoard.length === 1 ? " card comes off" : " cards come off") + " it"
       + (notes.length ? ", and your " + notes.length + " notes are kept" : "")
       + ".\nUndo puts it all back.")) return;
+  /* A restore point as well as an undo step. Undo covers this in the tab; the
+     point covers it after a reload, which is where the tab's copy stops. */
+  await keepPoint(proj, "empty");
   snapshot();
   proj.cards = notes;
   hideAll();
@@ -10123,7 +10165,15 @@ function park(groups, target){
   if (rows.length) parkUnticked(rows);
 }
 
-document.getElementById("revgo").addEventListener("click", () => {
+document.getElementById("revgo").addEventListener("click", async () => {
+  /* THE RESTORE POINT FOR THE RISKIEST OPERATION IN THE PRODUCT.
+     This is the press that pours a file onto a board, and it is the one an
+     import has already got wrong once: a comedy's beats landed in Night Haul
+     and the project came back under another film's name. Undo covers it until
+     the page reloads, and a writer whose board has just filled with the wrong
+     material is exactly the person who reloads. */
+  await keepPoint(P(), "import");
+
   /* Two lists that are not placements, gathered before anything moves.
      Thrown away travels to the server as thrown away. Unticked on purpose
      goes to the pile, unless the batch CAME from the pile, in which case it
@@ -12624,7 +12674,12 @@ function renderSlate(){
     if (!confirm("Delete \u201c" + p.name + "\u201d?\n\n"
         + (n ? n + (n === 1 ? " card goes" : " cards go") + " with it. " : "")
         + "This cannot be undone.")) return;
-    if (p.id) BF.deleteProject(p.id).catch(() => {});
+    /* THE POINT IS KEPT BEFORE THE DELETE, and the restore points do not
+       cascade off the project row, which is why a deleted board can come
+       back at all. Awaited, because a delete that lands first would leave
+       the snapshot describing a project that no longer exists to anybody
+       watching the order of these two requests. */
+    if (p.id) keepPoint(p, "delete").then(() => BF.deleteProject(p.id).catch(() => {}));
     /* Out of the save queue as well as out of the shelf. flush() walks `dirty`
        rather than the project list, so a board deleted within the debounce of
        its own last edit was being written back to the server after the delete
@@ -13862,6 +13917,160 @@ function showWalkthrough(then){
     if (e.key === "Escape" && !w.hidden) wtClose(false);
   });
 }
+
+/* =========================================================================
+   RESTORE POINTS
+
+   Undo is thirty steps deep and lives in this tab. It dies on a refresh,
+   which meant the riskiest thing in the product, reading in a notes file, had
+   no way back the moment somebody reloaded the page. An import has already
+   renamed one project and poured a comedy's beats into another once.
+
+   So the four operations that can eat work write the board first, to the
+   server, where a reload cannot reach it. This is not a second undo: it is
+   coarse, it is five deep, and each point is a whole board rather than a
+   step.
+
+   THE SNAPSHOT IS projectPayload(), not an object built here. That function
+   is already the one thing that knows every field a project has, and a
+   second hand-built copy is exactly how a character once saved in memory,
+   drew its card, and was gone on the next load.
+   ========================================================================= */
+const RP_WORDS = {
+  import:    "Before reading in notes",
+  structure: "Before changing the structure",
+  empty:     "Before emptying the board",
+  delete:    "Before deleting this project",
+  restore:   "Before restoring an earlier version"
+};
+
+/* Best effort, and loudly so. A restore point that did not save must not stop
+   the thing the writer asked for: refusing to read in a file because a backup
+   failed is worse than the risk it was guarding against. But it must not be
+   silent either, because the whole value of this is the writer believing it
+   is there. */
+async function keepPoint(proj, reason, label){
+  // A board that has never reached the server has nothing to go back to.
+  if (!proj || !proj.id) return true;
+  try {
+    await BF.checkpoint({
+      project_id: proj.id,
+      reason: reason,
+      label: label || RP_WORDS[reason] || "",
+      name: proj.name,
+      snapshot: projectPayload(proj)
+    });
+    BF.track("restore_point_kept", {reason: reason});
+    return true;
+  } catch (e) {
+    sayStrip("Beatfall could not save a restore point just now, so this change "
+      + "has no way back other than Undo in this tab. Nothing else is affected.",
+      "warn");
+    return false;
+  }
+}
+
+function rpWhen(iso){
+  const t = new Date(iso);
+  if (isNaN(t)) return "";
+  const mins = (Date.now() - t) / 60000;
+  if (mins < 2)     return "a moment ago";
+  if (mins < 60)    return Math.round(mins) + " min ago";
+  if (mins < 24*60){ const h = Math.round(mins/60); return h + (h === 1 ? " hour ago" : " hours ago"); }
+  if (mins < 48*60) return "yesterday";
+  return t.toLocaleDateString(undefined, {month: "short", day: "numeric"})
+       + " at " + t.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
+}
+
+async function openRestore(){
+  const proj = P();
+  const sheet = document.getElementById("restore");
+  const list  = document.getElementById("restorelist");
+  list.innerHTML = '<div class="rp-none">Reading the list&hellip;</div>';
+  sheet.hidden = false;
+
+  let points = [];
+  try { points = proj.id ? await BF.restorePoints(proj.id) : []; }
+  catch (e) {
+    list.innerHTML = '<div class="rp-none">Beatfall could not read the list just '
+      + 'now. Nothing is lost; try again in a moment.</div>';
+    return;
+  }
+
+  if (!points.length){
+    /* An empty list is the ordinary state of a board nobody has done anything
+       drastic to, so it says that rather than looking broken. */
+    list.innerHTML = '<div class="rp-none">Nothing to restore yet. A point is '
+      + 'kept automatically just before an import, a structure change, emptying '
+      + 'the board, or deleting the project.</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="rp">' + points.map(pt =>
+      '<div class="rp-row"><div class="rp-what"><b>'
+    + esc(pt.label || RP_WORDS[pt.reason] || "A restore point")
+    + '</b><span>' + esc(rpWhen(pt.created_at)) + "</span></div>"
+    + '<button class="btn" type="button" data-point="' + esc(String(pt.id))
+    + '">Restore</button></div>').join("") + "</div>";
+
+  list.querySelectorAll("[data-point]").forEach(b =>
+    b.addEventListener("click", () => doRestore(b, points)));
+}
+
+async function doRestore(btn, points){
+  const id  = btn.dataset.point;
+  const pt  = points.filter(x => String(x.id) === String(id))[0] || {};
+  const proj = P();
+  const label = pt.label || RP_WORDS[pt.reason] || "that point";
+
+  if (!confirm("Restore the board as it stood " + rpWhen(pt.created_at) + "?\n\n"
+      + label + ".\n\nWhat is on the board now is kept as a restore point of "
+      + "its own, so you can come back.")) return;
+
+  btn.disabled = true;
+  btn.textContent = "Restoring…";
+
+  /* Where they are now becomes a point first. Without this, restoring is the
+     one operation in this feature that cannot itself be undone, which is the
+     opposite of the point of it. */
+  await keepPoint(proj, "restore");
+
+  try {
+    const { project } = await BF.restore(id);
+    /* Everything queued for this board is now describing a board that no
+       longer exists. Dropping it is what stops the save debounce writing the
+       old version back over the restored one a moment later. */
+    dirty.delete(proj);
+    savedFingerprints.delete(proj);
+    BF.track("restore_used", {reason: pt.reason || "unknown"});
+    document.getElementById("restore").hidden = true;
+    /* Read the shelf again rather than patching the object in place. The
+       server has just decided what this project is, and a hand-merge here is
+       a second opinion about it. */
+    location.reload();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Restore";
+    sayStrip("That restore did not go through, so the board is exactly as it "
+      + "was. " + esc(BF.explain(e)), "warn");
+  }
+}
+
+document.getElementById("restoreopen").addEventListener("click", () => {
+  closePops();
+  openRestore();
+});
+document.getElementById("restoreclose").addEventListener("click", () => {
+  document.getElementById("restore").hidden = true;
+});
+document.getElementById("restore").addEventListener("click", e => {
+  if (e.target.id === "restore") document.getElementById("restore").hidden = true;
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("restore").hidden)
+    document.getElementById("restore").hidden = true;
+});
+
 
 
 /* Running low shouldn't be a surprise, and it shouldn't be a surprise inside a

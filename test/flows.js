@@ -326,11 +326,15 @@ async function open(browser, projects, account = PAID) {
     await page.evaluate(() => setView('outline', true));
     await page.waitForTimeout(200);
     const before = await page.evaluate(() => ({words: outlineWordCount(P()), cards: P().cards.length}));
-    const after = await page.evaluate(() => {
+    /* These three handlers await a restore point before they touch anything,
+       so the read has to happen after that has settled rather than in the same
+       tick as the press. */
+    const after = await page.evaluate(async () => {
       window.confirm = () => true;
       const sel = document.getElementById('structure');
       sel.value = 'three';
       sel.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 40));
       return {words: outlineWordCount(P()), cards: P().cards.length, structure: P().structure};
     });
     check('a structure switch keeps every card', after.cards === before.cards,
@@ -374,10 +378,11 @@ async function open(browser, projects, account = PAID) {
     check('and answering no keeps the card', refused.n1 === refused.n0,
       JSON.stringify(refused));
 
-    const emptied = await page.evaluate(() => {
+    const emptied = await page.evaluate(async () => {
       window.confirm = () => true;
       const n0 = P().cards.length;
       document.getElementById('clear').click();
+      await new Promise(r => setTimeout(r, 40));
       const n1 = P().cards.filter(c => c.slot !== '__shelf').length;
       undo();
       return {n0, n1, n2: P().cards.length};
@@ -1603,7 +1608,7 @@ async function open(browser, projects, account = PAID) {
      put on screen later; a date never written down is gone. */
   {
     const { page } = await open(browser, [board('Night Haul', 6)]);
-    const out = await page.evaluate(() => {
+    const out = await page.evaluate(async () => {
       const before = Date.now() - 1;
       // Placed from the capture bar. commit() is the function every route to
       // the board goes through, picker or suggestion, so it is the one worth
@@ -1620,6 +1625,7 @@ async function open(browser, projects, account = PAID) {
       dedupePlan();
       renderReview();
       document.getElementById('revgo').click();
+      await new Promise(r => setTimeout(r, 40));
       const imported = P().cards.find(c => /coat left on the fence/.test(c.text));
 
       // A character sheet made by hand.

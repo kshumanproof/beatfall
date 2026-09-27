@@ -8,7 +8,8 @@ export function makeDb(profile, opts = {}) {
   Object.keys(opts).forEach(k => { if (Array.isArray(opts[k]) && !(k in state)) state[k] = [...opts[k]]; });
 
   function table(name) {
-    const q = { _name: name, _filters: [], _patch: null, _op: 'select', _count: false };
+    const q = { _name: name, _filters: [], _patch: null, _op: 'select', _count: false,
+                _order: null, _limit: null, _cols: null };
     const match = row => q._filters.every(([col, op, val, negate]) => {
       const v = row[col];
       if (negate) return !one(v, op, val);
@@ -27,19 +28,58 @@ export function makeDb(profile, opts = {}) {
     };
     // A test that seeds a whole profiles table wants that table; everything
     // else is the single-account case and gets the one row.
-    const rows = () => (name === 'profiles'
-      ? (Array.isArray(state.profiles) ? state.profiles : [state.profile])
-      : state[name] || []).filter(match);
+    const rows = () => {
+      let list = (name === 'profiles'
+        ? (Array.isArray(state.profiles) ? state.profiles : [state.profile])
+        : state[name] || []).filter(match);
+      if (q._order){
+        const [col, asc] = q._order;
+        list = list.slice().sort((a, b) => {
+          const x = a[col], y = b[col];
+          if (x === y) return 0;
+          return (x > y ? 1 : -1) * (asc ? 1 : -1);
+        });
+      }
+      if (q._limit != null) list = list.slice(0, q._limit);
+      /* Projection happens on READS only. A write ending in .select() is
+         asking for the row it just wrote back, and narrowing that would make
+         an insert look like it dropped the fields it actually stored. */
+      if (q._cols && q._op === 'select')
+        list = list.map(r => {
+          const out = {};
+          q._cols.forEach(c => { if (c in r) out[c] = r[c]; });
+          return out;
+        });
+      return list;
+    };
 
     const api = {
-      select(_c, o) { if (o && o.count) q._count = true; return api; },
+      /* THE COLUMN LIST IS REAL NOW. It used to be ignored, so a stand-in row
+         came back whole however narrow the select was, and an endpoint that
+         deliberately leaves a heavy column behind looked identical to one that
+         sends it. `api/projects.js` has two of those: the shelf, which sends
+         names and not boards, and the restore list, which sends five labels
+         and not five boards. Neither was visible here. A '*' or an empty
+         select still means everything. */
+      select(c, o) {
+        if (o && o.count) q._count = true;
+        if (typeof c === 'string' && c.trim() && !c.includes('*'))
+          q._cols = c.split(',').map(x => x.trim()).filter(Boolean);
+        return api;
+      },
       eq(c, v)  { q._filters.push([c, 'eq', v]);  return api; },
       gt(c, v)  { q._filters.push([c, 'gt', v]);  return api; },
       gte(c, v) { q._filters.push([c, 'gte', v]); return api; },
       lt(c, v)  { q._filters.push([c, 'lt', v]);  return api; },
       or()      { return api; },
-      order()   { return api; },
-      limit()   { return api; },
+      /* ORDER IS NOT A NO-OP ANY MORE, and it was hiding a real bug.
+         `api/projects.js` keeps the newest five restore points by reading them
+         newest-first and deleting everything past the fifth. With order()
+         doing nothing, this stand-in handed them back oldest-first, so the
+         code appeared to throw away the NEWEST two. The endpoint was right
+         and the stand-in was lying about what Postgres would have said. */
+      order(col, o) { q._order = [col, !o || o.ascending !== false]; return api; },
+      limit(n)  { q._limit = n; return api; },
       is(c, v)  { q._filters.push([c, 'is', v]);  return api; },
       in(c, v)  { q._filters.push([c, 'in', v]);   return api; },
       /* PostgREST's not(), which the cleanup job uses to find accounts that are
@@ -120,9 +160,17 @@ export function makeDb(profile, opts = {}) {
       if (q._op === 'insert') {
         if (name === 'events' && opts.duplicateEvent) return { data: null, error: {code: '23505', message: 'duplicate key'} };
         state[name] = state[name] || [];
-        // The real table defaults created_at; without it every time filter misses.
-        state[name].push({ created_at: new Date().toISOString(), ...q._patch });
-        return { data: [q._patch], error: null };
+        /* The real table defaults created_at AND a key. Without the key,
+           anything that inserts a row and then reads ids back to decide what
+           to delete gets a list of undefineds, and `in('id', [undefined])`
+           matches every other row that has no id either. That is a stand-in
+           handing back a delete-everything where the real table would have
+           handed back one row. */
+        state._seq = (state._seq || 0) + 1;
+        const made = { id: state._seq,
+                       created_at: new Date().toISOString(), ...q._patch };
+        state[name].push(made);
+        return { data: [made], error: null };
       }
       /* A real delete, because Vision's whole promise rests on one: a file
          with no row is unfindable forever, so the suite has to be able to see

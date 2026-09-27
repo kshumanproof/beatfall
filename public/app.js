@@ -505,6 +505,30 @@
     return BF.api('/api/projects', { method: 'DELETE', body: JSON.stringify({ id }) });
   };
 
+  /* ------------------------------------------------------ restore points --
+     Undo lives in the tab and dies on a refresh. These live on the server, so
+     a writer who reloads after a bad import still has a way back. Written
+     before the four operations that can eat work, read back as a short list,
+     and put in place one at a time. */
+  BF.checkpoint = async function (body) {
+    return BF.api('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({ action: 'checkpoint' }, body))
+    });
+  };
+
+  BF.restorePoints = async function (projectId) {
+    const { points } = await BF.api('/api/projects?points='
+      + encodeURIComponent(projectId));
+    return points || [];
+  };
+
+  BF.restore = async function (pointId) {
+    return BF.api('/api/projects', {
+      method: 'POST', body: JSON.stringify({ action: 'restore', point_id: pointId })
+    });
+  };
+
   // --------------------------------------------------------------- claude --
   // Deliberately shaped like the artifact runtime's sample() so the board's
   // code didn't have to change: ai(input, opts) resolves {text}, ai.json()

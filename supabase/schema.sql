@@ -425,3 +425,49 @@ alter table public.profiles
 -- owner. Without this line the split would close the boards of the only person
 -- using the product.
 update public.profiles set is_unlimited = true where is_admin = true;
+
+-- ============================================================================
+-- RESTORE POINTS (27 Sep 2026)
+--
+-- Undo holds thirty steps and lives in the tab. It dies on a refresh, which
+-- means the riskiest moment in this product, reading in a notes file, has no
+-- way back the moment somebody reloads the page. An import has already
+-- renamed one project and poured a comedy's beats into another. It was fixed,
+-- but the class of accident is not closed, and "there is no way back" is the
+-- wrong answer for a writer's only copy.
+--
+-- So the four operations that can eat work write the board as it was, first.
+--
+-- NO FOREIGN KEY TO projects, deliberately. A cascade would take a deleted
+-- project's restore points with it, and deleting a project is the single most
+-- destructive thing in the app. The point of keeping them is that the delete
+-- itself can be undone. The cascade that does exist is on the USER, because
+-- an account being deleted means all of it, which is what Privacy promises.
+--
+-- Bounded by the server rather than by a sweep: five points per project, the
+-- oldest dropped on each write. Sixty projects at five points is the ceiling,
+-- and a board is about forty kilobytes.
+--
+-- Safe to re-run.
+-- ============================================================================
+create table if not exists public.restore_points (
+  id          bigserial primary key,
+  user_id     uuid not null references auth.users on delete cascade,
+  project_id  uuid not null,
+  reason      text not null,          -- import | structure | empty | delete | restore
+  label       text not null default '',
+  name        text not null default '',
+  snapshot    jsonb not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists restore_points_project_idx
+  on public.restore_points (project_id, created_at desc);
+create index if not exists restore_points_user_idx
+  on public.restore_points (user_id, created_at desc);
+
+-- Same rule as every other table in this file: the browser never touches it.
+-- Every read and write goes through the server with the service key, and a
+-- snapshot is the writer's whole board, so this matters as much here as it
+-- does for the pictures.
+alter table public.restore_points enable row level security;
+revoke all on public.restore_points from anon, authenticated;
