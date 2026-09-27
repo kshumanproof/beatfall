@@ -1354,6 +1354,97 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .field.needs label{color:var(--gold)}
 .field.needs .hint{color:var(--gold);font-style:normal;font-weight:500}
 
+/* =====================================================================
+   THE WALKTHROUGH
+
+   Five steps, next and back, skippable at any point, and reachable again
+   from "How Beatfall works" in the account menu. It opens by itself only on
+   an account that has never used anything: a writer on day sixty who deleted
+   their last project gets the empty-shelf greeting instead.
+
+   FIXED HEIGHT, on purpose. The step copy runs from two lines to four, and a
+   sheet that grows and shrinks moves Next out from under the cursor between
+   presses. Same rule the logline coach and the ask panel already follow.
+   ===================================================================== */
+.wt{width:min(600px,100%);display:flex;flex-direction:column}
+.wt-body{min-height:322px;display:flex;flex-direction:column}
+.wt-step{display:none;flex-direction:column;flex:1}
+.wt-step.on{display:flex}
+.wt-eyebrow{
+  font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.15em;color:var(--gold);margin-bottom:11px;
+}
+.wt h3{font-family:var(--serif);font-size:25px;font-weight:600;letter-spacing:-.01em;margin:0 0 7px}
+.wt p{font-size:14.5px;line-height:1.6;color:var(--ink-2);margin:0 0 18px;max-width:56ch}
+
+/* The figures are drawn from the board's own parts rather than pictures of
+   them, so they follow the palette into dark mode and cost no request. */
+/* One box, the same height on all five steps, sitting on the floor of the
+   sheet. Letting each figure size itself made the panel look like five
+   different panels as the writer pressed through it. */
+.wt-fig{
+  margin-top:auto;background:var(--card);border:1px solid var(--rule);
+  border-radius:var(--r-card);padding:17px 19px;display:flex;align-items:center;
+  gap:14px;height:104px;box-sizing:border-box;
+}
+.wt-lines{display:grid;gap:5px;flex:1}
+.wt-lines i{display:block;height:5px;border-radius:2px;background:var(--ink-4);opacity:.5}
+.wt-lines i:nth-child(2){width:78%}
+.wt-lines i:nth-child(3){width:90%}
+.wt-lines i:nth-child(4){width:64%}
+.wt-arrow{color:var(--ink-4);font-size:17px;line-height:1}
+.wt-cards{display:grid;gap:6px;flex:1}
+.wt-cards span{
+  display:block;height:19px;border-radius:3px;background:var(--surface);
+  border:1px solid var(--rule);
+}
+.wt-pill{
+  display:inline-flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--rule);border-radius:var(--r-card);padding:9px 13px;
+  font-size:12.5px;color:var(--ink-2);
+}
+.wt-pill b{font-weight:600;color:var(--ink)}
+.wt-ticks{display:flex;gap:4px;margin-top:10px}
+.wt-ticks i{display:block;width:13px;height:5px;border-radius:2px;background:var(--blue);opacity:.4}
+.wt-beats{display:flex;gap:7px;width:100%}
+.wt-beats span{
+  flex:1;height:52px;border-radius:3px;background:var(--surface);border:1px solid var(--rule);
+}
+.wt-beats span.gap{border:1px dashed var(--gold-hair);background:var(--gold-soft)}
+.wt-chips{display:flex;gap:10px;flex-wrap:wrap}
+.wt-chip{
+  display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-card);
+  padding:8px 13px;font-size:12.5px;font-weight:600;border:1px solid transparent;
+}
+.wt-chip.free{background:var(--blue);color:var(--on-blue)}
+.wt-chip.paid{background:transparent;color:var(--gold);border-color:var(--gold-hair)}
+.wt-chip small{font-weight:500;opacity:.85}
+.wt-prose{flex:1}
+.wt-prose b{
+  display:block;font-family:var(--sans);font-size:9.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4);margin-bottom:8px;
+}
+.wt-prose i{display:block;height:5px;border-radius:2px;background:var(--ink-4);opacity:.42;margin-bottom:5px}
+.wt-prose i:nth-of-type(2){width:88%}
+.wt-prose i:nth-of-type(3){width:71%}
+
+.wt-foot{display:flex;align-items:center;gap:10px;margin-top:20px}
+.wt-dots{display:flex;gap:6px;margin-right:auto}
+.wt-dots b{
+  display:block;width:6px;height:6px;border-radius:50%;background:var(--ink-4);
+  opacity:.35;transition:opacity .15s ease,background .15s ease;
+}
+.wt-dots b.on{background:var(--blue);opacity:1}
+.wt-skip{
+  background:none;border:0;padding:8px 2px;color:var(--ink-3);font-size:12.5px;
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+}
+.wt-skip:hover{color:var(--ink)}
+@media (max-width:620px){
+  .wt-body{min-height:0}
+  .wt-fig{display:none}
+}
+
 .firstrun-choices{display:grid;gap:11px}
 .fr{
   text-align:left;background:var(--card);border:1px solid var(--rule);
@@ -3185,6 +3276,95 @@ footer{
         <span>See a sample project and how Beatfall finds the gaps.</span>
         <i></i>
       </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- THE WALKTHROUGH. Opened by showWalkthrough(); see the block beside
+     showFirstRun() for who opens it and when. -->
+<div class="scrim" id="walk" hidden>
+  <div class="sheet wt" role="dialog" aria-modal="true" aria-label="How Beatfall works">
+    <div class="wt-body">
+
+      <div class="wt-step on" data-step="0">
+        <p class="wt-eyebrow">How Beatfall works</p>
+        <h3>It organizes your notes</h3>
+        <p>Paste in whatever you already have, however messy. Beatfall sorts the
+          story beats onto a board and keeps everything else in Notes, where you
+          can still reach it. You make every call, and it never writes your
+          script.</p>
+        <div class="wt-fig" aria-hidden="true">
+          <div class="wt-lines"><i></i><i></i><i></i><i></i></div>
+          <div class="wt-arrow">&rarr;</div>
+          <div class="wt-cards"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <div class="wt-step" data-step="1">
+        <p class="wt-eyebrow">First question</p>
+        <h3>Pick your format</h3>
+        <p>A feature, an hour of television, a short, a vertical episode. It is
+          the one thing Beatfall insists on, because it decides which beats your
+          board has. You can change it later and nothing is lost.</p>
+        <div class="wt-fig" aria-hidden="true">
+          <div>
+            <span class="wt-pill"><b>Feature</b> Save the Cat! &middot; 15 beats</span>
+            <div class="wt-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wt-step" data-step="2">
+        <p class="wt-eyebrow">The board</p>
+        <h3>The empty beats are the point</h3>
+        <p>A card is something you already have. An empty beat is something you
+          have not written yet, and that is what a board shows you and a document
+          never does. Beatfall leaves one empty rather than filling it in to look
+          tidy.</p>
+        <div class="wt-fig" aria-hidden="true">
+          <div class="wt-beats">
+            <span></span><span></span><span class="gap"></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="wt-step" data-step="3">
+        <p class="wt-eyebrow">What things cost</p>
+        <h3>Blue is free, gold spends a credit</h3>
+        <p>Writing notes, moving cards, the Outline and saving a PDF all cost
+          nothing and always will. Asking Beatfall for help with a beat is the
+          part that spends a credit, and the price is on the button before you
+          press it.</p>
+        <div class="wt-fig" aria-hidden="true">
+          <div class="wt-chips">
+            <span class="wt-chip free">Place it</span>
+            <span class="wt-chip paid">What's missing? <small id="wtcost"></small></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="wt-step" data-step="4">
+        <p class="wt-eyebrow">After the board</p>
+        <h3>Then you write it out</h3>
+        <p>Once every beat has a card, the Outline opens and you write the scene
+          under each one. Until then the board is where the work is, and Beatfall
+          tells you how many beats are still waiting.</p>
+        <div class="wt-fig" aria-hidden="true">
+          <div class="wt-prose">
+            <b>Midpoint</b>
+            <i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="wt-foot">
+      <div class="wt-dots" id="wtdots" aria-hidden="true"></div>
+      <button class="wt-skip" type="button" id="wtskip">Skip</button>
+      <button class="btn" type="button" id="wtback">Back</button>
+      <button class="btn btn-primary" type="button" id="wtnext">Next</button>
     </div>
   </div>
 </div>
@@ -13136,7 +13316,9 @@ function paintWho(me){
 }
 
 document.getElementById("signout").addEventListener("click", () => BF.signOut());
-document.getElementById("helpbtn").addEventListener("click", () => showFirstRun("welcome"));
+/* "How Beatfall works" is the walkthrough. It used to open the greeting
+   sheet, which is the three ways in rather than an explanation of anything. */
+document.getElementById("helpbtn").addEventListener("click", () => showWalkthrough());
 
 /* =========================================================================
    HOVER EXPLAINERS: every control says what it does before you press it.
@@ -13495,7 +13677,12 @@ function showLoadFailure(){
      the dashboard said "Nothing on the shelf" over the top of them. */
   await loadCaptures();
 
-  if (bare && !PENDING.length) return showFirstRun(seenBefore ? "empty" : "welcome");
+  if (bare && !PENDING.length){
+    /* A new account is walked through first and then handed the three ways
+       in. An empty one that has history is only told the shelf is empty. */
+    if (seenBefore) return showFirstRun("empty");
+    return showWalkthrough(() => showFirstRun("welcome"));
+  }
 
   /* What the phone sent while nobody was here. Read after the shelf, because
      a batch names a board and the names come from the shelf. The greeting is
@@ -13588,6 +13775,94 @@ function showFirstRun(which){
     if (e.key === "Escape" && !fr.hidden) fr.hidden = true;
   });
 }
+
+/* =========================================================================
+   THE WALKTHROUGH
+
+   Kris asked for this from the beginning: a short explainer a writer can step
+   through, leave whenever they like, and come back to later.
+
+   WHO OPENS IT. An account that has never used anything gets it by itself, in
+   place of the welcome greeting, and the greeting follows when they finish or
+   skip, because that sheet is where the three ways in live and there should
+   only ever be one copy of those. "How Beatfall works" in the account menu
+   opens it any time after that, which is what its label has always promised.
+   An empty account WITH history still gets "Nothing on the shelf": somebody on
+   day sixty who deleted their last project does not need to be taught the
+   product again.
+
+   It does not track a "seen" flag of its own. has_history already answers the
+   only question being asked, and a second flag is a second thing that can
+   disagree with the first.
+   ========================================================================= */
+const WT_STEPS = 5;
+let wtAt = 0, wtBound = false, wtThen = null;
+
+function wtDraw(){
+  document.querySelectorAll("#walk .wt-step").forEach(el =>
+    el.classList.toggle("on", Number(el.dataset.step) === wtAt));
+  document.querySelectorAll("#wtdots b").forEach((d, i) =>
+    d.classList.toggle("on", i === wtAt));
+  document.getElementById("wtback").hidden = wtAt === 0;
+  /* The last step's button is the way out, so it says what it does. A writer
+     pressing Next five times should not have to work out that the fifth one
+     was different. */
+  document.getElementById("wtnext").textContent =
+    wtAt === WT_STEPS - 1 ? "Get started" : "Next";
+  document.getElementById("wtskip").textContent =
+    wtAt === WT_STEPS - 1 ? "Close" : "Skip";
+}
+
+function wtClose(finished){
+  document.getElementById("walk").hidden = true;
+  BT_track_wt(finished);
+  const then = wtThen; wtThen = null;
+  if (then) then();
+}
+
+/* One event, whether they finished or left early, because the useful question
+   is how far anybody gets before they stop. */
+function BT_track_wt(finished){
+  BF.track("walkthrough_closed", {finished: !!finished, step: wtAt + 1});
+}
+
+function showWalkthrough(then){
+  const w = document.getElementById("walk");
+  wtThen = then || null;
+  wtAt = 0;
+  BF.track("walkthrough_opened", {});
+
+  /* The price on the gold chip is read from the app's own table rather than
+     written into the page, the same as every other figure in the product. */
+  const wc = document.getElementById("wtcost");
+  if (wc) wc.textContent = costWords("conversation");
+
+  if (!document.getElementById("wtdots").children.length){
+    const dots = document.getElementById("wtdots");
+    for (let i = 0; i < WT_STEPS; i++) dots.appendChild(document.createElement("b"));
+  }
+  wtDraw();
+  w.hidden = false;
+
+  if (wtBound) return;
+  wtBound = true;
+  document.getElementById("wtnext").addEventListener("click", () => {
+    if (wtAt === WT_STEPS - 1) return wtClose(true);
+    wtAt++; wtDraw();
+  });
+  document.getElementById("wtback").addEventListener("click", () => {
+    if (wtAt > 0){ wtAt--; wtDraw(); }
+  });
+  document.getElementById("wtskip").addEventListener("click", () => wtClose(false));
+  /* Escape and the grey area both leave. Nothing is being composed in here, so
+     there is nothing a stray press can throw away, which is why this is not
+     the ask panel's rule. */
+  w.addEventListener("click", e => { if (e.target === w) wtClose(false); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !w.hidden) wtClose(false);
+  });
+}
+
 
 /* Running low shouldn't be a surprise, and it shouldn't be a surprise inside a
    closed popover either, which is where the only warning used to live.

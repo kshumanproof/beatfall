@@ -97,24 +97,78 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       blanks: document.querySelectorAll('#slategrid .newcard').length,
       score: document.getElementById('slatescore').hidden,
       lede: document.getElementById('slatelede').textContent.trim(),
-      welcome: !document.getElementById('firstrun').hidden,
-      credits: (document.getElementById('frcredits') || {}).textContent || '',
-      creditsShown: !(document.getElementById('frcredits') || {}).hidden,
-      pasteCost: (document.getElementById('frpastecost') || {}).textContent || '',
-      // Read the app's own price table rather than typing a figure here. A test
-      // that pins 2 fails the day the price moves, for the only reason a test
-      // must never fail: the test was the thing that was out of date.
-      importCost: CREDIT.import
+      /* A brand-new account is walked through first. The greeting, which is
+         where the three ways in live, follows once the walkthrough is done
+         with. Both are checked below. */
+      walk: !document.getElementById('walk').hidden,
+      welcome: !document.getElementById('firstrun').hidden
     }));
     check('no Untitled project on a bare shelf', shelf.cards === 0, 'found ' + shelf.cards);
     check('the way to start is still there', shelf.blanks === 1, 'blank cards: ' + shelf.blanks);
     check('no scoreboard of noughts', shelf.score === true);
     check('the lede says nothing is saved', /Nothing saved yet/.test(shelf.lede), shelf.lede);
-    check('the welcome sheet opens', shelf.welcome);
-    check('it states the trial allowance', shelf.creditsShown && /25 credits/.test(shelf.credits), shelf.credits);
+    check('the walkthrough opens on an account that has never used anything',
+      shelf.walk === true);
+    check('and the greeting waits behind it rather than stacking on top',
+      shelf.welcome === false);
+
+    /* WALKING THROUGH IT. Five steps, Back absent on the first, the last
+       button saying what it does, and the greeting arriving at the end. */
+    const wt = await page.evaluate(() => {
+      const at = () => ({
+        step: [...document.querySelectorAll('#walk .wt-step')]
+              .findIndex(e => e.classList.contains('on')),
+        back: document.getElementById('wtback').hidden,
+        next: document.getElementById('wtnext').textContent,
+        lit:  [...document.querySelectorAll('#wtdots b')]
+              .filter(d => d.classList.contains('on')).length
+      });
+      const seen = [at()];
+      for (let i = 0; i < 4; i++){ document.getElementById('wtnext').click(); seen.push(at()); }
+      return {seen, steps: document.querySelectorAll('#walk .wt-step').length,
+              dots: document.querySelectorAll('#wtdots b').length,
+              /* The price on the gold chip comes off the app's own table.
+                 CREDIT is a browser global, so it is read in here rather than
+                 typed into an assertion out there. */
+              cost: document.getElementById('wtcost').textContent,
+              want: CREDIT.conversation};
+    });
+    check('it is five steps and five dots',
+      wt.steps === 5 && wt.dots === 5, JSON.stringify({s: wt.steps, d: wt.dots}));
+    check('Next moves one step at a time',
+      wt.seen.map(x => x.step).join(',') === '0,1,2,3,4',
+      wt.seen.map(x => x.step).join(','));
+    check('exactly one step and one dot are lit at a time',
+      wt.seen.every(x => x.lit === 1), JSON.stringify(wt.seen.map(x => x.lit)));
+    check('Back is absent on the first step and there after it',
+      wt.seen[0].back === true && wt.seen.slice(1).every(x => x.back === false),
+      JSON.stringify(wt.seen.map(x => x.back)));
+    check('the last button says what it does rather than Next again',
+      wt.seen[4].next === 'Get started', wt.seen[4].next);
+    check('and the credit price on it is the price the app charges',
+      new RegExp('\\b' + wt.want + ' credits?\\b').test(wt.cost),
+      JSON.stringify(wt.cost) + ' should name ' + wt.want);
+
+    /* The greeting fills its own figures when it opens, so what it says is
+       read after the handover and not from the shelf snapshot above, which was
+       taken while this sheet was still shut. */
+    const done = await page.evaluate(() => {
+      document.getElementById('wtnext').click();
+      return {walk: document.getElementById('walk').hidden,
+              welcome: !document.getElementById('firstrun').hidden,
+              credits: document.getElementById('frcredits').textContent,
+              creditsShown: !document.getElementById('frcredits').hidden,
+              pasteCost: document.getElementById('frpastecost').textContent,
+              want: CREDIT.import};
+    });
+    check('finishing it closes the walkthrough', done.walk === true);
+    check('and hands over the three ways in', done.welcome === true);
+
+    check('it states the trial allowance',
+      done.creditsShown && /25 credits/.test(done.credits), done.credits);
     check('the paid choice names its price',
-      new RegExp('\\b' + shelf.importCost + ' credits?\\b').test(shelf.pasteCost),
-      JSON.stringify(shelf.pasteCost) + ' should name ' + shelf.importCost);
+      new RegExp('\\b' + done.want + ' credits?\\b').test(done.pasteCost),
+      JSON.stringify(done.pasteCost) + ' should name ' + done.want);
     check('no page errors on a new account', errors.length === 0, errors.join('\n'));
     await page.close();
   }
