@@ -280,6 +280,94 @@ async function open(browser, projects, account = PAID) {
     check('and the control says how many beats are missing', /9/.test(locked.tip), locked.tip);
     check('the lock class is the narrow one, not the full-screen blocker',
       /outline-locked/.test(locked.cls) && !/(^| )locked( |$)/.test(locked.cls), locked.cls);
+
+    /* AND A WAY THERE. Naming nine missing beats and leaving somebody to find
+       them is the dead end this app has fixed in three other places. */
+    const shown = await page.evaluate(async () => {
+      const go = document.querySelector('#settledlines button');
+      const first = go ? go.getAttribute('data-tip') : '';
+      if (go) go.click();
+      await new Promise(r => setTimeout(r, 80));
+      const lit = document.querySelector('.slot.beat-found');
+      return {offered: !!go, first,
+              jumped: !!lit, to: lit ? lit.getAttribute('data-slot') : '',
+              gone: document.getElementById('settled').hidden};
+    });
+    check('the locked Outline offers a way to the first unfinished beat',
+      shown.offered === true, 'it names a number and stops there');
+    check('and it says which beat before you press it',
+      /B Story/.test(shown.first), shown.first);
+    /* Six filled means the seventh slot, bstory, is the first without a card.
+       Read from the structure rather than typed, so a change to the fixture
+       cannot leave this asserting a beat nobody is on. */
+    check('pressing it lands on that beat', shown.jumped && shown.to === 'bstory',
+      JSON.stringify(shown));
+    check('and the panel that offered it steps out of the way', shown.gone === true);
+    await page.close();
+  }
+
+  /* NEXT UP NAVIGATES, IT DOES NOT SELL. The most useful control on a project
+     card used to open the paid conversation about that beat. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const card = await page.evaluate(async () => {
+      setView('slate');
+      await new Promise(r => setTimeout(r, 60));
+      const up = document.querySelector('#slategrid .pcard .up');
+      const tip = up ? up.getAttribute('data-tip') || '' : '';
+      /* Read both colours off the page rather than typing a hex here. A
+         check that pins rgb values goes red the day the palette moves, for
+         the only reason a test must never go red. */
+      const probe = document.createElement('span');
+      document.body.appendChild(probe);
+      const swatch = name => { probe.style.color = 'var(' + name + ')';
+                               return getComputedStyle(probe).color; };
+      const blue = swatch('--blue'), gold = swatch('--gold');
+      probe.remove();
+      const k = up ? getComputedStyle(up.querySelector('.k')).color : '';
+      if (up) up.click();
+      await new Promise(r => setTimeout(r, 120));
+      const lit = document.querySelector('.slot.beat-found');
+      return {tip, k, blue, gold, view: state.view,
+              to: lit ? lit.getAttribute('data-slot') : '',
+              asking: !document.getElementById('askscrim').hidden};
+    });
+    check('Next up opens the board at the beat rather than a paid conversation',
+      card.view === 'board' && card.to === 'bstory' && card.asking === false,
+      JSON.stringify(card));
+    check('and it no longer quotes a price, because it no longer charges one',
+      !/credit/i.test(card.tip), card.tip);
+    /* Gold means it spends a credit. One free gold control and the whole
+       signal stops being worth anything. */
+    check('and it wears the free colour, not the paid one',
+      card.k === card.blue && card.k !== card.gold,
+      'Next up label is ' + card.k + ', blue is ' + card.blue + ', gold is ' + card.gold);
+    await page.close();
+  }
+
+  /* THE BEAT'S JOB STAYS UNDER ITS NAME. It used to appear only on an empty
+     beat, so the board explained itself least at the moment a writer is
+     holding a card and deciding whether it belongs here. */
+  {
+    const { page } = await open(browser, [board('Night Haul', 6)]);
+    const jobs = await page.evaluate(() => {
+      const filled = document.querySelector('#board .slot:not(.empty)');
+      const empty  = document.querySelector('#board .slot.empty');
+      return {
+        onFilled: (filled && filled.querySelector('.slotjob')
+                   ? filled.querySelector('.slotjob').textContent : '').trim(),
+        onEmpty:  (empty && empty.querySelector('.slotfn')
+                   ? empty.querySelector('.slotfn').textContent : '').trim(),
+        /* One treatment each, never both on one beat: the quiet label on a
+           beat that has cards, the italic sentence on one that does not. */
+        doubledUp: !!(filled && filled.querySelector('.slotfn:not([hidden])')
+                      && getComputedStyle(filled.querySelector('.slotfn')).display !== 'none')
+      };
+    });
+    check('a beat with cards still says what it is for',
+      jobs.onFilled.length > 0, 'the job vanished as soon as a card landed');
+    check('and an empty one still does too', jobs.onEmpty.length > 0, jobs.onEmpty);
+    check('but never both at once on the same beat', jobs.doubledUp === false);
     await page.close();
   }
 

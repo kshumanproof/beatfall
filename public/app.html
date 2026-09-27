@@ -755,11 +755,34 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   font-family:var(--serif);font-size:13.5px;font-style:italic;line-height:1.5;color:var(--ink-3);
 }
 .slot:not(.empty) .slotfn{display:none}
+/* The same sentence as .slotfn, on a beat that already has cards. Not italic
+   serif: at fifteen of them down a page that reads as fifteen captions rather
+   than as a quiet label on each beat. */
+.slotjob{
+  font-family:var(--sans);font-size:11px;line-height:1.45;color:var(--ink-4);
+  margin:-3px 0 1px;
+}
 .gapline{
   height:1px;margin-top:14px;
   background:repeating-linear-gradient(90deg,var(--gold-hair) 0 5px,transparent 5px 10px);
 }
 .gapacts{display:flex;align-items:center;gap:11px;margin-top:12px}
+/* Arriving from somewhere else. A beat jumped to says so for a moment and then
+   stops, because a permanent mark on the board would be a second kind of
+   state nobody asked for. Prefixed, like every state class in this file:
+   `.locked` is spoken for and this is not going near it. */
+.beat-found .slotname{color:var(--blue)}
+.beat-found .cards,.beat-found .gapbody{
+  animation:beatfound 1.6s ease-out;border-radius:var(--r-card);
+}
+@keyframes beatfound{
+  0%{box-shadow:0 0 0 3px var(--blue-soft)}
+  70%{box-shadow:0 0 0 3px var(--blue-soft)}
+  100%{box-shadow:0 0 0 3px transparent}
+}
+@media (prefers-reduced-motion: reduce){
+  .beat-found .cards,.beat-found .gapbody{animation:none}
+}
 .askbtn{
   border:none;background:none;padding:0;cursor:pointer;
   font-family:var(--sans);font-size:11.5px;color:var(--blue);letter-spacing:.01em;
@@ -2007,23 +2030,27 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .pcard .bar i{display:block;height:100%;background:var(--blue);transition:width var(--settle)}
 
 /* next up, the one action worth its own row */
+/* BLUE, NOT GOLD, SINCE 27 SEPTEMBER. Gold in this app means it spends a
+   credit, and this control stopped spending one when it became a way of
+   getting to the beat rather than a way of buying a conversation about it.
+   One free gold control and the whole signal is worth nothing. */
 .pcard .up{
   display:flex;align-items:center;gap:12px;width:100%;min-height:46px;
   text-align:left;cursor:pointer;
-  background:var(--gold-soft);border:1px solid var(--gold-hair);border-radius:var(--r-ctl);
+  background:var(--blue-soft);border:1px solid var(--blue-soft);border-radius:var(--r-ctl);
   padding:9px 14px;font-family:var(--sans);color:var(--ink);
   transition:background var(--settle),border-color var(--settle);
 }
-.pcard .up:hover{background:#EFE6D0;border-color:var(--gold)}
+.pcard .up:hover{border-color:var(--blue)}
 .pcard .up .k{
   font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;
-  color:var(--gold);white-space:nowrap;
+  color:var(--blue);white-space:nowrap;
 }
 .pcard .up .n{
   font-family:var(--serif);font-size:16px;font-weight:600;letter-spacing:-.008em;
   flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.pcard .up .arw{color:var(--gold);flex:0 0 auto}
+.pcard .up .arw{color:var(--blue);flex:0 0 auto}
 /* Inherits everything from .up, because it IS a .up now: same box, same
    height, same place on the card. Only the label and the mark change, and the
    mark has to be told: the chevron is gold, which is legible on paper stock and
@@ -4705,6 +4732,14 @@ function render(justPlaced){
         + (trace ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
             + trace + "</button>" : "")
         + "</div>"
+        /* THE JOB STAYS. It used to appear only on an empty beat, which meant
+           the board explained itself least at the moment a writer is deciding
+           whether the card in their hand belongs here. Kris found it holding a
+           card and trying to remember what a Midpoint is for.
+
+           Smaller and quieter than the empty-beat version on purpose: fifteen
+           beats of italic serif turns a full board into a page of captions. */
+        + (cards.length ? '<div class="slotjob">' + esc(s.fn) + "</div>" : "")
         + '<div class="cards"></div>';
       const traceBtn = el.querySelector(".otrace");
       if (traceBtn) traceBtn.addEventListener("click", e => {
@@ -7306,6 +7341,27 @@ document.getElementById("draftgo").addEventListener("click", () => {
    widest span becomes the first half, whose middle is the act one break. Each
    press cuts the remaining unknown in half.
    ========================================================================= */
+/* ONE WAY TO SAY "TAKE ME TO THAT BEAT".
+   Two places needed it and neither had it: Next up on a project card, which
+   used to open a paid conversation instead of going anywhere, and the locked
+   Outline, which named a number of unfinished beats and left the writer to
+   find them. */
+function goToBeat(projId, slotId){
+  if (projId != null && state.activeId !== projId) state.activeId = projId;
+  if (state.view !== "board") setView("board");
+  else render();
+  hideAll();
+  /* After the paint, not with it. Asking for an element that this render is
+     about to create is how a jump silently does nothing. */
+  requestAnimationFrame(() => {
+    const el = board.querySelector('[data-slot="' + CSS.escape(slotId) + '"]');
+    if (!el) return;
+    el.scrollIntoView({behavior: "smooth", block: "center"});
+    el.classList.add("beat-found");
+    setTimeout(() => el.classList.remove("beat-found"), 1600);
+  });
+}
+
 function nextHole(proj){
   proj = proj || P();
   const slots = STRUCTURES[proj.structure].slots;
@@ -10492,6 +10548,24 @@ function tryOpenOutline(){
       + (access.remaining === 1 ? "One beat still needs a card."
                                 : access.remaining + " beats still need cards.")
       + "</div>";
+    /* AND A WAY THERE. Naming a number of unfinished beats and leaving the
+       writer to find them is the shape of every dead end this product has
+       already fixed once. The first one with no card is where they would
+       start anyway. */
+    const empty = STRUCTURES[proj.structure].slots
+      .filter(sl => !proj.cards.some(c => c.slot === sl.id));
+    if (empty.length){
+      const go = document.createElement("button");
+      go.className = "btn btn-sm";
+      go.type = "button";
+      go.textContent = "Show me the first one";
+      go.setAttribute("data-tip", "Open the board at " + empty[0].name + ".");
+      go.addEventListener("click", () => {
+        hideSettled();
+        goToBeat(null, empty[0].id);
+      });
+      document.getElementById("settledlines").appendChild(go);
+    }
     settledBox.hidden = false;
     return false;
   }
@@ -12638,12 +12712,16 @@ function renderSlate(){
             + "</button>")
       + '<div class="acts"></div>';
 
+    /* NEXT UP NAVIGATES. It used to open the paid conversation about that
+       beat, which made the most useful control on the card a door with a
+       price on it, and turned reading your own progress into a purchase.
+       It opens the board at that beat now. Asking for help is still one
+       press away, on the beat itself, where it says what it costs. */
     if (nx) el.querySelector(".up").addEventListener("click", () => {
-      open(p.id || p.localId); askAbout(nx);
+      goToBeat(p.id || p.localId, nx.id);
     });
     if (nx) el.querySelector(".up").setAttribute("data-tip",
-      "Answer questions about this project's next empty beat. Costs "
-      + costWords("conversation") + ".");
+      "Open this project at its next empty beat.");
     if (!nx){
       const out = el.querySelector(".up.done");
       out.setAttribute("data-tip",
