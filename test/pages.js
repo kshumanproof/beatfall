@@ -557,14 +557,34 @@ async function page(browser, url, before, arg) {
    * something a test here can answer, or should try to.
    */
   {
-    const EVERYWHERE = ['index.html', 'login.html', 'billing.html', 'privacy.html',
-                        'terms.html', 'help.html', 'delete.html', '404.html',
-                        'settings.html', 'admin.html', 'app.html'];
+    /* NOT QUITE EVERY PAGE, AND THE THREE EXCEPTIONS ARE THE POINT.
+       Privacy and Terms are documents. They are linked from emails and store
+       listings, they are read by the people most careful about where their
+       data goes, and loading a third party's script on the page that discloses
+       third parties is the one place that reads badly. Admin is Kris's own
+       screen and has nobody to support. */
+    const EVERYWHERE = ['index.html', 'login.html', 'billing.html', 'help.html',
+                        'delete.html', '404.html', 'settings.html', 'app.html'];
+    const NOWHERE = ['privacy.html', 'terms.html', 'admin.html'];
     const src = f => fs.readFileSync(path.resolve('../public/' + f), 'utf8');
 
     const missing = EVERYWHERE.filter(f => !/chatling\.ai\/js\/embed\.js/.test(src(f)));
-    check('every page in the product loads the support bubble',
+    check('every page that should carry the support bubble does',
       missing.length === 0, 'missing on: ' + missing.join(', '));
+    /* The SCRIPT, not the word. Privacy names Chatling in three places on
+       purpose, because it is the page that discloses who processes what. */
+    const strays = NOWHERE.filter(f =>
+      /chatling\.ai\/js\/embed\.js/.test(src(f)) || /chtlConfig/.test(src(f)));
+    check('and the documents and the admin screen do not',
+      strays.length === 0, 'a third party is loading on: ' + strays.join(', '));
+
+    /* The disclosure and the code have to agree. A page listing who processes
+       what is the one page in this product that cannot be out of date. */
+    const priv = src('privacy.html');
+    check('the Privacy Policy names who runs the support chat',
+      /Chatling/.test(priv) && /OpenAI/.test(priv), 'Chatling is not disclosed');
+    check('and says it cannot reach an account or a board',
+      /no access to your account/i.test(priv), '');
 
     /* The id is what ties the widget to this account. A page carrying the
        script with no id, or with a different one, loads a stranger's bot. */
@@ -575,7 +595,7 @@ async function page(browser, url, before, arg) {
     /* The widget that was taken out must leave nothing behind. A stale tag
        would 404 on every page load, which is invisible until somebody thinks
        to read a console. */
-    const stale = EVERYWHERE.filter(f => /helpchat\.js/.test(src(f)));
+    const stale = EVERYWHERE.concat(NOWHERE).filter(f => /helpchat\.js/.test(src(f)));
     check('and nothing still asks for the widget that was taken out',
       stale.length === 0, 'still referenced by: ' + stale.join(', '));
     check('and that file is gone from the site',
