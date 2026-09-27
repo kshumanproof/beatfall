@@ -146,7 +146,6 @@ button{font-family:inherit;color:inherit}
   letter-spacing:.14em;color:var(--ink-4);margin:0 0 16px}
 .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .row + .row{margin-top:12px}
-.spacer{margin-left:auto}
 .muted{color:var(--ink-3);font-size:13px}
 .big{font-family:var(--serif);font-size:34px;font-weight:600;line-height:1;
   font-variant-numeric:tabular-nums}

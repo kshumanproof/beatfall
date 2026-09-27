@@ -134,6 +134,29 @@ export const MODEL       = 'claude-haiku-4-5';
 export const PRICE_IN    = 1;
 export const PRICE_OUT   = 5;
 
+/* THE HELP DESK RUNS ON A BIGGER MODEL THAN THE BOARD, ON PURPOSE.
+ *
+ * The board's work is bounded: read these notes, put them in these beats,
+ * answer this question about this beat. The small fast model is good at that
+ * and it is what every credit is priced against.
+ *
+ * The help desk's work is not bounded. Somebody types "how do i make a thing"
+ * or "so that's it?" and it has to work out what they meant, from their words
+ * rather than ours. That is the thing a bigger model is actually better at,
+ * and it is what separates a help chat people talk to from one they give up
+ * on. Kris asked for the second kind and was right to.
+ *
+ * It costs nothing to a writer, so the only question is what it costs us, and
+ * the answer is almost nothing because of the caching below. Two separate
+ * figures deliberately: moving the board's model is a pricing decision about
+ * credits, and this is not.
+ *
+ * These prices are not wired to the credit arithmetic, because help is free
+ * and spends none. They are here so the two models' numbers live together. */
+export const HELP_MODEL     = 'claude-sonnet-5';
+export const HELP_PRICE_IN  = 2;
+export const HELP_PRICE_OUT = 10;
+
 export const costMicros = (tin, tout) =>
   Math.round((tin / 1e6) * PRICE_IN * 1e6 + (tout / 1e6) * PRICE_OUT * 1e6);
 
@@ -446,14 +469,28 @@ const SAFE_PROPS = {
 
 const ENUM_MAX = 64;
 
+/* THE ONE EXCEPTION, AND IT IS NAMED RATHER THAN A LOOSENING.
+   A script error is the only thing in this table that is not an enum, a count
+   or a boolean, and 64 characters of "Cannot read properties of null" tells
+   nobody which property. These two keys get more room, and only these two.
+   Anything else outside SAFE_PROPS is still dropped on sight.
+
+   What lands here is the browser's own diagnostic text and a file and line.
+   It is not, and must never become, a route for a sentence somebody wrote:
+   the client scrubs long quoted runs out of a message before sending, because
+   a JSON parse failure quotes the input that broke it. */
+const LONG_PROPS = { error_message: 200, error_where: 128 };
+
 export function cleanProps(props) {
   const out = {};
   if (!props || typeof props !== 'object') return out;
   for (const [k, v] of Object.entries(props)) {
-    if (!SAFE_PROPS[k] || v === null || v === undefined) continue;
+    const long = LONG_PROPS[k];
+    if (!SAFE_PROPS[k] && !long) continue;
+    if (v === null || v === undefined) continue;
     if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
     else if (typeof v === 'boolean') out[k] = v;
-    else if (typeof v === 'string') out[k] = v.slice(0, ENUM_MAX);
+    else if (typeof v === 'string') out[k] = v.slice(0, long || ENUM_MAX);
   }
   return out;
 }

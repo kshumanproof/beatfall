@@ -10,6 +10,7 @@ const ALL = PLANS[PAID_PLAN].credits;
 const FULL_BUT_ONE = ALL - 1;
 import { makeDb } from './fakedb.js';
 import { MANUAL_TEXT } from './api/_help/manual.js';
+import { cleanProps } from './api/_lib/core.js';
 
 const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
@@ -410,6 +411,42 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
     !/\bAI\b|Claude|the model/.test(M), '');
   check('and it calls the paid feature the writing help',
     /the writing help/.test(M), '');
+}
+
+/* ---------- THE EVENTS ALLOWLIST
+ *
+ * This table holds counts, enums and booleans and never a sentence somebody
+ * wrote. That is a promise in the Privacy Policy, and cleanProps is the wall
+ * that makes it true rather than a matter of everybody remembering.
+ *
+ * Script errors widened it on 27 September, for two named keys and no others,
+ * because "Cannot read properties of null" cut to 64 characters tells nobody
+ * which property. These checks are what stop that exception becoming a
+ * general loosening.
+ */
+{
+  const long = 'x'.repeat(400);
+  const p = cleanProps({
+    error_message: long,
+    error_where: 'app.html:4512:19',
+    path: '/app', authenticated: true, count: 1,
+    // Two keys that are exactly what must never reach this table.
+    logline: 'a tow driver takes one last job',
+    card_text: 'the lot at two in the morning'
+  });
+  check('an error message gets past the 64 character enum cap',
+    p.error_message.length === 200, String(p.error_message.length));
+  check('and is still capped rather than unbounded',
+    p.error_message.length === 200, String(p.error_message.length));
+  check('the file and line travel with it',
+    p.error_where === 'app.html:4512:19', p.error_where);
+  check('the ordinary props are unaffected',
+    p.path === '/app' && p.authenticated === true && p.count === 1, JSON.stringify(p));
+  check('AND THE WIDENING OPENED NOTHING ELSE',
+    p.logline === undefined && p.card_text === undefined,
+    'a writer\'s words reached the events table: ' + JSON.stringify(p));
+  check('an ordinary string prop is still cut at 64',
+    cleanProps({ kind: long }).kind.length === 64, '');
 }
 
 const failed = out.filter(r => !r.ok);

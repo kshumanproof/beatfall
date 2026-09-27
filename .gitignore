@@ -23,3 +23,8 @@ test/stub-*.html
 # is being decided, and about six megabytes of PNGs that nothing in the product
 # reads. Kept on disk, out of the repo.
 Claude outputs/
+
+# Python bytecode from brand-src/cut.py. Regenerated on every run and nothing
+# reads it but the interpreter that wrote it.
+__pycache__/
+*.pyc

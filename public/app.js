@@ -399,6 +399,80 @@
     })}).catch(function () {});
   };
 
+  /* ------------------------------------------------- when something throws --
+     Until now a script error did nothing at all. The page half broke, the
+     writer saw a control that would not respond, and nobody ever found out.
+     That is a poor way to run a test whose entire purpose is learning what
+     breaks: the only channel was a writer remembering to mention it.
+
+     WHAT IS SENT, and what is deliberately not. The browser's message, the
+     file and line, the page, and whether anybody was signed in. Not the
+     stack, because a stack is long and says little more than the first line
+     of it here. Not the writer's material, ever, which is why the message is
+     scrubbed before it leaves: a JSON parse failure quotes the text that
+     broke it, and the crash cushion in localStorage parses a whole board.
+
+     The scrub keeps SHORT quoted runs and drops long ones. An error quoting
+     an identifier reads "reading 'hidden'", which is the useful half; an
+     error quoting a writer reads like a sentence, and no sentence belongs in
+     this table.
+
+     ONE REPORT PER DISTINCT ERROR PER SESSION, five in total. A throw inside
+     a render or a scroll handler fires on every frame, and a writer with a
+     bad board should not post a thousand rows about it.
+
+     A SIGNED OUT PAGE CANNOT REPORT. This rides /api/account, which needs a
+     session. The homepage and the sign-in page are therefore not covered,
+     which is a real gap and a deliberate one: the alternative is an open
+     endpoint anybody can post to, and that is not a thing to add in the week
+     before strangers arrive. */
+  var ERR_MAX = 5;
+  var errSeen = {};
+  var errCount = 0;
+
+  function scrubMessage(msg) {
+    return String(msg || 'unknown')
+      /* Anything quoted and longer than an identifier is assumed to be
+         content rather than a name, and does not travel. */
+      .replace(/(['"`])([^'"`]{25,})\1/g, '$1...$1')
+      .slice(0, 200);
+  }
+
+  function reportError(msg, where) {
+    try {
+      if (errCount >= ERR_MAX) return;
+      var key = String(msg).slice(0, 80) + '|' + where;
+      if (errSeen[key]) return;
+      errSeen[key] = true;
+      errCount += 1;
+      BF.track('script_error', {
+        error_message: scrubMessage(msg),
+        error_where: String(where || '').slice(0, 128),
+        path: location.pathname,
+        authenticated: !!(BF.session && BF.session.user),
+        count: errCount
+      });
+    } catch (e) { /* a reporter that throws is worse than no reporter */ }
+  }
+
+  BF.reportError = reportError;
+
+  window.addEventListener('error', function (e) {
+    /* A failed image or stylesheet fires this too, with no message and the
+       element as the target. Those are not script errors and there is
+       nothing to read in them. */
+    if (!e || !e.message) return;
+    var where = (e.filename || '').split('/').pop()
+      + (e.lineno ? ':' + e.lineno : '') + (e.colno ? ':' + e.colno : '');
+    reportError(e.message, where);
+  });
+
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    var msg = r && r.message ? r.message : String(r);
+    reportError(msg, 'promise');
+  });
+
   /* --------------------------------------------------------- attribution --
      A magic link leaves the site and comes back, and the referrer does not
      survive that trip. So whatever the first visit could see is written down

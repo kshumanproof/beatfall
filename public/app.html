@@ -502,7 +502,6 @@ header{
 .popplan{padding:2px 15px 10px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .popplan span{font-size:11.5px;color:var(--ink-2)}
 .popplan .cr{color:var(--blue)}
-.popbody{padding:4px 15px 10px}
 
 /* project switcher inside the popover */
 .tabs{display:flex;flex-direction:column;gap:1px;max-height:230px;overflow-y:auto}
@@ -644,7 +643,6 @@ select:focus{border-color:var(--blue);outline:none}
   border-bottom:1px solid var(--rule);background:var(--surface);
   display:flex;align-items:center;gap:14px;
 }
-.capture-lede{display:none}
 /* THE BOX HAD NO NAME ON IT. The note field is deliberately borderless, a
    writing surface rather than a form, and the cost of that is it disappears
    into the bar: Kris could not find the one control a writer touches most.
@@ -1032,7 +1030,6 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .tray-body.dragover{outline:1px dashed var(--blue);outline-offset:8px}
 .tray-empty{font-family:var(--serif);font-size:13.5px;font-style:italic;color:var(--ink-4)}
 .shelf{width:100%}
-.shelf-body{display:flex;flex-wrap:wrap;gap:20px}
 
 /* =====================================================================
    TRAYS: proposal, settle log, conversation
@@ -1135,7 +1132,6 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .compose textarea:focus{border-color:var(--blue);outline:none}
 .ask-actions{display:flex;gap:10px;margin-top:13px;align-items:center;flex-wrap:wrap}
 .limitnote{font-size:12.5px;color:var(--gold);margin-left:auto}
-.askcount{font-size:10px;font-weight:600;letter-spacing:.11em;color:var(--ink-4);text-transform:uppercase}
 .draft-label{
   font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.11em;
   color:var(--blue);margin:18px 0 9px;
@@ -3691,12 +3687,6 @@ function reason(entry, noteText){
    SCORING HELPERS built on score()
    ========================================================================= */
 
-/* How well does this text suit ONE named beat, ignoring who's sitting there? */
-function scoreFor(text, key, slotId){
-  const r = score(text, key, {cards:[]});
-  const hit = r.find(x => x.slot.id === slotId);
-  return hit ? hit.pts : 0;
-}
 /* What the writer told us about the project, for any prompt that needs a spine.
    Empty until they fill the intake in, every prompt has to work without it. */
 
@@ -3831,12 +3821,6 @@ function planCredits(){
       || PLAN_CREDITS;
 }
 
-/* The top-up pack, same reasoning. */
-function packWords(){
-  const n = (ME && ME.topup_credits) || 25;
-  const p = (ME && ME.topup_price)   || 6;
-  return n + " credits for $" + p;
-}
 
 function costWords(kind){
   const n = CREDIT[kind] || 0;
@@ -4031,18 +4015,6 @@ function slotName(key, slotId){
   if (slotId === "__none") return "Set aside";
   const s = STRUCTURES[key].slots.find(x => x.id === slotId);
   return s ? s.name : slotId;
-}
-/* The best beat for a card OTHER than the one it's being pushed out of.
-   Empty beats win ties, so displaced cards spread instead of piling up. */
-function bestAlternative(card, proj, excludeId){
-  const others = {cards: proj.cards.filter(c => c.id !== card.id)};
-  const ranked = score(card.text, proj.structure, others)
-    .filter(r => r.slot.id !== excludeId);
-  if (!ranked.length) return null;
-  const occupied = id => proj.cards.some(c => c.id !== card.id && c.slot === id);
-  const adjusted = ranked.map(r => ({r, v: r.pts + (occupied(r.slot.id) ? 0 : 1.5)}))
-                         .sort((a,b) => b.v - a.v);
-  return adjusted[0].r.slot.id;
 }
 
 /* =========================================================================
@@ -5595,7 +5567,6 @@ let captureStash = "";
 function captureLines(){
   return input.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 }
-function noteTooBig(){ return input.value.trim().length > NOTE_MAX; }
 function paintCaptureMore(){
   const lines = captureLines();
   const n = input.value.trim().length;
