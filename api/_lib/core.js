@@ -128,8 +128,14 @@ export const COST = {           // credits per action
  * appear on any page. */
 export const FREE_PER_HOUR = 200;
 
-// Anthropic list price for the model we use, in dollars per million tokens.
-// Update these two numbers if pricing moves; everything downstream follows.
+/* THE MODEL THE BOARD USED TO RUN ON, kept wired up rather than deleted.
+ *
+ * Beatfall ran on this from the first line of code until 7 October 2026. It is
+ * still a complete, working route: the key is still in production, the
+ * transport is still tested, and going back is one word in providers.js. That
+ * is deliberate. A product with one model provider has one way to be down.
+ *
+ * Anthropic list price, dollars per million tokens. */
 export const MODEL       = 'claude-haiku-4-5';
 export const PRICE_IN    = 1;
 export const PRICE_OUT   = 5;
@@ -157,20 +163,21 @@ export const HELP_MODEL     = 'claude-sonnet-5';
 export const HELP_PRICE_IN  = 2;
 export const HELP_PRICE_OUT = 10;
 
-/* THE OTHER PROVIDER, FOR A COMPARISON AND NOTHING ELSE.
- *
- * Beatfall runs on Claude. These exist so the same board, the same prompts and
- * the same placement rules can be put in front of a second reader and the
- * difference measured, which is a question about reading judgement rather than
- * about plumbing. Nothing reaches it unless a testing deployment says so AND an
- * admin asks for it; see providerFor in providers.js.
+/* THE MODEL THE BOARD RUNS ON, since 7 October 2026.
  *
  * STANDARD TIER, and that is not a detail. OpenAI's batch and flex tiers are
  * half the price and neither is usable here: batch returns within 24 hours and
  * flex queues, while a writer is sitting in front of the wait wall watching
  * "reading notes 41 to 80 of 83". An import is between nine and a hundred and
- * fifty calls in a row. So the rate below is the one we would actually pay,
- * which at the time of writing is twice what the board's model costs. */
+ * fifty calls in a row. So the rate below is the one we actually pay.
+ *
+ * MEASURED, not quoted. Across eighteen real imports recorded in the usage
+ * table, an import of a 25 note file costs about 4.4 cents here against 2.5
+ * on the model it replaced. Prompt caching takes roughly 14% off the list
+ * price rather than the 52% the cache hit rate suggests, because 70% of the
+ * bill is output and caching only discounts input. A writer burning all 75 of
+ * a month's credits on nothing but big imports costs about 66 cents against
+ * the $15 they pay. */
 export const OPENAI_MODEL     = 'gpt-6.1-sol';
 export const OPENAI_PRICE_IN  = 2;
 export const OPENAI_PRICE_OUT = 10;

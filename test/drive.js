@@ -1901,9 +1901,9 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
        it is a real person with real boards. */
     const locks = await page.evaluate(() => {
       const out = {};
-      setupProvider({ testing: false, is_admin: true });
+      setupProvider({ testing: false, is_admin: true, provider: 'openai' });
       out.adminOnly = document.getElementById('providerbtn').hidden;
-      setupProvider({ testing: true, is_admin: false });
+      setupProvider({ testing: true, is_admin: false, provider: 'openai' });
       out.flagOnly = document.getElementById('providerbtn').hidden;
       return out;
     });
@@ -1912,16 +1912,30 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('and an admin without the testing flag draws nothing either',
       locks.adminOnly === true, String(locks.adminOnly));
 
+    /* IT OPENS ON WHATEVER PRODUCTION RUNS, AND THE SERVER SAYS WHICH.
+       The browser cannot import a server constant, so /api/account carries the
+       answer and this adopts it. A hardcoded word here would have read "Claude"
+       for the whole afternoon after production moved to OpenAI, so the control
+       would have named one reader while the other one answered. */
     const on = await page.evaluate(() => {
       try { localStorage.removeItem('beatfall.provider'); } catch (e) {}
-      setupProvider({ testing: true, is_admin: true });
-      return { shown: !document.getElementById('providerbtn').hidden,
-               says: document.getElementById('providerlabel').textContent,
-               sent: pinProvider({ kind: 'ideas' }).provider };
+      setupProvider({ testing: true, is_admin: true, provider: 'openai' });
+      const a = { shown: !document.getElementById('providerbtn').hidden,
+                  says: document.getElementById('providerlabel').textContent,
+                  sent: pinProvider({ kind: 'ideas' }).provider };
+      // and it follows the server rather than a word written in this file
+      try { localStorage.removeItem('beatfall.provider'); } catch (e) {}
+      setupProvider({ testing: true, is_admin: true, provider: 'claude' });
+      a.followed = pinProvider({ kind: 'ideas' }).provider;
+      try { localStorage.removeItem('beatfall.provider'); } catch (e) {}
+      setupProvider({ testing: true, is_admin: true, provider: 'openai' });
+      return a;
     });
     check('both together draw the control', on.shown === true);
-    check('and it starts on Claude, which is what Beatfall runs on',
-      on.says === 'Claude' && on.sent === 'claude', JSON.stringify(on));
+    check('and it opens on what the server says production runs',
+      on.says === 'OpenAI' && on.sent === 'openai', JSON.stringify(on));
+    check('and it would follow the server the other way too, not a typed word',
+      on.followed === 'claude', on.followed);
 
     /* THE PIN. One import, one reader, whatever the menu does meanwhile. */
     const pinned = await page.evaluate(() => {
@@ -1944,25 +1958,86 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('all three readings of the casting call agree on a reader',
       new Set(pinned.rest.slice(-3)).size === 1, pinned.rest.slice(-3).join(','));
     check('but the menu says the new one straight away',
-      pinned.label === 'OpenAI', pinned.label);
+      pinned.label === 'Claude', pinned.label);
     check('and the next read is the one that uses it',
-      pinned.next === 'openai', pinned.next);
+      pinned.next === 'claude', pinned.next);
     check('as does a one-off call, which has no session to belong to',
-      pinned.loose === 'openai', pinned.loose);
+      pinned.loose === 'claude', pinned.loose);
 
     /* The choice survives a refresh, because a comparison is run over an
        afternoon and losing it on every reload would mean half the runs were
        secretly the wrong reader. */
     const kept = await page.evaluate(() => {
       const was = localStorage.getItem('beatfall.provider');
-      aiProvider = 'claude';                       // as a fresh page would start
-      setupProvider({ testing: true, is_admin: true });
+      aiProvider = null;                           // as a fresh page would start
+      setupProvider({ testing: true, is_admin: true, provider: 'openai' });
       return { stored: was, after: aiProvider };
     });
-    check('the choice is remembered across a reload',
-      kept.stored === 'openai' && kept.after === 'openai', JSON.stringify(kept));
+    check('a choice made by hand survives a reload, over the server default',
+      kept.stored === 'claude' && kept.after === 'claude', JSON.stringify(kept));
 
     check('no page errors around the reader control', errors.length === 0,
+      errors.join('\n'));
+    await page.close();
+  }
+
+  /* AN OWNER'S ALLOWANCE IS A SIGN, NOT A FIGURE.
+   *
+   * The owner account carries 1,000,000 credits because the arithmetic needs a
+   * number, and everywhere it can reach a screen it is meant to print as an
+   * infinity sign. Settings always did. The board did not, and the way it hid
+   * is the part worth a check: the load-time call was wrapped in a test for
+   * unlimited, so the pill was simply BLANK on an owner's account and nothing
+   * looked wrong. Then the writing help answers, BF.ai calls straight back in
+   * with the raw figures, and an account with no limit is told it has
+   * "999,910 of 1,000,000 credits left".
+   *
+   * So this drives it the way it actually broke: paint it on load, then paint
+   * it again the way a finished call does.
+   */
+  {
+    const OWNER = Object.assign({}, PAID, { unlimited: true, is_admin: true,
+      credits_left: 999910, credits_allowance: 1000000, credits_banked: 0 });
+    const { page, errors } = await open(browser, {
+      account: OWNER, projects: [board('Night Haul', 9)]});
+
+    const seen = await page.evaluate(() => {
+      const el = document.getElementById('credits');
+      const onLoad = { text: el.textContent, hidden: el.hidden };
+      // exactly what BF.ai does when a call comes back
+      BF.onCredits({ left: 999908, allowance: 1000000, banked: 0 });
+      return { onLoad, after: el.textContent,
+               hiddenAfter: el.hidden,
+               chip: !!document.getElementById('avatarlow'),
+               out: document.getElementById('avatar').classList.contains('out') };
+    });
+
+    check('an owner sees the sign rather than a number on load',
+      seen.onLoad.text === '∞' && seen.onLoad.hidden === false,
+      JSON.stringify(seen.onLoad));
+    check('and still the sign after the writing help answers',
+      seen.after === '∞', seen.after);
+    check('no six figure count anywhere on that pill',
+      !/\d/.test(seen.after) && !/\d/.test(seen.onLoad.text),
+      seen.onLoad.text + ' then ' + seen.after);
+    check('no low credit chip on an account that cannot run low',
+      seen.chip === false);
+    check('and the pill is never in its out of credits state',
+      seen.out === false);
+
+    /* And none of that may touch an ordinary account, which still needs its
+       real figures. */
+    const { page: p2 } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)]});
+    const normal = await p2.evaluate(() => {
+      BF.onCredits({ left: 42, allowance: 150, banked: 0 });
+      return document.getElementById('credits').textContent;
+    });
+    check('an ordinary account still reads its real count',
+      /42 of 150/.test(normal), normal);
+    await p2.close();
+
+    check('no page errors painting the credit pill', errors.length === 0,
       errors.join('\n'));
     await page.close();
   }

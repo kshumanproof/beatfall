@@ -118,7 +118,7 @@
     <p><strong>They're saved privately.</strong> Database-level controls lock each account to
       its own rows, so no other user can reach your work. Our normal admin tools can count your
       cards but cannot read them.</p>
-    <p><strong>Nothing you write trains a model.</strong> Not ours, not Anthropic's, not anyone's.</p>
+    <p><strong>Nothing you write trains a model.</strong> Not ours, not OpenAI's, not anyone's.</p>
     <p><strong>No ads, no trackers, no data sales.</strong> Beatfall makes money one way:
       subscriptions.</p>
     <p><strong>Export your work any time.</strong> One button in Settings.</p>
@@ -180,19 +180,24 @@
     sends nothing anywhere.</p>
   <p>When you use a feature that needs the AI (reading in a notes file, a conversation about a
     beat, an idea set, help with a logline, or a closer look at where a note belongs) we send
-    <strong>Anthropic</strong> the text that feature needs: the note or file you're working on, the
+    <strong>OpenAI</strong> the text that feature needs: the note or file you're working on, the
     beats around it, and your project's logline and brief where they'd change the answer. We do not
     send your email address or any account identifier with it.</p>
-  <p>Anthropic, under its commercial terms:
+  <p>OpenAI, under its API terms:
     <strong>does not use this to train its models</strong>, and
-    <strong>deletes inputs and outputs within 30 days</strong>. Content its automated systems flag
-    as a usage-policy violation is kept longer, up to two years, which is why the acceptable-use
-    rules in the Terms exist.</p>
+    <strong>retains inputs and outputs for up to 30 days</strong> to run the service and to
+    identify abuse, after which they are removed from its systems unless it is legally required to
+    keep them. We also ask it not to store the exchange at all beyond that, which is why none of
+    your boards can be retrieved from it afterwards.</p>
+  <p>Until 7 October 2026 this work was done by <strong>Anthropic</strong> under equivalent terms.
+    Nothing of yours was trained on there either, and anything sent before that date was deleted
+    on the same 30 day basis.</p>
   <p><strong>The support chat is separate from all of that.</strong> The help bubble in the corner
     of the site is run by <strong>Chatling</strong>, and what you type into it goes to Chatling and
-    to <strong>OpenAI</strong>, whose model writes the answer. It is answering from a written
-    description of how Beatfall works. It has no access to your account, your projects, your notes
-    or your payments, and nothing from your boards is sent to it.</p>
+    to OpenAI. It is answering from a written description of how Beatfall works.
+    It has no access to your account, your projects, your notes or your payments,
+    and nothing from your boards is sent to it. Same company as the writing help
+    above, a different job, and the two never meet.</p>
   <p>Whatever you type into that chat is support correspondence rather than material, so please
     treat it that way: if you paste part of your script in to ask a question about it, that part
     goes to those two companies. You never have to use it. <a href="mailto:support@beatfall.app"
@@ -214,9 +219,9 @@
       <td>Requests in transit, plus ordinary server logs including IP addresses</td>
     </tr>
     <tr>
-      <td>Anthropic</td>
-      <td>The AI features</td>
-      <td>Only the text sent for a specific request. No training; deleted in 30 days</td>
+      <td>OpenAI</td>
+      <td>The AI features, and the support chat</td>
+      <td>Only the text sent for a specific request. No training; kept up to 30 days</td>
     </tr>
     <tr>
       <td>Stripe</td>

@@ -14,6 +14,18 @@
 import handler from './api/claude.real.js';
 import { COST, PROVIDER_PRICES, costMicrosFor, MODEL, OPENAI_MODEL }
   from './api/_lib/core.js';
+import { DEFAULT_PROVIDER } from './api/_lib/providers.js';
+
+/* WHICH ONE IS THE DEFAULT IS NOT TYPED HERE.
+ *
+ * Beatfall ran on Claude, then on OpenAI, and may yet run on something else.
+ * Nine checks in this file used to name Claude where what they actually meant
+ * was "whichever one Beatfall runs on", and all nine went red on the day of the
+ * switch for the one reason a test must never fail: the test was the thing out
+ * of date. They read the constant now. Where a check really is about a
+ * specific provider's wire format, it still names it. */
+const OTHER = DEFAULT_PROVIDER === 'openai' ? 'claude' : 'openai';
+const MODEL_OF = { claude: MODEL, openai: OPENAI_MODEL };
 import { makeDb } from './fakedb.js';
 
 const out = [];
@@ -87,12 +99,13 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
   testingOff();
   const db = makeDb(P());
   const r = await call(db, ASK);
-  check('a call with no provider asked for goes to Claude',
-    WIRE.length === 1 && WIRE[0].to === 'claude', JSON.stringify(WIRE.map(w => w.to)));
+  check('a call with no provider asked for goes to the one Beatfall runs on',
+    WIRE.length === 1 && WIRE[0].to === DEFAULT_PROVIDER,
+    JSON.stringify(WIRE.map(w => w.to)) + ' but the default is ' + DEFAULT_PROVIDER);
   check('and is answered normally', r.code === 200 && /ok/.test(r.body.text || ''),
     r.code + ' ' + JSON.stringify(r.body));
   check('the usage row names the board\'s model',
-    db.state.usage[0].model === MODEL, db.state.usage[0].model);
+    db.state.usage[0].model === MODEL_OF[DEFAULT_PROVIDER], db.state.usage[0].model);
 }
 
 /* THE FIRST LOCK. Production has no testing flag, so a browser asking for the
@@ -101,9 +114,10 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
 {
   testingOff();
   const db = makeDb(P({ is_admin: true }));
-  const r = await call(db, { ...ASK, provider: 'openai' });
-  check('without the testing flag, asking for OpenAI still gets Claude',
-    WIRE.length === 1 && WIRE[0].to === 'claude', JSON.stringify(WIRE.map(w => w.to)));
+  const r = await call(db, { ...ASK, provider: OTHER });
+  check('without the testing flag, asking for the other one still gets the default',
+    WIRE.length === 1 && WIRE[0].to === DEFAULT_PROVIDER,
+    JSON.stringify(WIRE.map(w => w.to)));
   check('and nothing in the answer admits the other one exists',
     r.body.provider === undefined && r.body.model === undefined,
     JSON.stringify(Object.keys(r.body)));
@@ -115,9 +129,9 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
 {
   testingOn();
   const db = makeDb(P({ is_admin: false }));
-  await call(db, { ...ASK, provider: 'openai' });
-  check('on the testing site, a writer who is not an admin still gets Claude',
-    WIRE[0].to === 'claude', WIRE[0].to);
+  await call(db, { ...ASK, provider: OTHER });
+  check('on the testing site, a writer who is not an admin still gets the default',
+    WIRE[0].to === DEFAULT_PROVIDER, WIRE[0].to);
 }
 
 /* Both locks open. */
@@ -140,8 +154,8 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
   testingOn();
   const db = makeDb(P({ is_admin: true }));
   await call(db, { ...ASK, provider: 'some-other-shop' });
-  check('a provider nobody has heard of falls back to Claude',
-    WIRE[0].to === 'claude', WIRE[0].to);
+  check('a provider nobody has heard of falls back to the default',
+    WIRE[0].to === DEFAULT_PROVIDER, WIRE[0].to);
 
   const db2 = makeDb(P({ is_admin: true }));
   await call(db2, { ...ASK, provider: 'openai',
@@ -163,7 +177,7 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
   ];
   testingOn();
   const a = makeDb(P({ is_admin: true }));
-  await call(a, { kind: 'conversation', input: turns });
+  await call(a, { kind: 'conversation', input: turns, provider: 'claude' });
   const toClaude = WIRE[0].body;
 
   const b = makeDb(P({ is_admin: true }));
@@ -235,13 +249,13 @@ const ASK = { kind: 'conversation', input: 'what goes in this beat' };
     JSON.stringify(cut.body.truncated));
 
   const db2 = makeDb(P({ is_admin: true }));
-  const cut2 = await call(db2, ASK, { claude: {
+  const cut2 = await call(db2, { ...ASK, provider: 'claude' }, { claude: {
     stop_reason: 'max_tokens',
     content: [{ type: 'text', text: '{"picks":[' }],
     usage: { input_tokens: 10, output_tokens: 1400 }
   }});
-  check('and so does Claude, which never used to', cut2.body.truncated === true,
-    JSON.stringify(cut2.body.truncated));
+  check('and so does the one it replaced, which never used to',
+    cut2.body.truncated === true, JSON.stringify(cut2.body.truncated));
 
   const db3 = makeDb(P({ is_admin: true }));
   const whole = await call(db3, ASK);

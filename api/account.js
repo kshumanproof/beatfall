@@ -7,6 +7,7 @@ import Stripe from 'stripe';
 import { requireUser, entitlement, send, readBody, PLANS, TOPUP_CREDITS, TOPUP_PRICE,
          PRICE_MONTH, PRICE_YEAR, track, admin, dropImages,
          IMAGE_BUCKET } from './_lib/core.js';
+import { DEFAULT_PROVIDER } from './_lib/providers.js';
 
 const BUCKET = IMAGE_BUCKET;
 
@@ -81,6 +82,12 @@ export default async function handler(req, res) {
          the address bar. Production has no flag, so this is false there and the
          switch does not exist. */
       testing: process.env.BEATFALL_TESTING === '1',
+      /* And WHICH reader production actually runs on, so the control on the
+         testing site opens showing the truth rather than a second copy of the
+         answer that can drift away from this one. The browser cannot import a
+         server constant; this is how it gets it. Sent only on a testing
+         deployment, so production's response is unchanged. */
+      provider: process.env.BEATFALL_TESTING === '1' ? DEFAULT_PROVIDER : undefined,
       unlimited: !!ent.unlimited,
       plan: ent.key,
       plan_name: ent.plan.name,

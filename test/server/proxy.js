@@ -7,6 +7,37 @@ const ALL = PLANS[PAID_PLAN].credits;   // not a typed 150, see money.js
 const TALK = COST.conversation, READ = COST.import;
 import { makeDb } from './fakedb.js';
 
+/* THIS SUITE IS ABOUT THE METERING, NOT ABOUT EITHER PROVIDER.
+ *
+ * It checks the things that happen around a call: the charge before the work,
+ * the refund after a failure, the session ceiling, the free-kind ceiling, and
+ * the trimming of a long thread. None of that cares who answers.
+ *
+ * But the stand-in upstream has to speak whatever the live provider speaks, or
+ * the endpoint reads an empty answer out of a reply shaped for somebody else.
+ * When the board moved from Anthropic to OpenAI these three stubs were the only
+ * thing in the whole suite that broke, which is a fair report on how well the
+ * adapter kept the two apart. They answer by URL now, so the next move costs
+ * this file nothing. */
+const ANSWER = (url, text) => /openai/.test(String(url))
+  ? { status: 'completed',
+      output: [{ type: 'message', role: 'assistant',
+                 content: [{ type: 'output_text', text }] }],
+      usage: { input_tokens: 100, output_tokens: 50 } }
+  : { stop_reason: 'end_turn', content: [{ type: 'text', text }],
+      usage: { input_tokens: 100, output_tokens: 50 } };
+
+/* Anthropic calls them messages and OpenAI calls them input. Same turns, same
+   order, same roles: the adapter is checked on that in provider.js. */
+const turnsOf = sent => sent.messages || sent.input || [];
+
+/* Both keys, because the endpoint refuses before it ever reaches the network
+   when the live provider's key is missing, and a suite that stubs fetch would
+   otherwise never find out why every call came back 502. Not real keys, and
+   nothing here goes near a network. */
+process.env.OPENAI_API_KEY = 'test-key-not-a-real-one';
+process.env.ANTHROPIC_API_KEY = 'test-key-not-a-real-one';
+
 const out = [];
 const check = (n, ok, d) => { out.push({n, ok}); console.log((ok?'  PASS  ':'  FAIL  ')+n+(ok||!d?'':'\n          '+d)); };
 
@@ -25,11 +56,11 @@ function res() {
 async function call(db, body, { upstream = 'ok', reply } = {}) {
   globalThis.__AUTH__ = { db, user:{id:'u1', email:'w@x.y'}, profile: db.state.profile };
   globalThis.__TRACKED__ = [];
-  globalThis.fetch = async () => {
+  globalThis.fetch = async (u) => {
     if (upstream === 'network') throw new Error('socket hang up');
     if (upstream === 'error') return { ok:false, status:500, text: async () => 'boom' };
-    return { ok:true, status:200, json: async () => reply || {
-      content:[{type:'text', text:'{"ok":true}'}], usage:{input_tokens:100, output_tokens:50} } };
+    return { ok:true, status:200,
+             json: async () => reply || ANSWER(u, '{"ok":true}') };
   };
   const r = res();
   await handler({ method:'POST', headers:{}, body }, r);
@@ -121,8 +152,8 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   const db = makeDb(paid());
   let sent = null;
   globalThis.__AUTH__ = { db, user:{id:'u1'}, profile: db.state.profile };
-  globalThis.fetch = async (u, o) => { sent = JSON.parse(o.body); return { ok:true, status:200,
-    json: async () => ({content:[{type:'text',text:'hi'}], usage:{input_tokens:1,output_tokens:1}}) }; };
+  globalThis.fetch = async (u, o) => { sent = JSON.parse(o.body);
+    return { ok:true, status:200, json: async () => ANSWER(u, 'hi') }; };
   const big = 'w'.repeat(30000);
   const r = res();
   await handler({ method:'POST', headers:{}, body:{kind:'conversation', input:[
@@ -131,9 +162,10 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   ]}}, r);
   check('a long thread is still accepted', r.code === 200, String(r.code));
   check('and never opens on the assistant',
-    sent && sent.messages[0].role === 'user',
-    sent ? sent.messages.map(m=>m.role).join(',') : 'nothing sent');
-  check('and ends on the user', sent && sent.messages[sent.messages.length-1].role === 'user');
+    sent && turnsOf(sent)[0].role === 'user',
+    sent ? turnsOf(sent).map(m=>m.role).join(',') : 'nothing sent');
+  check('and ends on the user',
+    sent && turnsOf(sent)[turnsOf(sent).length-1].role === 'user');
 }
 
 // ---------- an empty turn must not eat the history
@@ -141,16 +173,16 @@ async function call(db, body, { upstream = 'ok', reply } = {}) {
   const db = makeDb(paid());
   let sent = null;
   globalThis.__AUTH__ = { db, user:{id:'u1'}, profile: db.state.profile };
-  globalThis.fetch = async (u, o) => { sent = JSON.parse(o.body); return { ok:true, status:200,
-    json: async () => ({content:[{type:'text',text:'hi'}], usage:{input_tokens:1,output_tokens:1}}) }; };
+  globalThis.fetch = async (u, o) => { sent = JSON.parse(o.body);
+    return { ok:true, status:200, json: async () => ANSWER(u, 'hi') }; };
   const r = res();
   await handler({ method:'POST', headers:{}, body:{kind:'conversation', input:[
     {role:'user', content:'the first thing'}, {role:'assistant', content:''},
     {role:'user', content:'the last thing'}
   ]}}, r);
   check('an empty turn does not discard what came before it',
-    sent && sent.messages.some(m => /the first thing/.test(m.content)),
-    sent ? JSON.stringify(sent.messages.map(m=>m.content.slice(0,20))) : 'nothing');
+    sent && turnsOf(sent).some(m => /the first thing/.test(m.content)),
+    sent ? JSON.stringify(turnsOf(sent).map(m=>m.content.slice(0,20))) : 'nothing');
 }
 
 /* FREE IS NOT THE SAME AS UNMETERED.

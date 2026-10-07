@@ -13921,7 +13921,12 @@ function showLoadFailure(){
 const PROVIDERS = {claude: "Claude", openai: "OpenAI"};
 const PROVIDER_KEY = "beatfall.provider";
 let PROVIDER_ON = false;                 // the testing deployment, or nothing
-let aiProvider = "claude";
+/* Overwritten from /api/account the moment the account answers, because the
+   server is the only thing that knows which reader production runs on and a
+   second copy of that answer here would drift the first time it changed. Until
+   then it is null rather than a guess: nothing sends a provider before
+   setupProvider has run. */
+let aiProvider = null;
 const providerPins = new Map();
 
 function pinProvider(opts){
@@ -13947,6 +13952,11 @@ function paintProvider(){
 function setupProvider(me){
   PROVIDER_ON = !!(me && me.testing && me.is_admin);
   if (!PROVIDER_ON) return;
+  /* What production runs on, from the server, as the starting point. Then
+     whatever this browser last chose, because a comparison runs over an
+     afternoon and losing the choice on every reload would mean half the runs
+     were secretly the wrong reader. */
+  aiProvider = (me && PROVIDERS[me.provider]) ? me.provider : "openai";
   try {
     const was = localStorage.getItem(PROVIDER_KEY);
     if (was && PROVIDERS[was]) aiProvider = was;
@@ -14044,7 +14054,11 @@ function setupProvider(me){
           + (when ? ", and your next payment is " + when : "") + ".", "good");
     }
     trialRamp(me);
-    if (!me.unlimited && typeof BF.onCredits === "function")
+    /* No `!me.unlimited` guard any more. It used to live here, which left an
+       owner's pill blank until the first call to the writing help repainted it
+       with six figures. onCredits answers for the unlimited case itself now,
+       so this fires for everybody and the sign is there from the first paint. */
+    if (typeof BF.onCredits === "function")
       BF.onCredits({left: me.credits_left, allowance: me.credits_allowance,
                     banked: me.credits_banked || 0});
   } catch (e) { /* not fatal, the board works without it */ }
@@ -14450,6 +14464,39 @@ const lastMark = a => Math.min(LAST_NOTICE, Math.max(1, Math.round(a * 0.07)));
 
 BF.onCredits = function (c) {
   if (!c || !c.allowance) return;
+
+  /* AN OWNER'S ALLOWANCE IS A STAND-IN FOR INFINITY, NOT A FIGURE TO READ.
+   *
+   * It is 1,000,000 because the arithmetic needs a number, and anywhere it can
+   * reach a screen it prints as the sign instead. Settings has always done
+   * this. This one did not, and the way it escaped is worth writing down: the
+   * load-time call was wrapped in `if (!me.unlimited)`, so the pill was simply
+   * blank on an owner's account and the bug was invisible. Then the writing
+   * help answers, and BF.ai calls straight back in here with the raw figures,
+   * which is how "999,910 of 1,000,000 credits left" turns up on an account
+   * that has no limit.
+   *
+   * Guarding at the call site was what failed, because there is more than one
+   * call site and the second one was added later. The guard belongs HERE, in
+   * the one function that paints, so every caller is covered including the next
+   * one somebody writes. */
+  if (ME && ME.unlimited){
+    const own = document.getElementById("credits");
+    if (own){
+      own.textContent = "∞";
+      own.className = "creditcount cr";
+      own.setAttribute("data-tip", "No limit on the writing help.");
+      own.hidden = false;
+    }
+    /* And none of what follows: no gold low-count chip, no out-of-credits
+       state on the pill, and never the strip that says to buy a pack. */
+    const chip = document.getElementById("avatarlow");
+    if (chip) chip.remove();
+    const owner = document.getElementById("avatar");
+    if (owner) owner.classList.remove("out");
+    return;
+  }
+
   const left = c.left;
   const low = lowMark(c.allowance), last = lastMark(c.allowance);
 

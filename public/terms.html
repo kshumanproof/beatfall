@@ -6,8 +6,13 @@
   Written to be accurate about how Beatfall actually works today. Every
   factual claim in here is checked against the code: the admin dashboard
   cannot select card text (api/admin.js), row-level security scopes every
-  read to one account (supabase/schema.sql), and Anthropic's retention and
-  training terms are as stated at privacy.claude.com.
+  read to one account (supabase/schema.sql), and OpenAI's retention and
+  training terms are as stated in its own API data controls documentation
+  (developers.openai.com/api/docs/guides/your-data and
+  openai.com/enterprise-privacy). The board moved from Anthropic to OpenAI on
+  7 October 2026; if it ever moves back, these two sentences and the matching
+  paragraphs in the Privacy Policy move with it, because a published promise
+  that names the wrong company is worse than one that names none.
 
   Before this goes live, a Georgia attorney should look at:
     - section 5 (independent development), the clause that matters
@@ -152,9 +157,9 @@
     <li>use it to develop any creative work; or</li>
     <li>keep using it after you delete it.</li>
   </ul>
-  <p>Our AI provider is Anthropic. Anthropic does not train its models on what we send it and
-    deletes it within 30 days. The <a href="/privacy.html">Privacy Policy</a> sets out exactly
-    what leaves the app, and when.</p>
+  <p>Our AI provider is OpenAI. OpenAI does not train its models on what we send it and removes
+    inputs and outputs within 30 days, except where it is legally required to keep them. The
+    <a href="/privacy.html">Privacy Policy</a> sets out exactly what leaves the app, and when.</p>
 
   <h2 id="s4">4</h2>
   <h3>Who can see Your Material</h3>
