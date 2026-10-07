@@ -164,12 +164,42 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('finishing it closes the walkthrough', done.walk === true);
     check('and hands over the three ways in', done.welcome === true);
 
+    /* THE GREETING HAS A VISIBLE WAY OUT. Escape and a click outside both
+       closed it from the day it was built and neither of them said so. */
+    const shut = await page.evaluate(() => {
+      const x = document.getElementById('frclose');
+      if (x) x.click();
+      return {there: !!x, closed: document.getElementById('firstrun').hidden};
+    });
+    check('the greeting can be closed by pressing something',
+      shut.there === true, 'no close control on the only sheet that opens by itself');
+    check('and pressing it closes it', shut.closed === true);
+
     check('it states the trial allowance',
       done.creditsShown && /25 credits/.test(done.credits), done.credits);
     check('the paid choice names its price',
       new RegExp('\\b' + done.want + ' credits?\\b').test(done.pasteCost),
       JSON.stringify(done.pasteCost) + ' should name ' + done.want);
     check('no page errors on a new account', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
+  /* THE TOUR OPENS ONCE. `bare` stays true until a real project exists, and an
+     Untitled board with nothing on it counts as bare, so this used to reopen on
+     every refresh until the writer had both named something and put a card in
+     it. Kris found it by refreshing. */
+  {
+    const seen = Object.assign({}, TRIAL, {onboarding_seen: true});
+    const { page, errors } = await open(browser, {account: seen, projects: []});
+    const st = await page.evaluate(() => ({
+      walk: !document.getElementById('walk').hidden,
+      welcome: !document.getElementById('firstrun').hidden
+    }));
+    check('an account that has already been walked through is not walked again',
+      st.walk === false, 'the tutorial came back after it was skipped');
+    check('but the empty shelf still offers the three ways in',
+      st.welcome === true, JSON.stringify(st));
+    check('no page errors on a second visit', errors.length === 0, errors.join('\n'));
     await page.close();
   }
 

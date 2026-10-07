@@ -1482,6 +1482,19 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   .wt-fig{display:none}
 }
 
+/* The sheet has to be the positioning context for its own close control,
+   and the title needs room so a long one does not run under it. */
+.frsheet{position:relative}
+.frsheet .sheet-title{padding-right:30px}
+.frx{
+  position:absolute;top:14px;right:14px;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  border:0;background:none;border-radius:var(--r-ctl);color:var(--ink-4);
+  cursor:pointer;transition:color .12s ease,background .12s ease;
+}
+.frx:hover{color:var(--ink);background:var(--card)}
+.frx:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+
 .firstrun-choices{display:grid;gap:11px}
 .fr{
   text-align:left;background:var(--card);border:1px solid var(--rule);
@@ -3294,7 +3307,14 @@ footer{
 <div id="tip" role="tooltip" hidden></div>
 
 <div class="scrim" id="firstrun" hidden>
-  <div class="sheet">
+  <div class="sheet frsheet">
+    <!-- Escape and a click outside both closed this from the day it was built,
+         and neither of them says so. Every other sheet in the app has a visible
+         way out; this one was relying on somebody guessing. -->
+    <button class="frx" type="button" id="frclose" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+        stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+    </button>
     <div class="sheet-title" id="frtitle">Welcome to Beatfall</div>
     <p class="sheet-note" id="frnote">Write or paste your notes. Beatfall sorts them into story
       beats, places them in the structure you're writing to, and shows you what's missing. If it
@@ -13739,7 +13759,7 @@ function showLoadFailure(){
 
   // Who am I? Shows the credit count straight away rather than only after the
   // first AI call, and reveals the admin link for the one account that has it.
-  let seenBefore = false;
+  let seenBefore = false, tourSeen = false;
   try {
     const me = await BF.api("/api/account");
     if (me.is_admin){
@@ -13747,6 +13767,7 @@ function showLoadFailure(){
       document.getElementById("ownernav").hidden = false;
     }
     seenBefore = !!me.has_history;
+    tourSeen   = !!me.onboarding_seen;
     paintWho(me);
 
     /* Back from the billing portal, where they may have cancelled, resubscribed,
@@ -13787,8 +13808,19 @@ function showLoadFailure(){
 
   if (bare && !PENDING.length){
     /* A new account is walked through first and then handed the three ways
-       in. An empty one that has history is only told the shelf is empty. */
+       in. An empty one that has history is only told the shelf is empty.
+
+       THE TOUR OPENS ONCE, AND ONLY ONCE. `bare` stays true until there is a
+       real project on the shelf, and an Untitled board with nothing on it
+       counts as bare, so this used to reopen the walkthrough on every refresh
+       until the writer had both named something and put a card in it. Skipping
+       a tutorial and having it come back is the app not listening.
+
+       The greeting underneath does still open every time, deliberately: on an
+       empty shelf the three ways in are the only useful thing on the screen,
+       and that has been true since the sheet was built. */
     if (seenBefore) return showFirstRun("empty");
+    if (tourSeen)   return showFirstRun("welcome");
     return showWalkthrough(() => showFirstRun("welcome"));
   }
 
@@ -13878,6 +13910,7 @@ function showFirstRun(which){
     if (go === "new")    openIntake("edit");
     if (go === "sample"){ document.getElementById("loadsample").click(); }
   }));
+  document.getElementById("frclose").addEventListener("click", () => { fr.hidden = true; });
   fr.addEventListener("click", e => { if (e.target === fr) fr.hidden = true; });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && !fr.hidden) fr.hidden = true;

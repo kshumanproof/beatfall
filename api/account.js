@@ -99,6 +99,12 @@ export default async function handler(req, res) {
         .map(r => ({ kind: r.kind, credits: r.credits, at: r.created_at })),
       projects: projectCount || 0,
       has_history: (everUsed || 0) > 0,
+      /* Whether this account has ever been through the walkthrough. It was
+         being written and never read, so the tutorial reopened on every
+         refresh of an empty account: skipping it and having it come straight
+         back is the app not listening. Reading it here also means a second
+         computer does not start the tour again. */
+      onboarding_seen: !!profile.onboarding_first_seen_at,
       topup_credits: TOPUP_CREDITS,
       topup_price: TOPUP_PRICE,
       // Both prices, so a page showing them does not carry its own copy of the
