@@ -13806,21 +13806,24 @@ function showLoadFailure(){
      the dashboard said "Nothing on the shelf" over the top of them. */
   await loadCaptures();
 
-  if (bare && !PENDING.length){
-    /* A new account is walked through first and then handed the three ways
-       in. An empty one that has history is only told the shelf is empty.
-
-       THE TOUR OPENS ONCE, AND ONLY ONCE. `bare` stays true until there is a
-       real project on the shelf, and an Untitled board with nothing on it
-       counts as bare, so this used to reopen the walkthrough on every refresh
-       until the writer had both named something and put a card in it. Skipping
-       a tutorial and having it come back is the app not listening.
-
-       The greeting underneath does still open every time, deliberately: on an
-       empty shelf the three ways in are the only useful thing on the screen,
-       and that has been true since the sheet was built. */
+  /* ONCE EVER, ON A BRAND NEW ACCOUNT, AND NEVER AGAIN.
+   *
+   * This used to open whenever the shelf was empty, which was a deliberate
+   * decision in September and the wrong one. `bare` is still true with an
+   * Untitled board on the shelf, so a writer who skipped the tour and made a
+   * project got the whole greeting again on every refresh and every sign-in.
+   * Being shown the same introduction after you have said no to it is the app
+   * not listening, and it is worse than useless to somebody mid-sitting.
+   *
+   * Kris called it: the first time ever, from a new account, and after that
+   * never. "How Beatfall works" in the account menu is the way back to it,
+   * and an empty shelf still has the dashed New project card on it, which is
+   * the only thing a returning writer actually needs.
+   *
+   * The flag is on the profile rather than in this browser, so a second
+   * computer does not start over. It is set the moment the greeting opens. */
+  if (bare && !PENDING.length && !tourSeen){
     if (seenBefore) return showFirstRun("empty");
-    if (tourSeen)   return showFirstRun("welcome");
     return showWalkthrough(() => showFirstRun("welcome"));
   }
 

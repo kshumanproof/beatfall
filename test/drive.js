@@ -190,15 +190,26 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
      it. Kris found it by refreshing. */
   {
     const seen = Object.assign({}, TRIAL, {onboarding_seen: true});
-    const { page, errors } = await open(browser, {account: seen, projects: []});
+    /* An Untitled board with nothing on it, which is the exact shelf Kris was
+       refreshing when he found this. It still counts as empty everywhere else
+       in the app, deliberately, so the fix cannot lean on the project count. */
+    const { page, errors } = await open(browser,
+      {account: seen, projects: [{id: 'p-untitled', name: 'Untitled', structure: 'stc',
+        brief: {}, outline: {}, characters: [], cards: [], is_sample: false,
+        created_from: 'new_project', updated_at: '2026-10-01T00:00:00Z'}]});
     const st = await page.evaluate(() => ({
       walk: !document.getElementById('walk').hidden,
       welcome: !document.getElementById('firstrun').hidden
     }));
     check('an account that has already been walked through is not walked again',
       st.walk === false, 'the tutorial came back after it was skipped');
-    check('but the empty shelf still offers the three ways in',
-      st.welcome === true, JSON.stringify(st));
+    /* AND NEITHER IS THE GREETING. It used to open on any empty shelf, which
+       meant a writer who skipped the tour and started an Untitled board got
+       the whole introduction again on every refresh and every sign-in. Once
+       ever, from a new account, and after that the dashed New project card is
+       the only thing a returning writer needs. */
+    check('and the greeting does not come back either',
+      st.welcome === false, 'the introduction reopened on a second visit');
     check('no page errors on a second visit', errors.length === 0, errors.join('\n'));
     await page.close();
   }
