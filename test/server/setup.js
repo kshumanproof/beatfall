@@ -3,6 +3,13 @@
 import fs from 'fs';
 fs.mkdirSync('api/_lib', { recursive: true });
 fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
+/* The provider adapter is copied with NOTHING swapped, deliberately. The only
+   boundary in it is fetch, and every suite that drives this endpoint already
+   replaces globalThis.fetch, so what runs here is the real transport: the real
+   request body, the real reading of the reply, the real cost arithmetic. A
+   stand-in for this file would be a second implementation of the one thing the
+   comparison is supposed to be measuring. */
+fs.copyFileSync('../../api/_lib/providers.js', 'api/_lib/providers.js');
 /* core.js is copied whole, so anything in it that reaches a real boundary has
    to be swapped here too. dropImages lives there now because it is called from
    BOTH the nightly sweep and the delete button, and the bucket it is handed

@@ -70,6 +70,17 @@ export default async function handler(req, res) {
       email: user.email,
       display_name: profile.display_name,
       is_admin: !!profile.is_admin,
+      /* IS THIS THE TESTING DEPLOYMENT. The browser cannot read an environment
+         variable, so the one thing that decides whether the provider switch is
+         drawn at all has to be answered here.
+
+         It reports the FLAG and never whether a key is present. "Do we have an
+         OpenAI key" is a question about our infrastructure and no browser has
+         any business learning the answer; "is this the test site" is a fact
+         about which deployment you are standing on and is already obvious from
+         the address bar. Production has no flag, so this is false there and the
+         switch does not exist. */
+      testing: process.env.BEATFALL_TESTING === '1',
       unlimited: !!ent.unlimited,
       plan: ent.key,
       plan_name: ent.plan.name,

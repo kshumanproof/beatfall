@@ -157,8 +157,43 @@ export const HELP_MODEL     = 'claude-sonnet-5';
 export const HELP_PRICE_IN  = 2;
 export const HELP_PRICE_OUT = 10;
 
-export const costMicros = (tin, tout) =>
-  Math.round((tin / 1e6) * PRICE_IN * 1e6 + (tout / 1e6) * PRICE_OUT * 1e6);
+/* THE OTHER PROVIDER, FOR A COMPARISON AND NOTHING ELSE.
+ *
+ * Beatfall runs on Claude. These exist so the same board, the same prompts and
+ * the same placement rules can be put in front of a second reader and the
+ * difference measured, which is a question about reading judgement rather than
+ * about plumbing. Nothing reaches it unless a testing deployment says so AND an
+ * admin asks for it; see providerFor in providers.js.
+ *
+ * STANDARD TIER, and that is not a detail. OpenAI's batch and flex tiers are
+ * half the price and neither is usable here: batch returns within 24 hours and
+ * flex queues, while a writer is sitting in front of the wait wall watching
+ * "reading notes 41 to 80 of 83". An import is between nine and a hundred and
+ * fifty calls in a row. So the rate below is the one we would actually pay,
+ * which at the time of writing is twice what the board's model costs. */
+export const OPENAI_MODEL     = 'gpt-6.1-sol';
+export const OPENAI_PRICE_IN  = 2;
+export const OPENAI_PRICE_OUT = 10;
+
+/* EVERY PROVIDER'S OWN LIST PRICE, because a token is not a token.
+ *
+ * Pricing one reader's tokens with the other's constants would make the cost
+ * column of the comparison fiction, and the cost column is half the reason for
+ * running it. There is one table and it is keyed by provider, so adding a third
+ * is a row here rather than an arithmetic decision somewhere downstream. */
+export const PROVIDER_PRICES = {
+  claude: { model: MODEL,        in: PRICE_IN,        out: PRICE_OUT },
+  openai: { model: OPENAI_MODEL, in: OPENAI_PRICE_IN, out: OPENAI_PRICE_OUT }
+};
+
+export const costMicrosFor = (provider, tin, tout) => {
+  const p = PROVIDER_PRICES[provider] || PROVIDER_PRICES.claude;
+  return Math.round((tin / 1e6) * p.in * 1e6 + (tout / 1e6) * p.out * 1e6);
+};
+
+/* Kept, and defined in terms of the table above so the two cannot drift. Every
+   caller that has no provider to hand is asking about the board's own model. */
+export const costMicros = (tin, tout) => costMicrosFor('claude', tin, tout);
 
 // -------------------------------------------------------------------- auth --
 // Every protected web route calls this. It verifies both the Supabase session

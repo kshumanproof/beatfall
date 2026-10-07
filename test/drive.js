@@ -1868,6 +1868,105 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* WHICH READER ANSWERS, PINNED FOR A WHOLE PIECE OF WORK.
+   *
+   * Testing scaffolding, and on the live site none of it exists: production
+   * carries no testing flag, the control is not drawn, and pinProvider hands
+   * its options back untouched.
+   *
+   * The pin is the part worth checking. An import is between nine and
+   * twenty-nine calls - one to read the file, one per batch of forty notes,
+   * then the casting call three times over so two readings out of three can
+   * agree on a beat. If the menu were read per call, a flip halfway through
+   * would produce a board half of each reader built, and comparing that
+   * compares nothing. Every multi-turn feature already mints one session id to
+   * bill once, which is exactly the unit of work the pin needs.
+   */
+  {
+    const { page, errors } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)]});
+
+    const hidden = await page.evaluate(() => ({
+      btn: document.getElementById('providerbtn').hidden,
+      sep: document.getElementById('providersep').hidden,
+      sent: pinProvider({ kind: 'conversation', session: 's1' })
+    }));
+    check('an ordinary account is shown no reader control at all',
+      hidden.btn === true && hidden.sep === true, JSON.stringify(hidden));
+    check('and nothing it sends mentions a provider',
+      hidden.sent.provider === undefined, JSON.stringify(hidden.sent));
+
+    /* The flag alone is not enough and neither is being an admin. The testing
+       site points at the real database, so a writer who found their way onto
+       it is a real person with real boards. */
+    const locks = await page.evaluate(() => {
+      const out = {};
+      setupProvider({ testing: false, is_admin: true });
+      out.adminOnly = document.getElementById('providerbtn').hidden;
+      setupProvider({ testing: true, is_admin: false });
+      out.flagOnly = document.getElementById('providerbtn').hidden;
+      return out;
+    });
+    check('the testing flag without an admin draws nothing',
+      locks.flagOnly === true, String(locks.flagOnly));
+    check('and an admin without the testing flag draws nothing either',
+      locks.adminOnly === true, String(locks.adminOnly));
+
+    const on = await page.evaluate(() => {
+      try { localStorage.removeItem('beatfall.provider'); } catch (e) {}
+      setupProvider({ testing: true, is_admin: true });
+      return { shown: !document.getElementById('providerbtn').hidden,
+               says: document.getElementById('providerlabel').textContent,
+               sent: pinProvider({ kind: 'ideas' }).provider };
+    });
+    check('both together draw the control', on.shown === true);
+    check('and it starts on Claude, which is what Beatfall runs on',
+      on.says === 'Claude' && on.sent === 'claude', JSON.stringify(on));
+
+    /* THE PIN. One import, one reader, whatever the menu does meanwhile. */
+    const pinned = await page.evaluate(() => {
+      const sid = 'import-session-1';
+      const first = pinProvider({ kind: 'import', session: sid }).provider;
+      document.getElementById('providerbtn').click();      // flip, mid-read
+      const label = document.getElementById('providerlabel').textContent;
+      const rest = [];
+      // the five batches and then the casting call three times over
+      for (let i = 0; i < 8; i++)
+        rest.push(pinProvider({ kind: 'import', session: sid }).provider);
+      // and the next piece of work, which is where the flip belongs
+      const next = pinProvider({ kind: 'import', session: 'import-session-2' }).provider;
+      const loose = pinProvider({ kind: 'place' }).provider;
+      return { first, label, rest, next, loose };
+    });
+    check('flipping it mid-import does not change who is reading that file',
+      pinned.rest.every(p => p === pinned.first),
+      pinned.first + ' then ' + pinned.rest.join(','));
+    check('all three readings of the casting call agree on a reader',
+      new Set(pinned.rest.slice(-3)).size === 1, pinned.rest.slice(-3).join(','));
+    check('but the menu says the new one straight away',
+      pinned.label === 'OpenAI', pinned.label);
+    check('and the next read is the one that uses it',
+      pinned.next === 'openai', pinned.next);
+    check('as does a one-off call, which has no session to belong to',
+      pinned.loose === 'openai', pinned.loose);
+
+    /* The choice survives a refresh, because a comparison is run over an
+       afternoon and losing it on every reload would mean half the runs were
+       secretly the wrong reader. */
+    const kept = await page.evaluate(() => {
+      const was = localStorage.getItem('beatfall.provider');
+      aiProvider = 'claude';                       // as a fresh page would start
+      setupProvider({ testing: true, is_admin: true });
+      return { stored: was, after: aiProvider };
+    });
+    check('the choice is remembered across a reload',
+      kept.stored === 'openai' && kept.after === 'openai', JSON.stringify(kept));
+
+    check('no page errors around the reader control', errors.length === 0,
+      errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

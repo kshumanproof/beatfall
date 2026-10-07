@@ -617,6 +617,12 @@
         session: opts.session || null,
         maxTokens: opts.maxTokens
       };
+      /* TESTING ONLY, AND THE SERVER DECIDES. This is a word, not a model name
+         and not a URL, and the server ignores it unless the deployment is a
+         testing one and the account is an admin. Sent only when something
+         actually asked for it, so an ordinary call is byte for byte the request
+         it has always been. */
+      if (opts.provider) body.provider = opts.provider;
       const res = await BF.api('/api/claude', {
         method: 'POST', body: JSON.stringify(body), signal: opts.signal
       });
@@ -624,7 +630,14 @@
                      banked: res.banked || 0 };
       if (typeof BF.onCredits === 'function') BF.onCredits(BF.credits);
       if (typeof opts.onText === 'function') opts.onText({ text: res.text, delta: res.text });
-      return { text: res.text, truncated: false };
+      /* `truncated` was hardcoded false from the day this was written, so a
+         reply cut off mid-sentence looked exactly like a complete one and the
+         board quietly fell back to guessing. The server answers it honestly on
+         a testing deployment; everywhere else it is still absent and still
+         reads false, which is the behaviour every caller already has. */
+      return { text: res.text, truncated: !!res.truncated,
+               provider: res.provider, model: res.model,
+               reasoning: res.reasoning, tokens: res.tokens, micros: res.micros };
     }
     ask.json = async function (input, opts = {}) {
       const { text } = await ask(input, opts);

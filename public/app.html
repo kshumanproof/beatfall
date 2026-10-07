@@ -2732,6 +2732,24 @@ footer{
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.6 12.6V7.4M6.2 12.6V4.2M9.8 12.6V9M13.4 12.6V5.8"/></svg>
               Admin <span class="tag">owner</span></a>
 
+            <!-- TESTING ONLY, AND IT DOES NOT EXIST ANYWHERE ELSE.
+                 Drawn only when /api/account says this deployment carries the
+                 testing flag AND the account is an admin, which on the live
+                 site is never: production has no flag, so these two stay
+                 hidden and the writing help has one reader.
+
+                 It names the two companies, which nothing else in this
+                 interface is allowed to do. That rule is about a writer being
+                 shown the machinery; this is an instrument for comparing two
+                 of them and would be useless if it said "reader A". The tag
+                 beside it is what keeps the two readings apart. -->
+            <div class="popsep" id="providersep" hidden></div>
+            <button class="popitem" id="providerbtn" hidden
+              data-tip="Testing only. Which reader answers the writing help. A conversation or an import already running keeps the one it started with.">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M2.4 5.2h11.2M2.4 10.8h11.2"/><circle cx="5.6" cy="5.2" r="1.7" fill="var(--paper)"/><circle cx="10.4" cy="10.8" r="1.7" fill="var(--paper)"/></svg>
+              Reader <span class="tag">testing</span>
+              <span class="aside" id="providerlabel">Claude</span></button>
+
             <button class="popitem" id="signout">
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M6.2 13.4H3.4V2.6h2.8M9.6 11l2.9-3-2.9-3M12.5 8H6.6"/></svg>
               Sign out</button>
@@ -13836,14 +13854,83 @@ function showLoadFailure(){
   });
 }
 
+/* ==========================================================================
+   WHICH READER ANSWERS, AND WHY IT IS DECIDED ONCE PER PIECE OF WORK.
+
+   Testing scaffolding. On the live site PROVIDER_ON is false, nothing below
+   draws anything, and pinProvider hands opts back untouched.
+
+   THE PIN IS THE WHOLE POINT. An import is nine to twenty-nine calls: one to
+   read the file, one per batch of forty notes, and then the casting call three
+   times over so two readings out of three can agree on a beat. A conversation
+   is up to six turns. If the switch were read per call, flipping it halfway
+   would produce a board that half of each provider built, and a comparison of
+   that is a comparison of nothing.
+
+   Every multi-turn feature already mints one session id and sends it with
+   every call so it bills once. That id is exactly the unit of work the pin
+   needs, so the provider is captured the first time an id is seen and reused
+   for the rest of it, however long it runs and whatever the menu says
+   meanwhile. A one-shot call with no id takes whatever is selected now.
+   ========================================================================== */
+const PROVIDERS = {claude: "Claude", openai: "OpenAI"};
+const PROVIDER_KEY = "beatfall.provider";
+let PROVIDER_ON = false;                 // the testing deployment, or nothing
+let aiProvider = "claude";
+const providerPins = new Map();
+
+function pinProvider(opts){
+  if (!PROVIDER_ON) return opts;
+  const o = Object.assign({}, opts || {});
+  const sid = o.session;
+  if (sid){
+    if (!providerPins.has(sid)) providerPins.set(sid, aiProvider);
+    o.provider = providerPins.get(sid);
+  } else {
+    o.provider = aiProvider;
+  }
+  return o;
+}
+
+function paintProvider(){
+  const label = document.getElementById("providerlabel");
+  if (label) label.textContent = PROVIDERS[aiProvider] || aiProvider;
+}
+
+/* Two providers, so the control is a toggle rather than a menu. If a third is
+   ever added this cycles instead, which is why it is written as a list. */
+function setupProvider(me){
+  PROVIDER_ON = !!(me && me.testing && me.is_admin);
+  if (!PROVIDER_ON) return;
+  try {
+    const was = localStorage.getItem(PROVIDER_KEY);
+    if (was && PROVIDERS[was]) aiProvider = was;
+  } catch (e) {}
+  const btn = document.getElementById("providerbtn");
+  const sep = document.getElementById("providersep");
+  if (sep) sep.hidden = false;
+  if (!btn) return;
+  btn.hidden = false;
+  btn.addEventListener("click", () => {
+    const keys = Object.keys(PROVIDERS);
+    aiProvider = keys[(keys.indexOf(aiProvider) + 1) % keys.length];
+    try { localStorage.setItem(PROVIDER_KEY, aiProvider); } catch (e) {}
+    /* The label is the receipt, which is what Mode does two rows above and is
+       the only feedback this app gives a toggle. The menu stays open, so the
+       word changes under the cursor that just pressed it. */
+    paintProvider();
+  });
+  paintProvider();
+}
+
 (async function start(){
   if (!await BF.requireSession()) return;
 
   // the proxy, wearing the same shape the board already expects
   ai_sample = async function (input, opts) {
-    return BF.ai(input, opts);
+    return BF.ai(input, pinProvider(opts));
   };
-  ai_sample.json = (input, opts) => BF.ai.json(input, opts);
+  ai_sample.json = (input, opts) => BF.ai.json(input, pinProvider(opts));
   ai_sample.limits = async () => ({images: false});
 
   let hadProjects = 0;
@@ -13888,6 +13975,10 @@ function showLoadFailure(){
       document.getElementById("adminlink").hidden = false;
       document.getElementById("ownernav").hidden = false;
     }
+    /* Both conditions are checked inside, and on the live site the first one
+       is false: production carries no testing flag, so this draws nothing and
+       pinProvider stays a passthrough. */
+    setupProvider(me);
     seenBefore = !!me.has_history;
     tourSeen   = !!me.onboarding_seen;
     paintWho(me);

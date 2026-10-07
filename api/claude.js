@@ -5,7 +5,13 @@
 // Every call: verify the person, check their remaining credits, call Claude,
 // then record exactly what it cost against their account.
 // ============================================================================
-import { requireUser, entitlement, charge, refund, send, readBody, COST, MODEL, PRICE_IN, PRICE_OUT, costMicros, TOPUP_CREDITS, TOPUP_PRICE, FREE_PER_HOUR, track } from './_lib/core.js';
+/* MODEL, PRICE_IN, PRICE_OUT and costMicros used to be imported here and are
+   not any more. They were how this file priced a call, and pricing now belongs
+   to whichever provider answered: the model and the cost come back ON the
+   answer. Leaving them imported would leave the next person a way to price an
+   OpenAI call with Claude's numbers without noticing. */
+import { requireUser, entitlement, charge, refund, send, readBody, COST, TOPUP_CREDITS, TOPUP_PRICE, FREE_PER_HOUR, track } from './_lib/core.js';
+import { callProvider, providerFor, testingEnabled } from './_lib/providers.js';
 
 /* The kinds that cost nothing, read off COST rather than listed again here,
    so making something free cannot quietly make it unmetered as well. */
@@ -216,53 +222,57 @@ export default async function handler(req, res) {
     }
   };
 
-  let reply;
+  /* WHICH READER ANSWERS. Claude unless a testing deployment and an admin both
+     say otherwise, and the decision is made here rather than inside the
+     transport so that everything above this line - the plan, the balance, the
+     session ceiling, the charge - has already happened identically whoever
+     ends up answering. That is the whole point of the comparison: the only
+     thing that differs between two runs is who read the notes. */
+  const provider = providerFor(body, profile);
+
+  let out;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: (cap => Math.min(cap, body.maxTokens || cap))(OUTPUT_CAP[kind] || MAX_OUTPUT_TOKENS),
-        messages
-      })
+    out = await callProvider(provider, {
+      messages,
+      maxTokens: (cap => Math.min(cap, body.maxTokens || cap))(
+        OUTPUT_CAP[kind] || MAX_OUTPUT_TOKENS)
     });
-    if (!r.ok) {
-      const detail = await r.text();
-      console.error('anthropic error', r.status, detail.slice(0, 400));
-      track(db, user.id, 'ai_request_failed', { operation: body.kind, status: r.status,
+    if (!out.ok) {
+      console.error('upstream error', provider, out.status, String(out.detail).slice(0, 400));
+      track(db, user.id, 'ai_request_failed', { operation: body.kind, status: out.status,
                                                 error_code: 'upstream' });
       await giveBack();
       return send(res, 502, {
         error: 'upstream',
-        message: r.status === 429
+        message: out.status === 429
           ? 'Busy just now. Try that again in a moment.'
           : "Couldn't get an answer just now."
       });
     }
-    reply = await r.json();
   } catch (e) {
-    console.error('anthropic fetch failed', e);
+    console.error('upstream fetch failed', provider, e);
     track(db, user.id, 'ai_request_failed', { operation: body.kind, error_code: 'network' });
     await giveBack();
     return send(res, 502, { error: 'upstream', message: "Couldn't get an answer just now." });
   }
 
-  const text = (reply.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-  const tin  = reply.usage?.input_tokens  || 0;
-  const tout = reply.usage?.output_tokens || 0;
+  const text = out.text;
+  const tin  = out.tin;
+  const tout = out.tout;
 
   // ---- record what it cost ----------------------------------------------
   await db.from('usage').insert({
     // Every row carries the session id, free or not, because the ceiling above
     // counts them. What stops a free row buying anything is the `credits > 0`
     // condition on the lookup, not the absence of an id here.
-    user_id: user.id, kind, credits, model: MODEL, session_id: session,
-    tokens_in: tin, tokens_out: tout, cost_micros: costMicros(tin, tout)
+    //
+    // The model and the cost come off the answer rather than off a constant,
+    // so a row always says which reader produced it and what that reader's own
+    // tokens cost. Pricing one provider's tokens with another's constants is
+    // the one accounting mistake this whole exercise cannot survive, because
+    // the cost column is half of what is being compared.
+    user_id: user.id, kind, credits, model: out.model, session_id: session,
+    tokens_in: tin, tokens_out: tout, cost_micros: out.costMicros
   });
   /* Already paid for, before any of this ran. So the balance to report is the
      one the charge actually produced, not a subtraction from the figure this
@@ -272,11 +282,34 @@ export default async function handler(req, res) {
     ? entitlement(charged.profile) : ent;
   const monthlyLeft = after.monthlyLeft;
   const banked      = after.banked;
-  return send(res, 200, {
+  const answer = {
     text,
     credits_left: monthlyLeft + banked,
     monthly_left: monthlyLeft,
     banked,
     allowance: ent.monthly
-  });
+  };
+
+  /* ON A TESTING DEPLOYMENT ONLY, what the comparison needs and the product
+     does not. In production this object is byte for byte what it has always
+     been, because a response shape that changes depending on a flag is a
+     response shape nobody can rely on.
+
+     `truncated` is the one that matters. The browser has reported false here
+     unconditionally since the day it was written, so a reply cut off mid-JSON
+     has always looked identical to a reply that simply had nothing to say, and
+     the board quietly fell back to guessing. It is the real answer now, from
+     both providers. `reasoning` is beside it because a reader that thinks first
+     spends the same budget doing it: an empty answer with two thousand
+     reasoning tokens behind it is a finding about the cap, not about the
+     model's judgement, and the two must not be read as the same result. */
+  if (testingEnabled()) {
+    answer.provider  = out.provider;
+    answer.model     = out.model;
+    answer.truncated = !!out.truncated;
+    answer.reasoning = out.reasoning || 0;
+    answer.tokens    = { in: tin, out: tout };
+    answer.micros    = out.costMicros;
+  }
+  return send(res, 200, answer);
 }
