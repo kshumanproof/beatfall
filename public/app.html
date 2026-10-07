@@ -3492,7 +3492,7 @@ const STRUCTURES = {
     ]
   },
   circle: {
-    label: "Either · Story Circle (8 stages)",
+    label: "Any length · Story Circle (8 stages)",
     acts: ["Order","Descent","Chaos","Return"],
     slots: [
       {id:"c-you",  act:0, name:"You",     fn:"A character in a zone of comfort.", req:"Establishes the character inside a familiar zone of COMFORT and the rules of that ordinary state. Psychological, not plot mechanical. A description of the world's premise, setting or genre with no sense of this character's equilibrium is not You.", cues:[["ordinary",4],["routine",4],["normal life",5],["we meet",4],["opens on",5],["at home",4],["his job",3],["comfortable",4],["introduce",3],["small town",3],["dawn",3],["morning",3]]},
@@ -3936,14 +3936,20 @@ function structureLine(key){
 
    The medium lives in the structure label ("Feature \u00b7 Save the Cat!"), so this
    reads it rather than storing a second copy that could disagree. Story
-   Circle's "Either" is not a medium at all - it is the one shape that fits any
-   length - so it sits at the end under its own honest heading. */
+   Circle's "Any length" is not a medium at all: it is the one shape that works
+   at any length, so it sits at the end under its own honest heading.
+
+   That lead used to read "Either", which on the format menu was a word with
+   nothing after it. Either what? The shelf heading was already saying "Any
+   length", so the label was the half that disagreed. Both halves say the same
+   thing now, and `from` has to match the label exactly or the shelf stops
+   grouping those projects. */
 const MEDIA = [
   {key: "feature", from: "Feature",    name: "Features"},
   {key: "tv",      from: "TV",         name: "Television"},
   {key: "short",   from: "Short film", name: "Short films"},
   {key: "vert",    from: "Vertical",   name: "Vertical"},
-  {key: "any",     from: "Either",     name: "Any length"}
+  {key: "any",     from: "Any length", name: "Any length"}
 ];
 function mediumOf(key){
   const S = STRUCTURES[key];

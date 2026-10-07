@@ -1633,6 +1633,65 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* THE FORMAT MENU AND THE SHELF HEADINGS READ OFF THE SAME STRING.
+   *
+   * A structure's label is "<medium> · <name> (<shape>)", and the medium
+   * half is not stored anywhere else: `mediumOf` splits the label and looks
+   * the lead up in MEDIA, which is how the shelf groups a writer's scripts.
+   *
+   * The lookup ends in `|| MEDIA[MEDIA.length - 1]`, so a lead that matches
+   * nothing lands silently in the last group rather than failing. Rename a
+   * medium in a label and the menu reads correctly while the grouping is
+   * quietly running on the fallback, which is the kind of wrong that only
+   * shows up the day somebody adds a sixth medium. So assert the match is
+   * real for every structure, by name, rather than that the shelf happens to
+   * look right.
+   */
+  {
+    const { page, errors } = await open(browser, {
+      account: PAID,
+      projects: [board('Night Haul', 9), board('The Long Way Round', 4, 'circle')]});
+    const seen = await page.evaluate(() => {
+      const leads = Object.keys(STRUCTURES).map(k => ({
+        key: k, lead: STRUCTURES[k].label.split('·')[0].trim() }));
+      const names = MEDIA.map(m => m.from);
+      return {
+        leads,
+        orphans: leads.filter(l => names.indexOf(l.lead) < 0).map(l => l.key),
+        /* `from` is the string in the label; `name` is what a writer reads on
+           the shelf. On the one that fits any length they are the same word on
+           purpose, and that is the pair that disagreed. */
+        anyPair: MEDIA[MEDIA.length - 1].from + '/' + MEDIA[MEDIA.length - 1].name,
+        circleGroup: mediumOf('circle').name,
+        headings: [...document.querySelectorAll('#slategrid .sg-name')]
+          .map(h => h.textContent.trim()),
+        /* STRUCTURES is a global in the app, not out here. Read the count
+           where it lives, the way every other figure in this suite does. */
+        howMany: Object.keys(STRUCTURES).length,
+        menu: [...document.querySelectorAll('#f-format option')].map(o => o.textContent)
+      };
+    });
+    check('every structure names a medium the shelf actually has',
+      seen.orphans.length === 0,
+      'these fall through to the last group: ' + seen.orphans.join(', '));
+    check('the one that fits any length says so on both halves',
+      seen.anyPair === 'Any length/Any length', seen.anyPair);
+    check('and the Story Circle is grouped under it',
+      seen.circleGroup === 'Any length', seen.circleGroup);
+    check('so a feature and a Story Circle sit on two named shelves',
+      seen.headings.join(',') === 'Features,Any length', seen.headings.join(','));
+    /* The word it used to carry. "Either" on a menu is a word with nothing
+       after it: either what? */
+    check('no format on the menu reads "Either"',
+      seen.menu.length > 1 && !seen.menu.some(t => /\bEither\b/.test(t)),
+      seen.menu.join(' | '));
+    check('and every format on the menu still names its medium',
+      seen.menu.filter(t => t.indexOf('·') > 0).length === seen.howMany,
+      seen.menu.join(' | '));
+    check('no page errors reading the formats', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);
