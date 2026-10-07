@@ -1692,6 +1692,182 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* ONE READ HAS A CEILING, AND IT IS CHECKED BEFORE ANYTHING IS SPENT.
+   *
+   * There was no ceiling at all until today. The paste box has no maxlength on
+   * purpose, and nothing downstream counted the notes, so the only limit on a
+   * single 5-credit read was the server's budget of 150 upstream calls: 5,840
+   * notes, about a dollar of reading against the dollar those credits are
+   * worth, and then five credits charged for every call past the hundred and
+   * fiftieth with nothing on screen saying so.
+   *
+   * The whole gate runs locally, before ai_sample is ever reached, which is
+   * what lets it promise nothing was charged. So these checks need no model and
+   * no network: the question is only ever whether the read was started.
+   */
+  {
+    const { page, errors } = await open(browser, {
+      account: PAID, projects: [board('Night Haul', 9)]});
+
+    /* Did the read begin? The one thing that matters. ai_sample is the single
+       door to the metered proxy, so counting presses on it is the honest
+       measure of "was a credit spent", and it is far better than watching the
+       network, which under file:// goes nowhere and would make a spend look
+       like a refusal. */
+    await page.evaluate(() => {
+      window.__ASKED__ = 0;
+      ai_sample = async function () { window.__ASKED__++; return { text: '{}' }; };
+      ai_sample.json = async function () { window.__ASKED__++; return {}; };
+      ai_sample.limits = async () => ({ images: false });
+    });
+
+    const press = async (text) => page.evaluate(async (t) => {
+      openImport(true);
+      const box = document.getElementById('dumptext');
+      box.value = t;
+      box.dispatchEvent(new Event('input'));
+      const go = document.getElementById('dumpgo');
+      const big = document.getElementById('dumpbig');
+      const before = window.__ASKED__;
+      const shown = { off: go.disabled, warned: !big.hidden, says: big.textContent };
+      go.click();
+      await new Promise(r => setTimeout(r, 60));
+      return Object.assign(shown, { asked: window.__ASKED__ - before,
+        count: document.getElementById('dumpcount').textContent });
+    }, text);
+
+    const ceiling = await page.evaluate(() => IMPORT_MAX_NOTES);
+    check('there is a ceiling on one read at all', ceiling > 0, String(ceiling));
+
+    // An ordinary file. Nothing about it should have changed.
+    const ok = await press(Array.from({ length: 40 },
+      (_, i) => 'the truck is still in the lot, note ' + i).join('\n'));
+    check('a normal notes file is read as it always was', ok.asked > 0, String(ok.asked));
+    check('with nothing said about size', ok.warned === false, ok.says);
+    check('and the button live', ok.off === false);
+
+    /* THE ONE THAT MATTERS. A file past the ceiling must not reach the proxy,
+       because reaching it is the charge: /api/claude takes the five credits
+       BEFORE it calls anybody. */
+    const huge = Array.from({ length: ceiling + 200 },
+      (_, i) => 'a separate idea about the haul, number ' + i).join('\n');
+    const big = await press(huge);
+    check('a file past the ceiling is not read', big.asked === 0,
+      'it sent ' + big.asked + ' calls, which is the charge');
+    check('and the button is off before it is pressed', big.off === true);
+    check('and it says so without being pressed', big.warned === true);
+    check('naming the real figure rather than a vague "too big"',
+      /1,200 notes/.test(big.says) && /covers 1,000/.test(big.says), big.says);
+    check('and promising what a writer needs to hear',
+      /charged/.test(big.says) && /untouched|in the box/.test(big.says), big.says);
+    check('the price of reading it in parts is the real one',
+      new RegExp('own ' + 5 + ' credits').test(big.says), big.says);
+
+    /* THE SHORT-CIRCUIT IS A CLAIM, SO CHECK IT.
+     *
+     * countDump runs on every keystroke and folding is a regex pass per line,
+     * so it only folds when the line count is already over the ceiling, on the
+     * grounds that the fold never produces more items than there are lines. If
+     * that is ever false the gate refuses a file it should have read.
+     *
+     * This file is 1,100 lines and folds to well under the ceiling, because a
+     * short continuation whose subject is already above it joins the note above
+     * rather than starting a new one. A gate that counted lines and stopped
+     * there would turn it away. */
+    const folds = [];
+    for (let i = 0; i < 550; i++) folds.push('Dale drives out to the lot, run ' + i,
+      'He keeps driving.');
+    const folded = await press(folds.join('\n'));
+    check('a long file that folds under the ceiling is still read',
+      folded.asked > 0, 'it was refused with ' + folded.asked + ' calls sent');
+    check('and is not warned about', folded.warned === false, folded.says);
+
+    /* THE GATE'S CONTRACT, IN BOTH DIRECTIONS. Zero under the ceiling, and over
+       it the REAL folded count rather than the line count, because that number
+       is printed to a writer. The first version of this returned the line count
+       on the cheap path and the name did not say so; this is what holds the
+       rename down. */
+    const contract = await page.evaluate((cap) => {
+      const small = ['Dale drives out to the lot.', 'He keeps driving.',
+                     'MIDPOINT:', 'The money is already gone.'].join('\n');
+      /* Over the ceiling in lines AND in notes, with every line its own note,
+         so the folded figure and the line figure are different numbers and the
+         check can tell which one came back. */
+      const lines = [];
+      for (let i = 0; i < cap + 300; i++)
+        lines.push('A wholly separate moment in the story, number ' + i + '.');
+      lines.push('TITLE IDEAS:');          // a heading, which is not a note
+      return { under: importOverCeiling(small),
+               over: importOverCeiling(lines.join('\n')),
+               trueNotes: splitForImport(lines.join('\n')).length,
+               rawLines: lines.length };
+    }, ceiling);
+    check('under the ceiling the gate answers zero and folds nothing',
+      contract.under === 0, String(contract.under));
+    check('over it, the figure is the folded note count, not the line count',
+      contract.over === contract.trueNotes && contract.over !== contract.rawLines,
+      JSON.stringify(contract));
+
+    /* ASKING WHICH STRUCTURE A FILE WILL BE READ AGAINST MUST NOT RE-CUT THE
+       BOARD. The gate calls it merely to count, and the version of this that
+       wrote to proj.structure on the way past would change a writer's
+       structure because they pasted into the box and thought better of it. */
+    const untouched = await page.evaluate(() => {
+      const was = P().structure;
+      importStructureFor('Format: Three-Act\nDale drives out to the lot.');
+      importOverCeiling('Format: Three-Act\nDale drives out to the lot.');
+      return { was, now: P().structure };
+    });
+    check('counting a file never moves the project onto another structure',
+      untouched.was === untouched.now, JSON.stringify(untouched));
+
+    /* THE FOUR ANSWERS importStructureFor HAS TO GIVE.
+     *
+     * This decision used to live inline in claudePlan and was lifted out so the
+     * ceiling could ask it without spending a credit. Lifting it is the part
+     * that could have broken something, and the fourth case below is the one
+     * that matters: a writer standing on a feature with cards on it pastes a
+     * half-hour comedy's notes, and the file's own "Format:" line must NOT
+     * re-cut the board they are looking at. That is the Night Haul overwrite,
+     * which cost a day and is the worst bug this app has had. */
+    const cases = await page.evaluate(() => {
+      const proj = P();
+      const cards = proj.cards;
+      const was = proj.structure;
+      const ask = (raw, intoNew, withCards) => {
+        importIntoNew = intoNew;
+        proj.cards = withCards ? cards : [];
+        proj.structure = was;
+        return importStructureFor(raw);
+      };
+      const plain = 'Dale drives out to the lot.';
+      /* Three-Act, because that is a format localBrief actually recognises.
+         "Format: Story Circle" is silently dropped today, which is a separate
+         gap in the same fix and is raised on its own. */
+      const says  = 'Format: Three-Act\nDale drives out to the lot.';
+      const out = {
+        silent:   ask(plain, false, true),
+        intoNew:  ask(says,  true,  true),
+        emptyOne: ask(says,  false, false),
+        hasCards: ask(says,  false, true)
+      };
+      importIntoNew = false; proj.cards = cards; proj.structure = was;
+      return Object.assign(out, { was });
+    });
+    check('a file that states no format leaves the structure alone',
+      cases.silent === cases.was, JSON.stringify(cases));
+    check('a dashboard import takes the format the file states',
+      cases.intoNew === 'three', cases.intoNew);
+    check('and so does an empty board, which has nothing to lose',
+      cases.emptyOne === 'three', cases.emptyOne);
+    check('but a board with cards on it is never re-cut by a pasted file',
+      cases.hasCards === cases.was,
+      'it moved to ' + cases.hasCards + ', which is the Night Haul overwrite');
+
+    check('no page errors around the ceiling', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

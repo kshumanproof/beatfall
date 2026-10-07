@@ -2774,6 +2774,12 @@ footer{
       <!-- Blue, not gold. Gold on this sheet means "this spends a credit", and
            buying a pack does not spend one. -->
       <button type="button" class="linky" id="dumptopup" style="padding:0">Add credits</button></p>
+    <!-- Over the ceiling, said before the button is pressed rather than after.
+         Same gold as the line above it, because it answers the same question:
+         will this read go through. Nothing is truncated and nothing is charged;
+         the text stays in the box and the writer decides where their own file
+         divides. -->
+    <p class="sheet-note" id="dumpbig" hidden style="margin-top:-8px;color:var(--gold-ink)"></p>
     <p class="sheet-note" style="margin-top:-8px">Your notes stay private and are never used to
       train a model.
       <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
@@ -8458,15 +8464,34 @@ document.getElementById("sortgroups").addEventListener("click", async e => {
 
 
 function countDump(){
-  const words = dumptext.value.trim().split(/\s+/).filter(Boolean).length;
+  const raw = dumptext.value.trim();
+  const words = raw.split(/\s+/).filter(Boolean).length;
   document.getElementById("dumpcount").textContent =
     words ? words.toLocaleString() + (words === 1 ? " word" : " words") : "nothing yet";
+
+  /* OVER THE CEILING, SAID BEFORE THE PRESS. A button that looks ready and
+     then explains itself only after you press it is the thing this sheet
+     already refuses to do twice over. The count is honest about being
+     approximate, because the fold joins a writer's own asides and dialogue
+     back into the notes above them and the exact figure is the read's to
+     report. */
+  const big = document.getElementById("dumpbig");
+  const over = words ? importOverCeiling(raw) : 0;
+  if (big) {
+    big.hidden = !over;
+    if (over) big.textContent =
+      "That is about " + over.toLocaleString() + " notes, and one read covers "
+      + IMPORT_MAX_NOTES.toLocaleString() + ". Split the file and read it in parts: "
+      + "each read is its own " + CREDIT.import + " credits. Nothing has been "
+      + "charged and your text is untouched.";
+  }
+
   /* Sort my notes was live over an empty box. Pressing it did nothing, which
      is the right behaviour and the wrong appearance: a button that looks
      ready and then ignores you reads as broken. It is off until there is
      something to read. Only countDump() and the read itself touch `disabled`,
      and they never run at the same time. */
-  document.getElementById("dumpgo").disabled = !words;
+  document.getElementById("dumpgo").disabled = !words || !!over;
 }
 dumptext.addEventListener("input", countDump);
 
@@ -8668,6 +8693,29 @@ function localPlan(raw){
    truncated and dumped an entire notes folder into Opening Image. */
 const IMPORT_BATCH = 40;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
+
+/* ONE READ HAS A CEILING, AND UNTIL NOW IT DID NOT.
+ *
+ * The paste box has no maxlength, deliberately, because one that eats the tail
+ * of a paste in silence loses a writer's work. But nothing further down counted
+ * the notes either, so the only ceiling on a single 5-credit read was the
+ * server's: /api/claude lets one import payment cover 150 upstream calls. Pass
+ * one takes one and the casting call takes three, which leaves 146 batches of
+ * forty. So one import could be 5,840 notes, cost about a dollar upstream
+ * against the dollar those five credits are worth, and then start charging five
+ * credits for EVERY call past the hundred and fiftieth, with nothing on screen
+ * saying so.
+ *
+ * A thousand is twelve times the largest file anybody has actually pasted here,
+ * twenty-nine calls rather than a hundred and fifty, and about twenty cents of
+ * reading. It is a long way below the point where this costs more than it earns
+ * and a long way above any honest notes file.
+ *
+ * Over the ceiling nothing is truncated and nothing is charged. The text stays
+ * in the box, which is the same bargain NOTE_MAX makes on the capture bar: what
+ * changes is what the button offers to do with it. Splitting the file is the
+ * writer's call, because only they know where their own file divides. */
+const IMPORT_MAX_NOTES = 1000;
 
 /* HOW SURE THE READER HAS TO BE TO TAKE A BEAT.
 
@@ -8912,6 +8960,59 @@ function foldNotes(raw, structureKey){
   return items;
 }
 
+/* WHICH STRUCTURE THIS FILE WILL BE READ AGAINST, answered without moving
+   anybody's project. The read settles this from the writer's own "Format:"
+   line and nothing else, and it has to be settled before the fold because a
+   heading like "MIDPOINT:" declares a beat id and an id only means something
+   inside one structure.
+
+   Read only, on purpose. The ceiling below has to ask this question before a
+   credit is spent, and a version of it that wrote to proj.structure on the way
+   past would re-cut a writer's board for merely counting their notes. */
+function importStructureFor(raw){
+  const proj = P();
+  const header = localBrief(raw) || {};
+  const want = (header.format && STRUCTURES[header.format]
+                && header.format !== proj.structure) ? header.format : null;
+  return (want && (importIntoNew || !proj.cards.length)) ? want : proj.structure;
+}
+
+/* THE NOTES ONE READ WILL SEE. Extracted so the ceiling and the read itself
+   count the same thing: a number shown to a writer before they spend has to be
+   the number the read then reports, or the app has told them one thing and done
+   another. */
+function splitForImport(raw){
+  const header = localBrief(raw) || {};
+  return foldNotes(raw, importStructureFor(raw))
+    .filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
+}
+
+/* IS THIS FILE PAST THE CEILING, AND BY HOW MUCH.
+ *
+ * Returns the real folded note count when it is over, and zero when it is not.
+ * It deliberately does NOT answer "how many notes are in this file" in the
+ * ordinary case, and the name says so, because the two questions have very
+ * different prices and only one of them is ever asked.
+ *
+ * Folding is a regex pass per line and this runs from countDump on every
+ * keystroke, so it short-circuits on a fact rather than a guess: the fold never
+ * produces more items than there are non-empty lines, it only ever joins them.
+ * So a file with fewer lines than the ceiling cannot be over the ceiling, and
+ * the only pastes that pay for a real fold are the ones already big enough to
+ * be in question. A file of eleven hundred lines that folds to four hundred
+ * notes is read normally, which is the case the short-circuit has to get right
+ * and a plain line count would refuse.
+ *
+ * An earlier version of this was called importNoteCount and handed back the
+ * line count on the cheap path. Every use of it was correct, because every use
+ * only ever compared it against the ceiling, and the name was still a trap
+ * waiting for whoever next wanted a note count and believed it. */
+function importOverCeiling(raw){
+  const lines = raw.split(/\r?\n/).filter(s => s.trim()).length;
+  if (lines <= IMPORT_MAX_NOTES) return 0;
+  const notes = splitForImport(raw).length;
+  return notes > IMPORT_MAX_NOTES ? notes : 0;
+}
 
 async function claudePlan(raw){
   const proj = P();
@@ -9006,15 +9107,17 @@ async function claudePlan(raw){
      being asked to second-guess a choice you just made, by something that only
      inferred it, is worse than useless. `header` comes from localBrief, which
      matches an actual "Format:" line and nothing else. */
-  let want = null;
-  if (header.format && STRUCTURES[header.format]
-      && header.format !== proj.structure) want = header.format;
   /* A dashboard import is headed for a project that does not exist yet, so the
      structure it settles on is carried to the build rather than written onto
      whatever board happens to be open. Writing it here is how a comedy file
-     could have re-cut a feature the writer never opened. */
+     could have re-cut a feature the writer never opened.
+
+     The decision itself moved into importStructureFor, so the ceiling on the
+     paste sheet reaches the same answer this does. What stays here is the only
+     part with a side effect: actually moving the project. */
+  const want = importStructureFor(raw);
   importStructure = null;
-  if (want && (importIntoNew || !proj.cards.length)){
+  if (want !== proj.structure){
     S = STRUCTURES[want];
     BF.track("structure_suggested", {format: want});
     if (importIntoNew) importStructure = want;
@@ -9025,8 +9128,7 @@ async function claudePlan(raw){
      "MIDPOINT:" declares a beat id, and a beat id only means something inside
      one structure. Folding first left three cards declared against Save the
      Cat while the project had moved to Three-Act. */
-  const items = foldNotes(raw, importStructure || proj.structure);
-  const notes = items.filter(n => n.text.length > 2 && !isHeaderNote(n.text, header));
+  const notes = splitForImport(raw);
   if (!notes.length) return [];
   // The first pass is done and the file has been split, so the wall can say a
   // real number instead of a mood.
@@ -10139,6 +10241,20 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
   lastCollapsed = 0;              // nothing was collapsed on the way in here
   const raw = dumptext.value.trim();
   if (!raw){ closeImport(); return; }
+
+  /* THE CEILING, ENFORCED WHERE THE SPENDING STARTS.
+     countDump has already turned the button off and said why, so this should be
+     unreachable. It is here because it is the only place that can promise
+     nothing was charged, and because disabled is a property of a button while
+     this is a property of the read: any future way of filling that box without
+     firing an input event would otherwise walk straight past the ceiling. */
+  if (importOverCeiling(raw)){
+    countDump();
+    document.getElementById("dumpcount").textContent =
+      "Too much for one read. Nothing has been charged.";
+    BF.track("import_failed", {error_code: "too_many_notes", stage: "read"});
+    return;
+  }
   // Length as a bucket, never the text. "how big were the files people paste"
   // is a real question; "what did they say" is not ours to ask.
   const importStarted = Date.now();
