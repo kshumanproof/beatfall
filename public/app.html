@@ -1535,11 +1535,22 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .bv{flex:1;color:var(--ink)}
 .bv i{color:var(--ink-4)}
 .revrow{
-  display:flex;gap:11px;align-items:flex-start;padding:9px 13px;
+  display:flex;gap:11px;align-items:flex-start;padding:13px;
   border-bottom:1px solid var(--rule-soft);font-size:13px;line-height:1.5;
 }
 .revrow:last-child{border-bottom:none}
-.revrow.off{opacity:.38}
+/* NOT opacity, and not on the row.
+ *
+ * This was opacity:.38 on the whole row, which fades the checkbox and both
+ * controls along with the text. That is the visual language of a control that
+ * cannot be used, so a writer looking at an unticked row correctly concluded
+ * there was nothing on it to click, and every one of these rows has a tick, a
+ * dropdown and two buttons that all still work.
+ *
+ * Unticked is a state the writer chose and can undo in one press. So the
+ * controls stay at full strength and only the note steps back, to ink-3, which
+ * is a documented 4.72 against this ground and is meant to be read. */
+.revrow.off .txt{color:var(--ink-3)}
 .revrow input[type=checkbox]{margin-top:3px;accent-color:var(--blue);cursor:pointer;flex:0 0 auto}
 .revrow .txt{flex:1;min-width:0;font-family:var(--mono);color:var(--ink)}
 .revrow .dest{font-size:11px;color:var(--ink-4);margin-top:4px}
@@ -2450,7 +2461,15 @@ footer{
   font-family:var(--sans);font-size:11.5px;color:var(--gold);text-align:left;
   text-decoration:underline;text-underline-offset:2px}
 .cardask:hover{color:var(--gold-ink)}
-.revacts{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+/* A WRAPPED CONTROL MUST STILL BELONG TO ITS OWN NOTE.
+ *
+ * One gap of 12px served both axes, so when "Throw this away" wrapped onto a
+ * second line it sat 12px below its own controls and 9px above the next note,
+ * and the eye grouped it with the row underneath. The row separation has to
+ * beat the gaps inside a row or the sheet reads as one run of fragments, which
+ * on a long file is most of what it looks like. Across, 12. Down, 5. */
+.revacts{display:flex;align-items:center;column-gap:12px;row-gap:5px;
+  flex-wrap:wrap;margin-top:7px}
 .revask{background:none;border:0;padding:0;cursor:pointer;
   font-family:var(--sans);font-size:11.5px;color:var(--gold);
   text-decoration:underline;text-underline-offset:2px}
@@ -2465,13 +2484,17 @@ footer{
   font-family:var(--sans);font-size:11.5px;color:var(--ink-4);
   text-decoration:underline;text-underline-offset:2px}
 .revbin:hover{color:var(--red)}
-.revrow.gone{opacity:.5}
+/* Thrown away is the one state where the controls really have gone: the row
+   carries an Undo and nothing else. So the text can be struck through and sent
+   back without anybody mistaking a live control for a dead one. */
+.revrow.gone .txt{color:var(--ink-3);text-decoration:line-through;
+  text-decoration-color:var(--ink-4)}
 /* A restatement is joined to the note above it rather than merely near it, so
-   the claim being made is visible: these two are one idea. */
-.revrow.echo{border-top:0;margin-top:-9px;padding-top:0;padding-left:26px;
+   the claim being made is visible: these two are one idea. The offset tracks
+   .revrow's top padding; change one and change the other. */
+.revrow.echo{border-top:0;margin-top:-13px;padding-top:0;padding-left:26px;
   border-left:2px solid var(--rule);margin-left:12px}
 .revrow.echo .why{color:var(--ink-3)}
-.revrow.gone .txt{color:var(--ink-4)}
 .revnone{font-family:var(--sans);font-size:13px;color:var(--ink-3);padding:18px 2px}
 .foot-brand .brandtag{color:var(--ink-3)}
 .foot-k{
@@ -9032,6 +9055,42 @@ function importOverCeiling(raw){
   return notes > IMPORT_MAX_NOTES ? notes : 0;
 }
 
+/* Lifted out of claudePlan, where it was nested and therefore unreachable.
+   A pure function that cannot be run on its own does not get checked, so it
+   does not stay correct, and this one was wrong for weeks. It closes over
+   nothing: the move is a move and not a rewrite. */
+/* WHAT THE READER SAID, CHECKED BEFORE IT IS BELIEVED.
+ *
+ * `e` is a number the model wrote, so it is treated as a claim rather than a
+ * fact. It has to be a real note, an EARLIER one (a later note cannot be the
+ * original), never itself, and it must belong to the same story, because two
+ * films that happen to share a sentence are not restating one another. Anything
+ * else and the claim is dropped, which puts the app back on today's behaviour
+ * for that note rather than anywhere worse. */
+function echoOf(idx, r, si){
+  /* NOT Number(). THIS COST A WHOLE FILE.
+   *
+   * Number(null) is 0, and 0 is a real note: the first line a writer typed.
+   * The prompt above asks for this field as "Null unless you are sure" and
+   * prints null in its own example, so a reader that does exactly as it is
+   * told answers null for every note that repeats nothing, and every one of
+   * them was recorded as a restatement of note zero. On a 25 note file that
+   * read as 24 duplicates and an empty board, with the sheet patiently
+   * explaining that each line said the same as the one above it.
+   *
+   * The identical trap is already fixed for `n` in the casting call below,
+   * with a comment saying why in almost these words. It was never carried
+   * across to this field. Numbers are read as numbers only when they really
+   * are numbers, and null, false and "" are all answers meaning no.
+   *
+   * It survived because our own reader happens to omit the field rather than
+   * send null. That is luck, not safety: nothing in the prompt asks it to. */
+  const e = r && r.e;
+  if (typeof e !== "number" || !Number.isInteger(e)) return null;
+  if (e < 0 || e >= idx) return null;
+  return e;
+}
+
 async function claudePlan(raw){
   const proj = P();
   let S = STRUCTURES[proj.structure];
@@ -9207,20 +9266,6 @@ const STATEMENT = /\b(?:want|needs?|arc|goal|flaw|theme|voice|tone|backstory|pre
 function isStatement(text){
   const t = String(text).trim();
   return STATEMENT.test(t.slice(0, 60));
-}
-
-/* WHAT THE READER SAID, CHECKED BEFORE IT IS BELIEVED.
- *
- * `e` is a number the model wrote, so it is treated as a claim rather than a
- * fact. It has to be a real note, an EARLIER one (a later note cannot be the
- * original), never itself, and it must belong to the same story, because two
- * films that happen to share a sentence are not restating one another. Anything
- * else and the claim is dropped, which puts the app back on today's behaviour
- * for that note rather than anywhere worse. */
-function echoOf(idx, r, si){
-  const e = Number(r && r.e);
-  if (!Number.isInteger(e) || e < 0 || e >= idx) return null;
-  return e;
 }
 
 async function castTheBoard(notes, placed, storyOf, S, beats, ask){
