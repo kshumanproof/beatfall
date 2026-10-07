@@ -2040,6 +2040,107 @@ async function open(browser, projects, account = PAID) {
     await p4.close();
   }
 
+  /* "SAYS THE SAME AS THE NOTE ABOVE", SAID ABOUT TWENTY-FOUR NOTES IN A ROW.
+   *
+   * The reader answers, per note, which EARLIER note this one repeats. The
+   * prompt asks for that field as "Null unless you are sure" and prints null
+   * in its own example. It was then read with Number(), and Number(null) is 0,
+   * and 0 is a real note: the first line the writer typed.
+   *
+   * So a reader doing exactly as it was told had every note it had no
+   * duplicate for recorded as a duplicate of note zero. A 25 note file came
+   * back as 24 restatements and an empty board, with the review sheet politely
+   * explaining each one. It had never fired in production only because our own
+   * reader omits the field rather than sending null, which is luck.
+   *
+   * These go at the function because that is where the bug was. A check
+   * written against a rendered sheet would need a paid import to reach it.
+   */
+  {
+    const { page, errors } = await open(browser, [board('Night Haul', 6)]);
+    const answers = await page.evaluate(() => {
+      // note 7, so any honest earlier index is 0 to 6
+      const at = i => echoOf(7, i, 0);
+      return {
+        omitted:  at({}),
+        nulled:   at({ e: null }),
+        real:     at({ e: 3 }),
+        zero:     at({ e: 0 }),
+        asString: at({ e: '3' }),
+        falsey:   at({ e: false }),
+        blank:    at({ e: '' }),
+        itself:   echoOf(7, { e: 7 }, 0),
+        later:    echoOf(7, { e: 9 }, 0),
+        negative: echoOf(7, { e: -1 }, 0)
+      };
+    });
+
+    /* THE ONE THAT BROKE IT. */
+    check('a note that says it repeats nothing is not read as repeating the first one',
+      answers.nulled === null, 'null came back as ' + JSON.stringify(answers.nulled));
+    check('and neither is one that leaves the field out',
+      answers.omitted === null, JSON.stringify(answers.omitted));
+    check('nor false, nor an empty string, which also mean no',
+      answers.falsey === null && answers.blank === null,
+      JSON.stringify([answers.falsey, answers.blank]));
+
+    /* And it still does its job, which a fix that simply refused everything
+       would also pass the three checks above. */
+    check('a real restatement is still recorded', answers.real === 3,
+      JSON.stringify(answers.real));
+    check('including one that genuinely points at the first note',
+      answers.zero === 0, JSON.stringify(answers.zero));
+    check('a number sent as text is not trusted', answers.asString === null,
+      JSON.stringify(answers.asString));
+    check('a note cannot restate itself', answers.itself === null,
+      JSON.stringify(answers.itself));
+    check('nor one that comes after it, which it has not been shown',
+      answers.later === null, JSON.stringify(answers.later));
+    check('nor a note that does not exist', answers.negative === null,
+      JSON.stringify(answers.negative));
+
+    /* UNTICKED IS NOT DISABLED.
+       The row was opacity:.38, which fades the checkbox and both controls
+       along with the text, so Kris read an unticked row as one he could not
+       click. Every one of them has a tick, a dropdown and two buttons that all
+       still work. */
+    const look = await page.evaluate(async () => {
+      PENDING = [
+        {id: 'n1', body: 'the lot at two in the morning',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'},
+        {id: 'n2', body: 'he keeps the second phone in the glovebox',
+         project_id: 'p-nighthaul', project_name: 'Night Haul'}
+      ];
+      await placeGroupByHand('p-nighthaul');
+      const row = document.querySelector('#revbody .revrow');
+      const box = row.querySelector('input[type=checkbox]');
+      box.checked = false;
+      box.dispatchEvent(new Event('change'));
+      await new Promise(r => setTimeout(r, 30));
+      const read = el => el ? getComputedStyle(el).opacity : null;
+      return {
+        off: row.classList.contains('off'),
+        row: read(row),
+        tick: read(box),
+        ask: read(row.querySelector('.revask')),
+        put: read(row.querySelector('.revput')),
+        bin: read(row.querySelector('.revbin'))
+      };
+    });
+    check('unticking a row really does mark it', look.off === true,
+      JSON.stringify(look));
+    check('and the row itself is not faded out', Number(look.row) === 1,
+      'the whole row is at ' + look.row);
+    check('its tick box is at full strength', Number(look.tick) === 1, look.tick);
+    check('so is the way to argue with it', Number(look.ask) === 1, look.ask);
+    check('so is placing it yourself, which is the free one',
+      Number(look.put) === 1, look.put);
+    check('and so is throwing it away', Number(look.bin) === 1, look.bin);
+
+    check('no page errors on the review sheet', errors.length === 0, errors.join('\n'));
+    await page.close();
+  }
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' of ' + results.length + ' passed');
