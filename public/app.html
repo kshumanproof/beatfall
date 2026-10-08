@@ -9414,6 +9414,75 @@ let importSid = null;
  *
  * It runs at BUILD time rather than during the read, so a story the writer
  * deselects on the review sheet costs nothing upstream at all. */
+/* SORTING ONE PROJECT'S NOTES INTO ONE PROJECT'S SHAPE.
+ *
+ * The read casts the file against the structure of the project the writer is
+ * standing in. A project they create on the review sheet has a shape of its
+ * own, chosen seconds ago, and its notes have never been looked at in that
+ * shape. This is where that happens: one call, that project's notes, that
+ * project's beats, nothing else in the prompt.
+ *
+ * It is also the work the additional project is charged for, which is the
+ * honest version of that charge: it pays for the pass that fills its board.
+ * A refusal here means the project is not built at all. */
+async function castForProject(st, structureKey, sid){
+  const S = STRUCTURES[structureKey];
+  if (!S || !ai_sample) return null;
+  const rows = st.notes.filter(n => n.keep && !n.gone);
+  if (!rows.length) return {placed: []};
+  const beats = S.slots.map(x => "- " + x.id + " | " + x.name + ": " + (x.req || x.fn)).join("\n");
+  const lines = rows.map((n, i) => i + ". " + String(n.text).replace(/\s+/g, " ").slice(0, 400)).join("\n");
+  try {
+    const got = await ai_sample.json(
+      "These notes are one screenwriter's notes for ONE story, and this is the "
+      + "structure they chose for it. Decide which of its beats each note is.\n\n"
+      + "STRUCTURE: " + S.label + "\n\nBEATS:\n" + beats + "\n\n"
+      + "For each numbered note answer b FIRST, then the rest:\n"
+      + "b  the beat id, if this note is a moment that meets that beat's requirement. "
+      + "A note written as an image, a shot, a line of dialogue or a clue can still be a "
+      + "beat: how it is written has no bearing on where it goes. Null if it is not a "
+      + "moment in the story, or if you cannot choose between beats.\n"
+      + "c  0 to 100, how certain you are of b\n"
+      + "n  its number\n\n"
+      + "A note about the story rather than a moment in it is not a beat: a rule the "
+      + "writer set, an open question, a tone note, a description of a person. Leave b "
+      + "null for those.\n\n"
+      + "NOTES:\n" + lines + "\n\n"
+      + "Reply with JSON only, every note accounted for:\n"
+      + "{\"notes\":[{\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"n\":0}]}",
+      {kind: "import", session: sid});
+    return {placed: (got && got.notes) || []};
+  } catch (e) {
+    if (e && (e.code === "out_of_credits" || e.code === "no_plan"))
+      return {refused: true, message: e.message};
+    return null;
+  }
+}
+
+/* Put that answer onto the notes, under the same two rules the read uses: a
+   beat needs real confidence to be placed, and no beat takes more than
+   MAX_PER_BEAT cards. Below the gate the note still goes to Set aside carrying
+   what it nearly won, which is one drag from being right. */
+function applyCast(st, structureKey, placed){
+  const S = STRUCTURES[structureKey];
+  if (!S) return;
+  const real = new Set(S.slots.map(x => x.id));
+  const rows = st.notes.filter(n => n.keep && !n.gone);
+  const perBeat = {};
+  (placed || []).forEach(r => {
+    const i = Number(r && r.n);
+    if (!Number.isInteger(i) || i < 0 || i >= rows.length) return;
+    const n = rows[i];
+    const b = r.b && real.has(r.b) ? r.b : null;
+    const c = typeof r.c === "number" ? r.c : 0;
+    if (!b) return;
+    if (c < SUGGEST_SURE){ n.maybe = b; n.kind = "beat"; return; }
+    perBeat[b] = (perBeat[b] || 0) + 1;
+    if (perBeat[b] > MAX_PER_BEAT){ n.full = b; n.kind = "beat"; return; }
+    n.beat = b; n.kind = "beat"; n.conf = c;
+  });
+}
+
 async function enrichGroup(st, sid){
   if (!ai_sample) return null;
   const notes = st.notes.filter(n => n.keep && !n.gone).map(n => "- " + n.text);
@@ -10084,15 +10153,30 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     }
     // A declaration that lost its slot to earlier declarations of the same beat
     if (!beat && n.beat && !own[idx]) full = n.beat;
+    /* A NOTE CANNOT BE PLACED INTO A SHAPE NOBODY HAS CHOSEN YET.
+       Everything above cast every note in the file against ONE structure: the
+       project the writer is standing in. That is right for group zero and
+       meaningless for the others, whose structure is chosen on the review sheet
+       and may be a different shape entirely. Those ids were carried into the
+       new project anyway, matched nothing on its board, and every note fell
+       into Set aside: Kris got a project reading 0 of 15 beats with nothing on
+       it and called it "one with zero information". He was right.
+
+       So a note bound for a project that does not exist yet keeps its kind and
+       loses its placement. It is cast at build time, against the structure the
+       writer actually picked, which is also the work the extra project is
+       charged for. */
+    const unshaped = si > 0;
     buckets[si].push({
       __idx: idx,                      // dropped again as soon as echoes resolve
       text: n.text,
       kind: beat ? "beat" : kind,
-      beat,
-      maybe: beat || full ? null
+      beat: unshaped ? null : beat,
+      maybe: unshaped ? null
+        : beat || full ? null
         : runnerUp ? runnerUp
         : (named && conf >= SUGGEST_SURE) ? r.b : null,
-      full,
+      full: unshaped ? null : full,
       conf,
       declared: !!(n.declared || r.d),
       // The casting call scores the note it picks, never the one it passes
@@ -10160,7 +10244,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
      second story is a one-line pitch with no cast worth the name. A 57-note
      second film is not that, and the assumption is what was out of date. */
   const multi = groups.length > 1;
-  return groups.map((g, i) => ({
+  const out = groups.map((g, i) => ({
     name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
     brief: i === 0 ? (multi ? Object.assign({}, header) : brief) : {},
@@ -10171,6 +10255,28 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     structure: i === 0 ? null : "",
     notes: buckets[i]
   })).filter(st => st.notes.length);
+
+  /* EVERY PROJECT IS DESCRIBED BEFORE THE WRITER IS ASKED TO DECIDE ABOUT IT.
+     This ran at build time for a while, so that a project the writer switched
+     off cost nothing upstream. That was the wrong trade and Kris's screenshots
+     settled it: the review sheet is where the decision is made, and it cannot
+     be the one screen that knows least. A single story import already showed a
+     full block and a multi story one showed two lines.
+
+     It rides the session the read was already paid for, so describing three
+     stories costs the writer nothing beyond the read. The CHARGE for an extra
+     project is the pass that fills its board, at build, where it belongs. */
+  if (out.length > 1){
+    wallStep("Describing each story", .97);
+    for (const st of out){
+      const got = await enrichGroup(st, sid);
+      if (!got || got.refused) continue;
+      // What the writer typed in the file still wins over what was read.
+      st.brief  = Object.assign({}, got.brief, st.brief || {});
+      st.people = (st.people && st.people.length) ? st.people : got.people;
+    }
+  }
+  return out;
 }
 
 /* WHEN DID I WRITE THIS.
@@ -10482,7 +10588,7 @@ function renderReview(){
     /* The cast, said out loud before it appears. A writer who finds four
        character sheets they did not make has been surprised by their own app,
        even when the sheets are right. */
-    if (si === 0 && st.people && st.people.length){
+    if (st.people && st.people.length){
       const d = document.createElement("div");
       d.className = "brieffound";
       d.innerHTML = '<div class="bfh">People your notes describe</div>'
@@ -10528,7 +10634,11 @@ function renderReview(){
     if (si > 0){
       const extra = document.createElement("div");
       extra.className = "revnew";
-      extra.innerHTML =
+      /* Its notes carry no suggested beat, and that is not an omission: a note
+         cannot be placed into a shape nobody has chosen. Saying so is better
+         than a column of blanks the writer has to interpret. */
+      extra.innerHTML = '<div class="revkept">Beatfall sorts these into beats '
+        + "when it builds the board, using the structure you choose here.</div>" +
           '<label class="revfmt"><span>Structure</span><select>'
         + '<option value="">Choose the format\u2026</option>'
         + Object.keys(STRUCTURES).map(k =>
@@ -11021,18 +11131,20 @@ document.getElementById("revgo").addEventListener("click", async () => {
        second board for nothing, which is the whole thing this charge exists to
        prevent. The notes go to the pile, so the writer still has every word
        they wrote and can come back to it with credits. */
-    if (plan.length > 1){
-      const got = await enrichGroup(st, si === 0 ? importSid : newSid());
+    /* A PROJECT THAT DID NOT EXIST WHEN THE FILE WAS READ GETS ITS OWN PASS.
+       Its notes have never been looked at in the shape the writer just chose,
+       so this is where they are sorted into it. One call, on a session of its
+       own, which is what the additional project is charged for. A refusal
+       means no project: the notes go to the pile and the writer is told. */
+    if (si > 0){
+      const shape = STRUCTURES[st.structure] ? st.structure : baseStructure;
+      const got = await castForProject(st, shape, newSid());
       if (got && got.refused){
         refused.push(st.name);
         if (!fromPile) park([st], null);
         continue;
       }
-      if (got){
-        // What the writer typed in the file still wins over what was read.
-        st.brief  = Object.assign({}, got.brief, st.brief || {});
-        st.people = (st.people && st.people.length) ? st.people : got.people;
-      }
+      if (got) applyCast(st, shape, got.placed);
     }
     let target;
     if (si === 0 && importIntoNew){
