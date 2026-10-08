@@ -8092,6 +8092,16 @@ document.getElementById("dumpback").addEventListener("click", () => {
 scrim.addEventListener("click", e => {
   if (e.target !== scrim) return;
   if (!document.getElementById("sheetlog").hidden){ closeLogline(); return; }
+  /* A STRAY CLICK MAY NOT THROW AWAY WORK THAT WAS PAID FOR.
+     The conversation panel and the logline coach have refused to close on an
+     outside click since the day they were built, with a comment saying a stray
+     click should not discard five answers. The one sheet in this app holding a
+     five credit read is the one that did close. Kris stepped away while a read
+     was running, came back to the review sheet, clicked once outside it, and
+     the whole thing was gone with no way back but paying again.
+     Cancel and the X still close it, and those say what they do. */
+  if (!sheetReview.hidden) return;
+  if (!sheetPaste.hidden && dumptext.value.trim()) return;
   closeImport();
 });
 
@@ -10900,7 +10910,28 @@ function park(groups, target){
   if (rows.length) parkUnticked(rows);
 }
 
+/* ONE BUILD AT A TIME, AND IT HAS TO LOOK LIKE IT IS WORKING.
+ *
+ * This press used to be instant: the boards appeared and the sheet closed. It
+ * is not instant any more, because each project is now described by its own
+ * call before it is built, and those take seconds. Nothing said so. The button
+ * stayed lit, the sheet stayed up, nothing moved, and a writer who pressed it
+ * again started a SECOND complete build on top of the first.
+ *
+ * Kris pressed it ten times and got ten copies of the same project. That is
+ * the visible half. The expensive half is that every one of those presses also
+ * charged him for the additional projects, which took him from 75 credits to
+ * 3. A button that bills has to refuse a second press, and a wait that costs
+ * money has to be visible. Neither was true and both are my fault. */
+let building = false;
 document.getElementById("revgo").addEventListener("click", async () => {
+  if (building) return;
+  building = true;
+  const goBtn = document.getElementById("revgo");
+  const wasLabel = goBtn.textContent;
+  goBtn.disabled = true;
+  goBtn.textContent = "Building your boards\u2026";
+  try {
   /* THE RESTORE POINT FOR THE RISKIEST OPERATION IN THE PRODUCT.
      This is the press that pours a file onto a board, and it is the one an
      import has already got wrong once: a comedy's beats landed in Night Haul
@@ -11150,6 +11181,13 @@ document.getElementById("revgo").addEventListener("click", async () => {
     document.getElementById("undo").hidden = false;
     document.getElementById("settledlines").innerHTML = "";
     settledBox.hidden = false;
+  }
+  } finally {
+    /* In a finally, because this handler has early returns and a throw in the
+       middle of a build must not leave the button dead forever. */
+    building = false;
+    goBtn.disabled = false;
+    goBtn.textContent = wasLabel;
   }
 });
 
