@@ -3867,6 +3867,34 @@ const CREDIT = {conversation: 2, ideas: 2, logline: 3, character: 3, import: 5,
    anything that can wait should read them from there instead. */
 const PRICES = {month: 15, year: 149};
 
+/* ONE READ HAS A CEILING, AND UNTIL NOW IT DID NOT.
+ *
+ * The paste box has no maxlength, deliberately, because one that eats the tail
+ * of a paste in silence loses a writer's work. But nothing further down counted
+ * the notes either, so the only ceiling on a single 5-credit read was the
+ * server's: /api/claude lets one import payment cover 150 upstream calls. Pass
+ * one takes one and the casting call takes three, which leaves 146 batches of
+ * forty. So one import could be 5,840 notes, cost about a dollar upstream
+ * against the dollar those five credits are worth, and then start charging five
+ * credits for EVERY call past the hundred and fiftieth, with nothing on screen
+ * saying so.
+ *
+ * A thousand is twelve times the largest file anybody has actually pasted here,
+ * twenty-nine calls rather than a hundred and fifty, and about twenty cents of
+ * reading. It is a long way below the point where this costs more than it earns
+ * and a long way above any honest notes file.
+ *
+ * Over the ceiling nothing is truncated and nothing is charged. The text stays
+ * in the box, which is the same bargain NOTE_MAX makes on the capture bar: what
+ * changes is what the button offers to do with it. Splitting the file is the
+ * writer's call, because only they know where their own file divides.
+ *
+ * It is declared up here, beside CREDIT, because the import sheet names the
+ * ceiling in its own copy while the page is still being built. A const cannot
+ * be read above the line that declares it, so a copy edit that quotes this
+ * number from anywhere higher up stops the whole script dead. */
+const IMPORT_MAX_NOTES = 1000;
+
 /* What a paid month carries. Three screens used to say "150" as typed text,
    and the paid allowance is exactly the kind of number that moves. This asks
    the server first and falls back to a printed number only if /api/account has
@@ -8706,29 +8734,6 @@ function localPlan(raw){
    truncated and dumped an entire notes folder into Opening Image. */
 const IMPORT_BATCH = 40;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
-
-/* ONE READ HAS A CEILING, AND UNTIL NOW IT DID NOT.
- *
- * The paste box has no maxlength, deliberately, because one that eats the tail
- * of a paste in silence loses a writer's work. But nothing further down counted
- * the notes either, so the only ceiling on a single 5-credit read was the
- * server's: /api/claude lets one import payment cover 150 upstream calls. Pass
- * one takes one and the casting call takes three, which leaves 146 batches of
- * forty. So one import could be 5,840 notes, cost about a dollar upstream
- * against the dollar those five credits are worth, and then start charging five
- * credits for EVERY call past the hundred and fiftieth, with nothing on screen
- * saying so.
- *
- * A thousand is twelve times the largest file anybody has actually pasted here,
- * twenty-nine calls rather than a hundred and fifty, and about twenty cents of
- * reading. It is a long way below the point where this costs more than it earns
- * and a long way above any honest notes file.
- *
- * Over the ceiling nothing is truncated and nothing is charged. The text stays
- * in the box, which is the same bargain NOTE_MAX makes on the capture bar: what
- * changes is what the button offers to do with it. Splitting the file is the
- * writer's call, because only they know where their own file divides. */
-const IMPORT_MAX_NOTES = 1000;
 
 /* HOW SURE THE READER HAS TO BE TO TAKE A BEAT.
 
