@@ -419,15 +419,37 @@ header{
 .tally i{font-style:normal;font-size:12.5px;font-weight:600;color:var(--gold)}
 .tally .dot{color:var(--rule)}
 
+/* THE FOUR WAYS INTO A SCRIPT, DRAWN AS ONE CONTROL.
+   They were four grey words in a bar that also carries the project name, two
+   counts and the account pill, and they lost to all of it. Kris could not find
+   them on his own board. This is the same call already made on the project
+   card, where Open and Details were blue text that read as a caption: anything
+   you can press looks like something you can press. So the group sits on its
+   own track and the four read as tabs.
+
+   Three states, and none of them rests on colour alone. Where you are is a
+   FILLED tab, and that fill is what frees blue to mean something else for the
+   first time: there is material in this section. Empty stays grey, because a
+   section with nothing in it is not asking for anything. Locked keeps its chip.
+
+   Blue could not carry "there is something here" while it also carried "you
+   are here", which is why the first attempt at this failed. */
+#hnav{
+  gap:2px;padding:3px;background:var(--card);
+  border:1px solid var(--rule);border-radius:7px;
+}
 .navlink{
   display:flex;align-items:center;gap:7px;
-  border:none;background:none;cursor:pointer;padding:7px 3px;
-  font-size:12.5px;color:var(--ink-2);white-space:nowrap;text-decoration:none;
+  border:none;background:none;cursor:pointer;padding:7px 13px;border-radius:5px;
+  font-size:13.5px;font-weight:500;color:var(--ink-3);white-space:nowrap;text-decoration:none;
 }
 .navlink:hover{color:var(--ink)}
-.navlink.on{color:var(--blue);font-weight:500}
+.navlink.has{color:var(--blue);font-weight:600}
+/* After .has on purpose: equal specificity, so the one that comes last wins,
+   and standing in a section must beat having material in it. */
+.navlink.on,.navlink.on:hover{background:var(--blue);color:var(--on-blue);font-weight:600}
 .navlink svg{flex:0 0 auto}
-.navlink.outline-locked{color:var(--ink-4)}
+.navlink.outline-locked,.navlink.outline-locked.has{color:var(--ink-4);font-weight:500}
 .navlink.outline-locked::after{
   content:"locked";padding:2px 4px;border:1px solid var(--rule);border-radius:3px;
   font-size:8px;font-weight:600;letter-spacing:.07em;line-height:1;text-transform:uppercase;
@@ -4937,10 +4959,33 @@ function render(justPlaced){
   document.getElementById("whatsmissing").hidden = done;
   // The board is finished, so the bar stops asking and starts offering.
   document.getElementById("savepdf").hidden = !done;
-  const nShelf = proj.cards.filter(c => c.slot === "__shelf").length;
-  const nb = document.getElementById("notesbtn");
-  nb.textContent = nShelf ? "Notes (" + nShelf + ")" : "Notes";
+  paintNav(proj, filled);
   save();
+}
+
+/* WHICH SECTIONS HAVE SOMETHING IN THEM.
+   The count was already on Notes and Kris still overlooked it on his own
+   board, which is what settled the treatment: a number in brackets cannot
+   carry this while the words around it are the quietest thing in the bar. So
+   the count stays and the state does the work beside it.
+   Outline is deliberately left grey while it is locked. It has nothing in it
+   to advertise yet, and stacking a second signal onto a control that already
+   carries one is how a state ends up meaning neither thing. */
+function paintNav(proj, filled){
+  const nShelf = proj.cards.filter(c => c.slot === "__shelf").length;
+  const nCast  = (proj.characters || []).length;
+  const notes = document.getElementById("notesbtn");
+  const cast  = document.getElementById("castbtn");
+  notes.textContent = nShelf ? "Notes (" + nShelf + ")" : "Notes";
+  cast.textContent  = nCast  ? "Characters (" + nCast + ")" : "Characters";
+  notes.classList.toggle("has", nShelf > 0);
+  cast.classList.toggle("has", nCast > 0);
+  document.getElementById("boardbtn").classList.toggle("has", filled > 0);
+  /* paintOutlineAccess runs earlier in this same render and is what sets
+     data-locked, so this reads a value that is already current. */
+  const outline = document.getElementById("outlinebtn");
+  outline.classList.toggle("has",
+    outline.dataset.locked !== "true" && outlineWordCount(proj) > 0);
 }
 
 /* The padlock, open or shut. Two signals, not one: the shackle changes shape

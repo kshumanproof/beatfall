@@ -1,17 +1,21 @@
 BEATFALL SUPPORT ANSWERS
+Last updated 8 October 2026.
 Common questions, with the answer support gives.
+
+SUPPORT ANSWER GUIDELINES
+Answer the question directly, then give the relevant steps. Use plain language and exact button names. Keep service answers professional and concise. Avoid em dashes and unnecessary references to AI. Name a processing provider when needed for an accurate privacy answer. Do not claim to have inspected a user’s account or project. If the documents do not cover the question, say so and direct the user to support@beatfall.app. The Privacy Policy and Terms govern privacy and retention; the billing page governs current prices.
 
 
 == STARTING OUT ==
 
 Q: What does Beatfall actually do?
-A: Beatfall turns a pile of notes into a beat board. You paste in whatever you already have, however messy, and it works out which lines are story beats and which are notes about characters, dialogue or research. The beats go onto a board shaped by the structure you chose. Everything else goes to the Notes page where you can still reach it. The point of the board is not the cards on it. It is the gaps between them: the beats nobody has written yet, which is what a board shows you and a document never does.
+A: Beatfall turns a pile of notes into a beat board. You paste in whatever you already have, however messy, and it works out which lines are story beats and which are notes about characters, dialogue or research. The beats go onto a board shaped by the structure you chose. Everything else goes to the Other notes page where you can still reach it. The point of the board is not the cards on it. It is the gaps between them: the beats nobody has written yet, which is what a board shows you and a document never does.
 
 Q: How do I sign in? I do not have a password.
 A: There is no password. Type your email address and Beatfall sends you a six digit code, which you type into the same page. The code lasts an hour. It is a code rather than a link on purpose. A link signs in whichever device opened your email, which is the wrong one about half the time. A code signs in the machine you are sitting at. If the email does not arrive, check the spam folder, then ask for another. Each new code cancels the one before it, so use the newest.
 
 Q: How does the free trial work?
-A: Fourteen days, and no card. You get 25 credits to spend on the writing help during that time. Everything that does not use the writing help is free and stays free, including placing notes on the board yourself. You are told a week before the trial ends and again two days before. When it ends the boards close until you pick a plan. Nothing you wrote is deleted, and you can download all of it at any point, including after the trial has ended.
+A: Fourteen days, and no card. You get 25 credits to spend on the writing help during that time. Everything that does not use the writing help is free and stays free, including placing notes on the board yourself. You are told a week before the trial ends and again two days before. When it ends the boards close until you pick a plan. You can download your writing after the trial ends. The picture-retention and inactive-account policies still apply.
 
 == PROJECTS ==
 
@@ -22,10 +26,10 @@ Q: How do I change a project's title, logline or genre?
 A: Press Details on the project card on the dashboard, or open the project menu beside the title while you are on its board. Title, logline, who it is about, genre and comparable films all live there. Nothing an import does will ever rename a project you have named yourself. Beatfall will only fill in a title that is still a placeholder like Untitled.
 
 Q: How do I delete a project?
-A: Press Delete on its card on the dashboard. You will be asked to confirm, and told how many cards go with it. It cannot be undone, and it takes the board, the notes, the outline and the characters with it. If you might want any of it later, use Download everything in Settings first. You can delete your last project. The shelf goes back to the dashed New project box, the same as a new account.
+A: Press Delete on its card on the dashboard. You will be asked to confirm, and told how many cards go with it. It cannot be undone, and it takes the board, the notes, the outline and the characters with it. If you might want any of it later, use Download project data in Settings first. You can delete your last project. The shelf goes back to the dashed New project box, the same as a new account.
 
 Q: Can I merge two projects into one? I duplicated one by mistake.
-A: There is no merge, and cards cannot be moved from one project to another. A card belongs to the project it was made in. If one of the two is the copy you do not want, open both and keep the one with more on its board, then press Delete on the other's card on the dashboard. The confirm tells you how many cards go with it, which is the quickest way to be sure you are deleting the emptier one. If real work has gone into both, there is no tidy way to join them. You would have to type the cards you want into the one you are keeping before deleting the other. Download everything in Settings first if you want a copy of both as they stand.
+A: There is no merge, and cards cannot be moved from one project to another. A card belongs to the project it was made in. If one of the two is the copy you do not want, open both and keep the one with more on its board, then press Delete on the other's card on the dashboard. The confirm tells you how many cards go with it, which is the quickest way to be sure you are deleting the emptier one. If real work has gone into both, there is no tidy way to join them. You would have to type the cards you want into the one you are keeping before deleting the other. Download project data in Settings first if you want a copy of both as they stand.
 
 Q: Is there a limit on how many projects I can have?
 A: Sixty. If you reach it, delete one you have finished with. Nobody has come close.
@@ -33,7 +37,7 @@ A: Sixty. If you reach it, delete one you have finished with. Nobody has come cl
 == GETTING YOUR NOTES IN ==
 
 Q: How do I get my existing notes into Beatfall?
-A: Open the project menu beside the title and choose Paste in your notes, or choose Start from my notes when you create the project. Paste the text, or drop in a .txt or .md file. Beatfall reads the whole thing and shows you what it found before anything touches your board: one row per note, each saying how it was read and where it would go. You tick and untick, change any row, and only then press Add to the board. Reading a file costs 5 credits however long the file is.
+A: Open the project menu beside the title and choose Paste in your notes, or choose Start from my notes when you create the project. Paste the text, or drop in a .txt or .md file. Beatfall reads the whole thing and shows you what it found before anything touches your board: one row per note, each saying how it was read and where it would go. You tick and untick, change any row, and only then press Add to the board. Each import costs 5 credits and supports up to 1,000 notes. Split larger collections into separate imports.
 
 Q: What is the sheet that appears after Beatfall reads my notes?
 A: It is everything Beatfall is proposing, before any of it happens. Each row is one note, with a chip saying how it was read and a dropdown saying where it would land. Change anything you disagree with. A note you untick does not vanish. It goes to the pile of notes waiting to be sorted, and it is there next time you sit down. Nothing is added to your board until you press the button, and pressing Back leaves your board exactly as it was.
@@ -47,19 +51,19 @@ A: It is treated as one note. Beatfall ignores capitals, extra spaces, curly quo
 == THE BOARD ==
 
 Q: How does the beat board work?
-A: Each box on the board is one beat of your chosen structure, in order, grouped into acts. A beat with a card in it is written. A beat with a dashed gold edge and nothing in it is a hole, and those are the point. A beat holds up to three cards. Drag a card to move it between beats.
+A: Each box on the board is one beat of your chosen structure, in order, grouped into acts. A beat with a card has material assigned to it; that does not mean the beat is finished. A beat with a dashed gold edge and nothing in it is a hole, and those are the point. An import adds at most three cards to a beat. You can manually add more. Drag a card to move it between beats.
 
 Q: How do I move a card to a different beat?
-A: Drag it, or use the move control on the card itself and pick the beat from the list. The small circle on a card marks the placement as settled. A filled circle means you have decided, the card gets a gold edge, and nothing Beatfall does later will move it.
+A: Drag an unlocked card to another beat, or use its move menu. The padlock locks the card’s position and disables movement until you unlock it. You can still edit the wording of a locked card.
 
 Q: What does the padlock on a card do?
-A: It locks the card's words. A locked card cannot be edited or deleted until you unlock it, which is there for a line you have got exactly right and do not want to lose to a stray click. The circle beside it is a different thing: that settles where the card sits, not what it says.
+A: It locks the card’s position. Unlock it before dragging or moving it. You can still edit its wording or delete it after confirming deletion.
 
 Q: I am on a touchscreen and cannot see the controls on a card.
 A: You should. On any screen with no mouse, the delete, edit, move and padlock controls stay visible rather than appearing when you hover. They do not appear on the first tap, deliberately: a tap that only reveals a control is a tap that did nothing, which is worse. If they are genuinely missing, that is a fault and worth reporting.
 
 Q: What is Set aside?
-A: A shelf beside the board for cards that look like beats but have nowhere to go yet. Notes land there when Beatfall is not confident enough to place them, and when a beat is already full. Drag one onto a beat whenever you decide where it belongs. From the Outline you can send it back again with Return to Set aside. Set aside is for possible beats. Notes about characters, lines and research live on the Notes page instead.
+A: A shelf beside the board for cards that look like beats but have nowhere to go yet. Notes land there when Beatfall is not confident enough to place them, and when a beat is already full. Drag one onto a beat whenever you decide where it belongs. From the Outline you can send it back again with Return to Set aside. Set aside is for possible beats. Notes about characters, lines and research live on the Other notes page instead.
 
 Q: Why did Beatfall not place my note?
 A: Because it was not sure enough, and a wrong beat costs you more than an empty one. When it is confident it places the card. When it is only fairly confident it offers you the two beats it is choosing between and you pick. When it is not confident it places nothing and the note goes to Set aside, where you can put it wherever you like. There is a separate case worth knowing: if it was sure but that beat already holds three cards, the card goes to Set aside and says so. That is a full beat, not a doubt.
@@ -83,11 +87,11 @@ A: Two related things, and they never conflict. Gold text and gold dashed lines 
 
 == NOTES ==
 
-Q: What is the Notes page for?
+Q: What is the Other notes page for?
 A: Everything from your notes that is not a story beat. Characters, lines of dialogue, images, clues, themes, open questions, research, and pictures. They are grouped by kind, and a group only appears when you have something in it. Use the chips at the top to show one kind at a time.
 
 Q: What are the different kinds of note?
-A: Vision for pictures. Beat for something that happens. Character. Voice and theme. Line, for a piece of dialogue. Image, for something you can see. Clue or reveal. Structural idea. Open question. Rule you set, for the rules of your world. Research. Beatfall assigns one when it reads your notes, and you can change it on any note with the dropdown on its card.
+A: Vision is the picture category within Other notes. Beat for something that happens. Character. Voice and theme. Line, for a piece of dialogue. Image, for something you can see. Clue or reveal. Structural idea. Open question. Rule you set, for the rules of your world. Research. Beatfall assigns one when it reads your notes, and you can change it on any note with the dropdown on its card.
 
 Q: Can I attach a note to a particular beat?
 A: Yes. Use Send this note to a beat on the note's card and choose the beat. The note stays a note, and it also appears under that beat in the Outline, where you are doing the writing. It is not converted into a card and deleting the beat's card does not destroy it. Return to Notes in the Outline sends it back.
@@ -98,10 +102,10 @@ A: On a note marked as a Character, yes. There is a dropdown that says This note
 == PICTURES ==
 
 Q: What is Vision?
-A: Your pictures. A photograph in Beatfall is a note with a picture on it, so it lives on the Notes page with everything else and behaves like any other note: you can file it under a beat, search it, delete it and get it back with undo. The Vision group only appears once a project has a picture in it.
+A: Your pictures. A photograph in Beatfall is a note with a picture on it, so it lives on the Other notes page with everything else and behaves like any other note: you can file it under a beat, search it, delete it and get it back with undo. The Vision group only appears once a project has a picture in it.
 
 Q: How do I add a picture?
-A: Three ways, and all of them land in the same place. Press Add pictures on the Notes page and choose files. Drag image files onto the Notes page from your computer. Paste a screenshot straight from your clipboard, anywhere in the app. That one matters most: a frame grabbed from a film never touches your disk, and pasting is what your hands do anyway. You can also take or choose a picture on the phone app and send it with your notes.
+A: Three ways, and all of them land in the same place. Press Add pictures on the Other notes page and choose files. Drag image files onto the Other notes page from your computer. Paste a screenshot straight from your clipboard, anywhere in the app. You can also take or choose a picture on the phone app and send it with your notes.
 
 Q: How do I put a picture on a character?
 A: Two ways. On a character's card there is a dashed box with a plus in it: press that and choose a picture, and it goes onto that character and into Vision at the same time. Or on a picture already in Vision, use Use as a reference for and pick the character. A character wears one reference at a time. The x on the picture takes it off that character and leaves the photograph in Vision, which is what you want when you find a better one.
@@ -110,10 +114,10 @@ Q: How many pictures can I add?
 A: About 130 per account. Pictures are shrunk before they are stored, so the limit is 40MB rather than a count, and most are around 300KB. Beatfall tells you when you are close, and says so plainly if there is no room left. Deleting pictures frees it up again within a day.
 
 Q: Who can see my pictures?
-A: Only you. They are stored privately and shown through links that expire within the hour, so a link that escaped your browser history stops working the same afternoon. There is no public web address for any picture you upload. The location data your phone writes into a photograph is stripped before it is stored. A picture taken in a bar does not record the bar.
+A: Pictures are stored privately. Temporary links display them in Beatfall. Anyone with a working link can view its picture until that link expires. Embedded location data is removed before storage. See the Privacy Policy for provider processing and limited access circumstances.
 
 Q: What happens to my pictures if I stop paying?
-A: Pictures are removed thirty days after a plan ends. Your writing is not, ever. The reason for the difference is weight. A board of text costs almost nothing to keep forever, and photographs are the only part of a closed account with real size to them. Download everything before then if you want to keep them, and it includes the pictures. Deleting your account removes every picture immediately.
+A: Pictures are removed 30 days after a subscription ends. Writing and captions remain subject to the inactive-account policy: an account with no active subscription and no sign-in for six months may be deleted after a warning. Download PDFs containing your pictures or save pictures separately before the deadline. The project-data download does not include picture files.
 
 Q: Do pictures show up in the PDF?
 A: Yes, and each one exactly once. A picture filed under a beat prints under that beat in the outline. A character's reference prints on their block. Everything else prints as a contact sheet in a Vision section at the back.
@@ -140,7 +144,7 @@ A: Prose that was written under a beat which no longer exists, almost always bec
 == SAVING AS A PDF ==
 
 Q: How do I get my work out as a document?
-A: Save as PDF, from the project menu, or from the Finished button on a completed card on the dashboard. You get six sections: a cover, the board as a map, the outline in reading order with every beat and its cards and prose, your characters, anything set aside, and your loose notes. Pictures print where they belong. It builds in your browser, so nothing is uploaded to make it.
+A: Download PDF, from the project menu, or from the Finished button on a completed card on the dashboard. You get six sections: a cover, the board as a map, the outline in reading order with every beat and its cards and prose, your characters, anything set aside, and your loose notes. Pictures print where they belong. It builds in your browser, so nothing is uploaded to make it.
 
 == STRUCTURE ==
 
@@ -148,21 +152,21 @@ Q: Which story structures can I use?
 A: Nine. Save the Cat with fifteen beats and Classic Three-Act with nine, both for features. The Story Circle in eight stages, for either. A short film in eight beats. Two vertical shapes, one episode and a season arc. And three for television: a broadcast hour with a teaser and four acts, a streaming hour in five acts, and a half-hour comedy with a cold open, three acts and a tag. The format is the one thing you have to answer when you start a project, because it decides which beats your board has.
 
 Q: Can I change the structure after I have started?
-A: Yes, from the structure bar under the capture bar, and nothing is lost when you do. Your cards are scored against the new structure and moved to where they fit. Any card that has nowhere to go lands in Set aside where you can see it. Notes filed under a beat that no longer exists return to the Notes page. Outline prose written under a missing beat goes to the Unplaced stack for you to drag back. Undo reverses the whole switch in one step.
+A: Yes, from the structure bar under the capture bar, and nothing is lost when you do. Your cards are scored against the new structure and moved to where they fit. Any card that has nowhere to go lands in Set aside where you can see it. Notes filed under a beat that no longer exists return to the Other notes page. Outline prose written under a missing beat goes to the Unplaced stack for you to drag back. Undo reverses the whole switch in one step.
 
 == CREDITS ==
 
 Q: What are credits and what do they cost?
-A: Credits pay for the writing help, and nothing else in Beatfall uses them. A conversation about an empty beat is 2. A set of ideas is 2. A logline is 3. A character interview is 3. Reading in a file of notes is 5, however long the file. A plan gives you 75 a month. The trial gives you 25.
+A: Credits pay for the writing help, and nothing else in Beatfall uses them. A conversation about an empty beat is 2. A set of ideas is 2. A logline is 3. A character interview is 3. Each import costs 5 credits and supports up to 1,000 notes. Split larger collections into separate imports. A plan gives you 75 a month. The trial gives you 25.
 
 Q: What can I do without spending credits?
 A: Most of it. Placing a note on the board, including letting Beatfall suggest where it goes. Writing and editing cards by hand. The whole Outline. Filling in character sheets yourself. Adding, filing and deleting pictures. Changing structure. Saving as a PDF. Downloading everything. If a control is blue it is free. Gold means it spends a credit.
 
 Q: When do my credits reset?
-A: On your own day of the month, which is the day you signed up, not the first of the month. Whatever is left of that month's allowance does not roll over. Credits you bought in a pack are different and never expire.
+A: On your own day of the month, which is the day you signed up, not the first of the month. Whatever is left of that month's allowance does not roll over. Purchased credits do not expire while your account remains open.
 
 Q: I have run out of credits. What now?
-A: Either wait for your reset day, or buy a pack: 25 credits for $6, from Add credits in Settings. Bought credits never expire and are only spent once the month's allowance is gone, so a pack is never wasted by a reset. Everything that does not use the writing help keeps working while you are out. You can still write, place, move, outline and export.
+A: Either wait for your reset day, or buy a pack: 25 credits for $6, from Add credits in Settings. Purchased credits do not expire while your account remains open and are only spent once the month's allowance is gone, so a pack is never wasted by a reset. Everything that does not use the writing help keeps working while you are out. You can still write, place, move, outline and export.
 
 Q: Will Beatfall warn me before I run out?
 A: Twice. A gold count appears on your account button when you are getting low, which does not interrupt anything. A single strip appears near the end, once per month, which you can dismiss. They are counted down in credits left rather than up in a percentage, because eight left tells you something and ninety per cent used does not.
@@ -179,15 +183,15 @@ Q: How do I cancel?
 A: Settings, Plan and billing, Cancel plan. Beatfall tells you exactly what happens first and asks you to tick that you have read it, with a button to download your work right there. Then it hands you to Stripe's own cancel screen. Your plan runs to the end of the period you have paid for. After that the boards close. Your writing is not deleted, you can still download all of it, and everything is exactly where you left it if you come back. Pictures come off after thirty days.
 
 Q: What happens when my plan or trial ends?
-A: The boards close and you get a screen with two things on it: pick a plan, or download everything. Nothing is deleted. Every project is listed on that screen and each one can still be saved as a PDF. Any credits you bought are still there when you come back. Pictures are removed thirty days later. The writing is not.
+A: The boards close and you get a screen with two things on it: pick a plan, or download everything. Writing remains subject to the inactive-account policy. Every project is listed on that screen and each one can still be saved as a PDF. Any credits you bought are still there when you come back. Pictures are removed thirty days later. The writing is not.
 
 == YOUR ACCOUNT ==
 
 Q: How do I get all my work out of Beatfall?
-A: Settings, Your data, Download everything. It is one file with every project, board, note, character, outline passage and picture in it. It works whether or not you have a plan, on purpose. Closing the boards is a business decision and holding your notes hostage is a different thing. For a readable document rather than a data file, use Save as PDF on each project.
+A: Open Settings → Your work → Download project data. The file includes project details, cards, notes, characters and outlines. It includes picture paths and captions, but not picture files. You can download it without an active subscription. Use Download PDF for a readable project copy, or save pictures separately.
 
 Q: How do I delete my account?
-A: Settings, Your account, Delete my account. You type your email address to confirm. The phone app has the same thing on its account screen, and there is a page on the website that works even if you have uninstalled everything. It cancels any subscription, then removes every project, note, character, outline and picture, immediately and permanently. It cannot be undone. Download everything first if there is any doubt.
+A: Settings, Your account, Delete my account. You type your email address to confirm. The phone app has the same thing on its account screen, and there is a page on the website that works even if you have uninstalled everything. It cancels any subscription, then removes every project, note, character, outline and picture, immediately and permanently. It cannot be undone. Download project data first if there is any doubt.
 
 Q: Will my work be deleted if I do not use Beatfall for a while?
 A: Only after six months with no sign-in and no subscription, and you are emailed a month before it happens. Signing in once resets the clock. If that warning email cannot be delivered, nothing is deleted.
@@ -196,7 +200,7 @@ Q: Can I change my email address or my name?
 A: Your display name is in Settings, under Profile. Changing the email address the account signs in with is not something you can do yourself yet. Write to support@beatfall.app and it can be done for you.
 
 Q: Can I use Beatfall in dark mode?
-A: Yes. The setting is in the account menu at the top right: Light, Dark or Auto, which follows whatever your computer is set to.
+A: Open the account menu and select Appearance. Choose Light, Dark or Auto. Auto uses light during the day and dark at night.
 
 == THE PHONE APP ==
 
@@ -213,7 +217,7 @@ Q: How do my phone notes get to my computer?
 A: Press the Send button, which appears at the bottom of the screen whenever anything is waiting and says how many. They do not go to a board. They wait in a pile on your account, and the next time you open Beatfall at your desk it tells you what came in and asks where you want it. Send is the only thing that sends. Nothing leaves the phone on its own, so you can catch five notes, switch scripts, catch three more, and they all go when you say.
 
 Q: Does the phone app work with no signal?
-A: Yes, and that is the whole reason it exists as an app rather than a website. Notes are saved to the phone itself the moment you press Keep. A note typed in a car park with no bars is still there tomorrow. Send needs a connection. If it fails, nothing is lost: the notes stay where they are and you press Send again when you have signal.
+A: You can save notes on the phone without an internet connection by pressing Keep. Send needs a connection. If sending fails or only partly completes, check the remaining notes and retry when connected.
 
 Q: Can I send a photograph from my phone?
 A: Yes. Under the box there are two buttons: Photo takes one with the camera, Library picks one you already have. It attaches to the note you are writing, and you can add a line about it or leave it with no words at all. The picture is shrunk and saved to your phone before anything is sent, so it survives having no signal exactly like a typed note does. It goes when you press Send, and arrives in Vision on the script you filed it under. Sending pictures needs an active plan. Typed notes always come through.
@@ -227,7 +231,7 @@ A: That is correct, and it is deliberate. Once a note is safely on your account 
 == NOTES FROM YOUR PHONE ==
 
 Q: Where do my phone notes go when I get to my computer?
-A: Into a pile, grouped by script. The dashboard shows a count, and if you have been away more than half a day Beatfall greets you with what came in. Nothing has touched a board. For each group you choose: place them yourself, which is free and gives you one row per note with a dropdown, or have them read, which costs 5 credits and sorts them the way an imported file is sorted. Or throw the whole group away. Pictures never go through the paid read. They go straight into Vision on that script, because there is nothing in a photograph to read.
+A: Into a pile, grouped by script. The dashboard shows a count, and if you have been away more than half a day Beatfall greets you with what came in. Nothing has touched a board. For each group you choose: place them yourself, which is free and gives you one row per note with a dropdown, or have them read, which costs 5 credits and sorts them the way an imported file is sorted. Or throw the whole group away. Pictures never go through the paid read. They go straight into Vision on that script, because pictures are not analyzed by the writing help.
 
 == RULES WORTH KNOWING ==
 
@@ -246,13 +250,13 @@ A: Only one browser can edit an account at a time. Opening Beatfall somewhere el
 == WHEN SOMETHING GOES WRONG ==
 
 Q: Beatfall says it cannot save my work.
-A: A strip appears across the top saying so, and it hands you the whole project as a file to download so nothing is trapped in a browser tab. The strip goes away by itself once saving recovers. Usually this is the connection. Keep the tab open, because your work is still in it, and it will save itself when the connection comes back.
+A: Keep the tab open and use the offered download to save a copy of your work. Check your internet connection. If saving continues to fail, contact support@beatfall.app. Do not close the tab before keeping a copy of unsaved work.
 
 Q: The writing help says it couldn't get an answer.
-A: Something upstream was busy or unreachable. No credits are charged for a request that failed, so trying again in a moment costs you nothing. If it keeps happening, write to support@beatfall.app and say which button you pressed.
+A: Check the error message and try again when appropriate. If the problem continues or a charge looks incorrect, contact support@beatfall.app with the button you pressed and the approximate time.
 
 Q: Some of my notes are not on the board.
-A: Look on the Notes page and on the Set aside shelf first. Most notes in a file are not beats, so they land on Notes by design, and beats Beatfall was unsure about land on Set aside. The review sheet you saw before anything was added says exactly what went where and how many were collapsed as copies. If a note is genuinely nowhere, that is a fault and worth reporting with the project name.
+A: Look on the Other notes page and on the Set aside shelf first. Most notes in a file are not beats, so they land on Other notes by design, and beats Beatfall was unsure about land on Set aside. The review sheet you saw before anything was added says exactly what went where and how many were collapsed as copies. If a note is genuinely nowhere, that is a fault and worth reporting with the project name.
 
 Q: What keyboard shortcuts are there?
 A: Control or Command with Z undoes the last board change, up to thirty deep. Enter places a note or sends an answer. Shift with Enter gives a new line without sending. Escape closes whatever is open: a menu, a sheet, or a conversation.
@@ -261,4 +265,4 @@ Q: How do I contact a human?
 A: support@beatfall.app. Say what you were trying to do, what happened instead, and which page you were on. If it is about a particular project, the name of it helps. Beatfall is run by one person, so an answer may take a day.
 
 Q: What happens to my writing? Is it used to train anything?
-A: No. Your material is yours, it is not used to train anything, and it is not shown to other people. When you use the writing help, the part of your project it needs is sent to the company that provides it so it can answer. The Privacy Policy names them and says exactly what is sent. Everything else stays on your account.
+A: You retain ownership of your writing. When you use writing help, relevant project text is sent to OpenAI to generate a response. See the Privacy Policy for training, retention, provider processing and the limited circumstances in which Beatfall may access your work.

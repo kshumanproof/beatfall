@@ -1,6 +1,9 @@
 BEATFALL SUPPORT MANUAL
-Last updated 24 September 2026.
+Last updated 8 October 2026.
 This is the description of the product that support answers are built on.
+
+SUPPORT ANSWER GUIDELINES
+Answer the question directly, then give the relevant steps. Use plain language and exact button names. Keep service answers professional and concise. Avoid em dashes and unnecessary references to AI. Name a processing provider when needed for an accurate privacy answer. Do not claim to have inspected a user’s account or project. If the documents do not cover the question, say so and direct the user to support@beatfall.app. The Privacy Policy and Terms govern privacy and retention; the billing page governs current prices.
 
 =============================================================================
 1. WHAT BEATFALL IS
@@ -23,12 +26,12 @@ A project is one script. It can hold:
   A beat board.
   Other notes.
   Character sheets.
-  Pictures, in Vision.
+  Pictures, in the Vision category on Other notes.
   An outline written beneath the beats.
   Cards that have been set aside.
 
 Inside a project there are four destinations: Board, Outline, Characters and
-Notes. The dashboard is the shelf holding every project.
+Other notes. The dashboard is the shelf holding every project.
 
 COLOURS.
 
@@ -154,7 +157,7 @@ progress bar, one wide control, and three buttons.
 
 The wide control is Next up on an unfinished board. It names a useful empty
 beat and opens a paid conversation about it, at 2 credits,
-and the control says so. On a finished board the same slot offers Save as PDF,
+and the control says so. On a board with a card in every beat, the same slot offers Download PDF,
 which downloads without leaving the dashboard.
 
 The three buttons are Open, Details and Delete.
@@ -235,7 +238,6 @@ writer has already chosen. That second reading costs nothing.
 The panel can show:
 
   Up to two suggested beats, best first.
-  A confidence percentage on each.
   One sentence saying why.
   A chooser holding every beat on the board.
   Set it aside for now.
@@ -267,7 +269,7 @@ story down, the widest span is the whole story and its middle is the midpoint.
 Answer that and the widest span becomes the first half. Each press halves what
 is still unknown.
 
-Once every beat has a card, What's missing is replaced by Save as PDF.
+Once every beat has a card, What's missing is replaced by Download PDF.
 
 
 =============================================================================
@@ -310,7 +312,7 @@ Dragging raises no receipt. The card is visibly where it was dropped.
 
 SET ASIDE holds possible beat cards with no settled position. A card there may
 carry a line such as "possibly Midpoint", which is Beatfall naming where it
-thinks the card goes without putting it there. Did we get it wrong? opens a
+thinks the card goes without putting it there. Discuss this placement opens a
 short conversation about such a card, at 2 credits.
 
 UNDO holds up to 30 states from the current session. Ctrl+Z, or Cmd+Z on a
@@ -350,9 +352,9 @@ Text can be pasted, or text files dragged onto the box. Accepted extensions:
 dropped together and their text is joined. There is no file picker in this
 flow; dragging is the way in.
 
-WHAT IT COSTS. 5 credits, flat, whatever the size of the file.
-A thousand notes costs the same as ten. Pasting is free and nothing is charged
-until Sort my notes is pressed.
+WHAT IT COSTS. Each import costs 5 credits and supports up to 1,000 notes.
+Split larger collections into separate imports. Each import is a separate
+charge. Entering text does not use credits; Sort my notes starts the import.
 
 If the balance will not cover it, the sheet says so before a word is typed and
 offers a way to top up. The button still works and still gives the same
@@ -374,9 +376,8 @@ one beat.
 
 Then the casting call. Every beat is asked once with all its plausible notes
 laid out, and the same question is asked three times. A beat is only filled by
-a note that won it in at least two of the three. That is where the figures on
-the review sheet come from: two of three is 67 per cent, three of three is
-100.
+a note that won it in at least two of the three. This agreement helps select proposed placements. The review sheet does not
+display confidence percentages.
 
 PLACEMENT THRESHOLDS.
 
@@ -392,21 +393,21 @@ file, separating the ideas, reading notes 41 to 80 of 83, weighing the notes
 against each beat, placing what it is sure of. Stop cancels, and a stopped
 read changes nothing.
 
-THE REVIEW SHEET is headed Here's what I found. It can show project details
+THE REVIEW SHEET is headed Review your notes. It can show project details
 found in the notes, the people the notes describe, and one row per note.
 
 Each row carries a tick box, a chip naming how the note was read, the note
 itself, and where it is going. The destination line is written out, for
 example:
 
-  to Midpoint (you said so)
-  to Midpoint (100% sure)
+  to Midpoint (placement specified in your notes)
+  to Midpoint (suggested placement)
   Other notes, Clue or reveal
-  Set aside, possibly The First Attempt, only 61% sure
+  Set aside: Possible match: The First Attempt. Review the placement.
   Set aside, Midpoint already has 3 cards
   Set aside, an event but not clearly any one beat
 
-Every row also carries Did we get it wrong?, at 2 credits,
+Every row also carries Discuss this placement, at 2 credits,
 and a free chooser listing every beat, Other notes and Set aside. The chooser
 is instant and overrules whatever the read decided.
 
@@ -414,7 +415,7 @@ Existing project details are never overwritten. Existing character fields are
 never overwritten.
 
 THE TICK AND THE BIN ARE DIFFERENT. Unticking means not now, and the note
-waits to be offered again. Throw this away means never, and the row shows an
+waits to be offered again. Delete this note means never, and the row shows an
 Undo beside it until the sheet is committed.
 
 The count line states both figures when they differ, for example "79 of 83
@@ -431,8 +432,10 @@ A likely duplicate stays on the sheet, unticked, sitting directly under the
 note it repeats, with a line saying why. Ticking it keeps it. A read never
 silently deletes one.
 
-FAILED READS. Nothing is added and nothing stays charged. The text is still in
-the box. Splitting a very large file in two is worth trying.
+FAILED IMPORTS. Check the error message before trying again. Keep a copy of
+your original notes. If an import fails or its charge looks incorrect, contact
+support@beatfall.app with the action and approximate time. Do not guarantee
+that every interrupted or incomplete response is uncharged.
 
 
 =============================================================================
@@ -456,10 +459,10 @@ classification on it, because nothing has read them. Every row has the free
 chooser. Pictures go straight into Vision for that project and never reach the
 paid reader.
 
-READ THEM FOR ME is the ordinary importer, at 5 credits, with the
+SUGGEST PLACEMENTS is the ordinary importer, at 5 credits, with the
 same review sheet before anything changes.
 
-THROW AWAY asks first. A pending capture may be the only copy left, because
+DELETE asks first. A pending capture may be the only copy left, because
 the phone releases its own copy once the server confirms arrival. It cannot be
 undone, and pictures in that group are deleted from storage too.
 
@@ -487,11 +490,11 @@ other projects.
 
 A note card can carry a pencil to edit, a cross to delete, a chooser for how
 it is grouped, a chooser that sends it toward a beat, a date visible on hover,
-and Did we get it wrong?
+and Discuss this placement
 
 Deleting asks first and can be undone.
 
-Did we get it wrong? is not offered on a picture, or on a note already filed
+Discuss this placement is not offered on a picture, or on a note already filed
 under a beat.
 
 TWO WAYS TO SEND A NOTE TOWARD A BEAT, and they do different things.
@@ -541,7 +544,8 @@ JPEG files. A single file may not exceed 1.5 MB after preparation.
 
 STORAGE AND WHO CAN SEE THEM. Pictures live in a private bucket. Other
 Beatfall accounts cannot reach them, and the app shows them through links that
-expire within the hour. The ordinary admin dashboard cannot display them or
+expire within the hour. Anyone with a working link can view that picture
+until the link expires. The ordinary admin dashboard cannot display them or
 the writing attached to them.
 
 The hosting and storage providers necessarily process what is stored. Beatfall
@@ -577,7 +581,8 @@ points at.
 
 AFTER A PLAN ENDS. New uploads need an open trial or an active plan. Pictures
 already there stay for 30 days and are then removed; the note and its caption
-remain, and the card says the picture is no longer stored. Until they go they
+remain, and the card may report that the picture is unavailable. That message
+can also indicate a failed request, so it does not by itself prove deletion. Until they go they
 can still be viewed and printed into a PDF. Text is never removed because a
 plan ended.
 
@@ -589,11 +594,11 @@ plan ended.
 One sheet per person, with ten fields:
 
   Name.
-  Part they play.
+  Role in the story.
   Who they are.
   What they want.
   What they need.
-  The wound.
+  Past hurt.
   The lie they believe.
   What's in the way.
   How they change.
@@ -611,9 +616,8 @@ interview is one charge however many questions it takes.
 Fill in the blanks is available from the first answer, so stopping at question
 three still keeps three fields. Nothing already typed is overwritten.
 
-What is written here is available to the other writing-help features in that
-project, so a conversation about a beat can ask what is unresolved for this
-protagonist rather than about a midpoint in the abstract.
+Selected character details provide context for writing-help questions. Do not
+claim every field or every character is included in every request.
 
 DELETING A CHARACTER does not ask first. Undo is the way back. The character's
 reference picture stays in Vision.
@@ -758,7 +762,7 @@ bar above the board, and in Project details.
 
 Two exports, both free, and neither spends a credit.
 
-SAVE AS PDF is one project, laid out to read. It is in the project menu beside
+DOWNLOAD PDF is one project, laid out to read. It is in the project menu beside
 the project name, in the structure bar on a finished board, and on each
 project card on the dashboard.
 
@@ -781,15 +785,15 @@ OUTLINE. The outline carries the full text.
 Emoji and writing systems the document fonts cannot spell are dropped from the
 PDF. Accents, curly quotes and dashes print normally.
 
-DOWNLOAD EVERYTHING is the whole account as one JSON file. It is in Settings
-under Your data. It contains every project, every card, every note, every
+DOWNLOAD PROJECT DATA is the whole account as one JSON file. It is in Settings
+under Your work. It contains every project, every card, every note, every
 character, every outline passage and the account's own details.
 
 It contains the paths and captions of pictures, not the picture files. To keep
 the images themselves, save a PDF of each project, or open each picture and
 save it.
 
-Download everything keeps working after a plan ends. The boards close and the
+Download project data keeps working after a plan ends. The boards close and the
 export does not, which is deliberate: ending a subscription closes access to
 the product, it does not hold a writer's material.
 
@@ -804,7 +808,7 @@ Final Draft, Fountain, Word or Scrivener.
 WHAT A CREDIT IS. A credit is the unit for the writing help. Everything else
 in Beatfall is free and is not counted: typing, dragging, placing notes by
 hand, the Outline, Characters typed in by hand, pictures, search, the PDF and
-Download everything.
+Download project data.
 
 WHAT EACH ACTION COSTS.
 
@@ -818,8 +822,7 @@ WHAT EACH ACTION COSTS.
 A price is shown on the control before it is pressed, either on the button or
 in its hover and focus explanation.
 
-Some of those prices cover more than one exchange. A reading covers the whole
-file however many notes are in it. A logline session covers the questions and
+Some of those prices cover more than one exchange. An import covers up to 1,000 notes. A logline session covers the questions and
 the written draft. A character interview covers up to ten questions and the
 write-up. Each bills once.
 
@@ -838,7 +841,7 @@ Monthly credits refresh on the writer's own renewal day, which is the day of
 the month they subscribed, not the first of the month. Whatever is left of
 them on that day does not carry over.
 
-Bought credits never expire and are only touched once the month's allowance is
+Bought credits do not expire while the account remains open and are only touched once the month's allowance is
 spent. They survive a cancellation, and are there again on return, though they
 cannot be spent while there is no plan.
 
@@ -871,7 +874,7 @@ Continue works. The actual cancellation happens on Stripe's own page.
 Access lasts until the end of the period already paid for.
 
 WHEN A PLAN ENDS. The boards close and a screen appears offering a plan and
-Download everything. Nothing written is deleted. Pictures are removed 30 days
+Download project data. Nothing written is deleted. Pictures are removed 30 days
 after a plan ends; text is not.
 
 REFUNDS. Unless local law says otherwise, part periods are not refunded and
@@ -914,14 +917,14 @@ THIS MONTH holds the credit figures and the log described above.
 PLAN AND BILLING holds the current plan, the renewal or end date, the buttons
 that open Stripe, the top-up pack and Cancel.
 
-YOUR DATA holds Download everything and links to the Privacy Policy and the
+YOUR WORK holds Download project data and links to the Privacy Policy and the
 Terms.
 
 DELETING AN ACCOUNT is at the bottom of Profile. It requires typing the
 account's own email address and then confirming. It removes every project,
 note, character, outline passage and picture, cancels a live subscription, and
 removes the sign-in itself. It cannot be undone, and there is no grace period,
-so Download everything first.
+so Download project data first.
 
 An account can also be deleted from the phone app, and from a signed-out page
 at /delete.html using an emailed code. All three do the same thing.
@@ -959,8 +962,9 @@ So the working pattern is: type, Keep, type, Keep, change script, Keep again,
 and press Send when it suits. Kept notes stay on the phone through closing the
 app, restarting the phone and losing signal.
 
-A failed Send changes nothing and says so. The notes are still on the phone
-and Send can be pressed again later.
+A Send can partially succeed. Check the remaining notes and any error message.
+Retry Send when connected. If a note appears missing, contact support rather
+than promising nothing was lost.
 
 DICTATION is the phone keyboard's own microphone, not a Beatfall feature.
 Beatfall receives whatever the keyboard types.
@@ -975,7 +979,7 @@ Send. There is no separate picture mode and no second Keep.
 
 WHERE NOTES ARRIVE. Sent notes land in the pending pile described in section
 9. They do not change a board by themselves. The next visit on the computer
-offers Place them myself, Read them for me, or Throw away.
+offers Place them myself, Suggest placements, or Delete.
 
 Sending the same note twice cannot create two copies. Each note carries an id
 made on the phone, and the account accepts each id once.
@@ -998,7 +1002,7 @@ The one Save button in the product is in the Outline, and it closes a passage
 and opens a fresh one rather than being the thing that saves.
 
 IF SAVING FAILS, Beatfall says so rather than staying quiet. A strip appears
-saying nothing has been lost and offering the work as a file to download. The
+describing the save problem and offering the work as a file to download. The
 strip comes down once saving recovers. The browser also keeps a local copy as
 a cushion.
 
@@ -1024,7 +1028,9 @@ circumstances set out in the Privacy Policy and Terms: when the writer asks
 for help, when legally required, or during a specific security or abuse
 investigation.
 
-Nothing written in Beatfall is used to train a model.
+When writing help is used, relevant project text is sent to OpenAI to generate
+a response. Refer to the Privacy Policy for training, retention, provider
+processing and limited access circumstances. Do not make broader promises.
 
 HOW LONG IT IS KEPT.
 
@@ -1137,3 +1143,6 @@ on the phone is the phone keyboard's own.
 
 CHANGING AN EMAIL ADDRESS, and refunding part of a period. Both are handled by
 writing to support@beatfall.app rather than by a control in the product.
+
+APPEARANCE. Auto uses light during the day and dark at night. It does not
+follow the computer’s appearance setting.
