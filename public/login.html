@@ -93,15 +93,15 @@
   <div class="side">
     <div class="form">
       <h2 id="title">Sign in</h2>
-      <p class="sub" id="sub">We'll email you a six digit code. No password to remember.</p>
+      <p class="sub" id="sub">Enter your email to receive a six-digit sign-in code.</p>
 
       <div id="err" class="note bad" hidden></div>
       <div id="sent" class="note info" hidden>
-        <b>Check your email.</b> A six digit code is on its way to <span id="sentTo"></span>.
-        It works once and lasts an hour.
+        <b>Check your email.</b> We sent a six-digit code to <span id="sentTo"></span>.
+        Enter it below. The code expires in one hour and can be used once.
         <form id="codeform">
           <label class="field">
-            <span>Code</span>
+            <span>Sign-in code</span>
             <input id="code" inputmode="numeric" autocomplete="one-time-code"
                    maxlength="6" placeholder="000000" required>
           </label>
@@ -113,10 +113,10 @@
              two different things. -->
         <div id="sentapp" hidden></div>
         <div class="sentacts">
-          <button class="linky" id="resend" type="button">Send it again</button>
+          <button class="linky" id="resend" type="button">Send a new code</button>
           <span class="dot">&middot;</span>
           <button class="linky" id="another" type="button">Use a different email</button>
-          <span class="resent" id="resent" hidden>Sent.</span>
+          <span class="resent" id="resent" hidden>New code sent.</span>
         </div>
       </div>
 
@@ -137,13 +137,13 @@
         <button class="btn btn-primary" id="go" style="width:100%" type="submit">Email me a code</button>
       </form>
 
-      <p class="fine" id="fineswap">New here? The same box works. We'll make your account when you type the code.</p>
+      <p class="fine" id="fineswap">New to Beatfall? Enter your email, then verify the code to create an account.</p>
 
-      <p class="fine">By signing in you agree to the <a href="/terms.html">Terms</a> and the
-         <a href="/privacy.html">Privacy Policy</a>. Your writing stays yours, nothing you write
-         trains a model, and you can export or delete all of it at any time. Before you put a
-         project you care about into any tool, including this one,
-         <a href="/terms.html#s5">read section 5</a>.</p>
+      <p class="fine">By continuing, you agree to the <a href="/terms.html">Terms</a> and
+         <a href="/privacy.html">Privacy Policy</a>. You retain ownership of your writing and
+         can download or delete it.</p>
+      <p class="fine"><a href="/terms.html#s5">Section 5 of the Terms</a> explains independent
+         creative work by Beatfall&#39;s owners and staff, and how it affects your rights.</p>
     </div>
   </div>
 
@@ -167,11 +167,11 @@
 const startedTrial = !!new URLSearchParams(location.search).get('start');
 if (startedTrial) {
   document.title = 'Start your trial \u00b7 Beatfall';
-  document.getElementById('title').textContent = 'Start your 14 days';
+  document.getElementById('title').textContent = 'Start your free trial';
   document.getElementById('sub').textContent =
-    "Enter your email. We\u2019ll send a link. No password. No card.";
+    "Enter your email to receive a six-digit code. No password or payment card required.";
   document.getElementById('fineswap').textContent =
-    'Already have an account? The same box works. We\u2019ll email you a link either way.';
+    'Already have an account? Enter your email to sign in.';
 } else {
   /* A returning writer is not being sold a trial. Fourteen days and twenty-five
      credits answer "what am I signing up for", which is not the question
@@ -256,7 +256,7 @@ if (startedTrial) {
       sub.hidden = true;
       document.getElementById('code').focus();
     } catch (e2) {
-      err.textContent = (e2 && e2.message) || "Couldn't send that. Check the address and try again.";
+      err.textContent = (e2 && e2.message) || "We couldn't send your code. Check your email address and try again.";
       err.hidden = false;
     } finally {
       go.disabled = false;
@@ -290,7 +290,7 @@ if (startedTrial) {
     } catch (e4) {
       const raw = String((e4 && e4.message) || '').toLowerCase();
       err.textContent = raw.includes('expired') || raw.includes('invalid')
-        ? "That code didn't work. It may have expired, or a digit is off. Ask for a new one."
+        ? "The code is incorrect or has expired. Check the six digits or select Send a new code."
         : ((e4 && e4.message) || 'Something went wrong. Try again.');
       err.hidden = false;
       codeEl.select();
@@ -311,7 +311,7 @@ if (startedTrial) {
       resent.hidden = false;
       setTimeout(() => { resent.hidden = true; resend.disabled = false; }, 6000);
     } catch (e3) {
-      err.textContent = (e3 && e3.message) || "Couldn't send that again just now.";
+      err.textContent = (e3 && e3.message) || "We couldn't send a new code. Please try again.";
       err.hidden = false;
       resend.disabled = false;
     }
@@ -322,7 +322,7 @@ if (startedTrial) {
     form.hidden = false;
     codeEl.value = '';
     // Back to whichever heading this page arrived with, not always Sign in.
-    title.textContent = startedTrial ? 'Start your 14 days' : 'Sign in';
+    title.textContent = startedTrial ? 'Start your free trial' : 'Sign in';
     sub.hidden = false;
     err.hidden = true;
     emailEl.value = '';

@@ -660,8 +660,8 @@
     if (e.code === 'out_of_credits' || e.code === 'no_plan') return e.message;
     const m = String(e.message || '');
     if (e.status === 502) return /\s/.test(m) ? m
-      : "Couldn't get an answer just now. Try again in a moment.";
-    if (!m || !/\s/.test(m)) return "Something went wrong. Nothing was lost. Try again.";
+      : "Could not get a response. Please try again.";
+    if (!m || !/\s/.test(m)) return "Something went wrong. Please try again.";
     return m;
   };
 
@@ -730,7 +730,7 @@
   BF.applyMode = function (m, label) {
     document.documentElement.setAttribute('data-theme', BF.resolveMode(m));
     try { localStorage.setItem(MODE_KEY, m); } catch (e) {}
-    if (label) label.textContent = 'Mode: ' + m;
+    if (label) label.textContent = 'Appearance: ' + m.charAt(0).toUpperCase() + m.slice(1);
     clearInterval(modeTimer);
     // so it turns over while somebody is still sitting there writing
     if (m === 'auto') modeTimer = setInterval(() => {

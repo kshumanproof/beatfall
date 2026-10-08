@@ -41,55 +41,28 @@ export const HELP = [
   id: "what-is-beatfall",
   section: "Starting out",
   q: "What does Beatfall actually do?",
-  a: "Beatfall turns a pile of notes into a beat board. You paste in whatever "
-   + "you already have, however messy, and it works out which lines are story "
-   + "beats and which are notes about characters, dialogue or research. The "
-   + "beats go onto a board shaped by the structure you chose. Everything else "
-   + "goes to the Notes page where you can still reach it.\n\n"
-   + "The point of the board is not the cards on it. It is the gaps between "
-   + "them: the beats nobody has written yet, which is what a board shows you "
-   + "and a document never does.",
+  a: "Beatfall organizes your notes into a story structure and shows which beats still need work. Story beats appear on the board. Character notes, dialogue and research remain on the Notes page.",
   also: ["first-project", "paste-notes"]
 },
 {
   id: "signing-in",
   section: "Starting out",
   q: "How do I sign in? I do not have a password.",
-  a: "There is no password. Type your email address and Beatfall sends you a "
-   + "six digit code, which you type into the same page. The code lasts an "
-   + "hour.\n\n"
-   + "It is a code rather than a link on purpose. A link signs in whichever "
-   + "device opened your email, which is the wrong one about half the time. A "
-   + "code signs in the machine you are sitting at.\n\n"
-   + "If the email does not arrive, check the spam folder, then ask for "
-   + "another. Each new code cancels the one before it, so use the newest.",
+  a: "Enter your email address to receive a six-digit code. Enter that code on the device where you want to use Beatfall. It expires after one hour.\n\nIf it does not arrive, check your spam folder or request a new code. Use the newest code.",
   also: ["wrong-device", "trial"]
 },
 {
   id: "trial",
   section: "Starting out",
   q: "How does the free trial work?",
-  a: "Fourteen days, and no card. You get 25 credits to spend on the writing "
-   + "help during that time. Everything that does not use the writing help is "
-   + "free and stays free, including placing notes on the board yourself.\n\n"
-   + "You are told a week before the trial ends and again two days before. "
-   + "When it ends the boards close until you pick a plan. Nothing you wrote is "
-   + "deleted, and you can download all of it at any point, including after "
-   + "the trial has ended.",
+  a: "Your free trial lasts 14 days and includes 25 credits. No payment card is required.\n\nWhen it ends, subscribe to continue editing. You can still download your project data and project PDFs.",
   also: ["credits-what", "plan-ends", "download-everything"]
 },
 {
   id: "first-project",
   section: "Projects",
   q: "How do I add a new project?",
-  a: "Press New project on the dashboard. The dashed box at the end of your "
-   + "shelf does the same thing.\n\n"
-   + "You will be asked for the format, and that is the only answer Beatfall "
-   + "insists on, because it decides which beats your board has. A title and a "
-   + "logline are optional and you can add them later.\n\n"
-   + "Then choose one of two ways in. Start the board gives you an empty board "
-   + "to fill yourself. Start from my notes opens the box where you paste what "
-   + "you already have, and Beatfall reads it.",
+  a: "Select New project, then choose a format and story structure. You can add a title and logline now or later.\n\nChoose Start the board for an empty board, or Start from my notes to import existing notes.",
   also: ["paste-notes", "structures", "project-details"]
 },
 {
@@ -108,13 +81,7 @@ export const HELP = [
   id: "delete-project",
   section: "Projects",
   q: "How do I delete a project?",
-  a: "Press Delete on its card on the dashboard. You will be asked to confirm, "
-   + "and told how many cards go with it.\n\n"
-   + "It cannot be undone, and it takes the board, the notes, the outline and "
-   + "the characters with it. If you might want any of it later, use Download "
-   + "everything in Settings first.\n\n"
-   + "You can delete your last project. The shelf goes back to the dashed New "
-   + "project box, the same as a new account.",
+  a: "Select Delete on the project's dashboard card and confirm. This deletes its cards, notes, outline, character information and pictures.\n\nDownload your work first if you want to keep a copy.",
   also: ["download-everything", "undo"]
 },
 /* Kris asked this one of the help chat on 24 September and nothing here
@@ -126,24 +93,14 @@ export const HELP = [
   id: "merge-projects",
   section: "Projects",
   q: "Can I merge two projects into one? I duplicated one by mistake.",
-  a: "There is no merge, and cards cannot be moved from one project to "
-   + "another. A card belongs to the project it was made in.\n\n"
-   + "If one of the two is the copy you do not want, open both and keep the "
-   + "one with more on its board, then press Delete on the other's card on "
-   + "the dashboard. The confirm tells you how many cards go with it, which "
-   + "is the quickest way to be sure you are deleting the emptier one.\n\n"
-   + "If real work has gone into both, there is no tidy way to join them. You "
-   + "would have to type the cards you want into the one you are keeping "
-   + "before deleting the other. Download everything in Settings first if you "
-   + "want a copy of both as they stand.",
+  a: "Beatfall cannot merge projects. Review both projects and copy any work you want to keep into one before deleting the other.\n\nDownload their project data first if you want a backup.",
   also: ["delete-project", "download-everything", "duplicates"]
 },
 {
   id: "how-many-projects",
   section: "Projects",
   q: "Is there a limit on how many projects I can have?",
-  a: "Sixty. If you reach it, delete one you have finished with. Nobody has "
-   + "come close.",
+  a: "You can have up to 60 projects. If you reach the limit, download any work you want to keep before deleting a project.",
   also: ["delete-project"]
 },
 
@@ -159,7 +116,7 @@ export const HELP = [
    + "anything touches your board: one row per note, each saying how it was "
    + "read and where it would go. You tick and untick, change any row, and "
    + "only then press Add to the board.\n\n"
-   + "Reading a file costs 5 credits however long the file is.",
+   + "Importing up to 1,000 notes costs 5 credits. Split larger collections into separate imports. Each import costs 5 credits.",
   also: ["review-sheet", "credits-what", "note-kinds"]
 },
 {
@@ -179,13 +136,7 @@ export const HELP = [
   id: "one-note",
   section: "Getting your notes in",
   q: "How do I add a single note?",
-  a: "Type it into the bar under the header on any board, then press Place it. "
-   + "Beatfall suggests where it belongs and you make the final call. That is "
-   + "free and has no limit worth thinking about.\n\n"
-   + "Press Enter to place it. Shift and Enter together give you a new line "
-   + "without sending.\n\n"
-   + "Or press Place it myself and choose the beat yourself, which does not "
-   + "use the writing help at all.",
+  a: "Type a note and select Place it to see a suggested beat, or Place it myself to choose one. Neither uses credits.\n\nEnter submits the note; Shift+Enter adds a new line.",
   also: ["uncertain", "credits-free"]
 },
 {
@@ -205,10 +156,7 @@ export const HELP = [
   id: "board-basics",
   section: "The board",
   q: "How does the beat board work?",
-  a: "Each box on the board is one beat of your chosen structure, in order, "
-   + "grouped into acts. A beat with a card in it is written. A beat with a "
-   + "dashed gold edge and nothing in it is a hole, and those are the point.\n\n"
-   + "A beat holds up to three cards. Drag a card to move it between beats.",
+  a: "Each box represents a beat in your chosen structure. Empty beats show where your story still needs development. Each beat holds up to three cards.\n\nDrag a card to move it between beats.",
   also: ["move-card", "empty-beat", "structures"]
 },
 {
@@ -226,22 +174,14 @@ export const HELP = [
   id: "lock-card",
   section: "The board",
   q: "What does the padlock on a card do?",
-  a: "It locks the card's words. A locked card cannot be edited or deleted "
-   + "until you unlock it, which is there for a line you have got exactly "
-   + "right and do not want to lose to a stray click.\n\n"
-   + "The circle beside it is a different thing: that settles where the card "
-   + "sits, not what it says.",
+  a: "The padlock keeps a card in its current location. Unlock it to move it. You can still edit its text or delete it after confirming.",
   also: ["move-card"]
 },
 {
   id: "card-controls-touch",
   section: "The board",
   q: "I am on a touchscreen and cannot see the controls on a card.",
-  a: "You should. On any screen with no mouse, the delete, edit, move and "
-   + "padlock controls stay visible rather than appearing when you hover.\n\n"
-   + "They do not appear on the first tap, deliberately: a tap that only "
-   + "reveals a control is a tap that did nothing, which is worse.\n\n"
-   + "If they are genuinely missing, that is a fault and worth reporting.",
+  a: "Card controls should remain visible on touchscreens. If the edit, move, delete or lock controls are missing, contact support.",
   also: ["small-screen"]
 },
 {
@@ -261,26 +201,14 @@ export const HELP = [
   id: "uncertain",
   section: "The board",
   q: "Why did Beatfall not place my note?",
-  a: "Because it was not sure enough, and a wrong beat costs you more than an "
-   + "empty one.\n\n"
-   + "When it is confident it places the card. When it is only fairly "
-   + "confident it offers you the two beats it is choosing between and you "
-   + "pick. When it is not confident it places nothing and the note goes to "
-   + "Set aside, where you can put it wherever you like.\n\n"
-   + "There is a separate case worth knowing: if it was sure but that beat "
-   + "already holds three cards, the card goes to Set aside and says so. That "
-   + "is a full beat, not a doubt.",
+  a: "Beatfall may leave a note in Set aside when its placement is uncertain or the suggested beat already holds three cards. You can move it onto a beat yourself.",
   also: ["set-aside", "board-basics"]
 },
 {
   id: "undo",
   section: "The board",
   q: "I made a mistake. How do I undo it?",
-  a: "Control and Z, or Command and Z on a Mac. Beatfall remembers the last "
-   + "thirty changes to your board, not just the most recent one.\n\n"
-   + "Undo covers the board: placing, moving, deleting and structure changes. "
-   + "It does not reach across to a project you have deleted, which is why "
-   + "that one asks first.",
+  a: "Press Ctrl+Z, or Cmd+Z on Mac, to undo board changes. Beatfall keeps up to 30 undo steps while the page remains open. Undo does not restore a deleted project.",
   also: ["delete-project", "shortcuts"]
 },
 
@@ -304,11 +232,7 @@ export const HELP = [
   id: "ideas",
   section: "Working on an empty beat",
   q: "What is the Ideas button?",
-  a: "Three suggestions for what could happen in an empty beat, in one go, "
-   + "with no questions first. It is the fastest thing in the app and it is "
-   + "meant to be pressed without deliberating.\n\n"
-   + "Take one, take none, or use one as a starting point and rewrite it. It "
-   + "costs 2 credits whether you take one or not.",
+  a: "Ideas offers three possible directions for an empty beat. Choose one, revise one or leave them all. A set costs 2 credits, whether you use a suggestion or not.",
   also: ["empty-beat", "credits-what"]
 },
 {
@@ -326,13 +250,7 @@ export const HELP = [
   id: "gold-means",
   section: "Working on an empty beat",
   q: "What does the gold mean?",
-  a: "Two related things, and they never conflict.\n\n"
-   + "Gold text and gold dashed lines mean there is a gap here: an empty beat, "
-   + "a count of what is missing.\n\n"
-   + "A gold button means pressing it spends a credit. Every paid control in "
-   + "Beatfall is a way out of one of those gaps, which is why it is the same "
-   + "colour.\n\n"
-   + "Blue means you can press it and it is free.",
+  a: "Gold dashed borders identify empty beats. Gold writing-help buttons use credits. Check the displayed cost before continuing.",
   also: ["credits-what", "credits-free"]
 },
 
@@ -375,11 +293,7 @@ export const HELP = [
   id: "note-about",
   section: "Notes",
   q: "Can I say which character a note is about?",
-  a: "On a note marked as a Character, yes. There is a dropdown that says This "
-   + "note is about, listing the characters in that project.\n\n"
-   + "Character notes are often one word, and “Skinny.” is not a "
-   + "note until you know whose. The attribution shows on the note itself and "
-   + "prints in the PDF. It does not change the Characters page.",
+  a: "On a Character note, use This note is about to select a character. The selected name appears on the note and in the PDF. This does not change the character's profile.",
   also: ["characters", "note-kinds"]
 },
 
@@ -399,28 +313,14 @@ export const HELP = [
   id: "add-picture",
   section: "Pictures",
   q: "How do I add a picture?",
-  a: "Three ways, and all of them land in the same place.\n\n"
-   + "Press Add pictures on the Notes page and choose files.\n\n"
-   + "Drag image files onto the Notes page from your computer.\n\n"
-   + "Paste a screenshot straight from your clipboard, anywhere in the app. "
-   + "That one matters most: a frame grabbed from a film never touches your "
-   + "disk, and pasting is what your hands do anyway.\n\n"
-   + "You can also take or choose a picture on the phone app and send it with "
-   + "your notes.",
+  a: "Select Add pictures on the Notes page, drag in image files or paste a picture from your clipboard. You can also send pictures from the phone app.",
   also: ["vision", "picture-phone", "picture-room"]
 },
 {
   id: "picture-character",
   section: "Pictures",
   q: "How do I put a picture on a character?",
-  a: "Two ways. On a character's card there is a dashed box with a plus in it: "
-   + "press that and choose a picture, and it goes onto that character and "
-   + "into Vision at the same time.\n\n"
-   + "Or on a picture already in Vision, use Use as a reference for and pick "
-   + "the character.\n\n"
-   + "A character wears one reference at a time. The x on the picture takes it "
-   + "off that character and leaves the photograph in Vision, which is what "
-   + "you want when you find a better one.",
+  a: "On a character's card, select the picture box and choose a picture. You can also select Use as a reference for on a picture in Vision and choose the character.\n\nEach character can have one reference picture. Select the × to remove the reference from the character. The picture remains in Vision.",
   also: ["vision", "characters"]
 },
 {
@@ -437,25 +337,14 @@ export const HELP = [
   id: "picture-private",
   section: "Pictures",
   q: "Who can see my pictures?",
-  a: "Only you. They are stored privately and shown through links that expire "
-   + "within the hour, so a link that escaped your browser history stops "
-   + "working the same afternoon. There is no public web address for any "
-   + "picture you upload.\n\n"
-   + "The location data your phone writes into a photograph is stripped before "
-   + "it is stored. A picture taken in a bar does not record the bar.",
+  a: "Pictures are stored privately. Beatfall uses temporary links to display them. Anyone with a working link may view its picture until the link expires. Embedded location data is removed before storage.",
   also: ["vision", "picture-deleted"]
 },
 {
   id: "picture-deleted",
   section: "Pictures",
   q: "What happens to my pictures if I stop paying?",
-  a: "Pictures are removed thirty days after a plan ends. Your writing is "
-   + "not, ever.\n\n"
-   + "The reason for the difference is weight. A board of text costs almost "
-   + "nothing to keep forever, and photographs are the only part of a closed "
-   + "account with real size to them. Download everything before then if you "
-   + "want to keep them, and it includes the pictures.\n\n"
-   + "Deleting your account removes every picture immediately.",
+  a: "Photos are deleted 30 days after your subscription ends. Their notes and captions remain, subject to the inactive-account policy.\n\nThe project-data download does not include picture files. Download project PDFs containing your pictures before the deadline.\n\nDeleting your account removes its pictures.",
   also: ["plan-ends", "download-everything", "delete-account"]
 },
 {
@@ -487,13 +376,7 @@ export const HELP = [
   id: "character-interview",
   section: "Characters",
   q: "What is “Answer character questions”?",
-  a: "An interview that fills in the blanks on a character sheet. It asks "
-   + "about the fields you have left empty, up to ten of them, then writes "
-   + "them up. Fields you have already filled in are left alone.\n\n"
-   + "It costs 3 credits for the whole thing. Filling the sheet in yourself "
-   + "costs nothing, and the more you fill in first the shorter the interview "
-   + "gets.\n\n"
-   + "Stopping after three questions still buys you those three answers.",
+  a: "Answer up to ten questions about empty fields, then use Fill in the blanks to create suggested text. Existing fields remain unchanged. The session costs 3 credits, even if you stop early.",
   also: ["characters", "credits-what"]
 },
 
@@ -502,26 +385,14 @@ export const HELP = [
   id: "outline",
   section: "The Outline",
   q: "What is the Outline?",
-  a: "Your board as a document, in order, with a writing box under every beat. "
-   + "It is where the prose happens once the shape is settled.\n\n"
-   + "Each beat can hold several passages. Save closes the one you are in and "
-   + "opens a fresh box underneath, because a beat is rarely one paragraph. "
-   + "Cards and any notes you have filed under a beat show up beside the box "
-   + "so you are writing with them in front of you.",
+  a: "The Outline presents your story in beat order, with space to write under each beat. Your cards and attached notes appear alongside the writing fields.\n\nEach beat can hold several passages. Select Save to finish a passage and open a new writing field.",
   also: ["outline-locked", "file-under-beat", "pdf"]
 },
 {
   id: "outline-locked",
   section: "The Outline",
   q: "Why can't I open the Outline?",
-  a: "Because your board is not full yet. Every beat in your structure needs "
-   + "at least one card before the Outline opens, and the locked button tells "
-   + "you how many are still empty.\n\n"
-   + "The reason is that an outline written around holes has to be rewritten "
-   + "when the holes get filled. Shape first, prose second.\n\n"
-   + "Once you have opened it, it stays open for that project even if the "
-   + "board later goes incomplete. Nothing you have written is ever hidden "
-   + "from you.",
+  a: "Every beat needs at least one card before the Outline first opens. The button shows how many beats remain empty.\n\nOnce opened, the Outline stays available for that project, even if you later remove cards.",
   also: ["outline", "empty-beat"]
 },
 {
@@ -540,9 +411,9 @@ export const HELP = [
 // ------------------------------------------------------------------- pdf --
 {
   id: "pdf",
-  section: "Saving as a PDF",
+  section: "Downloading PDFs",
   q: "How do I get my work out as a document?",
-  a: "Save as PDF, from the project menu, or from the Finished button on a "
+  a: "Download PDF, from the project menu, or from the Finished button on a "
    + "completed card on the dashboard.\n\n"
    + "You get six sections: a cover, the board as a map, the outline in "
    + "reading order with every beat and its cards and prose, your characters, "
@@ -591,7 +462,7 @@ export const HELP = [
    + "them.\n\n"
    + "A conversation about an empty beat is 2. A set of ideas is 2. A logline "
    + "is 3. A character interview is 3. Reading in a file of notes is 5, "
-   + "however long the file.\n\n"
+   + "for up to 1,000 notes. Split larger collections into separate imports. Each import costs 5 credits.\n\n"
    + "A plan gives you 75 a month. The trial gives you 25.",
   also: ["credits-free", "credits-reset", "topup"]
 },
@@ -602,7 +473,7 @@ export const HELP = [
   a: "Most of it. Placing a note on the board, including letting Beatfall "
    + "suggest where it goes. Writing and editing cards by hand. The whole "
    + "Outline. Filling in character sheets yourself. Adding, filing and "
-   + "deleting pictures. Changing structure. Saving as a PDF. Downloading "
+   + "deleting pictures. Changing structure. Downloading PDFs. Downloading "
    + "everything.\n\n"
    + "If a control is blue it is free. Gold means it spends a credit.",
   also: ["gold-means", "credits-what"]
@@ -611,34 +482,21 @@ export const HELP = [
   id: "credits-reset",
   section: "Credits",
   q: "When do my credits reset?",
-  a: "On your own day of the month, which is the day you signed up, not the "
-   + "first of the month.\n\n"
-   + "Whatever is left of that month's allowance does not roll over. Credits "
-   + "you bought in a pack are different and never expire.",
+  a: "Your monthly allowance resets on the day of the month you signed up. Unused monthly credits do not roll over.\n\nPurchased credits are used after your monthly allowance and do not expire while your account remains open.",
   also: ["topup", "credits-what"]
 },
 {
   id: "topup",
   section: "Credits",
   q: "I have run out of credits. What now?",
-  a: "Either wait for your reset day, or buy a pack: 25 credits for $6, from "
-   + "Add credits in Settings.\n\n"
-   + "Bought credits never expire and are only spent once the month's "
-   + "allowance is gone, so a pack is never wasted by a reset.\n\n"
-   + "Everything that does not use the writing help keeps working while you "
-   + "are out. You can still write, place, move, outline and export.",
+  a: "Wait until your monthly allowance resets, or select Add credits in Settings to buy 25 credits for $6.\n\nPurchased credits are used after your monthly allowance and do not expire while your account remains open.\n\nWhile your trial or subscription is active, you can continue editing, placing notes and downloading your work without credits.",
   also: ["credits-reset", "credits-free", "credits-warning"]
 },
 {
   id: "credits-warning",
   section: "Credits",
   q: "Will Beatfall warn me before I run out?",
-  a: "Twice. A gold count appears on your account button when you are getting "
-   + "low, which does not interrupt anything. A single strip appears near the "
-   + "end, once per month, which you can dismiss.\n\n"
-   + "They are counted down in credits left rather than up in a percentage, "
-   + "because eight left tells you something and ninety per cent used does "
-   + "not.",
+  a: "A credit count appears on your account button when your balance is low. A dismissible notice also appears when you are close to running out.",
   also: ["topup", "credits-what"]
 },
 
@@ -647,9 +505,7 @@ export const HELP = [
   id: "what-it-costs",
   section: "Your plan",
   q: "What does Beatfall cost?",
-  a: "$15 a month, or $149 a year, which is two months free. One plan, and it "
-   + "is the same plan either way: 75 credits a month.\n\n"
-   + "Before that, fourteen days free with no card.",
+  a: "Beatfall costs $15 per month or $149 per year. Both include 75 credits each month. The annual plan saves $31 compared with paying monthly for a year.\n\nNew accounts receive a 14-day free trial with no payment card required.",
   also: ["trial", "credits-what", "switch-annual"]
 },
 {
@@ -666,53 +522,28 @@ export const HELP = [
   id: "cancel",
   section: "Your plan",
   q: "How do I cancel?",
-  a: "Settings, Plan and billing, Cancel plan. Beatfall tells you exactly what "
-   + "happens first and asks you to tick that you have read it, with a button "
-   + "to download your work right there. Then it hands you to Stripe's own "
-   + "cancel screen.\n\n"
-   + "Your plan runs to the end of the period you have paid for. After that "
-   + "the boards close. Your writing is not deleted, you can still download "
-   + "all of it, and everything is exactly where you left it if you come back. "
-   + "Pictures come off after thirty days.",
+  a: "Open Settings → Plan and billing → Cancel plan. Review the information, then continue to Stripe to confirm cancellation.\n\nAccess continues until your paid period ends. After that, you can download your work but cannot edit projects. Photos are deleted after 30 days.",
   also: ["plan-ends", "download-everything", "picture-deleted"]
 },
 {
   id: "plan-ends",
   section: "Your plan",
   q: "What happens when my plan or trial ends?",
-  a: "The boards close and you get a screen with two things on it: pick a "
-   + "plan, or download everything.\n\n"
-   + "Nothing is deleted. Every project is listed on that screen and each one "
-   + "can still be saved as a PDF. Any credits you bought are still there when "
-   + "you come back.\n\n"
-   + "Pictures are removed thirty days later. The writing is not.",
+  a: "When your trial or subscription ends, you can download project data and project PDFs but cannot edit projects.\n\nPhotos are deleted after 30 days. Accounts without an active subscription are deleted after six months without a sign-in.",
   also: ["download-everything", "picture-deleted", "cancel"]
 },
 {
   id: "download-everything",
   section: "Your account",
   q: "How do I get all my work out of Beatfall?",
-  a: "Settings, Your data, Download everything. It is one file with every "
-   + "project, board, note, character, outline passage and picture in it.\n\n"
-   + "It works whether or not you have a plan, on purpose. Closing the boards "
-   + "is a business decision and holding your notes hostage is a different "
-   + "thing.\n\n"
-   + "For a readable document rather than a data file, use Save as PDF on each "
-   + "project.",
+  a: "Open Settings → Your work → Download project data. The file contains project details, cards, notes, outlines and character information. Picture files are not included.\n\nYou can download this file without an active subscription. For a readable copy, use Download PDF on a project.",
   also: ["pdf", "plan-ends", "delete-account"]
 },
 {
   id: "delete-account",
   section: "Your account",
   q: "How do I delete my account?",
-  a: "Settings, Your account, Delete my account. You type your email address "
-   + "to confirm. The phone app has the same thing on its account screen, and "
-   + "there is a page on the website that works even if you have uninstalled "
-   + "everything.\n\n"
-   + "It cancels any subscription, then removes every project, note, "
-   + "character, outline and picture, immediately and permanently. It cannot "
-   + "be undone.\n\n"
-   + "Download everything first if there is any doubt.",
+  a: "Download any work you want to keep before deleting your account. In Settings, select Delete my account. Enter your account email address and confirm deletion.\n\nAccount deletion cancels your subscription and removes your account contents. This cannot be undone.",
   also: ["download-everything", "picture-deleted"]
 },
 {
@@ -738,8 +569,7 @@ export const HELP = [
   id: "dark-mode",
   section: "Your account",
   q: "Can I use Beatfall in dark mode?",
-  a: "Yes. The setting is in the account menu at the top right: Light, Dark or "
-   + "Auto, which follows whatever your computer is set to.",
+  a: "Open the account menu and select Appearance to switch between Light, Dark and Auto. Auto uses light during the day and dark at night.",
   also: []
 },
 
@@ -748,13 +578,7 @@ export const HELP = [
   id: "phone-what",
   section: "The phone app",
   q: "What does the Beatfall phone app do?",
-  a: "It catches notes, and that is all it does on purpose. There is no board "
-   + "on the phone, because dragging cards around a phone screen is not a "
-   + "thing anybody wants to do.\n\n"
-   + "You open it, the cursor is already blinking, you type or dictate the "
-   + "thought, and you press Keep. Later you press Send and it goes to your "
-   + "account, where it waits until you sit down at your computer.\n\n"
-   + "It uses the same account and the same sign-in code as the website.",
+  a: "The phone app lets you collect typed notes, dictated notes and pictures. Use a computer or tablet to work on the beat board.\n\nPress Keep to save a note on your phone. Press Send to send saved notes to your account. It uses the same account as the website.",
   also: ["phone-capture", "phone-send", "phone-pile"]
 },
 {
@@ -799,11 +623,7 @@ export const HELP = [
   id: "phone-offline",
   section: "The phone app",
   q: "Does the phone app work with no signal?",
-  a: "Yes, and that is the whole reason it exists as an app rather than a "
-   + "website. Notes are saved to the phone itself the moment you press Keep. "
-   + "A note typed in a car park with no bars is still there tomorrow.\n\n"
-   + "Send needs a connection. If it fails, nothing is lost: the notes stay "
-   + "where they are and you press Send again when you have signal.",
+  a: "Press Keep to save a note on your phone. You can collect notes without an internet connection. Sending them to your account requires a connection.\n\nIf sending fails, the notes remain on your phone for another attempt.",
   also: ["phone-capture", "phone-send"]
 },
 {
@@ -824,22 +644,15 @@ export const HELP = [
 {
   id: "phone-delete",
   section: "The phone app",
-  q: "How do I throw away a note on my phone?",
-  a: "Press and hold it in the list, then confirm. If it has a picture the "
-   + "picture goes too.\n\n"
-   + "A note you have already sent is also removed from your account when you "
-   + "throw it away on the phone.",
+  q: "How do I delete a note on my phone?",
+  a: "Press and hold the note, then confirm deletion. Its attached picture is also deleted.",
   also: ["phone-capture"]
 },
 {
   id: "phone-gone",
   section: "The phone app",
   q: "My phone notes disappeared after I sent them.",
-  a: "That is correct, and it is deliberate. Once a note is safely on your "
-   + "account the phone lets go of it, because this app is not an archive and "
-   + "a second pile to read through is the thing Beatfall exists to end.\n\n"
-   + "The list says so: nothing waiting means everything you caught is on your "
-   + "account, ready to sort at your desk.",
+  a: "After a note is successfully sent to your account, it is removed from the phone's waiting list. Open Beatfall on your computer to review and sort it.",
   also: ["phone-send", "phone-pile"]
 },
 
@@ -848,15 +661,7 @@ export const HELP = [
   id: "phone-pile",
   section: "Notes from your phone",
   q: "Where do my phone notes go when I get to my computer?",
-  a: "Into a pile, grouped by script. The dashboard shows a count, and if you "
-   + "have been away more than half a day Beatfall greets you with what came "
-   + "in.\n\n"
-   + "Nothing has touched a board. For each group you choose: place them "
-   + "yourself, which is free and gives you one row per note with a dropdown, "
-   + "or have them read, which costs 5 credits and sorts them the way an "
-   + "imported file is sorted. Or throw the whole group away.\n\n"
-   + "Pictures never go through the paid read. They go straight into Vision on "
-   + "that script, because there is nothing in a photograph to read.",
+  a: "Your phone notes wait on your account, grouped by project. On your computer, review each group and choose whether to place the notes yourself for free or have Beatfall read them for 5 credits. You can also delete a group.\n\nPictures are added to Vision without using the paid note-reading feature. Beatfall does not analyze their contents.",
   also: ["phone-send", "review-sheet", "vision"]
 },
 
@@ -865,36 +670,21 @@ export const HELP = [
   id: "one-browser",
   section: "Rules worth knowing",
   q: "Why was I signed out when I opened Beatfall somewhere else?",
-  a: "An account edits Beatfall in one browser at a time. Open it on another "
-   + "computer and the first one stops and tells you, with a button to make "
-   + "itself active again.\n\n"
-   + "This is not about sharing. It is about two browsers holding different "
-   + "versions of the same board and overwriting each other's work. Tabs in "
-   + "the same browser are one browser and do not conflict.\n\n"
-   + "The phone app is exempt. Catching notes on your phone never closes the "
-   + "board you left open at home.",
+  a: "Only one browser can edit your account at a time. Opening Beatfall in another browser pauses editing in the first to reduce conflicting saves. The phone app can collect notes while your board remains open.",
   also: ["conflict", "phone-what"]
 },
 {
   id: "small-screen",
   section: "Rules worth knowing",
   q: "Why won't the board open on my phone?",
-  a: "Because a beat board is a spatial thing and there is no honest way to "
-   + "drag cards around a phone screen. Rather than give you a cramped version "
-   + "of the real product, Beatfall shows you the phone app instead, which is "
-   + "built for a phone.\n\n"
-   + "Tablets are fine. So are touchscreen laptops. The legal pages, the "
-   + "billing page and signing up all work on a phone.",
+  a: "The beat board requires a computer or tablet. On a phone, use the Beatfall app to collect notes and pictures. Sign-in, billing and legal pages remain available in your phone's browser.",
   also: ["phone-what", "card-controls-touch"]
 },
 {
   id: "wrong-device",
   section: "Rules worth knowing",
   q: "I opened my sign-in email on my phone and now my laptop is not signed in.",
-  a: "Sign-in is per browser, so the code signs in whatever you typed it "
-   + "into.\n\n"
-   + "Your account is fine. Ask for a new code from the computer you want to "
-   + "use and type it there. Nothing is lost and the account already exists.",
+  a: "Enter the sign-in code in the browser where you want to use Beatfall. If necessary, request a new code from that browser and use the newest code.",
   also: ["signing-in", "one-browser"]
 },
 {
@@ -917,34 +707,21 @@ export const HELP = [
   id: "save-failed",
   section: "When something goes wrong",
   q: "Beatfall says it cannot save my work.",
-  a: "A strip appears across the top saying so, and it hands you the whole "
-   + "project as a file to download so nothing is trapped in a browser tab. "
-   + "The strip goes away by itself once saving recovers.\n\n"
-   + "Usually this is the connection. Keep the tab open, because your work is "
-   + "still in it, and it will save itself when the connection comes back.",
+  a: "If saving continues to fail, a notice appears at the bottom of the page with a Download a copy button.\n\nKeep the tab open while Beatfall retries, and download a backup of your current work. The notice disappears when saving succeeds.",
   also: ["conflict", "download-everything"]
 },
 {
   id: "no-answer",
   section: "When something goes wrong",
   q: "The writing help says it couldn't get an answer.",
-  a: "Something upstream was busy or unreachable. No credits are charged for a "
-   + "request that failed, so trying again in a moment costs you nothing.\n\n"
-   + "If it keeps happening, write to support@beatfall.app and say which "
-   + "button you pressed.",
+  a: "Please try again. A failed request does not charge credits, but a successful retry may use credits.\n\nIf the problem continues, email support@beatfall.app and tell us which feature you used.",
   also: ["contact", "credits-what"]
 },
 {
   id: "missing-cards",
   section: "When something goes wrong",
   q: "Some of my notes are not on the board.",
-  a: "Look on the Notes page and on the Set aside shelf first. Most notes in a "
-   + "file are not beats, so they land on Notes by design, and beats Beatfall "
-   + "was unsure about land on Set aside.\n\n"
-   + "The review sheet you saw before anything was added says exactly what "
-   + "went where and how many were collapsed as copies.\n\n"
-   + "If a note is genuinely nowhere, that is a fault and worth reporting with "
-   + "the project name.",
+  a: "Check the Notes page and Set aside first. Notes may be stored there instead of placed on a beat.\n\nIf you still cannot find a note, contact support with the project name.",
   also: ["notes-page", "set-aside", "review-sheet", "contact"]
 },
 {
@@ -961,23 +738,15 @@ export const HELP = [
 {
   id: "contact",
   section: "When something goes wrong",
-  q: "How do I contact a human?",
-  a: "support@beatfall.app. Say what you were trying to do, what happened "
-   + "instead, and which page you were on. If it is about a particular "
-   + "project, the name of it helps.\n\n"
-   + "Beatfall is run by one person, so an answer may take a day.",
+  q: "How do I contact support?",
+  a: "Email support@beatfall.app. Include what you were trying to do, what happened, the page you were using and the project name if relevant.",
   also: []
 },
 {
   id: "my-material",
   section: "When something goes wrong",
   q: "What happens to my writing? Is it used to train anything?",
-  a: "No. Your material is yours, it is not used to train anything, and it is "
-   + "not shown to other people.\n\n"
-   + "When you use the writing help, the part of your project it needs is sent "
-   + "to the company that provides it so it can answer. The Privacy Policy "
-   + "names them and says exactly what is sent. Everything else stays on your "
-   + "account.",
+  a: "You retain ownership of your writing. When you use writing help, relevant project text is sent to OpenAI to generate a response.\n\nSee the Privacy Policy for information about training, retention and the limited circumstances in which Beatfall may access your work.",
   also: ["download-everything", "contact"]
 }
 
@@ -996,7 +765,7 @@ export const SECTIONS = [
   "Pictures",
   "Characters",
   "The Outline",
-  "Saving as a PDF",
+  "Downloading PDFs",
   "Structure",
   "Credits",
   "Your plan",

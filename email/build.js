@@ -217,8 +217,8 @@ function shell({ preheader, heading, lede, eyebrow, code, after, sig }) {
                   </p>
                   <p class="bf-ink4" style="margin:0;font-family:${SANS};font-size:12px;
                      line-height:1.6;color:${L.ink4};">
-                    <strong style="font-weight:600;">Nobody reads replies to this address.</strong>
-                    For anything you need an answer to, write to
+                    <strong style="font-weight:600;">This inbox is not monitored.</strong>
+                    For help, email
                     <a href="mailto:${REPLYTO}" style="color:${L.blue};text-decoration:none;">${REPLYTO}</a>.
                   </p>
                 </td>
@@ -239,23 +239,23 @@ function shell({ preheader, heading, lede, eyebrow, code, after, sig }) {
    House voice: one idea per sentence, plain, no em dashes, and never a word
    about how any of it works inside. */
 const SIGNUP = {
-  preheader: 'Your code is {{ .Token }}. It works once.',
+  preheader: 'Your Beatfall sign-in code is {{ .Token }}. It expires in one hour.',
   heading: 'Welcome to Beatfall',
-  lede: 'Here is the code that opens your account. Type it into the box you just came from.',
+  lede: 'Enter this code on the Beatfall sign-in page to finish creating your account.',
   eyebrow: 'Your code',
   code: '{{ .Token }}',
-  after: 'It works once, and expires in an hour. If it stops working, ask for another from the same box.',
-  sig: 'If you did not ask for this, no account has been created and there is nothing to undo.'
+  after: 'This code can be used once and expires in one hour. If it expires, request a new code on the sign-in page.',
+  sig: 'If you did not request this code, ignore this email. Do not share the code.'
 };
 
 const SIGNIN = {
-  preheader: 'Your code is {{ .Token }}. It works once.',
-  heading: 'Here is your code',
-  lede: 'Type it into the box you just came from and your boards will be waiting.',
+  preheader: 'Your Beatfall sign-in code is {{ .Token }}. It expires in one hour.',
+  heading: 'Your sign-in code',
+  lede: 'Enter this code on the Beatfall sign-in page.',
   eyebrow: 'Your code',
   code: '{{ .Token }}',
-  after: 'It works once, and expires in an hour. If it stops working, ask for another from the same box.',
-  sig: 'If you did not ask for this, you can ignore it. Nobody reaches your account without the code.'
+  after: 'This code can be used once and expires in one hour. If it expires, request a new code on the sign-in page.',
+  sig: 'If you did not request this code, ignore this email. Do not share the code.'
 };
 
 fs.writeFileSync('signup.html', shell(SIGNUP));
@@ -279,12 +279,10 @@ function warning() {
                         <p class="bf-ink2" style="margin:0 0 14px 0;font-family:${SANS};
                            font-size:15.5px;line-height:1.62;color:${L.ink2};">You have not signed in to Beatfall for five months.</p>
                         <p class="bf-ink2" style="margin:0 0 14px 0;font-family:${SANS};
-                           font-size:15.5px;line-height:1.62;color:${L.ink2};">After six months of no sign-in and no subscription we delete the account and
-                           everything in it: every board, every note, every outline. That is a promise
-                           we make in the Privacy Policy, so this is us keeping it rather than a nudge
-                           to come back.</p>
+                           font-size:15.5px;line-height:1.62;color:${L.ink2};">Accounts without an active subscription are deleted after six months without a sign-in.
+                           This deletes the account and all its contents.</p>
                         <p class="bf-ink2" style="margin:0;font-family:${SANS};font-size:15.5px;
-                           line-height:1.62;color:${L.ink2};">If you want to keep the work, you have two ways to do it.</p>
+                           line-height:1.62;color:${L.ink2};">Sign in to keep your account, or download a copy of your work before deletion.</p>
                       </td>
                     </tr>
                     <tr>
@@ -295,13 +293,13 @@ function warning() {
                           <tr>
                             <td style="padding:20px 22px;">
                               <p class="bf-ink" style="margin:0 0 6px 0;font-family:${SANS};
-                                 font-size:15px;line-height:1.55;font-weight:600;color:${L.ink};">Sign in once</p>
+                                 font-size:15px;line-height:1.55;font-weight:600;color:${L.ink};">Keep your account</p>
                               <p class="bf-ink2" style="margin:0 0 16px 0;font-family:${SANS};
-                                 font-size:14px;line-height:1.6;color:${L.ink2};">That is all it takes. The clock starts again.</p>
+                                 font-size:14px;line-height:1.6;color:${L.ink2};">Signing in restarts the six-month inactivity period.</p>
                               <p class="bf-ink" style="margin:0 0 6px 0;font-family:${SANS};
-                                 font-size:15px;line-height:1.55;font-weight:600;color:${L.ink};">Or take it with you</p>
+                                 font-size:15px;line-height:1.55;font-weight:600;color:${L.ink};">Download your work</p>
                               <p class="bf-ink2" style="margin:0;font-family:${SANS};font-size:14px;
-                                 line-height:1.6;color:${L.ink2};">Sign in and download everything from Settings, under Your data.</p>
+                                 line-height:1.6;color:${L.ink2};">Open Settings &rarr; Your work &rarr; Download project data. Picture files are not included. You can also download individual projects as PDFs.</p>
                             </td>
                           </tr>
                         </table>
@@ -310,7 +308,7 @@ function warning() {
                     <tr>
                       <td class="bf-pad" style="padding:24px 44px 40px 44px;">
                         <p class="bf-ink2" style="margin:0 0 18px 0;font-family:${SANS};
-                           font-size:15.5px;line-height:1.62;color:${L.ink2};">If you would rather it all went, do nothing.</p>
+                           font-size:15.5px;line-height:1.62;color:${L.ink2};">If you do not sign in or subscribe, your account and its contents will be deleted in about one month.</p>
                         <a href="${SITE}/login" style="display:inline-block;background:${L.blue};
                            color:#FFFFFF;font-family:${SANS};font-size:15px;font-weight:600;
                            text-decoration:none;padding:13px 26px;border-radius:4px;">Sign in to Beatfall</a>
@@ -318,7 +316,7 @@ function warning() {
                     </tr>`;
 
   // the same shell, with the code block swapped for the body above
-  let html = shell({ preheader:'Five months without a sign-in. Here is how to keep your work.',
+  let html = shell({ preheader:'Sign in within the next month to keep your Beatfall account.',
     heading:'x', lede:'x', eyebrow:'x', code:'x', after:'x', sig:'x' });
   const start = html.indexOf('<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">\n                    <tr>\n                      <td class="bf-pad" style="padding:40px 44px 0 44px;">');
   const open  = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">';
@@ -327,7 +325,7 @@ function warning() {
   html = html.slice(0, a + open.length) + body + '\n                  ' + html.slice(b);
   // this email is not about signing in, so the footer line changes
   html = html.replace('Sent because somebody asked to sign in to Beatfall with this address.\n                    If that was not you, nothing has happened and you can ignore it.',
-    'Sent because this address has a Beatfall account that has been quiet for five months.');
+    'You received this notice because your account has no active subscription and you have not signed in for five months.');
   return html;
 }
 const WARNING = warning();

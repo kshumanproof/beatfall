@@ -75,17 +75,26 @@ async function warn(db, profile) {
            a message with only an HTML part scores worse for it. The words are
            the same words. */
         text:
-`You haven't signed in to Beatfall for five months.
+`You have not signed in to Beatfall for five months.
 
-After six months of no sign-in and no subscription we delete the account and
-everything in it: every board, every note, every outline. That's a promise we
-make in the Privacy Policy, so this is us keeping it rather than a nudge to
-come back.
+Accounts without an active subscription are deleted after six months without a sign-in.
+This deletes the account and all its contents.
 
-If you want to keep the work, either sign in once, which resets the clock, or
-sign in and download everything from Settings, Your data.
+Sign in to keep your account, or download a copy of your work before deletion.
 
-If you'd rather it all went, do nothing.
+Keep your account
+Signing in restarts the six-month inactivity period.
+
+Download your work
+Open Settings → Your work → Download project data. Picture files are not included.
+You can also download individual projects as PDFs.
+
+If you do not sign in or subscribe, your account and its contents will be deleted in about one month.
+
+Sign in to Beatfall: https://beatfall-beta.vercel.app/login
+
+You received this notice because your account has no active subscription and you have not signed in for five months.
+This inbox is not monitored. For help, email support@beatfall.app.
 
 Beatfall`
       })

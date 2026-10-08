@@ -136,7 +136,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
              the same "3 notes have not been sent" on screen is the app doing
              the thing and hiding it. */
           { text: 'Send them first', onPress: async () => { await runSync(); load(); } },
-          { text: 'Throw away and sign out', style: 'destructive', onPress: quit },
+          { text: 'Delete unsent notes and sign out', style: 'destructive', onPress: quit },
         ],
       );
       return;
@@ -189,7 +189,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
     try {
       await deleteAccount(mine);
     } catch (e) {
-      setRefused((e && e.message) || 'That did not work. Nothing has been deleted.');
+      setRefused((e && e.message) || 'Could not confirm account deletion. Please try again.');
       setBusy(false);
       return;
     }
@@ -202,7 +202,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
        sign-in page, which on its own reads like being logged out rather than
        like the thing you asked for having happened. */
     Alert.alert('Your account has been deleted',
-      'Everything in it is gone. Thank you for trying Beatfall.');
+      'You can no longer sign in to this account.');
     if (onCleared) onCleared();
   };
 
@@ -300,8 +300,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         <Text style={s.bullet}>Your subscription, which is cancelled as part of this.</Text>
       ) : null}
       <Text style={s.para}>
-        Nothing is kept and nothing can be recovered. If you only want your work out of
-        Beatfall, download it at your desk first.
+        Deleted projects and notes cannot be restored. Download your work from Beatfall on your computer before deleting your account.
       </Text>
 
       <Text style={s.rail}>TYPE YOUR EMAIL TO CONFIRM</Text>

@@ -70,7 +70,7 @@ export default function SignIn() {
   const say = (e) => {
     const raw = String((e && e.message) || '').toLowerCase();
     if (raw.includes('expired') || raw.includes('invalid')) {
-      return "That code didn't work. It may have expired, or a digit is off. Ask for a new one.";
+      return "That code is invalid or has expired. Check it or request a new code.";
     }
     if (raw.includes('rate') || raw.includes('too many') || raw.includes('seconds')) {
       return 'Too many tries just now. Give it a minute and ask again.';
@@ -99,8 +99,7 @@ export default function SignIn() {
           <>
             <Text style={s.h1}>Catch your ideas before they're gone.</Text>
             <Text style={s.lede}>
-              This is the phone half of Beatfall. Say the line you just thought of,
-              pick the script it belongs to, and it is on your board when you sit down.
+              Save notes and pictures on your phone. Tap Send to make them available in Beatfall on your computer, where you can review and place them.
             </Text>
 
             <Text style={s.label}>EMAIL</Text>
@@ -127,7 +126,7 @@ export default function SignIn() {
 
             <Go c={c} on={send} ready={emailReady} busy={busy} label="Email me a code" />
             <Text style={s.fine}>
-              No password. The same box works whether you have an account or not.
+              Use your email to sign in or create an account. No password needed.
             </Text>
           </>
         ) : (

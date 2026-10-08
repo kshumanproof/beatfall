@@ -166,7 +166,7 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
 
         {problem === 'offline' && rows.length > 0 && (
           <Text style={s.note}>
-            No signal, so this is the list from last time. Notes save either way.
+            Showing your saved project list. You can save notes on this phone without an internet connection.
           </Text>
         )}
         {problem && rows.length === 0 && !busy && (

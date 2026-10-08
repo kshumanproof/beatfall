@@ -139,13 +139,11 @@ export default function Capture({ email }) {
           : 'Picture not sent yet',
         f.status === 402 || f.status === 507
           ? f.message
-          : "Your typed notes have gone. The picture is still on this phone and "
-            + 'nothing is lost; press Send again when you have signal.'
+          : "The picture hasn’t been sent. Tap Send to retry when you have an internet connection."
       );
     } else if (r && !r.ok) {
       Alert.alert('Not sent yet',
-        "Beatfall couldn't reach the server, so your notes are still here and nothing is lost. "
-        + 'Press Send again when you have signal.');
+        "Sending didn’t finish. Check your internet connection, then tap Send to retry.");
     }
     setSending(false);
   }, [refresh, sending, shelf.reload]);
@@ -301,7 +299,7 @@ export default function Capture({ email }) {
   const scrub = (row) => {
     const words = String(row.body || '').trim();
     Alert.alert(
-      row.photo_uri && !words ? 'Throw this picture away?' : 'Throw this note away?',
+      row.photo_uri && !words ? 'Delete this picture?' : 'Delete this note?',
       words
         ? (words.length > 90 ? words.slice(0, 90) + '…' : words)
           + (row.photo_uri ? '\n\nThe picture goes too.' : '')
@@ -309,7 +307,7 @@ export default function Capture({ email }) {
       [
         { text: 'Keep it', style: 'cancel' },
         {
-          text: 'Throw away', style: 'destructive',
+          text: 'Delete', style: 'destructive',
           onPress: async () => { await store.remove(row.id); settle(); refresh(); },
         },
       ],
@@ -470,8 +468,8 @@ export default function Capture({ email }) {
           {pic
             ? 'The picture goes with the note when you Send.'
             : ready
-              ? 'Kept the moment you tap.'
-              : SYNC_ENABLED ? 'It syncs later. Type now.' : 'Type now, sort later.'}
+              ? 'Tap Keep to save this note on your phone.'
+              : SYNC_ENABLED ? 'Tap Keep to save on this phone. Tap Send when you’re ready.' : 'Type now, sort later.'}
         </Text>
       </View>
 
@@ -498,8 +496,8 @@ export default function Capture({ email }) {
         ListEmptyComponent={
           <Text style={s.empty}>
             {everSent
-              ? 'Nothing waiting. Everything you have caught is on your account, ready to sort at your desk.'
-              : 'Nothing caught yet. Whatever you type up there lands here and stays here, signal or no signal.'}
+              ? 'No notes waiting to send. Review sent notes in Beatfall on your computer.'
+              : 'No saved notes yet. Type a note above, then tap Keep.'}
           </Text>
         }
         renderItem={({ item }) => (
@@ -513,7 +511,7 @@ export default function Capture({ email }) {
                 : null}
               {String(item.body || '').trim()
                 ? <Text style={s.body}>{item.body}</Text>
-                : <Text style={s.bodyNone}>Picture, no words</Text>}
+                : <Text style={s.bodyNone}>Picture without a caption</Text>}
               <View style={s.foot}>
                 <Text style={s.stamp}>{when(item.created_at)}</Text>
                 {item.project_name

@@ -149,8 +149,8 @@
     <div class="panel">
       <h2>Account</h2>
       <label class="field" style="max-width:400px">
-        <span>Name</span>
-        <input id="name" type="text" placeholder="What should we call you?">
+        <span>Display name</span>
+        <input id="name" type="text" placeholder="Enter your name">
       </label>
       <div class="row">
         <span class="muted" id="email"></span>
@@ -159,7 +159,7 @@
     </div>
 
     <div class="panel">
-      <h2>This month</h2>
+      <h2>Credit usage</h2>
       <div class="row">
         <span class="big" id="used">0</span>
         <span class="muted">of <b id="allow">0</b> credits used</span>
@@ -168,11 +168,10 @@
       </div>
       <div class="kinds" id="kinds"></div>
       <p class="muted" style="margin-top:14px;max-width:66ch">
-        Placing a note is free and always will be. It's the whole point of the app.
-        A whole conversation costs two credits however many questions it takes, and
-        reading in a notes file costs five. Your credits come back on the same day
-        each month, the day you signed up, whether you pay monthly or yearly.
-        If you run out, everything except the writing help keeps working and your credits come back on your reset day.
+        Adding and organizing notes does not use credits. A beat conversation costs 2 credits
+        and includes up to five questions and a card draft. Importing up to 1,000 notes costs
+        5 credits. Your monthly credits reset on your signup date each month, whether you
+        pay monthly or annually. If you run out, you can still work on your boards.
       </p>
       <!-- Beatfall asks once the first time you use each paid thing, and then
            trusts you. This is for anybody who would rather be asked every
@@ -181,9 +180,9 @@
       <label class="askalways" for="askalways">
         <input type="checkbox" id="askalways">
         <span>
-          <b>Ask before every credit</b>
-          <em>Beatfall asks once the first time you use each paid feature. Tick this
-          and it will ask every single time instead.</em>
+          <b>Confirm before using credits</b>
+          <em>By default, Beatfall asks for confirmation the first time you use each feature that
+          costs credits. Turn this on to ask every time. This setting applies to this browser.</em>
         </span>
       </label>
     </div>
@@ -195,31 +194,29 @@
       <div class="row" style="margin-top:16px">
         <button class="btn" id="portal">Manage billing</button>
         <button class="btn" id="topup">Add credits</button>
-        <span class="muted">Cancelling, changing card and switching between monthly and annual all happen on Stripe's own pages.</span>
+        <span class="muted">Use Manage billing to cancel your subscription, update your payment method, or change plans. This opens Stripe, our payment provider.</span>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Your data</h2>
+      <h2>Your work</h2>
       <div class="row">
-        <button class="btn" id="export">Download everything</button>
+        <button class="btn" id="export">Download project data</button>
         <!-- This is the escape hatch, not a reading copy, and the difference
              is worth one sentence. A PDF cannot be loaded back into anything,
              so as a way of leaving with your work it would be worse than
              useless. The readable version is the board export, per script. -->
-        <span class="muted">Every project, card and note as a single JSON file, so nothing is
-          locked in. No conditions. For something to read or send, export a board as a PDF from
-          the project itself.</span>
+        <span class="muted">Download your project details, cards, notes, outlines and character information in one data file (.json). Picture files are not included. To print or share a readable copy, download a project PDF.</span>
       </div>
     </div>
 
     <div class="panel danger">
       <h2 style="color:var(--red)">Delete account</h2>
       <p class="muted" style="max-width:66ch;margin-top:0">
-        This removes your account, every project, and all of your notes, immediately and permanently.
-        Download your data first if you want it. Type your email address to confirm.</p>
+        Permanently delete your account and all its projects and notes. This cannot be undone.
+        Download your work first if you want to keep a copy. Enter your email address to confirm.</p>
       <div class="row">
-        <input id="confirm" type="text" placeholder="your email address" style="max-width:300px">
+        <input id="confirm" type="text" placeholder="Enter your email address to confirm" style="max-width:300px">
         <button class="btn btn-danger" id="del">Delete my account</button>
       </div>
     </div>
@@ -270,14 +267,14 @@ const PERIODS = [
   { key:'month', label:'Monthly',  price:'$15', per:'a month',
     note:'Cancel any time, from your own billing page.' },
   { key:'year',  label:'Annual',   price:'$149', per:'a year',
-    note:'Two months free, paid once. Still 75 credits a month, not 900 at once.' }
+    note:'Billed once a year. Includes 75 credits each month.' }
 ];
 
 (async function () {
   if (!await BF.requireSession()) return;
 
   const q = new URLSearchParams(location.search);
-  if (q.get('checkout') === 'done') flash('info', "<b>You're set.</b> It can take a few seconds for the plan to show below. Reload if it looks stale.");
+  if (q.get('checkout') === 'done') flash('info', "Payment completed. Your plan may take a few seconds to update. Refresh this page if it hasn't changed.");
   if (q.get('checkout') === 'cancelled') flash('warn', 'Checkout cancelled. Nothing was charged.');
   if (q.get('topup') === 'done') flash('info', '<b>Credits added.</b> They carry over month to month.');
 
@@ -371,9 +368,10 @@ const PERIODS = [
        with no plan, and the app shows the closed screen. Stripe returns people
        HERE after cancelling, so the one page a leaving customer reads was the
        one telling them the opposite of what would happen. */
-    note.innerHTML = `<b>No active plan.</b> Nothing has been deleted and everything is `
-      + `still yours. The boards are closed to changes until you pick a plan, and you can `
-      + `download any of them as a PDF, or export the whole account, at any time.`;
+    note.innerHTML = `<b>No active plan.</b> Choose a plan to edit your boards. You can still `
+      + `download your boards as PDFs or export your account data. Pictures are removed `
+      + `30 days after your plan ends. Accounts with no active subscription are deleted `
+      + `after six months without a sign-in. Sign in within that time to keep your account.`;
   } else {
     const when = me.current_period_end
       ? new Date(me.current_period_end).toLocaleDateString(undefined,
@@ -383,11 +381,13 @@ const PERIODS = [
       note.className = 'note warn';
       // Not "then the writing help switches off", which was the old wording and
       // was the smaller half of what happens. The boards close too.
-      note.innerHTML = '<b>Cancelled.</b> You keep everything you\'ve paid for '
+      note.innerHTML = '<b>Subscription cancelled.</b> You can continue using Beatfall '
         + (when ? `until <b>${when}</b>` : 'until the end of this billing period')
-        + ', then the boards close to changes. Nothing is deleted: every project stays '
-        + 'where it is and you can still download any of them as a PDF, or export the '
-        + 'whole account. Changed your mind? Resubscribe under Manage billing.';
+        + '. After that, you cannot edit your boards, but you can still download them as '
+        + 'PDFs or export your account data. Pictures are removed 30 days after your plan '
+        + 'ends. Accounts with no active subscription are deleted after six months without '
+        + 'a sign-in. Sign in within that time to keep your account. To restart your '
+        + 'subscription, use Manage billing.';
     } else if (me.subscription_status === 'past_due') {
       note.className = 'note bad';
       note.innerHTML = '<b>Your last payment failed.</b> Update your card under '
@@ -435,7 +435,7 @@ const PERIODS = [
             ? `<button class="btn btn-primary" id="toyear">Switch to annual</button>
                <div class="what" style="margin-top:8px">You are paying monthly. Switching
                  saves $${yearSaves} a year. Same ${paid.credits} credits a month either way.</div>`
-            : '<button class="btn" disabled>Manage below</button>')
+            : '<button class="btn" disabled>Use Manage billing</button>')
         : `<button class="btn ${i === 1 ? 'btn-primary' : ''}" data-period="${p.key}">Choose ${p.label.toLowerCase()}</button>`}
     </div>`).join('');
 
@@ -474,8 +474,8 @@ const PERIODS = [
       if (always.checked) localStorage.setItem('beatfall.askalways', '1');
       else localStorage.removeItem('beatfall.askalways');
       flash('ok', always.checked
-        ? 'Beatfall will ask before every credit.'
-        : 'Beatfall will ask once for each paid feature.');
+        ? 'Beatfall will ask for confirmation each time you use credits.'
+        : 'Beatfall will ask for confirmation the first time you use each feature that costs credits.');
     } catch (e) { flash('bad', 'This browser is blocking saved settings.'); }
   });
   /* Switching an existing subscription happens in Stripe's portal, which
@@ -492,7 +492,7 @@ const PERIODS = [
     try {
       await BF.api('/api/account', { method:'POST',
         body: JSON.stringify({ action:'rename', display_name: document.getElementById('name').value }) });
-      flash('info', 'Saved.');
+      flash('info', 'Display name saved.');
     } catch (e2) { flash('bad', BF.explain(e2)); }
     b.disabled = false;
   });
@@ -508,14 +508,14 @@ const PERIODS = [
       a.download = 'beatfall-export-' + new Date().toISOString().slice(0,10) + '.json';
       a.click(); URL.revokeObjectURL(a.href);
     } catch (e2) { flash('bad', BF.explain(e2)); }
-    b.disabled = false; b.textContent = 'Download everything';
+    b.disabled = false; b.textContent = 'Download project data';
   });
 
   // ---- delete
   document.getElementById('del').addEventListener('click', async () => {
     const typed = document.getElementById('confirm').value.trim();
-    if (typed !== me.email) { flash('warn', 'Type your email address exactly to confirm.'); return; }
-    if (!confirm('This deletes your account and every project permanently. There is no undo.')) return;
+    if (typed !== me.email) { flash('warn', 'Enter the email address associated with this account.'); return; }
+    if (!confirm('Delete your account and all its contents permanently? This cannot be undone. Download your work before continuing.')) return;
     try {
       await BF.api('/api/account', { method:'POST',
         body: JSON.stringify({ action:'delete_account', confirm: typed }) });

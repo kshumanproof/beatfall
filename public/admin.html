@@ -163,7 +163,7 @@
 
       <button class="popitem" id="mode">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2"/></svg>
-        Mode <span class="aside" id="modelabel">Auto</span></button>
+        Appearance <span class="aside" id="modelabel">Auto</span></button>
 
       <a class="popitem" href="/help.html">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><path d="M3 2.5h7.4A2.6 2.6 0 0 1 13 5.1v8.4H5.6A2.6 2.6 0 0 1 3 10.9z"/><path d="M3 10.9a2.6 2.6 0 0 1 2.6-2.6H13M6 5.4h4"/></svg>
@@ -192,21 +192,17 @@
          demo, and because running out of credits is the moment everything
          turns on. -->
     <div class="panel">
-      <h2>Does the money work</h2>
+      <h2>Payments and subscriptions</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Running out is not a fault to be rescued from, it is the test. Somebody hits the
-        wall and then they either buy or they stop, and both answers are worth having.
-        Your own accounts are counted here, unlike everywhere else on this page: this
-        asks whether the plumbing works, and you testing it is the evidence.
+        Tracks credit purchases and subscriptions. This section includes internal test accounts.
       </p>
       <div class="caps" id="money"></div>
     </div>
 
     <div class="panel">
-      <h2>Where the caps should sit</h2>
+      <h2>Usage and cost per active user</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Set the tier limits from the numbers below, not from guesses. A cap around the 90th
-        percentile leaves almost everyone unaware there is a limit, which is the point.
+        Review credit usage and service costs when setting plan limits.
       </p>
       <div class="caps" id="caps"></div>
     </div>
@@ -217,22 +213,20 @@
          the right panels and this is the wrong month for them, so they are
          one press away rather than gone. -->
     <details class="fold" id="growth">
-      <summary><span>Growth, once there are enough people to mean anything</span></summary>
+      <summary><span>Growth and retention</span></summary>
 
     <div class="panel">
-      <h2>The funnel</h2>
+      <h2>Signup and subscription progress</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
-        External accounts only. <span id="internalnote"></span> Each percentage is conversion
-        from the row above it, because that is where people actually fall out.
+        External accounts only. <span id="internalnote"></span> Each percentage shows the share progressing from the previous step.
       </p>
       <div id="funnel"></div>
     </div>
 
     <div class="panel">
-      <h2>Which opening path produces writers</h2>
+      <h2>Results by starting option</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
-        The whole bet is that pasting a mess of existing notes is the strongest way in. This
-        is the first evidence either way.
+        Compare activity, return visits and subscriptions across the starting options.
       </p>
       <div class="tablewrap">
         <table>
@@ -245,10 +239,10 @@
     </div>
 
     <div class="panel">
-      <h2>Where they came from</h2>
+      <h2>Signup sources</h2>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>First touch</th><th class="num">People</th>
+          <thead><tr><th>Source</th><th class="num">People</th>
             <th class="num">Activated</th><th class="num">Paying</th>
             <th class="num">API cost</th></tr></thead>
           <tbody id="sources"></tbody>
@@ -257,7 +251,7 @@
     </div>
 
     <div class="panel">
-      <h2>What people are doing</h2>
+      <h2>Feature activity</h2>
       <div class="kindbits" id="events"></div>
     </div>
 
@@ -266,21 +260,20 @@
     <!-- OUT of the fold. The whole point of the test is finding what breaks,
          so this is the panel to read every morning. -->
     <div class="panel">
-      <h2>What went wrong</h2>
+      <h2>Errors and cancellation reasons</h2>
       <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Churn because Beatfall did not help is a product problem. Churn because the import
-        button broke is a different one, and these are the only numbers that tell them apart.
+        Review recorded errors and the reasons users selected when cancelling.
       </p>
       <div class="kindbits" id="failures"></div>
       <div class="kindbits" id="reasons" style="margin-top:10px"></div>
     </div>
 
     <div class="panel">
-      <h2>People</h2>
+      <h2>Accounts</h2>
       <div class="tablewrap">
         <table>
           <thead><tr>
-            <th>Who</th><th>Plan</th><th>Joined</th><th>Last seen</th>
+            <th>Account</th><th>Plan</th><th>Joined</th><th>Last active</th>
             <th class="num">Projects</th><th class="num">Cards</th>
             <th class="num">Calls</th><th class="num">Credits</th><th class="num">Cost</th>
             <th>Breakdown</th>
@@ -331,7 +324,7 @@ async function load(days) {
   document.getElementById('mine').textContent = mine.people
     ? `Plus ${mine.people} of your own account${mine.people === 1 ? '' : 's'}: `
       + `${mine.calls} call${mine.calls === 1 ? '' : 's'}, ${BF.money(mine.cost_usd)}. `
-      + 'Kept out of the figures above so they answer questions about writers.'
+      + 'Internal accounts are excluded from the totals above.'
     : '';
 
   /* ------------------------------------------------------------- money ----
@@ -342,15 +335,15 @@ async function load(days) {
     + `<b>${s.n}<span class="who">${s.who} ${s.who === 1 ? 'person' : 'people'}</span></b></div>`;
   const mn = d.money || {topup: [], plan: []};
   document.getElementById('money').innerHTML = `
-    <div class="cap"><h3>Running out, and topping up</h3>
+    <div class="cap"><h3>Credit purchases</h3>
       ${(mn.topup || []).map(mstage).join('')}</div>
     <div class="cap"><h3>Subscribing</h3>
       ${(mn.plan || []).map(mstage).join('')}</div>
     <div class="cap"><h3>${d.stripe_configured
         ? (d.stripe_live ? 'Stripe is live' : 'Stripe is in test mode')
         : 'Stripe is not connected'}</h3>
-      <div><span>Cards that work</span><b>${d.stripe_live ? 'real' : 'test only'}</b></div>
-      <div><span>Money that moves</span><b>${d.stripe_live ? 'real' : 'none'}</b></div>
+      <div><span>Accepted cards</span><b>${d.stripe_live ? 'real' : 'test only'}</b></div>
+      <div><span>Charges</span><b>${d.stripe_live ? 'real' : 'none'}</b></div>
       <div><span>Every other step</span><b>real</b></div>
     </div>`;
 
@@ -359,17 +352,17 @@ async function load(days) {
   // server is the source of truth, and these numbers have to be kept level
   // with core.js or the fallback quietly reports last month's pricing: this
   // said 50 for a while after the pack became 40.
-  const pr = d.pricing || { month: 12, year: 99, topup_credits: 40, topup_price: 6 };
+  const pr = d.pricing || { month: 15, year: 149, topup_credits: 25, topup_price: 6 };
   document.getElementById('caps').innerHTML = `
     <div class="cap"><h3>Credits per active user</h3>
       <div><span>Median</span><b>${c.median}</b></div>
       <div><span>75th percentile</span><b>${c.p75}</b></div>
       <div><span>90th percentile</span><b>${c.p90}</b></div>
-      <div><span>Heaviest</span><b>${c.max}</b></div></div>
+      <div><span>Highest</span><b>${c.max}</b></div></div>
     <div class="cap"><h3>API cost per active user</h3>
       <div><span>Median</span><b>${BF.money(m.median)}</b></div>
       <div><span>90th percentile</span><b>${BF.money(m.p90)}</b></div>
-      <div><span>Heaviest</span><b>${BF.money(m.max)}</b></div></div>
+      <div><span>Highest</span><b>${BF.money(m.max)}</b></div></div>
     <div class="cap"><h3>Current plan</h3>
       <div><span>Trial · 14 days, no card</span><b>${d.plans.trial.credits}</b></div>
       <div><span>Beatfall · $${pr.month} a month</span><b>${d.plans.beatfall.credits}</b></div>
@@ -418,12 +411,12 @@ async function load(days) {
   const fails = (d.failures || []).filter(f => f.n > 0);
   document.getElementById('failures').innerHTML = fails.length
     ? fails.map(f => `${esc(f.name)} <b style="color:var(--gold)">${f.n}</b>`).join(' &nbsp;·&nbsp; ')
-    : 'Nothing has failed in this window.';
+    : 'No errors recorded during this period.';
 
   const rs = Object.entries(d.cancel_reasons || {}).sort((a,b) => b[1]-a[1]);
   document.getElementById('reasons').innerHTML = rs.length
     ? 'Cancelled: ' + rs.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
-    : 'Nobody has cancelled.';
+    : 'No cancellation reasons recorded during this period.';
 
   document.getElementById('rows').innerHTML = d.users.map(u => {
     const pill = u.plan === 'none' ? 'off' : u.plan === 'trial' ? 'trial' : 'on';
