@@ -9431,9 +9431,21 @@ async function enrichGroup(st, sid){
     return {brief: cleanBrief(got && got.brief) || {},
             people: cleanPeople(got && got.people) || []};
   } catch (e) {
-    /* A description that could not be written is not a reason to lose the
-       notes. The board still builds; the brief and the cast are simply blank,
-       which is a state this app already shows honestly everywhere else. */
+    /* TWO FAILURES THAT LOOK THE SAME AND ARE NOT.
+
+       A description that could not be written is not a reason to lose the
+       notes: the board still builds and the brief is simply blank, which is a
+       state this app shows honestly everywhere else.
+
+       A charge the server REFUSED is a different thing entirely. This call is
+       what pays for an additional project, so swallowing a refusal would build
+       that project for nothing, which is the exact back door the charge exists
+       to close. Kris found this by asking what happens on a trial account with
+       eight credits left: the read takes five, the second project needs five
+       more, and there are three. It has to be said and the project has to not
+       be built. */
+    if (e && (e.code === "out_of_credits" || e.code === "no_plan"))
+      return {refused: true, message: e.message};
     return null;
   }
 }
@@ -10710,7 +10722,16 @@ function gateReview(){
   if (!line) return;
   if (!extras.length){ line.hidden = true; return; }
   const owed = extras.length * CREDIT.import;
-  const left = ME && !ME.unlimited && ME.credits_left != null ? ME.credits_left : null;
+  /* THE BALANCE AFTER THE READ, NOT BEFORE IT.
+     ME is fetched once when the app opens and never moves. The read that just
+     ran spent five credits and answered with the new figure, which BF.credits
+     carries. Reading ME here meant a writer with eight credits was told
+     nothing: the sheet compared the five owed against the eight they had
+     before paying, rather than the three they had left. */
+  const live = (BF.credits && typeof BF.credits.left === "number") ? BF.credits.left : null;
+  const left = (ME && ME.unlimited) ? null
+    : live !== null ? live
+    : (ME && ME.credits_left != null ? ME.credits_left : null);
   const short = left !== null && left < owed;
   line.hidden = false;
   line.className = "sheet-note" + (short || unanswered ? " revcost-warn" : "");
@@ -10929,6 +10950,7 @@ document.getElementById("revgo").addEventListener("click", async () => {
   }
   snapshot();
   let firstMoves = [], added = 0, newProjects = 0;
+  const refused = [];   // projects the balance would not cover, named to the writer
   /* Read once, before the loop moves anyone. A dashboard import switches the
      active project to the one it makes, and every project created after that
      was then inheriting ITS structure rather than the writer's default. */
@@ -10957,6 +10979,29 @@ document.getElementById("revgo").addEventListener("click", async () => {
     if (si > 0 && st.off){
       if (!fromPile) park([st], null);
       continue;
+    }
+    /* ITS OWN DETAILS, FROM ITS OWN NOTES, ON ITS OWN BILL, BEFORE IT EXISTS.
+       Group zero rides the session the read already paid for. Every project
+       after it mints a session of its own, so the server charges the import
+       price for it once and nothing else on that project costs again.
+
+       It runs BEFORE the project is created on purpose. If the server refuses
+       the charge, there must be no project: building it anyway would be a
+       second board for nothing, which is the whole thing this charge exists to
+       prevent. The notes go to the pile, so the writer still has every word
+       they wrote and can come back to it with credits. */
+    if (plan.length > 1){
+      const got = await enrichGroup(st, si === 0 ? importSid : newSid());
+      if (got && got.refused){
+        refused.push(st.name);
+        if (!fromPile) park([st], null);
+        continue;
+      }
+      if (got){
+        // What the writer typed in the file still wins over what was read.
+        st.brief  = Object.assign({}, got.brief, st.brief || {});
+        st.people = (st.people && st.people.length) ? st.people : got.people;
+      }
     }
     let target;
     if (si === 0 && importIntoNew){
@@ -11000,18 +11045,6 @@ document.getElementById("revgo").addEventListener("click", async () => {
       newProjects++;
     }
 
-    /* ITS OWN DETAILS, FROM ITS OWN NOTES, ON ITS OWN BILL.
-       Group zero rides the session the read already paid for. Every project
-       after it mints a session of its own, so the server charges the import
-       price for it once and nothing else on that project costs again. */
-    if (plan.length > 1){
-      const got = await enrichGroup(st, si === 0 ? importSid : newSid());
-      if (got){
-        // What the writer typed in the file still wins over what was read.
-        st.brief  = Object.assign({}, got.brief, st.brief || {});
-        st.people = (st.people && st.people.length) ? st.people : got.people;
-      }
-    }
     /* The cast the file described. Blanks only, in both directions: a
        character the writer already has keeps every field they typed and only
        gains the ones they hadn't. Matched by name, because that is how a
@@ -11087,6 +11120,21 @@ document.getElementById("revgo").addEventListener("click", async () => {
   setView("board");
   save();                       // schedules the flush that persists all of them
   BF.track("import_completed", {item_count: added, count: newProjects});
+  /* A project the balance would not cover. Said plainly, naming it, saying
+     where its notes went and what it would take to finish the job. Silence
+     here would be the worst of all the options: the writer would simply find
+     one of their two films missing and no reason given. */
+  if (refused.length){
+    BF.track("import_project_unpaid", {count: refused.length});
+    sayStrip(refused.map(n => "<b>" + esc(n) + "</b>").join(" and ")
+      + (refused.length === 1 ? " was not added" : " were not added")
+      + ", because your balance will not cover "
+      + (refused.length === 1 ? "another project" : refused.length + " more projects")
+      + " at " + costWords("import") + " each. "
+      + (refused.length === 1 ? "Its notes are" : "Their notes are")
+      + " waiting in your pile, so nothing you wrote is lost. "
+      + "Add credits and sort them whenever you like.", "warn");
+  }
   // The notes are on a board now, so they leave the pile. Not a moment sooner:
   // a cancelled batch has to still be waiting, and neither does a row the
   // writer unticked, which went nowhere and is still theirs to deal with.
