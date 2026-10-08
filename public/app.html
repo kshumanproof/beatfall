@@ -1577,6 +1577,30 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
 .revstory-head .tally{font-size:11.5px;color:var(--ink-4);margin-left:auto}
 /* Full width on its own row: the head is a wrapping flex line. */
 .revkept{flex:1 0 100%;font-size:12px;line-height:1.55;color:var(--ink-3)}
+/* The two answers a project that does not exist yet needs from the writer. On
+   its own head, not in a separate step, so the question sits on the thing it
+   is about. */
+.revnew{flex:1 0 100%;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:9px}
+.revfmt{display:flex;align-items:center;gap:8px}
+.revfmt span{font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+.revfmt select{
+  font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink);
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--r-ctl);
+  padding:6px 9px;cursor:pointer;
+}
+.revfmt select:focus{border-color:var(--blue);outline:none}
+.revskip{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+/* The head's own input rule is for the title box and was stretching this to
+   200px. A checkbox is a checkbox. */
+.revskip input[type=checkbox]{
+  width:auto;min-width:0;flex:0 0 auto;margin:0;padding:0;
+  accent-color:var(--blue);cursor:pointer;
+}
+/* Switched off: still legible, plainly not coming. Not opacity on the whole
+   block, which is the thing Kris read as "I cannot touch this". */
+.revstory.revskipped .revrow,.revstory.revskipped .brieffound{display:none}
+.revstory.revskipped .revstory-head input{color:var(--ink-3)}
+.revcost-warn{color:var(--gold-ink)}
 .revkept b{color:var(--ink);font-weight:600}
 .brieffound{padding:13px 15px;background:var(--blue-soft);border-bottom:1px solid var(--rule)}
 .bfh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.13em;color:var(--blue);margin-bottom:9px}
@@ -2855,6 +2879,11 @@ footer{
          the button rewrites its own label while it works, so a chip on it gets
          wiped and a sentence does not. -->
     <p class="sheet-note" id="dumpcost" style="margin-top:-8px"></p>
+    <!-- A file with more than one film in it builds more than one board, and
+         each of those is charged for. Said here, before a word is typed,
+         because every other price in this app is. The review sheet names the
+         exact figure once it knows how many stories there are. -->
+    <p class="sheet-note" id="dumpmulti" style="margin-top:-8px"></p>
     <!-- The price has always been on this sheet. Whether the writer can pay it
          has not, so the way you found out you had none left was to paste a
          file, press the button and be told. Nothing is blocked here: the
@@ -3073,6 +3102,9 @@ footer{
     <div class="sheet-title" id="revtitle">Review your notes</div>
     <p class="sheet-note" id="revnote"></p>
     <div class="revbody" id="revbody"></div>
+    <!-- What confirming will charge, said here rather than discovered after.
+         Hidden entirely on a one story file, which is almost every import. -->
+    <p class="sheet-note" id="revcost" hidden></p>
     <div class="sheet-actions">
       <span class="sheet-count" id="revcount"></span>
       <button class="btn" id="revback">Back</button>
@@ -8076,6 +8108,9 @@ marksCost(document.getElementById("captureimport"), "import");
   const go = document.getElementById("dumpgo");
   go.setAttribute("data-tip", go.getAttribute("data-tip")
     + " Costs " + costWords("import") + ".");
+  document.getElementById("dumpmulti").textContent =
+    "If your notes hold more than one story, each extra project you choose to "
+    + "add costs " + costWords("import") + ". You can leave any of them out.";
   document.getElementById("dumpcost").textContent =
     "Sorting up to " + IMPORT_MAX_NOTES.toLocaleString() + " notes costs " + costWords("import")
     + ". Entering text does not use credits. Select Sort my notes to begin, then review the results before adding them.";
@@ -9327,12 +9362,115 @@ function echoOf(idx, r, si){
   return e;
 }
 
+/* A NEW STORY DOES NOT BEGIN WITH A NOTE ABOUT TONE.
+ *
+ * Kris ran the same two-story file twice and on the second run the first two
+ * notes of FORTY MILES OUT were "Could be too obvious." and "Tone should be
+ * quiet, emotional, unsettling." Both are the last things he wrote about PAPER
+ * GHOSTS. The boundary had slipped by two notes.
+ *
+ * There was nothing to freeze: each note's group is decided once and never
+ * revisited, so this is the model's answer rather than later drift. What is
+ * wrong with the answer is something this code can see on its own. A writer's
+ * aside, a rule and a note about tone are all comments on the material above
+ * them, which is why the fold already attaches an aside to the note before it.
+ * Nobody opens a second film with "could be too obvious".
+ *
+ * So a group boundary may only open on story material. Where a run of comment
+ * notes sits at the head of a new group, it belongs to the group before it.
+ * A note the writer declared by naming the project is never moved, because
+ * that is the writer talking rather than the reader guessing.
+ *
+ * It only ever pulls notes BACKWARD into the previous group, so it cannot
+ * invent a boundary and cannot move story material. */
+/* The session the current read is billing on. The project the writer is
+   standing in rides it; each additional project mints its own and pays. */
+let importSid = null;
+
+/* EVERY PROJECT'S DETAILS COME FROM ITS OWN NOTES AND NOTHING ELSE.
+ *
+ * Pass one reads the whole pasted file and answers with one brief and one cast
+ * list. That is right for a file holding one story and wrong the moment it
+ * holds two: Kris pasted PAPER GHOSTS and FORTY MILES OUT together and twice
+ * got Mara's film described with Cal's tone, "lonely highways, truck stops,
+ * sodium lights", because the brief was built from the whole paste and then
+ * handed to group zero. The second project got nothing at all, because there
+ * was only ever one brief and one cast and the first group took them.
+ *
+ * So once the groups are settled, each project is described by a call that can
+ * only see its own notes. No raw paste, no other story's material, no shared
+ * answer handed around. This is the isolation: detect, group, freeze, then
+ * describe each one on its own.
+ *
+ * It runs at BUILD time rather than during the read, so a story the writer
+ * deselects on the review sheet costs nothing upstream at all. */
+async function enrichGroup(st, sid){
+  if (!ai_sample) return null;
+  const notes = st.notes.filter(n => n.keep && !n.gone).map(n => "- " + n.text);
+  if (!notes.length) return null;
+  try {
+    const got = await ai_sample.json(
+      "These notes are one screenwriter's notes for ONE story. Answer only from "
+      + "what is written here. This is the whole of the material: there is no other "
+      + "file and no other story to borrow from.\n\n"
+      + "1. What do these notes say about the project? Leave any field blank if "
+      + "these notes do not say. Never carry a detail over from anything else.\n"
+      + "2. Who are the CHARACTERS? Only people these notes say something "
+      + "substantive about: a want, a role in the plot, a history, a way of being. "
+      + "A name mentioned once in passing is not a character. Fill only the fields "
+      + "these notes actually answer and leave every other one an empty string. "
+      + "Invent nothing. For part, use exactly one of: "
+      + CFIELDS[1].options.filter(Boolean).join(", ") + ".\n\n"
+      + "STORY: " + String(st.name || "").slice(0, 60) + "\n\n"
+      + "NOTES:\n\"\"\"\n" + notes.join("\n").slice(0, 20000) + "\n\"\"\"\n\n"
+      + "Reply with JSON only:\n"
+      + "{\"brief\":{\"log\":\"\",\"who\":\"\",\"genre\":\"\",\"like\":\"\",\"setting\":\"\"},"
+      + "\"people\":[{\"name\":\"\",\"role\":\"\",\"who\":\"\",\"want\":\"\",\"need\":\"\",\"wound\":\"\","
+      + "\"lie\":\"\",\"wall\":\"\",\"arc\":\"\",\"voice\":\"\"}]}",
+      {kind: "import", session: sid});
+    return {brief: cleanBrief(got && got.brief) || {},
+            people: cleanPeople(got && got.people) || []};
+  } catch (e) {
+    /* A description that could not be written is not a reason to lose the
+       notes. The board still builds; the brief and the cast are simply blank,
+       which is a state this app already shows honestly everywhere else. */
+    return null;
+  }
+}
+
+const COMMENT_KINDS = ["rule", "theme", "structural", "question"];
+function lockBoundaries(notes, placed, storyOf, forced){
+  let moved = 0;
+  for (let i = 1; i < storyOf.length; i++){
+    if (storyOf[i] === storyOf[i - 1]) continue;       // not a boundary
+    const prev = storyOf[i - 1];
+    // Walk the run of comment notes that opens this group and pull it back.
+    for (let j = i; j < storyOf.length && storyOf[j] !== prev; j++){
+      if (forced.has(j)) break;                         // the writer named it
+      const r = placed[j] || {};
+      const kind = KINDS[r.k] ? r.k : "structural";
+      if (COMMENT_KINDS.indexOf(kind) < 0) break;       // real material: stop
+      storyOf[j] = prev;
+      moved++;
+    }
+  }
+  if (moved) BF.track("import_boundary_held", {count: moved});
+  return moved;
+}
+
 async function claudePlan(raw){
   const proj = P();
   let S = STRUCTURES[proj.structure];
   const header = localBrief(raw) || {};
 
-  const sid = newSid();                       // the whole import bills as one
+  /* The whole read bills as one. Kept where the build can reach it, because
+     the project the writer is already standing in rides this same payment: its
+     own enrichment is part of the read they paid for. Every ADDITIONAL project
+     gets a session of its own and is charged for separately, which is Kris's
+     call and the reason a second story cannot be a back door to a second board
+     for nothing. */
+  const sid = newSid();
+  importSid = sid;
   const ask = (prompt) => ai_sample.json(prompt, {kind: "import", session: sid, signal: dumpCtl.signal});
 
   /* ---- pass one: what the file says it is, and how many stories are in it ---- */
@@ -9815,6 +9953,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
 
   /* ---- pass three: the casting call ------------------------------------ */
   const storyOf = new Array(notes.length);
+  // see lockBoundaries, below the function, for what happens to this array
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
     let si = forced.has(idx) ? forced.get(idx)
@@ -9822,6 +9961,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     if (!forced.has(idx) && codeMade.has(si)) si = 0;
     storyOf[idx] = si;
   });
+  lockBoundaries(notes, placed, storyOf, forced);
   wallStep("Matching notes to story beats", .7);
   const cast = await castTheBoard(notes, placed, storyOf, S, beats, ask);
   wallStep("Preparing suggested placements", .93);
@@ -9860,10 +10000,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
        because they came after it on the page.
 
        The model did not find that story, this code did, from a single sentence.
-       A single sentence is evidence for exactly one note. */
-    let si = forced.has(idx) ? forced.get(idx)
-      : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
-    if (!forced.has(idx) && codeMade.has(si)) si = 0;
+       A single sentence is evidence for exactly one note.
+
+       READ, NOT RECOMPUTED. This used to work the answer out a second time
+       from the same inputs, which was fine only for as long as the two copies
+       stayed identical. storyOf is now the one decision, boundary rule and
+       all, and a note's group is whatever that array says. Two copies of a
+       routing rule is how a boundary ends up in one place on the board and
+       another in the buckets. */
+    let si = storyOf[idx];
     let kind = KINDS[r.k] ? r.k : "structural";
     let conf = typeof r.c === "number" ? r.c : 0;
     /* PLACEMENT IS NOT A KIND.
@@ -9980,13 +10125,28 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   // take. Nothing reads brief.name when the notes are filed.
   if (!brief.name && top && top.brief && typeof top.brief.name === "string" && top.brief.name.trim())
     brief.name = top.brief.name.trim().slice(0, 60);
+  /* ONE STORY: the file IS that story, so the read above describes it and
+     nothing is spent describing it twice.
+
+     MORE THAN ONE: that read describes the FILE, not any one story in it, and
+     handing it to group zero is what put another film's tone in Mara's brief.
+     Group zero keeps only what the writer literally typed in a header line,
+     which is theirs and unambiguous, and every group including this one is
+     described at build time from its own notes alone.
+
+     The old line said only the main story gets a cast, on the reasoning that a
+     second story is a one-line pitch with no cast worth the name. A 57-note
+     second film is not that, and the assumption is what was out of date. */
+  const multi = groups.length > 1;
   return groups.map((g, i) => ({
     name: String(g.name || ("Story " + (i + 1))).slice(0, 60),
     isCurrent: i === 0,
-    brief: i === 0 ? brief : {},
-    // Only the main story gets them. A one-line pitch for another film has no
-    // cast worth the name, and guessing one would fill a sheet with nothing.
-    people: i === 0 ? cleanPeople(top && top.people) : [],
+    brief: i === 0 ? (multi ? Object.assign({}, header) : brief) : {},
+    people: (i === 0 && !multi) ? cleanPeople(top && top.people) : [],
+    // Every group that is not the one the writer is standing in is a project
+    // that does not exist yet, and the writer chooses its structure on the
+    // review sheet before any of it is built.
+    structure: i === 0 ? null : "",
     notes: buckets[i]
   })).filter(st => st.notes.length);
 }
@@ -10337,6 +10497,35 @@ function renderReview(){
       st.name = e.target.value;
       st.typed = true;
     });
+    /* A PROJECT THAT DOES NOT EXIST YET NEEDS TWO ANSWERS FROM THE WRITER.
+       Which shape it is, because a file can hold a feature and a short and
+       neither of them is "whatever board you happened to have open"; and
+       whether they want it at all, because this is where the second one is
+       paid for. Both sit on the project they belong to rather than in a
+       separate step, which is the whole reason this sheet exists. */
+    if (si > 0){
+      const extra = document.createElement("div");
+      extra.className = "revnew";
+      extra.innerHTML =
+          '<label class="revfmt"><span>Structure</span><select>'
+        + '<option value="">Choose the format\u2026</option>'
+        + Object.keys(STRUCTURES).map(k =>
+            '<option value="' + k + '">' + esc(STRUCTURES[k].label) + "</option>").join("")
+        + "</select></label>"
+        + '<label class="revskip"><input type="checkbox">'
+        + "<span>Don't add this project</span></label>";
+      const sel = extra.querySelector("select");
+      const off = extra.querySelector("input");
+      sel.value = st.structure || "";
+      sel.addEventListener("change", () => { st.structure = sel.value; updateRevCount(); });
+      off.addEventListener("change", () => {
+        st.off = off.checked;
+        sel.disabled = off.checked;
+        wrap.classList.toggle("revskipped", off.checked);
+        updateRevCount();
+      });
+      head.appendChild(extra);
+    }
     wrap.appendChild(head);
 
     st.notes.forEach(n => {
@@ -10483,9 +10672,56 @@ function renderReview(){
     : "Review the suggested placements and change any you disagree with. Story beats go to the board; other items go to Other notes "
       + "or Set aside. Unchecked notes remain waiting to be sorted. Notes marked for deletion are removed when you finish the review.";
 
+  gateReview();
   updateRevCount();
   sheetPaste.hidden = true;
   sheetReview.hidden = false;
+}
+
+/* WHAT THIS PRESS WILL COST, BEFORE IT IS PRESSED.
+ *
+ * The read the writer already paid for covers the project they are standing
+ * in. Every additional project is its own board, built from its own notes and
+ * described by its own call, and it is charged for. Kris's reasoning and it is
+ * sound: otherwise three films pasted into one file is three boards for the
+ * price of one, and the cost of that lands on him.
+ *
+ * What makes it fair rather than a surcharge is that nothing is charged for a
+ * project the writer did not take. Switch one off and it is not built, not
+ * described and not billed, and its notes go to the pile rather than being
+ * thrown away.
+ *
+ * The button will not go until every project being added has a shape, for the
+ * same reason the new project sheet will not: the beats a read sorts into are
+ * decided by that menu, so building before it is answered is guessing on the
+ * writer's behalf. */
+function reviewExtras(){
+  return plan.filter((st, i) => i > 0 && !st.off
+    && st.notes.some(n => n.keep && !n.gone));
+}
+let reviewNeedsFormat = false;
+function gateReview(){
+  const extras = reviewExtras();
+  const unanswered = extras.filter(st => !STRUCTURES[st.structure]).length;
+  const line = document.getElementById("revcost");
+  const go = document.getElementById("revgo");
+  reviewNeedsFormat = unanswered > 0;
+  if (go) go.disabled = reviewNeedsFormat;
+  if (!line) return;
+  if (!extras.length){ line.hidden = true; return; }
+  const owed = extras.length * CREDIT.import;
+  const left = ME && !ME.unlimited && ME.credits_left != null ? ME.credits_left : null;
+  const short = left !== null && left < owed;
+  line.hidden = false;
+  line.className = "sheet-note" + (short || unanswered ? " revcost-warn" : "");
+  line.textContent = unanswered
+    ? "Choose a structure for " + (unanswered === 1 ? "the new project" : "each new project")
+      + " before the boards can be built."
+    : "Adding " + (extras.length === 1 ? "this new project" : "these " + extras.length + " new projects")
+      + " costs " + owed + " more credit" + (owed === 1 ? "" : "s")
+      + ". The project you are in is already paid for."
+      + (short ? " Your balance is " + left + ", so switch one off or add credits." : "")
+      + " Switch a project off and it is not built and not charged.";
 }
 /* This counter said "79 notes" over a file that had been split into 83, and
    Kris reasonably concluded four had gone missing. They had not: the model had
@@ -10495,6 +10731,10 @@ function renderReview(){
 
    So it says both figures whenever they differ, and the sheet says why. */
 function updateRevCount(){
+  /* Unticking the last note of a story takes that project off the bill as
+     surely as switching it off does, so the price is recomputed here first and
+     the line below then has the last word on the button. */
+  gateReview();
   const rows   = plan.reduce((a, st) => a.concat(st.notes), []);
   const live   = rows.filter(n => !n.gone);
   const binned = rows.length - live.length;
@@ -10524,7 +10764,12 @@ function updateRevCount(){
      notes the board already has still needs the writer to press something, or
      the notes never leave the pile and the same sheet greets them tomorrow
      with a dead button on it. */
-  go.disabled = kept === 0 && binned === 0 && echoes === 0 && waiting === 0;
+  /* Two things can hold this button, and both have to be asked. There is
+     nothing to do, which is this line; and a new project still has no shape,
+     which gateReview decides. This used to be the last word on `disabled` and
+     so it quietly undid the structure gate every time the sheet redrew. */
+  go.disabled = (kept === 0 && binned === 0 && echoes === 0 && waiting === 0)
+             || reviewNeedsFormat;
   go.textContent = kept > 0 ? "Add selected notes"
     : binned > 0 ? "Delete marked notes"
     : "Finish review";
@@ -10689,7 +10934,13 @@ document.getElementById("revgo").addEventListener("click", async () => {
      was then inheriting ITS structure rather than the writer's default. */
   const baseStructure = (importStructure || (P() && P().structure)) || "stc";
 
-  plan.forEach((st, si) => {
+  /* A FOR LOOP, BECAUSE EACH PROJECT IS DESCRIBED BEFORE IT IS BUILT.
+     This was a forEach, which cannot wait for anything. Each project now gets
+     one call that sees only its own notes, and they happen one after another
+     so a later story cannot be in flight while an earlier one is still being
+     written. */
+  for (let si = 0; si < plan.length; si++){
+    const st = plan[si];
     const notes = st.notes.filter(n => n.keep);
     if (!notes.length && (si > 0 || importIntoNew)){
       /* No project gets made for a group nobody ticked, and that is right. But
@@ -10697,13 +10948,22 @@ document.getElementById("revgo").addEventListener("click", async () => {
          before this returns rather than leaving with the sheet. Unfiled,
          because the script they were bound for does not exist. */
       if (!fromPile) park([st], null);
-      return;
+      continue;
+    }
+    /* A STORY THE WRITER SWITCHED OFF IS NOT BUILT AND IS NOT CHARGED.
+       Its notes go to the pile like any other unticked material, so nothing
+       they wrote is lost, and because the description call below never runs
+       for it, it costs nothing upstream either. */
+    if (si > 0 && st.off){
+      if (!fromPile) park([st], null);
+      continue;
     }
     let target;
     if (si === 0 && importIntoNew){
       // Started from the dashboard: there was no project in front of the
       // writer, so nothing they already have is touched.
       target = blankProject(st.name, baseStructure);
+      target.createdFrom = "import";
       // On a brand-new account the shelf holds only the placeholder load()
       // made. The imported project takes its place rather than arriving beside
       // an Untitled nobody created.
@@ -10724,9 +10984,33 @@ document.getElementById("revgo").addEventListener("click", async () => {
          one, in the box directly above this, or on the board. */
       if (st.name && (st.typed || !namedAlready(target))) target.name = st.name;
     } else {
-      target = blankProject(st.name, baseStructure);
+      /* THE WRITER CHOSE THIS, NOT THE PROJECT THEY HAPPENED TO BE STANDING IN.
+         Every new project used to be built with baseStructure, so a file
+         holding a feature and a short came back as two of whatever board was
+         already open. A second story is a second film and its shape is the
+         writer's to pick; the review sheet will not let the build start until
+         they have. baseStructure remains only as a floor, for the case where
+         something upstream failed to ask. */
+      target = blankProject(st.name, st.structure || baseStructure);
+      /* Said out loud, because it was not. A project made this way saved with
+         created_from empty, which made it look like it had come in through
+         some other door. It came in through this one. */
+      target.createdFrom = "import";
       state.projects.push(target);
       newProjects++;
+    }
+
+    /* ITS OWN DETAILS, FROM ITS OWN NOTES, ON ITS OWN BILL.
+       Group zero rides the session the read already paid for. Every project
+       after it mints a session of its own, so the server charges the import
+       price for it once and nothing else on that project costs again. */
+    if (plan.length > 1){
+      const got = await enrichGroup(st, si === 0 ? importSid : newSid());
+      if (got){
+        // What the writer typed in the file still wins over what was read.
+        st.brief  = Object.assign({}, got.brief, st.brief || {});
+        st.people = (st.people && st.people.length) ? st.people : got.people;
+      }
     }
     /* The cast the file described. Blanks only, in both directions: a
        character the writer already has keeps every field they typed and only
@@ -10796,7 +11080,7 @@ document.getElementById("revgo").addEventListener("click", async () => {
 
     const moves = settle(target);
     if (si === 0) firstMoves = moves;
-  });
+  }
 
   scrim.hidden = true;
   hideAll();
