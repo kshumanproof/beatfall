@@ -591,8 +591,15 @@ async function open(browser, projects, account = PAID) {
         /the card for open/i.test(outline), 'cards are missing from the outline');
       check('and the notes filed against a beat',
         /a clue filed under theme/i.test(outline), 'filed notes are missing');
+      /* IMPORTED, NOT TYPED. This quoted a phrase out of the beat's own
+         description, so a copy pass on that description failed a check about
+         the PDF's layout. The app's own string is the only thing worth
+         comparing the page against. */
+      const openFn = await page.evaluate(() =>
+        STRUCTURES.stc.slots.find(s => s.id === 'open').fn);
       check('and says what each beat is for',
-        /the first shot/i.test(outline), 'the beat descriptions are missing');
+        outline.indexOf(openFn.split(/[.,]/)[0].slice(0, 40)) >= 0,
+        'the beat descriptions are missing: looked for ' + openFn.slice(0, 40));
       check('and still lists a beat nobody has written under',
         /CATALYST/i.test(outline), 'empty beats vanish from the outline');
 
@@ -801,7 +808,7 @@ async function open(browser, projects, account = PAID) {
       openSettings('usage');
       return (document.querySelector('.ledger') || {}).textContent || '';
     });
-    check('an unspent account says so plainly', /Nothing has used a credit/.test(empty),
+    check('an unspent account says so plainly', /used any credits yet/.test(empty),
       empty.slice(0, 120));
     await page.close();
   }
@@ -1097,11 +1104,11 @@ async function open(browser, projects, account = PAID) {
               label: document.getElementById('revgo').textContent};
     });
     check('a batch that is all copies says so on the row',
-      /board already says this/.test(seen.text), seen.text.slice(0, 120));
+      /Similar to an existing board card/.test(seen.text), seen.text.slice(0, 120));
     /* And there IS something to press. A dead button on a sheet full of notes
        the board already has is how a note gets stuck in the pile for ever. */
     check('and there is still a way to finish with them', seen.go === false);
-    check('the button says what pressing it does', seen.label === 'Done with these',
+    check('the button says what pressing it does', seen.label === 'Finish review',
       seen.label);
     await page.close();
   }
@@ -1212,7 +1219,8 @@ async function open(browser, projects, account = PAID) {
     });
     check('every batch in the pile can be thrown away', asked.said.length > 0, asked.said);
     check('and it says out loud that this is the only copy',
-      /only copy/.test(asked.said) && /cannot be undone/.test(asked.said), asked.said);
+      /have not been added to a project/.test(asked.said)
+      && /cannot be undone/.test(asked.said), asked.said);
     check('saying no keeps every note', asked.left === 2, asked.left + ' left');
 
     const gone = await page.evaluate(async () => {
@@ -1231,7 +1239,7 @@ async function open(browser, projects, account = PAID) {
       gone.sent.length === 1 && (gone.sent[0].dropped || []).join(',') === 'x1,x2'
         && !(gone.sent[0].sorted || []).length, JSON.stringify(gone.sent));
     check('the pile then says it is empty rather than going blank',
-      /Nothing waiting/.test(gone.says), gone.says.slice(0, 80));
+      /No phone notes waiting/.test(gone.says), gone.says.slice(0, 80));
     check('no page errors throwing a batch away', errors.length === 0, errors.join('\n'));
     await page.close();
   }
@@ -1290,7 +1298,7 @@ async function open(browser, projects, account = PAID) {
     check('the restatement is drawn attached to the note it repeats',
       /echo/.test(seen.second), seen.second);
     check('and says why instead of where it would have gone',
-      /same as the note above/.test(seen.says), seen.says);
+      /Similar to the note above/.test(seen.says), seen.says);
     check('the count says one of them was left out',
       /1 onto the board/.test(seen.count) && /1 say the same thing/.test(seen.count),
       seen.count);
@@ -1379,7 +1387,7 @@ async function open(browser, projects, account = PAID) {
     });
     check('a note your board already makes is left out', seen.ticked === false);
     check('and says it is the board it clashes with',
-      /board already says this/.test(seen.says), seen.says);
+      /Similar to an existing board card/.test(seen.says), seen.says);
     await page.close();
   }
 
@@ -1576,9 +1584,9 @@ async function open(browser, projects, account = PAID) {
     check('a note the board already has arrives unticked',
       out.before.ticked === false, JSON.stringify(out.before));
     check('and says it is the board it clashes with',
-      /board already says this/.test(out.before.says), out.before.says);
+      /Similar to an existing board card/.test(out.before.says), out.before.says);
     check('the button is alive so it can be finished with',
-      out.before.dead === false && out.before.label === 'Done with these',
+      out.before.dead === false && out.before.label === 'Finish review',
       JSON.stringify(out.before));
     check('pressing it clears the note out of the pile', out.left === 0, String(out.left));
     check('without adding a second copy to the board', out.cards === 1, String(out.cards));
@@ -2031,7 +2039,7 @@ async function open(browser, projects, account = PAID) {
               left: PENDING.length};
     });
     check('throwing a batch away says the pictures go too',
-      /2 pictures, which will be deleted/.test(binned.said), binned.said);
+      /2 attached pictures/.test(binned.said), binned.said);
     check('and they really do come off the account',
       binned.gone.join(',') === 'u1/bin1.jpg,u1/bin2.jpg', binned.gone.join(','));
     check('and the whole batch leaves the pile', binned.left === 0, String(binned.left));

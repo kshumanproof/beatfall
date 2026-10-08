@@ -4595,6 +4595,29 @@ window.addEventListener("focus", refreshOnReturn);
    of overwriting it. Anything typed and not yet saved is left alone, because
    that work is newer than the server's. */
 let refreshing = false;
+
+/* THE PROJECTS BEING DELETED RIGHT NOW, AND WHY THIS SET HAS TO EXIST.
+
+   This is the double delete. Kris reported it twice: he presses Delete,
+   answers the confirm box, and the card is still on his shelf, so he has to
+   press Delete and OK a second time. Three attempts to reproduce it offline
+   found nothing, because the thing that causes it is the confirm box itself.
+
+   Dismissing a native confirm() hands the window its focus back, and
+   refreshOnReturn is bound to window focus. So every Delete press is followed
+   immediately by a reload of the project list. The delete request has not
+   landed yet, because it waits for the recovery snapshot to be written first
+   and a snapshot is the whole board, so the server still has the project. The
+   reload rebuilds state.projects from the server's rows and puts the deleted
+   card straight back on the shelf. The row is already gone on the server: what
+   he is looking at is a ghost, and his second press is deleting nothing and
+   simply clearing the screen.
+
+   So a reload must not see a project this tab is in the middle of deleting.
+   Filtering rather than refusing the whole reload, because deleting one of six
+   projects is no reason to stop the other five catching up. */
+const deletingIds = new Set();
+
 async function refreshOnReturn(){
   /* `state` is null until load() runs, and load() does not run behind the
      small-screen gate, the device-setup failure or the load failure. This is
@@ -4605,7 +4628,8 @@ async function refreshOnReturn(){
   if (document.visibilityState === "hidden") return;
   refreshing = true;
   try{
-    const rows = await BF.loadProjects();
+    const rows = (await BF.loadProjects())
+      .filter(r => !r || !deletingIds.has(r.id));
     if (!rows.length || dirty.size) return;
     const known = new Set(state.projects.map(p => p.id).filter(Boolean));
     const changed = rows.length !== state.projects.length
@@ -7882,6 +7906,13 @@ const sheetPaste = document.getElementById("sheetpaste");
 const sheetReview = document.getElementById("sheetreview");
 let plan = null;
 let dumpCtl = null;
+/* WAS THIS REVIEW SHEET PAID FOR.
+   The same sheet is reached two ways. A batch the writer places by hand from
+   the phone pile has cost nothing, and warning them about a price on the way
+   out of it would be a warning about a charge that does not exist. A read
+   through the paste box cost credits, and leaving it throws that read away.
+   Only the second one asks. See leavingReview. */
+let reviewPaid = false;
 
 const KINDS = {
   /* A photograph. Called Vision because that is what the section is called on
@@ -7967,8 +7998,21 @@ let pileNext = false;          // the pile is about to open the box; consumed be
     x.value = k; x.textContent = STRUCTURES[k].label;
     sel.appendChild(x);
   });
-  sel.addEventListener("change", countDump);
+  sel.addEventListener("change", () => { pasteFormatTouched = true; countDump(); });
 }
+
+/* A PREFILL IS NOT AN ANSWER, AND THAT DISTINCTION IS LOAD BEARING.
+
+   This chooser arrives already set, from the format in Settings or from the
+   board being pasted into, because a writer who chose a shape ten seconds ago
+   should not be asked again. But that prefilled value was being treated as the
+   writer's answer and allowed to beat a Format: line in their own file, which
+   is the exact bug this file records under "The format is answered, not
+   assumed": the sheet quietly answering its own question and then acting on
+   it. A line the writer typed in the file is specific to those notes, so it
+   beats a prefill. Touching the menu is a real answer, and that beats the
+   file. */
+let pasteFormatTouched = false;
 
 /* The writer's answer on this sheet, or null when the question was not put to
    them. Null means the board they are pasting into already has a shape and
@@ -7982,6 +8026,8 @@ function pasteStructure(){
 function openImport(intoNew, prefill){
   importIntoNew = !!intoNew;
   importDropped = false;
+  // A fresh sheet, so the menu below is a prefill again until it is touched.
+  pasteFormatTouched = false;
   /* Asked wherever the notes have nowhere settled to land. An empty board
      counts: there are no cards to rescore, so answering here is free, and a
      writer who made a project and then went looking for their notes file
@@ -8056,6 +8102,7 @@ function closeImport(){
   if (!sortingIds.length && plan) park(plan, null);
   fromPile = false;
   viaPaste = false;
+  reviewPaid = false;
   scrim.hidden = true;
   if (dumpCtl) dumpCtl.abort();
   // A cancelled batch was never sorted, so it stays in the pile.
@@ -8065,7 +8112,32 @@ function closeImport(){
 document.getElementById("dump").addEventListener("click", () => openImport(false));
 document.getElementById("barimport").addEventListener("click", () => openImport(false));
 document.getElementById("dumpcancel").addEventListener("click", closeImport);
+
+/* LEAVING THE ONE SHEET THAT HAS ALREADY BEEN PAID FOR.
+
+   Kris's rule, and he is right about it: a window that cost credits to open
+   must not close on a stray click, and when the writer does close it on
+   purpose they have to be told that reading the notes again will cost again.
+   The scrim already refuses. Escape and Back did not, and both throw the read
+   away in one keystroke.
+
+   What survives and what does not is the part worth saying out loud. The notes
+   themselves are safe: closeImport parks the whole batch on the pile, where
+   they can be sorted by hand for nothing. What is lost is the read, which is
+   the placements, the descriptions and the people it found. That is what the
+   five credits bought, so that is what the question has to name. */
+function leavingReview(){
+  if (sheetReview.hidden || !reviewPaid) return true;
+  return confirm("Leave this review?\n\n"
+    + "Your notes are kept. They go to the pile on your dashboard and you can "
+    + "sort them by hand for nothing.\n\n"
+    + "What is not kept is this reading: where each note was going, the "
+    + "descriptions and the people it found. Reading them again costs "
+    + costWords("import") + ".");
+}
+
 document.getElementById("revback").addEventListener("click", () => {
+  if (!leavingReview()) return;
   /* Back hands the batch back, so it is no longer in anybody's hands.
      Without this the phone notes stayed claimed: the next thing pasted into
      the box inherited them, its unticked rows were treated as already waiting
@@ -8125,7 +8197,12 @@ marksCost(document.getElementById("captureimport"), "import");
     "Sorting up to " + IMPORT_MAX_NOTES.toLocaleString() + " notes costs " + costWords("import")
     + ". Entering text does not use credits. Select Sort my notes to begin, then review the results before adding them.";
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !scrim.hidden) closeImport(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || scrim.hidden) return;
+  // Same bargain as the scrim: the paid sheet asks first. See leavingReview.
+  if (!leavingReview()) return;
+  closeImport();
+});
 
 /* ==========================================================================
    What came in from the phone.
@@ -8503,6 +8580,8 @@ async function placeGroupByHand(key){
                                        kind: "beat", beat: null, conf: 0, keep: true }))
   }];
   dedupePlan();
+  // Placed by hand, so nothing was spent and leaving costs nothing.
+  reviewPaid = false;
   setView("board");
   showSheet(sheetReview);
   renderReview();
@@ -8928,6 +9007,63 @@ function isHeaderNote(text, brief){
   });
 }
 
+/* THE HEADER BLOCK THAT BELONGS TO EACH STORY, NOT JUST TO THE FIRST.
+
+   Kris pasted one file holding three stories, each opening with its own TITLE,
+   Genre and Tone lines. AFTER THE FIRE came back with its genre and its tone.
+   THREE DAYS NORTH and NIGHT DESK came back with neither, although he had
+   typed both. Two things together did it, and each one alone would have been
+   enough: isHeaderNote strips a Genre line wherever it sits in the file, so
+   those lines never reach the notes at all, and localBrief only reads the
+   header fields that sit before the first sentence handing the page to another
+   project, so only the first story's survive. The writer answered the question
+   and the app threw the answer away, then showed the field empty.
+
+   So the file is cut at every title the writer declared, and each story keeps
+   the header fields written under its own title. Position, like everywhere
+   else in here: a Genre line belongs to the title above it.
+
+   This is the writer's own typing, so it needs no model and costs nothing, and
+   it OUTRANKS whatever the read decided, the same rule group zero has always
+   had. */
+function headerBlocks(raw){
+  const text = String(raw || "");
+  const re = new RegExp(LEAD + "(?:(?:proposed\\s+)?(?:working\\s+)?title)" + TAIL + "(.+)$", "gim");
+  const marks = [];
+  let m;
+  while ((m = re.exec(text))){
+    const name = String(m[1] || "").trim().replace(/\*\*|__/g, "")
+      .replace(/\s+/g, " ").slice(0, 120);
+    if (name) marks.push({name: name, at: m.index});
+    if (marks.length > 40) break;        // a notes file, not a catalogue
+  }
+  return marks.map((mk, i) => {
+    const slice = text.slice(mk.at, i + 1 < marks.length ? marks[i + 1].at : text.length);
+    const brief = {};
+    Object.keys(HEAD).forEach(k => {
+      const hit = slice.match(HEAD[k]);
+      if (hit && hit[1])
+        brief[k] = hit[1].trim().replace(/\*\*|__/g, "").replace(/\s+/g, " ").slice(0, 500);
+    });
+    return {name: mk.name, brief: brief};
+  });
+}
+
+/* Which of those blocks is this story's. Compared on letters and digits only,
+   because a title arrives from three different places (a declared TITLE line,
+   a name the writer typed on the review sheet, a shouted tail) and they do not
+   agree about punctuation or case. */
+function headerBlockFor(blocks, name){
+  const norm = x => String(x || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const want = norm(name);
+  if (!want || want.length < 2) return null;
+  const hit = (blocks || []).find(b => {
+    const got = norm(b.name);
+    return got && (got === want || got.indexOf(want) === 0 || want.indexOf(got) === 0);
+  });
+  return hit ? hit.brief : null;
+}
+
 /* Where the writer stops talking about THIS film.
 
    A notes file for one project can mention another one, and when it does,
@@ -9292,11 +9428,15 @@ function importStructureFor(raw){
      file. It is only ever set where the chooser was shown, which is a new
      project or a board with no cards. */
   const picked = pasteStructure();
-  if (picked && (importIntoNew || !proj.cards.length)) return picked;
+  if (picked && pasteFormatTouched && (importIntoNew || !proj.cards.length))
+    return picked;
   const header = localBrief(raw) || {};
   const want = (header.format && STRUCTURES[header.format]
                 && header.format !== proj.structure) ? header.format : null;
-  return (want && (importIntoNew || !proj.cards.length)) ? want : proj.structure;
+  if (want && (importIntoNew || !proj.cards.length)) return want;
+  // Nothing in the file, so the prefilled menu stands in for the answer.
+  if (picked && (importIntoNew || !proj.cards.length)) return picked;
+  return proj.structure;
 }
 
 /* THE NOTES ONE READ WILL SEE. Extracted so the ceiling and the read itself
@@ -9469,7 +9609,25 @@ function applyCast(st, structureKey, placed){
   const real = new Set(S.slots.map(x => x.id));
   const rows = st.notes.filter(n => n.keep && !n.gone);
   const perBeat = {};
-  (placed || []).forEach(r => {
+  /* DECLARATIONS CLAIM THEIR SLOTS FIRST, THE SAME RULE THE MAIN READ HAS.
+
+     A writer who types "MIDPOINT:" and then a line has told us where that line
+     goes, and a heading is the best evidence in the file. This pass placed in
+     note order, so three confident guesses at the same beat could fill it and
+     push the writer's own declaration onto the shelf. That is exactly the bug
+     the main read fixed months ago, and the per-project pass was written
+     without it. */
+  const answers = (placed || []).slice();
+  const declared = i => {
+    const n = rows[i];
+    return !!(n && n.declared);
+  };
+  answers.sort((a, b) => {
+    const da = declared(Number(a && a.n)) ? 0 : 1;
+    const db = declared(Number(b && b.n)) ? 0 : 1;
+    return da - db;
+  });
+  answers.forEach(r => {
     const i = Number(r && r.n);
     if (!Number.isInteger(i) || i < 0 || i >= rows.length) return;
     const n = rows[i];
@@ -10267,6 +10425,15 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
      stories costs the writer nothing beyond the read. The CHARGE for an extra
      project is the pass that fills its board, at build, where it belongs. */
   if (out.length > 1){
+    /* Each story's own header lines, before anything is read. They are the
+       writer's words, so they win over the read below, which is what the
+       Object.assign order says. See headerBlocks. */
+    const blocks = headerBlocks(raw);
+    out.forEach(st => {
+      if (st.isCurrent) return;          // group zero already carries `header`
+      const own = headerBlockFor(blocks, st.name);
+      if (own) st.brief = Object.assign({}, own, st.brief || {});
+    });
     wallStep("Describing each story", .97);
     for (const st of out){
       const got = await enrichGroup(st, sid);
@@ -10986,8 +11153,12 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
       BF.track("import_failed", {error_code: "nothing_usable", stage: "read"});
       return;
     }
+    // The read landed, so this sheet is the thing the credits bought.
+    reviewPaid = true;
   } else {
     plan = localPlan(raw);
+    // The built-in matcher is free, so there is nothing to warn about.
+    reviewPaid = false;
   }
   /* ONCE. It ran twice on the paid route, and the second pass reset the count
      the first had just made, so a paste that quietly dropped four notes the
@@ -13667,6 +13838,10 @@ function renderSlate(){
        redraw a shelf feels broken. What is new is that a failure puts it back
        where it was and says so. */
     const wasAt = at;
+    /* Held for as long as the request is in the air, so a reload triggered by
+       the confirm box handing focus back cannot put this card on the shelf
+       again. See deletingIds up beside refreshOnReturn. */
+    if (p.id) deletingIds.add(p.id);
     if (p.id) keepPoint(p, "delete")
       .then(() => BF.deleteProject(p.id))
       .catch(() => {
@@ -13683,7 +13858,10 @@ function renderSlate(){
         // writer's own text. A script tag in a title is still a title.
         sayStrip("Could not delete “" + esc(p.name) + "”. It is still on your "
           + "shelf and nothing has been lost. Try again in a moment.", "warn");
-      });
+      })
+      /* Released whichever way it went. On a refusal the project is back on
+         the shelf and a later reload SHOULD be allowed to see it again. */
+      .finally(() => deletingIds.delete(p.id));
     /* Out of the save queue as well as out of the shelf. flush() walks `dirty`
        rather than the project list, so a board deleted within the debounce of
        its own last edit was being written back to the server after the delete

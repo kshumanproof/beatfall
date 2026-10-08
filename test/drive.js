@@ -106,7 +106,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('no Untitled project on a bare shelf', shelf.cards === 0, 'found ' + shelf.cards);
     check('the way to start is still there', shelf.blanks === 1, 'blank cards: ' + shelf.blanks);
     check('no scoreboard of noughts', shelf.score === true);
-    check('the lede says nothing is saved', /Nothing saved yet/.test(shelf.lede), shelf.lede);
+    check('the lede says nothing is saved', /Start your first project/.test(shelf.lede), shelf.lede);
     check('the walkthrough opens on an account that has never used anything',
       shelf.walk === true);
     check('and the greeting waits behind it rather than stacking on top',
@@ -276,7 +276,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     });
     check('a card carries a visible edit control', edit.found);
     check('pressing it makes the card editable', edit.editable === true);
-    check('and it says what it does', /Change the wording/.test(edit.tip || ''), edit.tip);
+    check('and it says what it does', /Edit this card/.test(edit.tip || ''), edit.tip);
     check('no page errors on the board', errors.length === 0, errors.join('\n'));
     await page.close();
   }
@@ -403,7 +403,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       const b = document.getElementById('lowstrip');
       return {shown: !!b, text: b ? b.textContent : '', url: location.search};
     });
-    check('a completed checkout is confirmed on the dashboard', strip.shown && /You're set/.test(strip.text), strip.text);
+    check('a completed checkout is confirmed on the dashboard', strip.shown && /Subscription active/.test(strip.text), strip.text);
     check('and the address is cleaned so a refresh does not repeat it', strip.url === '', strip.url);
     check('no page errors returning from Stripe', errors.length === 0, errors.join('\n'));
     await page.close();
@@ -485,10 +485,10 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     const said = await page.evaluate(() => {
       const b = document.getElementById('lowstrip');
       return {text: b ? b.textContent : '',
-              plans: b ? [...b.querySelectorAll('button')].some(x => /See the plans/.test(x.textContent)) : false};
+              plans: b ? [...b.querySelectorAll('button')].some(x => /See plans/.test(x.textContent)) : false};
     });
     check('two days out it says what happens to the boards',
-      /trial ends/.test(said.text) && /download any board/.test(said.text), said.text || 'nothing');
+      /trial ends/.test(said.text) && /download your work/.test(said.text), said.text || 'nothing');
     check('and offers the plans', said.plans === true);
     await page.close();
   }
@@ -506,7 +506,11 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     });
     check('a save that keeps failing eventually offers a way out', rescue.up === true,
       'no rescue strip after fourteen failures');
-    check('it says nothing has been lost', /has been lost|Nothing you have written/.test(rescue.text),
+    /* The copy pass of 7 October dropped the sentence promising nothing had
+       been lost and left the offer of a backup copy standing in for it. This
+       follows what shipped; the wording itself is Kris's call. */
+    check('it says the work can be taken out as a file',
+      /Download a copy/.test(rescue.text),
       rescue.text.slice(0, 120));
     check('and hands over a copy', rescue.offers.some(o => /Download a copy/.test(o)),
       JSON.stringify(rescue.offers));
@@ -534,7 +538,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       const p = P(); p.name = 'edited'; dirty.add(p);
       for (let i = 0; i < 14; i++) { try { await flush(); } catch (e) {} }
       const bar = document.getElementById('rescue');
-      [...bar.querySelectorAll('button')].find(b => /Hide this/.test(b.textContent)).click();
+      [...bar.querySelectorAll('button')].find(b => /Dismiss/.test(b.textContent)).click();
       for (let i = 0; i < 6; i++) { try { await flush(); } catch (e) {} }
       return !!document.getElementById('rescue');
     });
@@ -942,7 +946,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('a swept picture still leaves its note behind', gone.note === true);
     check('and the words are untouched', /a picture that was swept/.test(gone.words), gone.words);
     check('and it says the picture is gone rather than showing a broken one',
-      /no longer stored/i.test(gone.said), gone.said);
+      /Picture unavailable/i.test(gone.said), gone.said);
     check('no page errors on a missing picture', errors.length === 0, errors.join('\n'));
     await page.close();
   }
@@ -1006,7 +1010,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       hidden: (document.getElementById('photoerr') || {}).hidden,
       photos: state.projects[0].cards.filter(c => c.kind === 'photo').length
     }));
-    check('a full account is told in words', /no room/i.test(full.said) && !full.hidden,
+    check('a full account is told in words', /storage is full/i.test(full.said) && !full.hidden,
       JSON.stringify(full));
     check('and no empty card is left behind', full.photos === refused, JSON.stringify(full));
     check('no page errors importing pictures', errors.length === 0, errors.join('\n'));
@@ -1601,7 +1605,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       after.cards === 0 && after.blanks === 1,
       'cards: ' + after.cards + ' blanks: ' + after.blanks);
     check('and the lede goes back to saying nothing is saved',
-      /Nothing saved yet/.test(after.lede), after.lede);
+      /Start your first project/.test(after.lede), after.lede);
     check('the app still has a project to read', after.alive === true);
     check('and it is the blank, not a saved one', after.placeholder === true);
     check('the delete really went to the server', after.sent === 1, String(after.sent));
@@ -1726,6 +1730,15 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       const box = document.getElementById('dumptext');
       box.value = t;
       box.dispatchEvent(new Event('input'));
+      /* A paste into a NEW project asks for the format first, so a writer has
+         answered it before they can press. Without this every check below is
+         measuring a button held by an unanswered question rather than by the
+         ceiling it is about. */
+      const fmt = document.getElementById('dumpformat');
+      if (!document.getElementById('dumpformatfield').hidden && !fmt.value){
+        fmt.value = 'stc';
+        fmt.dispatchEvent(new Event('change'));
+      }
       const go = document.getElementById('dumpgo');
       const big = document.getElementById('dumpbig');
       const before = window.__ASKED__;
@@ -1757,11 +1770,15 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     check('and the button is off before it is pressed', big.off === true);
     check('and it says so without being pressed', big.warned === true);
     check('naming the real figure rather than a vague "too big"',
-      /1,200 notes/.test(big.says) && /covers 1,000/.test(big.says), big.says);
+      /1,200 notes/.test(big.says) && /up to 1,000 notes/.test(big.says), big.says);
     check('and promising what a writer needs to hear',
-      /charged/.test(big.says) && /untouched|in the box/.test(big.says), big.says);
+      /Nothing has been charged/.test(big.says), big.says);
+    /* IMPORTED, NOT TYPED. This had the figure 5 written into it, which is the
+       one thing CLAUDE.md says never to do in an assertion: the day the price
+       moves, the test fails for the only reason a test must not. */
+    const importPrice = await page.evaluate(() => CREDIT.import);
     check('the price of reading it in parts is the real one',
-      new RegExp('own ' + 5 + ' credits').test(big.says), big.says);
+      new RegExp('costs ' + importPrice + ' credits').test(big.says), big.says);
 
     /* THE SHORT-CIRCUIT IS A CLAIM, SO CHECK IT.
      *
@@ -1834,10 +1851,27 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       const proj = P();
       const cards = proj.cards;
       const was = proj.structure;
+      /* The paste sheet is left open by the ceiling block above with a format
+         chosen in it, and a chosen format is the writer's answer, so without
+         this reset every case below measures that leftover instead of the
+         rule it is about. */
       const ask = (raw, intoNew, withCards) => {
         importIntoNew = intoNew;
         proj.cards = withCards ? cards : [];
         proj.structure = was;
+        pasteFormatTouched = false;
+        return importStructureFor(raw);
+      };
+      /* And the other half of the same rule: a menu the writer actually
+         changed does beat a Format: line, because it is the newer of two
+         things they said. */
+      const asTouched = (raw) => {
+        importIntoNew = true;
+        proj.cards = [];
+        proj.structure = was;
+        document.getElementById('dumpformatfield').hidden = false;
+        document.getElementById('dumpformat').value = 'halfhour';
+        pasteFormatTouched = true;
         return importStructureFor(raw);
       };
       const plain = 'Dale drives out to the lot.';
@@ -1849,7 +1883,8 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
         silent:   ask(plain, false, true),
         intoNew:  ask(says,  true,  true),
         emptyOne: ask(says,  false, false),
-        hasCards: ask(says,  false, true)
+        hasCards: ask(says,  false, true),
+        touched:  asTouched(says)
       };
       importIntoNew = false; proj.cards = cards; proj.structure = was;
       return Object.assign(out, { was });
@@ -1860,6 +1895,10 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       cases.intoNew === 'three', cases.intoNew);
     check('and so does an empty board, which has nothing to lose',
       cases.emptyOne === 'three', cases.emptyOne);
+    check('a prefilled menu does not beat the format the file states',
+      cases.intoNew === 'three' && cases.emptyOne === 'three', JSON.stringify(cases));
+    check('but a format the writer picks on the sheet does',
+      cases.touched === 'halfhour', cases.touched);
     check('but a board with cards on it is never re-cut by a pasted file',
       cases.hasCards === cases.was,
       'it moved to ' + cases.hasCards + ', which is the Night Haul overwrite');

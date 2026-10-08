@@ -347,22 +347,30 @@ async function load(days) {
       <div><span>Every other step</span><b>real</b></div>
     </div>`;
 
-  const c = d.credits_per_active_user, m = d.cost_per_active_user_usd;
+  /* Guarded the same way d.pricing below is, and for the same reason. An older
+     deployed API that does not send these two throws on the first .median and
+     takes the WHOLE page down with a script error, which looks like the admin
+     screen being broken rather than one card being short of a figure. */
+  const c = d.credits_per_active_user || {}, m = d.cost_per_active_user_usd || {};
   // Falls back only so an older deployed API doesn't blank the card. The
   // server is the source of truth, and these numbers have to be kept level
   // with core.js or the fallback quietly reports last month's pricing: this
   // said 50 for a while after the pack became 40.
   const pr = d.pricing || { month: 15, year: 149, topup_credits: 25, topup_price: 6 };
+  // A figure that did not arrive says so, rather than printing the word
+  // "undefined" at you in 22px.
+  const fig = v => (typeof v === 'number' ? v : 'not sent');
+  const cash = v => (typeof v === 'number' ? BF.money(v) : 'not sent');
   document.getElementById('caps').innerHTML = `
     <div class="cap"><h3>Credits per active user</h3>
-      <div><span>Median</span><b>${c.median}</b></div>
-      <div><span>75th percentile</span><b>${c.p75}</b></div>
-      <div><span>90th percentile</span><b>${c.p90}</b></div>
-      <div><span>Highest</span><b>${c.max}</b></div></div>
+      <div><span>Median</span><b>${fig(c.median)}</b></div>
+      <div><span>75th percentile</span><b>${fig(c.p75)}</b></div>
+      <div><span>90th percentile</span><b>${fig(c.p90)}</b></div>
+      <div><span>Highest</span><b>${fig(c.max)}</b></div></div>
     <div class="cap"><h3>API cost per active user</h3>
-      <div><span>Median</span><b>${BF.money(m.median)}</b></div>
-      <div><span>90th percentile</span><b>${BF.money(m.p90)}</b></div>
-      <div><span>Highest</span><b>${BF.money(m.max)}</b></div></div>
+      <div><span>Median</span><b>${cash(m.median)}</b></div>
+      <div><span>90th percentile</span><b>${cash(m.p90)}</b></div>
+      <div><span>Highest</span><b>${cash(m.max)}</b></div></div>
     <div class="cap"><h3>Current plan</h3>
       <div><span>Trial · 14 days, no card</span><b>${d.plans.trial.credits}</b></div>
       <div><span>Beatfall · $${pr.month} a month</span><b>${d.plans.beatfall.credits}</b></div>

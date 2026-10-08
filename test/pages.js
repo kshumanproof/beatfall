@@ -390,15 +390,15 @@ async function page(browser, url, before, arg) {
     check('and what was left out of them is said out loud',
       /2 of your own accounts/.test(seen.mine) && /\$1\.13/.test(seen.mine), seen.mine);
     check('the money path is the first thing after the tiles',
-      /Running out/.test(seen.money[0] || ''), JSON.stringify(seen.money));
+      /Credit purchases/.test(seen.money[0] || ''), JSON.stringify(seen.money));
     check('each stage says how many times AND how many people',
       seen.chain[0] === '53 people', JSON.stringify(seen.chain));
     check('a stage nobody reached still prints its zero',
       seen.chain.length === 3 && /^1/.test(seen.chain[2]), JSON.stringify(seen.chain));
     check('the growth panels start folded away', seen.growthOpen === false);
     check('what went wrong is not folded away',
-      seen.wrong.some(h => /went wrong/i.test(h)), seen.wrong.join(' | '));
-    check('and neither are the people', seen.wrong.some(h => /People/.test(h)));
+      seen.wrong.some(h => /Errors/i.test(h)), seen.wrong.join(' | '));
+    check('and neither are the people', seen.wrong.some(h => /Accounts/.test(h)));
     check('the People table lists everybody', seen.people === 1, String(seen.people));
     check('no page errors on the admin reports', errors.length === 0, errors.join('\n'));
     await p.close();
@@ -584,7 +584,7 @@ async function page(browser, url, before, arg) {
     check('the Privacy Policy names who runs the support chat',
       /Chatling/.test(priv) && /OpenAI/.test(priv), 'Chatling is not disclosed');
     check('and says it cannot reach an account or a board',
-      /no access to your account/i.test(priv), '');
+      /cannot access your projects or account/i.test(priv), '');
 
     /* The id is what ties the widget to this account. A page carrying the
        script with no id, or with a different one, loads a stranger's bot. */

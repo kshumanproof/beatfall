@@ -242,9 +242,15 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
   // ---- the numbers
   const dollars = [...all.matchAll(/\$(\d+)/g)].map(m => Number(m[1]));
   const known = [core.PRICE_MONTH, core.PRICE_YEAR, core.TOPUP_PRICE];
+  /* The help also states what a year SAVES, which is not a price Beatfall
+     charges but is worked out from two of them. A figure the help derives is
+     allowed, and it is derived here from core.js rather than typed, so the day
+     either price moves this check goes red exactly as it should. */
+  const derived = [core.PRICE_MONTH * 12 - core.PRICE_YEAR];
+  const allowed = known.concat(derived);
   check('every price in the help is a price Beatfall actually charges',
-    dollars.length >= 3 && dollars.every(n => known.includes(n)),
-    'found ' + JSON.stringify(dollars) + ', core.js says ' + JSON.stringify(known));
+    dollars.length >= 3 && dollars.every(n => allowed.includes(n)),
+    'found ' + JSON.stringify(dollars) + ', core.js says ' + JSON.stringify(allowed));
   check('and all three of them are mentioned somewhere',
     known.every(n => dollars.includes(n)),
     'missing from the help: '

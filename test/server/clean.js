@@ -77,9 +77,9 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
   check('it says what will happen and when',
     /deleted in about a month/.test(H) && /five months/.test(H) && /six months/.test(H), '');
   check('it offers both ways to keep the work',
-    /[Ss]ign in once/.test(H) && /download everything/.test(H), '');
+    /[Ss]ign in to keep your account/.test(H) && /download a copy of your work/.test(H), '');
   check('it names where a reply actually goes',
-    /Nobody reads replies/.test(H) && /support@beatfall\.app/.test(H), '');
+    /inbox is not monitored/i.test(H) && /support@beatfall\.app/.test(H), '');
   /* This used to demand the exact string alt="Beatfall", so it went red the day
      the lockup gained its tagline and the alt text was widened to say so. The
      alt got BETTER and the check called it a failure. What it is actually for

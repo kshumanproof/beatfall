@@ -2595,3 +2595,149 @@ batch placed by hand is the pile, because that batch never saw the paste box.
 - Never say "Claude" or "the AI" in the interface. It is "the writing help".
 - No em dashes anywhere, comments included. `grep -c` and expect 0.
 - Check the build before asking him to push.
+
+## The double delete, and the stale suite (8 October 2026)
+
+### The double delete was the confirm box all along
+
+Kris reported it three times: he presses Delete on the last project, answers
+the confirm box, and the card is still on his shelf, so he presses Delete and
+OK again. Three attempts to reproduce it offline found nothing, and the reason
+they found nothing is the stub: `BF.saveProject` and `BF.deleteProject` resolve
+instantly and hold no state, so nothing can race and a save against a row that
+is already gone answers success.
+
+`test/delete.js` is a sixth client suite written for this. It puts a real
+server behind those two calls, a map of rows with a delay on every request, a
+DELETE that removes a row and a save against a missing row that answers 404 the
+way `api/projects.js` does. The case that reproduced it is the one that
+dispatches a window `focus` event the instant the dialog closes, because that
+is what a real browser does.
+
+**Dismissing a native `confirm()` hands the window its focus back, and
+`refreshOnReturn` is bound to window focus.** So every Delete press is followed
+immediately by a reload of the project list. The delete request has not landed
+yet, because it waits behind the recovery snapshot and a snapshot is the whole
+board. The reload rebuilds `state.projects` from the server's rows and puts the
+deleted card straight back on the shelf. The row on the server was already
+gone: the card he was looking at was a ghost, and his second press deleted
+nothing and simply cleared the screen.
+
+`deletingIds` holds the id for as long as the request is in the air, and
+`refreshOnReturn` filters those rows out of the reload. Filtering rather than
+refusing the reload outright, because deleting one of six projects is no reason
+to stop the other five catching up. Released in a `finally`, because a refused
+delete puts the project back and a later reload SHOULD then see it.
+
+**The lesson worth keeping: a native dialog is a focus event.** Anything bound
+to window focus or visibility runs the moment a `confirm()` is answered, before
+whatever the confirm was gating has finished. Three of these suites stub
+`window.confirm` to keep a check synchronous, which also means none of them
+could ever have seen this.
+
+### Leaving the one sheet that was paid for
+
+Kris's rule: a window that cost credits must not close on a stray click, and
+closing it on purpose has to say that reading the notes again will cost again.
+The scrim already refused. **Escape and Back did not**, and both threw the read
+away in one keystroke.
+
+`leavingReview()` gates both. What it says is the part worth getting right: the
+NOTES are safe, because `closeImport` parks the whole batch on the pile where
+they can be sorted by hand for nothing. What is lost is the READ, which is the
+placements, the descriptions and the people it found.
+
+`reviewPaid` exists because the same sheet is reached two ways and only one of
+them cost anything. A batch placed by hand from the phone pile is free, and
+warning somebody about a price that does not exist is worse than not warning.
+
+### Every story in the file keeps its own header block
+
+Kris pasted one file holding three stories, each opening with its own TITLE,
+Genre and Tone lines. AFTER THE FIRE came back with its genre and its tone.
+THREE DAYS NORTH and NIGHT DESK came back with neither, although he had typed
+both. Two things together, and either alone would have done it: `isHeaderNote`
+strips a Genre line wherever it sits in the file, so those lines never reach
+the notes at all, and `localBrief` only reads the fields before the first
+sentence handing the page to another project.
+
+`headerBlocks(raw)` cuts the file at every declared title and keeps the header
+fields written under each one. `headerBlockFor` matches a group to its block on
+letters and digits only, because a title arrives from three places that do not
+agree about punctuation. It needs no model and costs nothing, and it outranks
+the read, which is the rule group zero has always had.
+
+### A prefill is not an answer
+
+The paste sheet's new format chooser arrives already set, from Settings or from
+the board being pasted into. That prefilled value was being treated as the
+writer's answer and allowed to beat a `Format:` line in their own file, which
+is exactly the bug recorded above under "The format is answered, not assumed".
+`pasteFormatTouched` separates the two: a line in the file beats a prefill, and
+a menu the writer actually changed beats the file, because it is the newer of
+two things they said. Two checks in `drive.js` hold both directions down.
+
+### applyCast had no declared-first pass
+
+The per-project casting pass placed in note order, so three confident guesses
+at one beat could fill it and push the writer's own "MIDPOINT:" declaration
+onto the shelf. That is the bug the main read fixed months ago and the new pass
+was written without it. Declarations sort to the front now; `Array.sort` is
+stable, so note order survives inside each group.
+
+### The suite was 23 assertions out of date, and that is why it matters
+
+GPT's copy pass of 7 October rewrote copy all over the product and left the
+tests quoting the old words. `drive.js` was not merely red, it CRASHED, on a
+button renamed from "Hide this" to "Dismiss", so the suite could not be run at
+all and nothing could be checked before a push.
+
+Every one of them was the test being out of date, never the code, with two
+exceptions worth knowing:
+
+- Two assertions were catching the real `pasteFormatTouched` regression above.
+  A failing test is the thing to read before it is the thing to fix.
+- The rescue bar no longer says nothing has been lost. The copy pass dropped
+  that sentence and left the offer of a backup copy standing in for it. The
+  check follows what shipped and says so in a comment. **The wording is Kris's
+  call and he has not been asked.**
+
+Two assertions were rewritten to IMPORT rather than quote, which is the only
+way a check about layout stops failing over a copy edit: the PDF's beat purpose
+now reads `STRUCTURES.stc.slots` for the string it looks for, and the import
+price in the ceiling message comes from `CREDIT.import` instead of a typed 5.
+`test/server/money.js` allows one DERIVED figure, the $31 a year saves, worked
+out as `PRICE_MONTH * 12 - PRICE_YEAR` so it still goes red the day either
+price moves.
+
+### The verification list, current
+
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js ; node flows.js ; node pages.js ; node mobile.js
+    node platform.js ; node delete.js
+
+    cd server
+    node setup.js
+    node money.js ; node gate.js ; node hook.js ; node clean.js
+    node captures.js ; node proxy.js ; node lock.js ; node vision.js
+    node restore.js ; node provider.js ; node help.js
+
+drive 265, flows 273, pages 98, mobile 5, platform 17, delete 23; money 69,
+gate 23, hook 18, clean 31, captures 42, proxy 29, lock 16, vision 44,
+restore 31, provider 37, help 7. **1,028 checks, all passing.**
+
+### Closed off the older audit list
+
+`admin.html` no longer says "AI calls", it says "writing help calls".
+`credits_per_active_user` and `cost_per_active_user_usd` are guarded the way
+`d.pricing` beside them already was, so an older deployed API shortens one card
+instead of taking the page down with a script error, and a figure that did not
+arrive says "not sent" rather than printing "undefined" at you in 22px.
+`/admin`, `/app` and `/settings` all carry `noindex`.
+
+**Still open and still Kris's decision:** `/help` is in `sitemap.xml` and
+behind the small-screen gate, so a phone that finds it in search gets the app
+pitch instead of the help page. Drop it from the sitemap, or treat it as a
+document like Privacy and Terms and take `app.js` off it.
