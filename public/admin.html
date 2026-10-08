@@ -157,7 +157,7 @@
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"/></svg>
         Settings</a>
 
-      <a class="popitem" href="/app">
+      <a class="popitem" href="/app" id="popboard">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" stroke-width="1.35" aria-hidden="true"><rect x="2.4" y="3.2" width="11.2" height="9.6" rx="1.2"/><path d="M2.4 6.4h11.2"/></svg>
         Board</a>
 
@@ -476,6 +476,19 @@ async function paintWho(){
   document.getElementById('whoname').textContent  = name;
   document.getElementById('whoemail').textContent = me.email || '';
   document.getElementById('avatarini').textContent = (name.trim()[0] || '?').toUpperCase();
+  /* AN ADMIN ACCOUNT IS NOT A CUSTOMER, AND THIS MENU USED TO SAY IT WAS.
+     An account carrying is_admin without the Owner plan exists to read the
+     reports and does nothing else: no board, no credits, nothing to
+     subscribe to. Printing which plan it is on, counting credits it cannot
+     spend, and offering a Board that only bounces back here are three ways
+     of calling it a writer. So the whole plan block goes and so does Board,
+     and what is left is who you are signed in as and the way out.
+     An owner account still gets everything, because that one does write. */
+  if (me.is_admin && !me.unlimited) {
+    const plan = document.querySelector('.popplan'); if (plan) plan.hidden = true;
+    const board = document.getElementById('popboard'); if (board) board.remove();
+    return;
+  }
   /* Not "$12 a month". An annual subscriber pays $99 and was being quoted a
      price they do not pay, and nothing on the account records which interval
      they chose. Says what is true either way, then the renewal date. Same
