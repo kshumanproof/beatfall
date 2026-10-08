@@ -3630,23 +3630,6 @@ const STRUCTURES = {
       {id:"ve-button",  act:2, name:"Button, last 5 to 10s",fn:"End on an unanswered question that gives the audience a reason to continue.", req:"The LAST 5 to 10 SECONDS, cutting on an unanswered question so the viewer taps the next episode. Ends open. A resolution, a satisfying payoff, or an answer delivered before the cut is not a Button.", cues:[["cliffhanger",6],["cut to black",6],["ends with",5],["last shot",6],["turns and sees",6],["the door opens",6],["freeze",5],["who is",4],["button",5]]}
     ]
   },
-  vertseason: {
-    label: "Vertical · Season arc (60–100 episodes)",
-    acts: ["Free · eps 1–10","Escalation · 11–40","Dark middle · 41–70","Resolution · 71+"],
-    slots: [
-      {id:"v-hook",   act:0, name:"Episode One Hook",      fn:"Establish the central conflict through clear action within the first minute of episode one.", req:"The premise DETONATES within the first minute of episode one, stated through action a stranger scrolling can grasp instantly. Character introduction, worldbuilding, or a hook that arrives in episode two or three does not qualify.", cues:[["opens on",6],["hook",5],["first episode",6],["premise",5],["divorce",4],["fired",4],["betray",4],["wedding",4],["humiliat",5]]},
-      {id:"v-setup",  act:0, name:"The Setup",             fn:"Quickly establish the main characters, what they want and the past harm shaping the conflict.", req:"Establishes WHO they are, WHAT they want, and the WRONG they carry, delivered fast across the free early episodes. A plot complication or an antagonist's scheme, however early it lands, belongs to another beat rather than the Setup.", cues:[["we meet",5],["wants",5],["secretly",4],["hidden",4],["poor",4],["ordinary",4],["works as",4],["backstory",4]]},
-      {id:"v-paywall",act:0, name:"The Paywall Turn, ep 10", fn:"Around episode 10, end on a compelling unanswered question. This template assumes paid episodes begin after this point.", req:"Positioned at roughly EPISODE 10, ending on a question compelling enough that a stranger pays to continue. Everything before it is free. A strong cliffhanger placed elsewhere in the run, or an answer given here, is not the Paywall Turn.", cues:[["paywall",6],["episode ten",6],["cliffhanger",5],["the question",5],["finds out",5],["discovers",5],["turns out",4]]},
-      {id:"v-reveal", act:1, name:"First Big Reveal",      fn:"Answer the paywall question with a major reveal within the next one or two episodes.", req:"A REVELATION landing an episode or two AFTER the paywall so the payment feels immediately rewarded. It must deliver on the paywall question. A new mystery that only defers the answer further is not the First Big Reveal.", cues:[["reveal",6],["identity",6],["actually a",6],["billionaire",6],["heir",6],["secretly",6],["all along",5]]},
-      {id:"v-layer",  act:1, name:"Complication Layers",   fn:"Build pressure across episodes through new opponents, secrets and shifting alliances.", req:"Accumulating COMPLICATIONS through the middle run: new antagonists, fresh secrets, alliances compounding pressure. Additive by design. The single reversal that resets the series, or the collapse into the dark stretch, belongs to its own beat.", cues:[["complication",6],["rival",5],["new enemy",6],["mother in law",5],["blackmail",6],["threatens",5],["escalates",5],["another",3]]},
-      {id:"v-mid",    act:1, name:"Midpoint Reversal, around ep 40", fn:"Around episode 40, a major reversal changes the direction of the central conflict.", req:"Around EPISODE 40: a reversal that RESETS the series onto new terms, changing what the show is now about. An escalation of the existing conflict, or a large event that leaves the show's premise intact, is not the Midpoint Reversal.", cues:[["midpoint",6],["reversal",6],["twist",6],["turns out",5],["everything changes",6],["betrayed by",6],["was lying",6]]},
-      {id:"v-dark",   act:2, name:"The Dark Middle",       fn:"Across episodes 41 to 70, the opposition holds the advantage and the protagonist faces mounting pressure.", req:"EPISODES 41 to 70, the stretch furthest from resolution where the antagonist holds the advantage and pressure compounds. Defined by position in the run. A single dark scene elsewhere, or the final defeat itself, is not the Dark Middle.", cues:[["dark",5],["worst",5],["alone",5],["loses",5],["separated",5],["exiled",5],["falls apart",5],["deeper",4]]},
-      {id:"v-low",    act:2, name:"The Lowest Point",      fn:"The protagonist loses the central goal or relationship they have been fighting for.", req:"The protagonist LOSES the very thing the series has been about, the central want or relationship taken from them. Total. A serious setback that leaves the core stake intact, or a temporary separation, is not the Lowest Point.", cues:[["lowest",6],["rock bottom",6],["dies",5],["loses everything",6],["gives up",5],["divorce",4],["hospital",4],["funeral",5]]},
-      {id:"v-turn",   act:3, name:"The Turn",              fn:"The protagonist recognizes what must change and acts on it despite the personal cost.", req:"What the protagonist finally UNDERSTANDS about themselves, and the price of acting on it. Insight plus action. A tactical plan to win, or an ally arriving with a solution, is not the Turn.", cues:[["realizes",6],["decides",6],["stands up",6],["fights back",6],["returns",5],["reveals herself",6],["reveals himself",6],["no longer",5]]},
-      {id:"v-unwind", act:3, name:"Payoffs, In Order",     fn:"Resolve supporting storylines and established questions in the order they were introduced.", req:"Subplots and planted questions PAYING OFF, resolved in the ORDER they were introduced across the season. Sequencing is the requirement. A single climactic confrontation, or the central relationship resolving, sits elsewhere.", cues:[["payoff",6],["revenge",5],["exposed",5],["ruined",5],["apolog",5],["justice",5],["each",3],["one by one",6]]},
-      {id:"v-final",  act:3, name:"The Central Arc Lands", fn:"Resolve the central relationship or emotional conflict in the final episodes, after the supporting storylines.", req:"The main RELATIONSHIP or reckoning resolves LAST, after every other thread has closed. It is the series emotional final word. A plot resolution, a villain's defeat, or a sequel hook is not this beat.", cues:[["finale",6],["final episode",6],["ends with",5],["together",4],["reunion",6],["married",5],["walks away",5],["last shot",5]]}
-    ]
-  },
   broadcast: {
     label: "TV · Broadcast Hour (teaser + 4 acts)",
     acts: ["Teaser","Act One","Act Two","Act Three","Act Four"],
@@ -3721,8 +3704,6 @@ const POS = {
   circle:   {"c-you":.02, "c-need":.12, "c-go":.25, "c-search":.38,
              "c-find":.50, "c-take":.65, "c-ret":.82, "c-chg":1},
   vertep:   {"ve-hook":.05, "ve-friction":.40, "ve-spike":.78, "ve-button":1},
-  vertseason:{"v-hook":.01, "v-setup":.04, "v-paywall":.11, "v-reveal":.15, "v-layer":.28,
-             "v-mid":.45, "v-dark":.60, "v-low":.72, "v-turn":.80, "v-unwind":.90, "v-final":1},
   broadcast:{"b-teas":.02, "b-1a":.12, "b-1b":.22, "b-2a":.33, "b-2b":.45,
              "b-3a":.58, "b-3b":.70, "b-4a":.85, "b-tag":1},
   streaming:{"s-open":.02, "s-1":.15, "s-2":.32, "s-3a":.50, "s-3b":.62, "s-4":.82, "s-hook":1},
@@ -3742,8 +3723,7 @@ const PILLARS = new Set([
   "s-open","s-2","s-3a","s-4","s-hook",
   "h-cold","h-a","h-comp","h-low","h-res","h-tag",
   "sh-hook","sh-break","sh-turn","sh-choice","sh-last",
-  "ve-hook","ve-spike","ve-button",
-  "v-hook","v-paywall","v-mid","v-low","v-turn","v-final"
+  "ve-hook","ve-spike","ve-button"
 ]);
 Object.keys(STRUCTURES).forEach(k => STRUCTURES[k].slots.forEach((s, i, arr) => {
   const p = POS[k] && POS[k][s.id];
@@ -4643,8 +4623,39 @@ function knownStructure(key){
   return (key && STRUCTURES[key]) ? key : "stc";
 }
 
+/* A CARD CAN ONLY HOLD A BEAT ITS OWN STRUCTURE HAS.
+   knownStructure() above keeps a project with an unrecognised structure from
+   throwing on render, by moving it to Save the Cat. That leaves the other half
+   of the problem: every card is still pointing at a beat that structure does
+   not have. The board draws by walking its own slots, and Set aside takes only
+   "__none", so a card like that matches neither and is drawn NOWHERE. It stays
+   in the project, it saves to the database, and it appears on no screen.
+
+   That became reachable the day the vertical season arc was removed from the
+   product, which is what this is for. It runs at the door on every load, so it
+   is the same answer every time and nothing is written back merely for being
+   read: it is the writer's next edit that saves the repair.
+
+   Set aside rather than the notes shelf, because these were beat cards. The
+   writer can see them there and put them where they belong. */
+function rehomeStrandedCards(proj){
+  const S = STRUCTURES[proj.structure];
+  if (!S) return 0;
+  const ids = new Set(S.slots.map(s => s.id));
+  let moved = 0;
+  (proj.cards || []).forEach(c => {
+    if (!c.slot || c.slot === "__none" || c.slot === "__shelf") return;
+    if (ids.has(c.slot)) return;
+    c.slot = "__none";
+    c.pinned = false;
+    c.placedFromOutline = false;
+    moved++;
+  });
+  return moved;
+}
+
 function projectFromRow(r, keepLocalId){
-  return {
+  const p = {
     id: r.id, localId: keepLocalId || pid++, name: r.name,
     structure: knownStructure(r.structure), brief: r.brief || {},
     cards: r.cards || [], outline: r.outline || {},
@@ -4653,6 +4664,8 @@ function projectFromRow(r, keepLocalId){
     updatedAt: r.updated_at || null,
     touched: r.updated_at ? new Date(r.updated_at).getTime() : Date.now()
   };
+  rehomeStrandedCards(p);
+  return p;
 }
 
 async function load(){
@@ -5383,29 +5396,25 @@ const HEAD_ALIAS = {
   "h-cold":  ["opening","open","teaser","first shot"],
   "b-teas":  ["opening","open","cold open","first shot"],
   "ve-hook": ["opening","open","cold open","first shot"],
-  "v-hook":  ["opening","open","cold open","first shot","pilot hook"],
 
   last:      ["ending","ending idea","the ending","last shot","last image","closing image","final shot","the end"],
   "sh-last": ["ending","ending idea","the ending","last shot","last image","closing image","final shot","the end"],
   "t-res":   ["ending","ending idea","the ending","final image","last shot","last image","closing image","the end"],
   "c-chg":   ["ending","ending idea","the ending","final image","last shot","resolution"],
   "h-res":   ["ending","ending idea","the ending","resolution"],
-  "v-final": ["ending","ending idea","the ending","final image"],
   "ve-button":["ending","ending idea","the ending","button","last shot"],
   "b-tag":   ["tag","button","the tag"],
   "h-tag":   ["tag","button","the tag"],
 
   mid:       ["midpoint","mid point","mid story","midstory"],
   "t-mid":   ["midpoint","mid point","mid story","midstory"],
-  "v-mid":   ["midpoint","mid point","midpoint reversal"],
   cat:       ["inciting incident","catalyst","the call"],
   "t-inc":   ["inciting incident","catalyst","the call"],
   fin:       ["climax","the climax"],
   "t-cli":   ["climax","the climax","finale"],
   lost:      ["all is lost","low point","the low point"],
   "t-low":   ["low point","the low point","all is lost"],
-  "h-low":   ["low point","the low point","all is lost"],
-  "v-low":   ["low point","the low point","lowest point","all is lost"]
+  "h-low":   ["low point","the low point","all is lost"]
 };
 function beatFromHeading(label, key){
   const want = String(label).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
@@ -8905,7 +8914,10 @@ function localBrief(raw){
   const f = raw.match(head("format", "(.+)$"));
   if (f && !(cut >= 0 && f.index > cut)){
     const v = f[1].toLowerCase();
-    if (/vertical/.test(v)) out.format = /season|series/.test(v) ? "vertseason" : "vertep";
+    /* Vertical is one shape now. A file that says "vertical season" gets the
+       episode, which is the only vertical structure there is, rather than
+       being dropped on the floor for naming one that was removed. */
+    if (/vertical/.test(v)) out.format = "vertep";
     else if (/short/.test(v)) out.format = "short";
     else if (/half.?hour|sitcom/.test(v)) out.format = "halfhour";
     else if (/hour|drama series|streaming/.test(v)) out.format = /broadcast|network/.test(v) ? "broadcast" : "streaming";
@@ -13150,6 +13162,9 @@ function renderSlate(){
   function open(id){ state.activeId = id; setView("board"); }
   function remove(p){
     const n = (p.cards || []).length;
+    // Where it sat, so a refused delete can put it back in its own place
+    // rather than at the end of somebody's shelf.
+    const at = Math.max(0, state.projects.indexOf(p));
     if (!confirm("Delete the project \u201c" + p.name + "\u201d?\n\n"
         + "This deletes its cards, notes, outline, character information and pictures. "
         + "Download your work first if you want to keep a copy.")) return;
@@ -13158,7 +13173,35 @@ function renderSlate(){
        back at all. Awaited, because a delete that lands first would leave
        the snapshot describing a project that no longer exists to anybody
        watching the order of these two requests. */
-    if (p.id) keepPoint(p, "delete").then(() => BF.deleteProject(p.id).catch(() => {}));
+    /* A REFUSED DELETE USED TO SAY NOTHING AT ALL.
+       The card came off the shelf the moment you confirmed, and the server
+       call that followed had a bare catch on it that threw the failure away.
+       So a delete the server refused looked exactly like a delete that worked:
+       the project was gone from the screen and still in the database, and it
+       came back on the next load, where the only thing to do about it is
+       delete it a second time. Kris reported it as having to delete twice.
+
+       The card still comes off immediately, because waiting on the network to
+       redraw a shelf feels broken. What is new is that a failure puts it back
+       where it was and says so. */
+    const wasAt = at;
+    if (p.id) keepPoint(p, "delete")
+      .then(() => BF.deleteProject(p.id))
+      .catch(() => {
+        if (state.projects.indexOf(p) >= 0) return;
+        const blankAt = state.projects.findIndex(x => x.placeholder);
+        if (blankAt >= 0) state.projects.splice(blankAt, 1);
+        state.projects.splice(Math.min(wasAt, state.projects.length), 0, p);
+        // Nothing about it changed, so it must not be queued for saving again.
+        savedFingerprints.set(p, projectFingerprint(p));
+        if (!state.projects.some(x => (x.id || x.localId) === state.activeId))
+          state.activeId = p.id || p.localId;
+        renderSlate();
+        // esc, because sayStrip writes HTML and a project name is the
+        // writer's own text. A script tag in a title is still a title.
+        sayStrip("Could not delete “" + esc(p.name) + "”. It is still on your "
+          + "shelf and nothing has been lost. Try again in a moment.", "warn");
+      });
     /* Out of the save queue as well as out of the shelf. flush() walks `dirty`
        rather than the project list, so a board deleted within the debounce of
        its own last edit was being written back to the server after the delete

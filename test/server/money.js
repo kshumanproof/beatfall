@@ -371,15 +371,18 @@ const paid = extra => ({ id:'u1', plan:'beatfall', subscription_status:'active',
     .forEach(word => check('  the absent things include ' + word,
       new RegExp(word, 'i').test(M.slice(M.indexOf('DELIBERATELY DOES NOT DO'))), ''));
 
-  /* All nine, by name, with their beats. A writer asking "does it do half hour
-     comedy" is asking a question this has to answer without a round trip. */
-  const NINE = ['Save the Cat', 'Classic Three-Act', 'Story Circle', 'Short film',
-                'One episode', 'Season arc', 'Broadcast Hour', 'Streaming Hour',
-                'Half-Hour Comedy'];
-  const gone = NINE.filter(n => M.toLowerCase().indexOf(n.toLowerCase()) < 0);
-  check('all nine structures are named', gone.length === 0, gone.join(', '));
+  /* All eight, by name, with their beats. A writer asking "does it do half hour
+     comedy" is asking a question this has to answer without a round trip.
+     It was nine until the vertical season arc was removed from the product. */
+  const EIGHT = ['Save the Cat', 'Classic Three-Act', 'Story Circle', 'Short film',
+                 'One episode', 'Broadcast Hour', 'Streaming Hour',
+                 'Half-Hour Comedy'];
+  const gone = EIGHT.filter(n => M.toLowerCase().indexOf(n.toLowerCase()) < 0);
+  check('all eight structures are named', gone.length === 0, gone.join(', '));
+  check('and the one that was removed is not still advertised',
+    !/season arc|paywall turn/i.test(M));
   check('and their beats are listed, not just their names',
-    /Bad Guys Close In/.test(M) && /The Paywall Turn/.test(M)
+    /Bad Guys Close In/.test(M) && /Act Three Out/.test(M)
       && /Act Four Climax/.test(M), '');
 
   /* EVERY FIGURE IS INTERPOLATED, NEVER TYPED. This is the bug this product has

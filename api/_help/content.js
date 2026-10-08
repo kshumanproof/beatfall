@@ -428,9 +428,9 @@ export const HELP = [
   id: "structures",
   section: "Structure",
   q: "Which story structures can I use?",
-  a: "Nine. Save the Cat with fifteen beats and Classic Three-Act with nine, "
+  a: "Eight. Save the Cat with fifteen beats and Classic Three-Act with nine, "
    + "both for features. The Story Circle in eight stages, for either. A short "
-   + "film in eight beats. Two vertical shapes, one episode and a season arc. "
+   + "film in eight beats. A vertical episode in four. "
    + "And three for television: a broadcast hour with a teaser and four acts, "
    + "a streaming hour in five acts, and a half-hour comedy with a cold open, "
    + "three acts and a tag.\n\n"

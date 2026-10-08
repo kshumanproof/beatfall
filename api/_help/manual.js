@@ -751,12 +751,6 @@ VERTICAL, ONE EPISODE, for 60 to 120 seconds, 4 beats.
 Hook in the first 15 seconds, Friction from 15 to 60 seconds, Spike from 60
 to 90 seconds, Button in the last 5 to 10 seconds.
 
-VERTICAL, SEASON ARC, for 60 to 100 episodes, 11 beats.
-Episode One Hook, The Setup, The Paywall Turn at about episode 10,
-First Big Reveal, Complication Layers, Midpoint Reversal at about episode 40,
-The Dark Middle, The Lowest Point, The Turn, Payoffs In Order,
-The Central Arc Lands.
-
 TELEVISION, BROADCAST HOUR, teaser and four acts, 9 beats.
 Teaser, Act One In, Act One Out, Act Two In, Act Two Out, Act Three In,
 Act Three Out, Act Four Climax, Tag.
