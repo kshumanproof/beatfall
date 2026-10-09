@@ -124,6 +124,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
      notes into another writer's scripts. So it is said plainly and the writer
      picks, rather than the app choosing for them either way. */
   const leave = async () => {
+    if (busy) return;
     const t = await store.counts();
     if (t.waiting > 0) {
       Alert.alert(
@@ -132,16 +133,34 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         + 'thrown away.',
         [
           { text: 'Cancel', style: 'cancel' },
-          /* And then say what happened. Sending in the background and leaving
-             the same "3 notes have not been sent" on screen is the app doing
-             the thing and hiding it. */
-          { text: 'Send them first', onPress: async () => { await runSync(); load(); } },
+          { text: 'Send notes and sign out', onPress: sendAndLeave },
           { text: 'Delete unsent notes and sign out', style: 'destructive', onPress: quit },
         ],
       );
       return;
     }
     quit();
+  };
+
+  const sendAndLeave = async () => {
+    if (busy) return;
+    setBusy(true);
+    let sentAll = false;
+    try {
+      const result = await runSync();
+      const remaining = await store.counts();
+      sentAll = !!result && result.ok === true && remaining.waiting === 0;
+    } catch (e) {
+      // A failed send or unreadable queue must never trigger sign-out.
+    }
+    if (sentAll) {
+      await quit();
+      return;
+    }
+    await load();
+    setBusy(false);
+    Alert.alert("You're still signed in",
+      "Some notes couldn't be sent. They are still on this phone. Check your connection and try again.");
   };
 
   const quit = async () => {
