@@ -121,6 +121,10 @@ export default async function handler(req, res) {
     if (view === 'product')  return send(res, 200, Object.assign(base, await product(db, since, days)));
     if (view === 'money')    return send(res, 200, Object.assign(base, await money(db, since)));
     if (view === 'system')   return send(res, 200, Object.assign(base, await system(db)));
+    if (view === 'launch') {
+      res.setHeader('Cache-Control', 'no-store');
+      return send(res, 200, Object.assign(base, await launchList(db, since)));
+    }
     if (view === 'account')  return send(res, 200, Object.assign(base, await account(db, String(req.query?.id || ''))));
     if (view === 'issue')    return send(res, 200, Object.assign(base, await issue(db, String(req.query?.id || ''))));
     return send(res, 400, { error: 'unknown_view' });
@@ -133,6 +137,22 @@ export default async function handler(req, res) {
     return send(res, 500, { error: 'view_failed', view,
       message: 'This section could not be built. The rest of the page is unaffected.' });
   }
+}
+
+// Launch subscribers are separate from app users and every financial figure.
+async function launchList(db, since) {
+  const columns = 'email, created_at, consent_at, consent_version, source, medium, campaign, unsubscribed_at';
+  const [list, total, available, recent] = await Promise.all([
+    readAll(db, () => db.from('launch_leads').select(columns).order('created_at', { ascending: false }).order('email', { ascending: true })),
+    db.from('launch_leads').select('id', { count: 'exact', head: true }),
+    db.from('launch_leads').select('id', { count: 'exact', head: true }).is('unsubscribed_at', null),
+    db.from('launch_leads').select('id', { count: 'exact', head: true }).gte('created_at', since)
+  ]);
+  if (list.error || total.error || available.error || recent.error) throw Error('Launch list could not be read');
+  if (![total.count, available.count, recent.count].every(n => Number.isInteger(n))) throw Error('Launch counts unavailable');
+  return { leads: list.rows, truncated: list.truncated,
+    total: total.count, available: available.count, recent: recent.count,
+    list_scope: 'all_time', period_scope: 'recent_signups_only' };
 }
 
 /* ===========================================================================

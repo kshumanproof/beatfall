@@ -1131,6 +1131,32 @@ let URL = '';
     await p.close();
   }
 
+
+  // Launch subscribers remain separate from app accounts and revenue.
+  for (const mode of ['light','dark']) {
+    const leads=Array.from({length:105},(_,i)=>({email:'lead'+i+'@example.com',created_at:'2026-10-09T10:00:00.000Z',consent_at:'2026-10-09T10:00:00.000Z',consent_version:'launch-v1',source:'launchbox',medium:'email',campaign:'contest',unsubscribed_at:null}));
+    leads.push({...leads[0],email:'removed@example.com',unsubscribed_at:'2026-10-09T11:00:00Z'});
+    const launch={leads,total:106,available:105,recent:106,window_days:30,truncated:false};
+    const {p,errors}=await open(browser,withSeed('location.hash="launch";window.__MODE__='+JSON.stringify(mode)+';window.__ADMIN__.launch='+JSON.stringify(launch)+';'));
+    check(mode+' launch shows exact labeled totals',(await p.locator('#view .tile .n').allTextContents()).join(',')==='106,105,106');
+    check(mode+' launch defaults to available addresses',!(await p.locator('#view').innerText()).includes('removed@example.com'));
+    check(mode+' launch pages 100 addresses',(await p.locator('#view tbody tr').count())===101);
+    check(mode+' launch export includes matches beyond page',(await p.locator('#launch-export').innerText()).includes('(105)'));
+    const downloadPromise=p.waitForEvent('download');await p.click('#launch-export');const download=await downloadPromise;
+    const csv=fs.readFileSync(await download.path(),'utf8');
+    check(mode+' downloaded CSV contains all active addresses',csv.split('\r\n').length===106&&csv.includes('lead104@example.com')&&!csv.includes('removed@example.com'));
+    await p.click('#more');check(mode+' launch show more works',(await p.locator('#view tbody tr').count())===106);
+    await p.fill('#search','lead104');check(mode+' launch search works',(await p.locator('#launch-export').innerText()).includes('(1)'));
+    await p.fill('#search','');await p.selectOption('#launch-status','removed');
+    check(mode+' removed addresses are visible but cannot be exported',(await p.locator('#view').innerText()).includes('removed@example.com')&&await p.locator('#launch-export').isDisabled());
+    await p.selectOption('#launch-status','available');
+    await p.evaluate(()=>window.__FAIL_VIEW__='launch');await p.click('#refresh');
+    await p.waitForTimeout(150);
+    check(mode+' failed refresh disables cached export',await p.locator('#launch-export').isDisabled());
+    check(mode+' launch has no browser errors',errors.length===0,errors.join('\n'));
+    await p.close();
+  }
+
   await browser.close();
   server.close();
 

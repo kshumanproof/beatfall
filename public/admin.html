@@ -358,6 +358,7 @@
   <a href="#writers"  data-view="writers">Writers</a>
   <a href="#product"  data-view="product">Product use</a>
   <a href="#money"    data-view="money">Money</a>
+  <a href="#launch"   data-view="launch">Launch list</a>
   <a href="#system"   data-view="system">System</a>
 </div></nav>
 
@@ -453,6 +454,7 @@ const VIEWS = {
   product:  UI.viewProduct,
   money:    UI.viewMoney,
   system:   UI.viewSystem,
+  launch:   UI.viewLaunch,
   account:  UI.viewAccount,
   issue:    UI.viewIssue
 };
@@ -488,7 +490,9 @@ function paintNav() {
 
 function paintControls() {
   const v = S.view;
-  $('searchwrap').hidden = v !== 'writers';
+  $('searchwrap').hidden = v !== 'writers' && v !== 'launch';
+  $('search').placeholder = v === 'launch' ? 'Search email, source or campaign' : 'Search email, name or reference';
+  $('search').setAttribute('aria-label', v === 'launch' ? 'Search launch list' : 'Search accounts');
   $('sortwrap').hidden   = v !== 'writers';
   // The population filter only changes what the Writers list counts. Saying
   // so by disabling it beats leaving a control that quietly does nothing.
@@ -605,6 +609,7 @@ function draw() {
       + '.</div>' : '';
 
   if (S.view === 'writers') { box.innerHTML = head + drawWriters(d); return; }
+  if (S.view === 'launch') { box.innerHTML = head + drawLaunch(d); return; }
   box.innerHTML = head + VIEWS[S.view](d);
 }
 
@@ -614,6 +619,16 @@ function crumbFor() {
   if (S.view === 'issue')
     return '<div class="crumb"><button data-go="issues">Back to issues</button></div>';
   return '';
+}
+
+let launchStatus = 'available';
+function drawLaunch(d) {
+  const rows = UI.filterLaunch(d.leads, S.search, launchStatus);
+  const page = rows.slice(0, shown);
+  if (rows.length > page.length) $('pager').innerHTML = '<div class="pager"><span>Showing ' + page.length
+    + ' of ' + rows.length + ' matches.</span><button class="btn sm" id="more">Show '
+    + Math.min(PER_PAGE, rows.length-page.length) + ' more</button></div>';
+  return UI.viewLaunch(d, page, rows.length, launchStatus, !!S.failed);
 }
 
 /* Filtering, ordering and paging happen here rather than inside the view, so
@@ -898,6 +913,18 @@ function say(words) {
    on is answered here.
    --------------------------------------------------------------------------- */
 document.addEventListener('click', e => {
+  if (e.target.id === 'launch-export') {
+    const d = S.data[cacheKey()];
+    if (S.view !== 'launch' || !d || d.truncated || S.failed || S.loading) return;
+    const rows = UI.filterLaunch(d.leads, S.search, launchStatus).filter(r => !r.unsubscribed_at);
+    if (!rows.length) return;
+    const url = URL.createObjectURL(new Blob([UI.launchCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'beatfall-launch-list-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
   const act = e.target.closest('[data-do]');
   if (act) {
     const action = act.dataset.do;
@@ -940,6 +967,9 @@ async function runStraight(action, ctx) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && sheetEl) { closeSheet(); return; }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'launch-status') { launchStatus = e.target.value; shown = PER_PAGE; draw(); }
 });
 
 /* ------------------------------------------------------------- the routing */

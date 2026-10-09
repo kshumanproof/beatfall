@@ -54,6 +54,53 @@ const S = {
 
 export function state() { return S; }
 
+export function filterLaunch(leads, search = '', status = 'available') {
+  const needle = String(search).trim().toLowerCase();
+  return (leads || []).filter(r => (status === 'all' || (status === 'removed' ? !!r.unsubscribed_at : !r.unsubscribed_at))
+    && (!needle || [r.email, r.source, r.medium, r.campaign].some(v => String(v || '').toLowerCase().includes(needle))));
+}
+
+export function launchCsv(rows) {
+  const cell = value => {
+    let text = String(value ?? '');
+    // Prevent spreadsheet formulas, including formulas hidden behind whitespace.
+    if (/^[\s\u0000-\u001f]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
+  const fields = ['email','created_at','consent_at','consent_version','source','medium','campaign'];
+  return '\uFEFF' + [fields.join(','), ...rows.filter(r => !r.unsubscribed_at).map(r => fields.map(f => cell(r[f])).join(','))].join('\r\n');
+}
+
+export function viewLaunch(d, rows = [], total = 0, status = 'available', exportDisabled = false) {
+  const date = iso => iso ? String(iso).replace('T', ' ').replace(/\.\d+Z$/, ' UTC') : 'Not recorded';
+  const groups = new Map();
+  for (const r of d.leads || []) groups.set(r.source || 'unattributed', (groups.get(r.source || 'unattributed') || 0) + 1);
+  const exportCount = filterLaunch(d.leads, S.search, status).filter(r => !r.unsubscribed_at).length;
+  return `<section class="panel"><h2>Launch list</h2>
+    <p class="muted">People who asked to hear when Beatfall launches. These are not app accounts, paying customers or revenue.</p>
+    <div class="tiles">
+      <div class="tile"><div class="n">${esc(d.total)}</div><div class="l">Total signups</div><span class="sub">All time, including removed addresses</span></div>
+      <div class="tile"><div class="n">${esc(d.available)}</div><div class="l">Available to email</div><span class="sub">All time, with current permission</span></div>
+      <div class="tile"><div class="n">${esc(d.recent)}</div><div class="l">New signups</div><span class="sub">Last ${esc(d.window_days)} days</span></div>
+    </div>
+    <p class="muted">Period changes New signups only. The list and source counts below cover all time. Dates are UTC.</p>
+  </section>
+  ${d.truncated ? '<div class="note bad">The list exceeded 20,000 records. Totals above are complete, but the list is partial. Export is disabled to avoid downloading an incomplete list.</div>' : ''}
+  <section class="panel"><h2>Where signups came from</h2>
+    ${d.truncated ? '<p class="muted">Source totals are unavailable while the list is partial.</p>' : groups.size ? `<div class="tablewrap"><table><thead><tr><th>Source</th><th class="num">Signups, all time</th></tr></thead><tbody>${[...groups].sort((a,b)=>b[1]-a[1]).map(([source,n])=>`<tr><td>${esc(source)}</td><td class="num">${n}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No signups yet.</p>'}
+  </section>
+  <section class="panel"><h2>Email addresses</h2>
+    <div class="acts"><label for="launch-status">Show</label><select id="launch-status" class="btn">
+      <option value="available"${status==='available'?' selected':''}>Available to email</option>
+      <option value="all"${status==='all'?' selected':''}>All signups</option>
+      <option value="removed"${status==='removed'?' selected':''}>Removed from list</option>
+    </select><button class="btn" id="launch-export"${d.truncated || exportDisabled || !exportCount ? ' disabled' : ''}>Export available matches (${exportCount})</button></div>
+    <p class="muted">Export includes all available matches, including those beyond the current page. Removed addresses are excluded.</p>
+    <p class="muted">Showing ${rows.length} of ${total} matches.</p>
+    ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Email</th><th>Signed up</th><th>Source</th><th>Campaign</th><th>Permission recorded</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.email)}</td><td>${esc(date(r.created_at))}</td><td>${esc(r.source || 'unattributed')}<div class="sub">${esc(r.medium)}</div></td><td>${esc(r.campaign || '')}</td><td>${esc(date(r.consent_at))}<div class="sub">${esc(r.consent_version)}</div></td><td>${r.unsubscribed_at?'Removed':'Available to email'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No addresses match these filters.</p>'}
+  </section>`;
+}
+
 /* A figure, with everything a reader needs to judge it. `value` null means
    the number is not available, which is drawn as a dash and a reason and
    never as a zero. */

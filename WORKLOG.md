@@ -3071,3 +3071,10 @@ Authorized by Kris after the live audit. Installed locally, NOT PUSHED.
 - Historical export gaps came from Kris wiping test accounts. Do not reopen
   that as a current missing-call defect or rewrite customer records to match
   project-wide historical charges.
+
+
+## 9 October 2026: launch list in admin
+
+Added a read-only Launch list tab to the existing admin endpoint and page. Shows exact all-time signup and available-address totals, period-specific new signups, source counts, searchable addresses and CSV export. CSV excludes removed addresses and neutralizes spreadsheet formulas. Failed or incomplete lists disable export. Launch leads remain separate from app accounts and revenue. No new SQL required; uses existing launch_leads migration.
+
+Validated in isolated Windows harness: 699 server checks and 187 admin browser checks passed, including permissions, paging, export and failed-refresh behavior. Only admin source, its tests and this log changed. Mobile, app gate, auth/sync, billing implementation and launch-site files were not modified. Kris still needs to commit and push, then confirm the real signup appears in the deployed admin.
