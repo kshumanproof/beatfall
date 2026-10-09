@@ -2741,3 +2741,60 @@ arrive says "not sent" rather than printing "undefined" at you in 22px.
 behind the small-screen gate, so a phone that finds it in search gets the app
 pitch instead of the help page. Drop it from the sitemap, or treat it as a
 document like Privacy and Terms and take `app.js` off it.
+
+## The cap is three, and what happens past it (8 October 2026, later)
+
+Kris lowered it from four. `MAX_IMPORT_STORIES = 3` in `app.html`, beside
+`IMPORT_MAX_NOTES`.
+
+**What happens past three was the part that was wrong.** A note the read routed
+to a fourth story fell into story ZERO, which is the board the writer is
+standing in, so another film's notes landed on their script: the same shape as
+the Night Haul overwrite.
+
+Nothing is routed anywhere by default now. A story past the third is still a
+story. It is listed on the review sheet by name, it carries its own notes, and
+it simply cannot be switched on: no structure menu, no checkbox, and a line
+saying one read builds three at most and these notes are going to the pile.
+It is never described, never built and never charged, and `closeImport` parks
+it like any other group the writer did not take.
+
+`STORY_LIST_MAX` is 8 and is only a drawing limit, so a read answering twelve
+stories cannot produce a sheet nobody can read. An index past the list goes to
+the first parked story, never to story zero.
+
+**MINUS ONE IS AN ANSWER, NOT AN ERROR.** The read uses `s: -1` for a line that
+is not story material at all, an errand or a reminder. Those belong on the
+writer's own shelf where they typed them, so -1 stays story zero. Sweeping them
+in with the parked stories would quietly move somebody's shopping list out of
+their project. The first version of this fix did exactly that.
+
+**And closing the leak made a latent bug reachable, which is the lesson.**
+`out` was filtered with `.filter(st => st.notes.length)`, and everything
+downstream reads POSITION: the build treats index 0 as the project the writer
+is standing in and every index after it as a project to create. While every
+stray note fell into story zero, story zero was never empty. The moment it can
+be, dropping it slides a parked story into its place and that story gets
+written into the writer's open board. Story zero now keeps its place whatever
+is in it, and `renderReview` draws no block for an empty group.
+
+`test/stories.js` is the suite: five stories listed with three buildable, the
+sheet saying why, no menu on a parked one, a note claiming story eleven landing
+parked rather than on the board, an errand staying with the writer, and an
+ordinary two story file untouched. Fifteen checks.
+
+### Things Kris has now answered, so stop raising them
+
+- **Stripe.** Nothing has fired against live Stripe because the account is in
+  test mode. It HAS fired in the sandbox. That is as far as it goes until he
+  goes live, and it is not an open item.
+- **The structures.** He has run all nine against real notes.
+- **The one-browser lock.** It works. He signed in on a second browser and the
+  first one blocked. The `/help` sitemap question is dropped as well.
+- **The tester pack** is his, before he ships.
+
+### Still open
+
+- The two SQL lines, `beatfall-credit-check.sql`, delivered 8 October: what the
+  usage table actually charged, the totals per account, and the reset.
+- The rescue bar no longer promises nothing has been lost. His call.

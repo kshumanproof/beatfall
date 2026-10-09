@@ -3975,6 +3975,29 @@ const PRICES = {month: 15, year: 149};
  * number from anywhere higher up stops the whole script dead. */
 const IMPORT_MAX_NOTES = 1000;
 
+/* HOW MANY STORIES ONE READ WILL BUILD, AND WHAT HAPPENS TO THE REST.
+ *
+ * Three. A notes file holding four or more separate films is a slate, and
+ * turning a slate into four boards in one press is four decisions the writer
+ * never made, at four times the price.
+ *
+ * What happens past three is the part that was wrong. A note the read routed
+ * to a fourth story used to fall into story ONE, which is the board the writer
+ * is standing in, so another film's notes landed on their board: the same
+ * shape as the Night Haul overwrite. Nothing is routed anywhere by default any
+ * more. A story past the third is still a story, still listed on the review
+ * sheet by name, and simply cannot be switched on. Its notes go to the pile on
+ * the dashboard with everything else the writer left for later, where sorting
+ * them by hand is free, and it is never described, never built and never
+ * charged.
+ *
+ * STORY_LIST_MAX is how many the sheet will LIST, buildable or not. It exists
+ * only so a read that answers twelve stories cannot draw a sheet nobody can
+ * read, and anything past it joins the first parked story rather than falling
+ * back to story one. */
+const MAX_IMPORT_STORIES = 3;
+const STORY_LIST_MAX = 8;
+
 /* What a paid month carries. Three screens used to say "150" as typed text,
    and the paid allowance is exactly the kind of number that moves. This asks
    the server first and falls back to a printed number only if /api/account has
@@ -9764,7 +9787,13 @@ async function claudePlan(raw){
   } catch (e) { if (e && e.code === "cancelled") throw e; }
 
   const groups = (top && Array.isArray(top.stories) && top.stories.length
-    ? top.stories : [{name: proj.name, about: ""}]).slice(0, 4);
+    ? top.stories : [{name: proj.name, about: ""}]).slice(0, STORY_LIST_MAX);
+  /* Past the third story nothing is built. The group stays, so its notes have
+     somewhere correct to go and the sheet can name it, and it arrives switched
+     off and unswitchable. See MAX_IMPORT_STORIES. */
+  groups.forEach((g, i) => {
+    if (i >= MAX_IMPORT_STORIES){ g.capped = true; g.off = true; }
+  });
   /* Group zero IS the project the writer is standing in. If that project
      already has a name, it keeps it, and no title found anywhere in the file
      may replace it. A file's title only fills a blank. */
@@ -9845,8 +9874,11 @@ async function claudePlan(raw){
     const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
     let at = known().indexOf(key);
     if (at === -1){
-      if (groups.length >= 6) return;              // a notes file, not a slate
-      groups.push({name, about: ""});
+      if (groups.length >= STORY_LIST_MAX) return;  // a notes file, not a slate
+      groups.push({name, about: "",
+        // Named by the writer or spotted by the read, the cap is the cap.
+        capped: groups.length >= MAX_IMPORT_STORIES,
+        off:    groups.length >= MAX_IMPORT_STORIES});
       at = groups.length - 1;
       codeMade.add(at);
     }
@@ -10203,10 +10235,28 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   /* ---- pass three: the casting call ------------------------------------ */
   const storyOf = new Array(notes.length);
   // see lockBoundaries, below the function, for what happens to this array
+  /* WHERE A NOTE GOES WHEN THE READ NAMES A STORY THAT IS NOT ON THE LIST.
+
+     It used to go to story ZERO, which is the board the writer is standing in,
+     so a read that answered five stories put the fifth film's notes on their
+     board: the same shape as the Night Haul overwrite. A story past the list
+     is parked, so a note bound for one is parked with it and reaches the pile
+     rather than somebody's script.
+
+     MINUS ONE IS NOT OUT OF RANGE, it is an answer. It means the line is not
+     story material at all, an errand or a reminder, and those belong on the
+     writer's own shelf where they can see them, which is story zero. Lumping
+     them in with the parked stories would quietly move a writer's shopping
+     list out of the project they typed it into. */
+  const firstParked = groups.findIndex(g => g && g.capped);
+  const overflowTo = firstParked >= 0 ? firstParked : 0;
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
+    const said = Number.isInteger(r.s) ? r.s : 0;
     let si = forced.has(idx) ? forced.get(idx)
-      : Number.isInteger(r.s) && r.s >= 0 && r.s < groups.length ? r.s : 0;
+      : said >= 0 && said < groups.length ? said
+      : said >= groups.length ? overflowTo
+      : 0;                                   // -1, and anything else nonsense
     if (!forced.has(idx) && codeMade.has(si)) si = 0;
     storyOf[idx] = si;
   });
@@ -10411,8 +10461,25 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     // that does not exist yet, and the writer chooses its structure on the
     // review sheet before any of it is built.
     structure: i === 0 ? null : "",
+    // Past the cap: listed, named, switched off and not switchable. Its notes
+    // go to the pile when the review is finished. See MAX_IMPORT_STORIES.
+    capped: !!g.capped,
+    off: !!g.off,
     notes: buckets[i]
-  })).filter(st => st.notes.length);
+  }))
+  /* STORY ZERO KEEPS ITS PLACE EVEN WITH NOTHING IN IT.
+
+     Everything downstream reads position: the build treats index 0 as the
+     project the writer is standing in and every index after it as a project to
+     create. Dropping an empty story zero slides the next story into its place,
+     and that story would then be written into the writer's open board instead
+     of becoming its own project.
+
+     It could not happen while every stray note fell into story zero. Closing
+     that leak is exactly what makes an empty story zero possible, so the two
+     changes belong together. renderReview draws no block for an empty group,
+     so nothing shows on the sheet; only the position is held. */
+  .filter((st, i) => i === 0 || st.notes.length);
 
   /* EVERY PROJECT IS DESCRIBED BEFORE THE WRITER IS ASKED TO DECIDE ABOUT IT.
      This ran at build time for a while, so that a project the writer switched
@@ -10436,6 +10503,9 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     });
     wallStep("Describing each story", .97);
     for (const st of out){
+      // A story past the cap is never built, so describing it is a call spent
+      // on a board that will not exist.
+      if (st.capped) continue;
       const got = await enrichGroup(st, sid);
       if (!got || got.refused) continue;
       // What the writer typed in the file still wins over what was read.
@@ -10735,6 +10805,10 @@ function renderReview(){
   body.innerHTML = "";
 
   plan.forEach((st, si) => {
+    /* A group with nothing in it is only holding its position in the list, so
+       the build can still tell story zero from the stories after it. There is
+       nothing to review in it. See the filter in claudePlan. */
+    if (!st.notes.length) return;
     const wrap = document.createElement("div");
     wrap.className = "revstory";
     if (st.brief && Object.keys(st.brief).length){
@@ -10798,7 +10872,21 @@ function renderReview(){
        whether they want it at all, because this is where the second one is
        paid for. Both sit on the project they belong to rather than in a
        separate step, which is the whole reason this sheet exists. */
-    if (si > 0){
+    /* PAST THE CAP: NAMED, EXPLAINED, AND NOT AN OPTION.
+       No structure menu and no checkbox, because neither is a choice here.
+       The one thing the writer needs to know is that the words are safe and
+       where to find them, so that is the whole of it. */
+    if (si > 0 && st.capped){
+      const over = document.createElement("div");
+      over.className = "revnew";
+      over.innerHTML = '<div class="revkept">One read builds '
+        + MAX_IMPORT_STORIES + " stories at most. These notes are kept: they go "
+        + "to the pile on your dashboard, where you can sort them by hand for "
+        + "nothing, or read them on their own later.</div>";
+      head.appendChild(over);
+      wrap.classList.add("revskipped");
+    }
+    if (si > 0 && !st.capped){
       const extra = document.createElement("div");
       extra.className = "revnew";
       /* Its notes carry no suggested beat, and that is not an omission: a note
