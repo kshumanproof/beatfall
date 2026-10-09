@@ -143,7 +143,7 @@ export function staleLine(at) {
 export function trackingLine(start) {
   if (!start) return '';
   return '<p class="muted track">Records begin ' + esc(when(start))
-    + '. Nothing before then is missing, it was never recorded.</p>';
+    + '. Operator tracking began then. Older usage and account records may still be included.</p>';
 }
 
 /* ---------------------------------------------------------------------------
@@ -188,6 +188,7 @@ export function viewOverview(d) {
       <div><span class="lk">Work records</span>${lamp(h.work)}</div>
       <div><span class="lk">Alerts</span>${lamp(h.alerts)}</div>
     </div>
+    ${h.alerts && h.alerts.state !== 'ok' ? '<p class="note bad">Alert readiness could not be confirmed. ' + esc(h.alerts.why || '') + '. <a href="#system">Check System</a>.</p>' : ''}
     ${h.undelivered ? '<p class="note bad">' + h.undelivered
       + ' alert' + (h.undelivered === 1 ? '' : 's') + ' could not be delivered. '
       + 'The page knows something and could not tell you. See System.</p>' : ''}
@@ -266,8 +267,8 @@ function sevWord(s) {
 export function viewIssues(d) {
   const list = d.issues || [];
   if (!list.length) return partial(d.errors) + emptyState('No issues recorded.',
-    'Nothing has failed since the records began. If that seems unlikely, check '
-    + 'on the System screen that the records are being written.');
+    'No issue records were returned. This does not prove every feature succeeded. '
+    + 'Check System for recording problems and Product use for failure events.');
 
   return partial(d.errors) + `
   <p class="muted">${esc(d.note || '')}</p>
@@ -538,12 +539,13 @@ export function viewProduct(d) {
 
   <section class="panel">
     <h2>Features</h2>
-    <p class="muted">Started, finished and failed are counted separately. A
-      feature started a hundred times and finished twice is not a popular
-      feature.</p>
+    <p class="muted">Customer events in the selected period. Internal testing is excluded.
+      These are separate event counts, not matched attempts or a completion rate.
+      An action can start outside the period and finish inside it. Older events
+      may be incomplete.</p>
     <div class="tablewrap"><table>
-      <thead><tr><th>Feature</th><th class="num">Started</th>
-        <th class="num">Finished</th><th class="num">Failed</th></tr></thead>
+      <thead><tr><th>Feature</th><th class="num">Start events</th>
+        <th class="num">Finish events</th><th class="num">Failure events</th></tr></thead>
       <tbody>${feat}</tbody></table></div>
   </section>
 
@@ -684,13 +686,14 @@ export function viewSystem(d) {
         ? '<span class="lamp ok">Set</span>'
         : '<span class="lamp bad">Not set</span>'}</div>
     </div>
+    ${m.missing && m.missing.length ? '<p class="note bad">Missing deployment settings: ' + esc(m.missing.join(', ')) + '. Set these in Vercel, then redeploy.</p>' : ''}
     ${!m.alerts_to_set ? '<p class="note bad">No address is set, so alerts are '
       + 'recorded and nothing is sent. Set ALERT_TO to the address you want '
       + 'them at.</p>' : ''}
     <div class="tiles">
-      <div class="tile ${m.undelivered ? 'warn' : ''}"><div class="n">${m.undelivered || 0}</div>
+      <div class="tile ${m.undelivered ? 'warn' : ''}"><div class="n">${m.undelivered === null ? fig({ value: null, unavailable: 'Alert records could not be read' }) : (m.undelivered || 0)}</div>
         <div class="l">Not delivered</div></div>
-      <div class="tile ${m.gave_up ? 'bad' : ''}"><div class="n">${m.gave_up || 0}</div>
+      <div class="tile ${m.gave_up ? 'bad' : ''}"><div class="n">${m.gave_up === null ? fig({ value: null, unavailable: 'Alert records could not be read' }) : (m.gave_up || 0)}</div>
         <div class="l">Given up on</div></div>
     </div>
   </section>
@@ -724,23 +727,24 @@ export function viewSystem(d) {
    what they wrote.
    --------------------------------------------------------------------------- */
 export function viewAccount(d) {
+  // Account history is complete up to the reported server cap, never a silent 30-row sample.
   const a = d.account;
   if (!a) return emptyState('No such account.', d.error || '');
 
-  const led = (d.ledger || []).slice(0, 40).map(l => `
+  const led = (d.ledger || []).map(l => `
     <tr><td>${esc(when(l.created_at))}</td>
       <td>${esc(l.kind)}</td>
       <td class="num ${l.credits < 0 ? 'bad' : 'good'}">${l.credits > 0 ? '+' : ''}${l.credits}</td>
       <td>${esc(l.bucket || '')}</td>
       <td class="sub">${esc(l.reason || '')}</td></tr>`).join('');
 
-  const pay = (d.payments || []).slice(0, 20).map(p => `
+  const pay = (d.payments || []).map(p => `
     <tr><td>${esc(when(p.created_at))}</td><td>${esc(p.kind)}</td>
       <td class="num">${money((p.amount_cents || 0) / 100)}</td>
       <td>${esc(p.status)}</td>
       <td class="sub">${p.livemode ? 'live' : 'test mode'}</td></tr>`).join('');
 
-  const use = (d.usage || []).slice(0, 30).map(u => `
+  const use = (d.usage || []).map(u => `
     <tr><td>${esc(when(u.created_at))}</td><td>${esc(u.kind)}</td>
       <td class="num">${u.credits}</td>
       <td class="num">${money((u.cost_micros || 0) / 1e6)}</td>
@@ -789,6 +793,8 @@ export function viewAccount(d) {
   </section>
 
   <section class="panel"><h2>Writing help</h2>
+    <p class="muted">${(d.usage || []).length} recorded calls. Costs are calculated from reported token usage at configured rates, before cached-input discounts. Amounts are rounded to cents for display.</p>
+    ${d.truncated ? '<p class="note bad">This account history reached the reporting limit. It is incomplete; do not use it as a full reconciliation.</p>' : ''}
     <div class="tablewrap"><table>
       <thead><tr><th>When</th><th>What</th><th class="num">Credits</th><th class="num">Cost</th><th>Outcome</th></tr></thead>
       <tbody>${use || '<tr><td colspan="5" class="sub">Never used it.</td></tr>'}</tbody>

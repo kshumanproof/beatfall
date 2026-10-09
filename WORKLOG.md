@@ -2998,3 +2998,38 @@ Kris already ran supabase/operator.sql. Before deployment, set production ALERT_
 to the recipient email and verify SITE_URL is the full live origin. After pushing,
 confirm Vercel Ready and inspect admin System on the live deployment. Local tests
 use stubs and do not prove live database or email configuration.
+
+## 9 October 2026: live operator audit and approved fixes
+
+Read-only live audit found: missing alerts.attempts; no budget rows; mail not
+configured despite ALERT_TO being present; no-choice cohort hardcoded zeroes;
+internal events mixed into customer features; account history silently cut to
+30 calls. Cross-screen totals agreed ($1.98 customer, $0.11 internal), but this
+was not an independent database or provider-invoice reconciliation. iCloud
+account is classified as a customer; classification intentionally preserved.
+
+Approved code fixes now installed:
+- api/admin.js: count no-choice outcomes, exclude internal feature events, check
+  alert setup, count credit-spending use correctly, return up to 20k account
+  usage rows and signal history caps, expose missing env names only, unknown
+  alert-delivery counts on query failure rather than zero.
+- api/_lib/operator.js: page full period costs and reject failed pages; session
+  query errors return unknown. No enforcement or credit changes.
+- public/admin-ui.js: all returned account history inspectable, cap and pricing
+  caveats explicit; feature counts labelled events rather than conversion;
+  alert setup problems surfaced on Overview and System; unknown delivery
+  counts shown as unavailable; tracking start no longer denies older records.
+- supabase/operator-repair.sql: add two missing alert fields and insert only
+  absent original budget rows; transaction, no overwrites, enforcement false.
+- supabase/operator-verify.sql: read-only independent 30-day account totals and
+  saved-token/rate recalculation. Not yet run against live database.
+- test/server/audit-regressions.js: 23 new regressions; test/admin.js: 5 new
+  real-browser regressions. Tests used isolated copy outside repo with installed
+  deps; original hardcoded Linux browser path replaced with Windows Chrome only
+  in that isolated copy. All 638 server and 156 browser checks passed. Mutation
+  replacing the paged cost code with original code correctly failed the >1000
+  call regression. Installed source hashes match verified files; functions = 12.
+
+NOT PUSHED. Live SQL repair and Vercel mail setup still needed. Do not claim
+alerts work until schema, budget rows, environment configuration, and actual
+email delivery are verified. No secrets read or requested. No git commands run.

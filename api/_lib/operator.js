@@ -357,11 +357,19 @@ export async function accountTag(db, profile) {
    of it imports" is something to act on. */
 export async function periodCost(db, userId, periodStart) {
   try {
-    const { data } = await db.from('usage')
-      .select('kind, cost_micros, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', periodStart);
-    const rows = data || [];
+    // Page the full allowance period; the database's default row limit is
+    // not a spending limit. A failed page must not become a partial total.
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from('usage')
+        .select('id, kind, cost_micros, created_at')
+        .eq('user_id', userId).gte('created_at', periodStart)
+        .order('id', { ascending: true }).range(from, from + 999);
+      if (error) return null;
+      const page = data || [];
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
     let total = 0;
     const byKind = {};
     rows.forEach(r => {
@@ -466,9 +474,10 @@ export async function watchSpend(db, ctx) {
 export async function sessionCost(db, userId, session) {
   if (!session) return null;
   try {
-    const { data } = await db.from('usage')
+    const { data, error } = await db.from('usage')
       .select('kind, cost_micros')
       .eq('user_id', userId).eq('session_id', session);
+    if (error) return null;
     const rows = data || [];
     return {
       total: rows.reduce((n, r) => n + Number(r.cost_micros || 0), 0),

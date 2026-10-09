@@ -1066,6 +1066,45 @@ let URL = '';
     await p.close();
   }
 
+  // Live-audit regressions: older rows remain inspectable and failed queries
+  // cannot draw reassuring zero counts.
+  {
+    const p = await browser.newPage();
+    const errors = [];
+    p.on('pageerror', e => errors.push(e.message));
+    await p.addInitScript(withSeed(`
+      location.hash = 'account=u1';
+      window.__ADMIN__.account.usage = Array.from({ length: 31 }, (_, i) => ({
+        created_at: new Date().toISOString(), kind: i === 30 ? 'older_record_marker' : 'import',
+        credits: 0, cost_micros: 10, status: 'ok'
+      }));
+      window.__ADMIN__.account.truncated = true;
+    `));
+    await p.goto(URL);
+    await p.locator('#view').getByText('older_record_marker', { exact: true }).waitFor();
+    check('all returned account calls are inspectable after the thirtieth',
+      await p.locator('#view').getByText('older_record_marker', { exact: true }).count() === 1);
+    check('a capped account history says it is incomplete',
+      /history reached the reporting limit/.test(await p.locator('#view').innerText()));
+    check('an expanded account history loads without script errors', errors.length === 0, errors.join('\n'));
+    await p.close();
+  }
+  {
+    const p = await browser.newPage();
+    await p.addInitScript(withSeed(`
+      location.hash = 'system';
+      window.__ADMIN__.system.mail = { configured: false, alerts_to_set: true,
+        missing: ['MAIL_FROM'], undelivered: null, gave_up: null };
+      window.__ADMIN__.system.errors = ['column alerts.attempts does not exist'];
+    `));
+    await p.goto(URL);
+    await p.locator('#view').getByText(/Missing deployment settings/).waitFor();
+    check('System names the missing mail setting', /Missing deployment settings: MAIL_FROM/.test(await p.locator('#view').innerText()));
+    check('unreadable alert counts render as unknown instead of zero',
+      await p.locator('#view [title="Alert records could not be read"]').count() === 2);
+    await p.close();
+  }
+
   await browser.close();
   server.close();
 

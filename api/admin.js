@@ -159,7 +159,7 @@ async function overview(db, since, days) {
     .select('user_id, day').gte('day', since.slice(0, 10)));
 
   const alerts = await readAll(db, () => db.from('alerts')
-    .select('id, kind, level, summary, detail, created_at, delivered_at, delivery_error, acknowledged_at')
+    .select('id, kind, level, summary, detail, created_at, delivered_at, delivery_error, acknowledged_at, attempts')
     .is('acknowledged_at', null)
     .order('created_at', { ascending: false }), 200);
 
@@ -167,6 +167,17 @@ async function overview(db, since, days) {
     .select('id, title, severity, status, occurrences, accounts, last_seen_at, first_seen_at')
     .neq('status', 'resolved')
     .order('last_seen_at', { ascending: false }), 200);
+
+  const budgetRows = await readAll(db, () => db.from('budgets').select('scope, warn_micros, urgent_micros'), 50);
+  const alertSetup = [
+    !process.env.RESEND_API_KEY && 'RESEND_API_KEY is missing',
+    !process.env.MAIL_FROM && 'MAIL_FROM is missing',
+    !process.env.ALERT_TO && 'ALERT_TO is missing',
+    !process.env.SITE_URL && 'SITE_URL is missing',
+    !budgetRows.rows.some(b => b.scope === 'paid_period' && b.warn_micros && b.urgent_micros)
+      && 'Subscriber alert figures are not set',
+    alerts.error, budgetRows.error
+  ].filter(Boolean);
 
   const rows = people.rows || [];
   const ext = rows.filter(p => !isInternal(p));
@@ -195,7 +206,7 @@ async function overview(db, since, days) {
            : { state: 'ok', checked_at: new Date().toISOString() },
       work: work.error ? { state: 'unknown', why: work.error }
           : { state: 'ok', checked_at: new Date().toISOString() },
-      alerts: alerts.error ? { state: 'unknown', why: alerts.error }
+      alerts: alertSetup.length ? { state: 'unknown', why: alertSetup.join('. ') }
             : { state: 'ok', checked_at: new Date().toISOString() },
       // Delivery that failed is its own kind of unhealthy: the page knows
       // something and could not tell anybody.
@@ -230,7 +241,7 @@ async function overview(db, since, days) {
       // Said apart, because it is a different question: how many used the
       // metered help, rather than how many worked.
       used_writing_help: figure(
-        new Set((use.rows || []).filter(u => extIds.has(u.user_id)).map(u => u.user_id)).size,
+        new Set((use.rows || []).filter(u => extIds.has(u.user_id) && Number(u.credits) > 0).map(u => u.user_id)).size,
         { means: 'used a feature that spends credits' })
     },
 
@@ -504,7 +515,7 @@ async function account(db, id) {
       .order('created_at', { ascending: false }), 500),
     readAll(db, () => db.from('usage')
       .select('kind, credits, cost_micros, created_at, status, error_code, session_id, issue_id')
-      .eq('user_id', id).order('created_at', { ascending: false }), 2000),
+      .eq('user_id', id).order('created_at', { ascending: false }), 20000),
     readAll(db, () => db.from('support_cases').select('*').eq('user_id', id)
       .order('created_at', { ascending: false }), 100)
   ]);
@@ -524,6 +535,7 @@ async function account(db, id) {
       first_touch: p.first_touch, last_touch: p.last_touch
     },
     ledger: led.rows, payments: pay.rows, usage: use.rows, cases: cases.rows,
+    truncated: !!(led.truncated || pay.truncated || use.truncated || cases.truncated),
     errors: [led.error, pay.error, use.error, cases.error].filter(Boolean)
   };
 }
@@ -601,8 +613,12 @@ async function product(db, since, days) {
       paid: g.filter(p => ['active', 'past_due'].includes(p.subscription_status || '')).length,
       too_small: g.length < 10 };
   });
-  by_path.push({ key: 'none', label: 'Chose nothing', users: ext.filter(p => !p.onboarding_choice).length,
-    organised: 0, returned: 0, paid: 0, too_small: true });
+  const noChoice = ext.filter(p => !p.onboarding_choice);
+  by_path.push({ key: 'none', label: 'No starting choice recorded', users: noChoice.length,
+    organised: noChoice.filter(p => p.first_meaningful_board_at).length,
+    returned: noChoice.filter(p => (workBy[p.id] || []).length >= 2).length,
+    paid: noChoice.filter(p => ['active', 'past_due'].includes(p.subscription_status || '')).length,
+    too_small: noChoice.length < 10 });
 
   /* SOURCES. Unknown attribution stays unknown. Treating a missing referrer
      as confirmed direct traffic is how a channel report flatters whichever
@@ -620,7 +636,9 @@ async function product(db, since, days) {
   /* FEATURES. Start, finish and failure counted separately, because a feature
      that is started a hundred times and finished twice is not a popular
      feature. */
-  const count = name => (events.rows || []).filter(e => e.name === name).length;
+  const customerIds = new Set(ext.map(p => p.id));
+  const count = name => (events.rows || []).filter(e =>
+    customerIds.has(e.user_id) && e.name === name).length;
   const features = [
     { key: 'import', label: 'Reading notes',
       started: count('import_started'), finished: count('import_completed'),
@@ -773,8 +791,9 @@ async function system(db) {
     mail: {
       configured: !!(process.env.RESEND_API_KEY && process.env.MAIL_FROM),
       alerts_to_set: !!process.env.ALERT_TO,
-      undelivered: (alerts.rows || []).filter(a => !a.delivered_at).length,
-      gave_up: (alerts.rows || []).filter(a => /gave up/.test(a.delivery_error || '')).length
+      missing: ['RESEND_API_KEY', 'MAIL_FROM', 'ALERT_TO', 'SITE_URL'].filter(k => !process.env[k]),
+      undelivered: alerts.error ? null : (alerts.rows || []).filter(a => !a.delivered_at).length,
+      gave_up: alerts.error ? null : (alerts.rows || []).filter(a => /gave up/.test(a.delivery_error || '')).length
     },
     deploy: process.env.VERCEL_GIT_COMMIT_SHA
       ? String(process.env.VERCEL_GIT_COMMIT_SHA).slice(0, 7) : null,
