@@ -1,12 +1,7 @@
 // ============================================================================
 // The capture screen. It has one job and it must do it in two seconds:
-// the app opens, the cursor is already blinking, you type, you tap Keep.
-//
-// Everything else on this screen is subordinate to that. No tags, no
-// structure, no board. There is one script picker, and it is answered once and
-// then remembered, because deciding where a note belongs is thinking and
-// thinking is what you do not have time for when the idea arrives. Everything
-// else is sorted at a desk; the phone only has to not lose anything.
+// choose a title, capture a note, then tap Keep. Each saved note requires
+// a fresh title choice before another note can be entered.
 // ============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -67,14 +62,11 @@ export default function Capture({ email }) {
   const [rows, setRows] = useState([]);
   const [tally, setTally] = useState({ total: 0, waiting: 0 });
   const [saving, setSaving] = useState(false);
-  /* Which script the next note goes to. Chosen once and then left alone: it
-     survives a force-quit because it lives in the same SQLite file the notes
-     do, and it is never a question the writer has to answer before typing. */
+  /* A title must be explicitly chosen for every note. */
   const [script, setScript] = useState(null);
   const [picking, setPicking] = useState(false);
   const [accounting, setAccounting] = useState(false);
   const shelf = useScripts();
-  const scripts = shelf.scripts;
   const field = useRef(null);
 
   const refresh = useCallback(async () => {
@@ -95,9 +87,10 @@ export default function Capture({ email }) {
   const [justSent, setJustSent] = useState(0);
   const [everSent, setEverSent] = useState(false);
   const send = useCallback(async () => {
-    if (sending) return;
+    if (sending || saving || picking2) return;
     Keyboard.dismiss();          // they are done typing; get out of the way
     setSending(true);
+    const selectedId = script?.id;
     let r = null;
     try { r = await runSync(); } catch (e) {}
     await refresh();
@@ -115,7 +108,7 @@ export default function Capture({ email }) {
      * there is one answer to "which script is this" and it is the stored one. */
     if (r && r.promoted) {
       const agreed = await lastScript();
-      setScript(agreed.project || null);
+      setScript(current => current && current.id === selectedId && agreed.project ? agreed.project : current);
       shelf.reload();
     }
 
@@ -146,7 +139,7 @@ export default function Capture({ email }) {
         "Sending didn’t finish. Check your internet connection, then tap Send to retry.");
     }
     setSending(false);
-  }, [refresh, sending, shelf.reload]);
+  }, [refresh, sending, saving, picking2, script, shelf.reload]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -168,42 +161,15 @@ export default function Capture({ email }) {
     return () => { gone = true; };
   }, []);
 
-  /* Open on whatever was used last. Failing that, on the only script there is,
-     because picking from a list of one is a question with no information in
-     it. `chose` is what stops that guess from overriding a writer who has
-     deliberately picked Not filed: an empty choice they made is not the same
-     as no choice at all. */
-  const [chose, setChose] = useState(null);   // null while we are still reading
-  useEffect(() => {
-    let gone = false;
-    lastScript().then((r) => {
-      if (gone) return;
-      setChose(!!r.chosen);
-      if (r.project) setScript(r.project);
-    });
-    return () => { gone = true; };
-  }, []);
-  useEffect(() => {
-    if (chose === false && !script && scripts && scripts.length === 1) choose(scripts[0]);
-  }, [scripts, script, chose]);
-
+  // A remembered title is never consent to file the next note under it.
   const choose = (p) => {
     const slim = p ? { id: p.id, name: p.name } : null;
     setScript(slim);
-    setChose(true);
     rememberScript(slim);
   };
-
-  /* Pressing Keep with nothing filed opens the picker. Once a title exists,
-     the note they already pressed Keep on is kept, without making them press
-     it again for a question they have now answered. */
-  const pendingKeep = useRef(false);
   useEffect(() => {
-    if (script && !picking && (draft.trim() || pic) && pendingKeep.current){
-      pendingKeep.current = false;
-      keep();
-    }
-  }, [script, picking]);
+    if (script && !picking && !saving) field.current?.focus();
+  }, [script, picking, saving]);
 
   /* ------------------------------------------------------------ pictures --
    *
@@ -216,7 +182,7 @@ export default function Capture({ email }) {
    * moving car has time for the shutter and not for a sentence, and the note
    * is worth having either way. */
   const attach = useCallback(async (how) => {
-    if (picking2) return;
+    if (!script || saving || picking2) return;
     Keyboard.dismiss();
     setPicking2(true);
     let got = null;
@@ -240,7 +206,7 @@ export default function Capture({ email }) {
     settle();
     setPic(got);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-  }, [pic, picking2]);
+  }, [pic, picking2, script, saving]);
 
   /* Taken back off before it was kept, so the file goes with it. Nothing has
      been written to the notes table yet, which is why this can simply delete. */
@@ -262,10 +228,8 @@ export default function Capture({ email }) {
     const text = draft.trim();
     // A picture on its own is a whole note. Empty words on their own are not.
     if ((!text && !pic) || saving) return;
-    /* Every note leaves this phone under a title. Nothing is lost by asking
-       here: the words stay in the box, the picker opens on the naming field,
-       and the note is kept the moment a title exists. */
-    if (!script){ pendingKeep.current = true; setPicking(true); return; }
+    // Guard Keep as well as the entry controls.
+    if (!script) { setPicking(true); return; }
     setSaving(true);
     try {
       await store.add(text, script, pic);
@@ -277,13 +241,10 @@ export default function Capture({ email }) {
          and a screen that has already let go of it would leave a file behind
          that only the account delete would ever find. */
       setPic(null);
+      setScript(null);
+      Keyboard.dismiss();
       await refresh();
-      field.current?.focus();
-      /* Keep does NOT send. It used to, and the send was fast enough that the
-         note was gone before the Send button could appear, so the one control
-         this screen has never showed itself. Keep means kept; Send means sent.
-         Nothing is at risk in between: the note is on disk, and if the writer
-         never presses Send it goes on its own the next time the app opens. */
+      // Keep saves locally. Send remains the only upload trigger.
     } catch (e) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       Alert.alert(
@@ -314,7 +275,7 @@ export default function Capture({ email }) {
     );
   };
 
-  const ready = draft.trim().length > 0 || !!pic;
+  const ready = !!script && (draft.trim().length > 0 || !!pic);
 
   return (
     <KeyboardAvoidingView
@@ -368,16 +329,16 @@ export default function Capture({ email }) {
           before the writer types, not discovered after. */}
       <View style={s.pad}>
         <Pressable
-          onPress={() => { Keyboard.dismiss(); setPicking(true); }}
+          onPress={() => { if (!saving && !picking2 && !sending) { Keyboard.dismiss(); setPicking(true); } }}
           style={({ pressed }) => [s.script, pressed && s.scriptDown]}
           accessibilityRole="button"
           accessibilityLabel={script ? `Filing under ${script.name}. Change script.` : 'Choose a script'}
         >
           <Text style={s.scriptRail}>TO</Text>
           <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
-            {script ? String(script.name).toUpperCase() : 'No title yet'}
+            {script ? String(script.name).toUpperCase() : 'Choose or create a title'}
           </Text>
-          <Text style={s.scriptGo}>Change</Text>
+          <Text style={s.scriptGo}>{script ? 'Change' : 'Choose'}</Text>
         </Pressable>
       </View>
 
@@ -388,11 +349,11 @@ export default function Capture({ email }) {
             ref={field}
             style={s.input}
             value={draft}
-            onChangeText={setDraft}
-            placeholder="What just occurred to you?"
+            onChangeText={text => { if (script && !saving && !sending) setDraft(text); }}
+            placeholder={script ? "What just occurred to you?" : "Choose or create a title above to begin."}
             placeholderTextColor={c.ink4}
             multiline
-            autoFocus
+            editable={!!script && !saving && !sending}
             autoCorrect
             autoCapitalize="sentences"
             textAlignVertical="top"
@@ -429,7 +390,7 @@ export default function Capture({ email }) {
               decision nobody has time for. */}
           <Pressable
             onPress={() => attach('camera')}
-            disabled={picking2}
+            disabled={!script || saving || sending || picking2}
             style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
             accessibilityRole="button"
             accessibilityLabel="Take a photograph for this note"
@@ -438,7 +399,7 @@ export default function Capture({ email }) {
           </Pressable>
           <Pressable
             onPress={() => attach('library')}
-            disabled={picking2}
+            disabled={!script || saving || sending || picking2}
             style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
             accessibilityRole="button"
             accessibilityLabel="Choose a picture from this phone"
@@ -448,7 +409,7 @@ export default function Capture({ email }) {
           <View style={s.grow} />
           <Pressable
             onPress={keep}
-            disabled={!ready || saving}
+            disabled={!ready || saving || sending || picking2}
             style={({ pressed }) => [
               s.keep,
               !ready && s.keepOff,
@@ -465,7 +426,9 @@ export default function Capture({ email }) {
             buttons in there as well, a phone at 390 points has no room for a
             sentence beside them and the words were being squeezed to nothing. */}
         <Text style={s.hint} numberOfLines={2}>
-          {pic
+          {!script
+            ? 'Choose a title for every new note.'
+            : pic
             ? 'The picture goes with the note when you Send.'
             : ready
               ? 'Tap Keep to save this note on your phone.'

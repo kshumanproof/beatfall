@@ -3078,3 +3078,10 @@ Authorized by Kris after the live audit. Installed locally, NOT PUSHED.
 Added a read-only Launch list tab to the existing admin endpoint and page. Shows exact all-time signup and available-address totals, period-specific new signups, source counts, searchable addresses and CSV export. CSV excludes removed addresses and neutralizes spreadsheet formulas. Failed or incomplete lists disable export. Launch leads remain separate from app accounts and revenue. No new SQL required; uses existing launch_leads migration.
 
 Validated in isolated Windows harness: 699 server checks and 187 admin browser checks passed, including permissions, paging, export and failed-refresh behavior. Only admin source, its tests and this log changed. Mobile, app gate, auth/sync, billing implementation and launch-site files were not modified. Kris still needs to commit and push, then confirm the real signup appears in the deployed admin.
+
+
+## 9 October 2026: explicit mobile title for each note
+
+Capture now starts locked until the writer chooses an existing title or creates one. After Keep successfully saves locally, the draft, photo and active title clear, requiring another choice before the next note. Failed writes retain the title and draft. Removed automatic restoration/selection of the previous or only title. Send cannot restore a cleared title when promoting local projects. Updated the visible build stamp. Desktop processing, storage and sync source are unchanged.
+
+Validated 12 component behavior checks with mocked native/storage boundaries, parsed all mobile source and checked declared imports. Native phone UI verification remains with Kris in Expo Go; the pre-existing browser-preview storage error was not changed. Regression command: node test/mobile-title.cjs.
