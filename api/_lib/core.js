@@ -4,6 +4,9 @@
 // Vercel's environment.
 // ============================================================================
 import { createClient } from '@supabase/supabase-js';
+/* The operator's records. Only the two credit movements below reach for them,
+   and they never block the work: see the rules at the top of that file. */
+import { ledger, accountTag, alreadyPosted, movementKey } from './operator.js';
 
 export const admin = () => createClient(
   process.env.SUPABASE_URL,
@@ -391,8 +394,9 @@ export function spend(profile, ent, n) {
 
    Returns {ok:true, profile} once applied, or {ok:false, reason} when the
    balance genuinely will not cover it. */
-export async function charge(db, userId, profile, ent, n) {
+export async function charge(db, userId, profile, ent, n, opts) {
   if (!n || n <= 0) return { ok: true, profile };
+  opts = opts || {};
 
   let current = profile, entitled = ent;
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -410,7 +414,30 @@ export async function charge(db, userId, profile, ent, n) {
       .eq('credits_used',  current.credits_used  || 0)
       .eq('credits_extra', current.credits_extra || 0)
       .select('*').maybeSingle();
-    if (data) return { ok: true, profile: data, took };
+    if (data) {
+      /* THE LEDGER ROW IS WRITTEN HERE AND NOWHERE ELSE.
+         Both buckets are recorded separately because they are not the same
+         kind of credit: a monthly one expires on the reset day and a bought
+         one never does, so "three credits came back" is not an answer unless
+         it says which three. `idem` keys on the session and the running total
+         so a retried request cannot post the movement twice.
+         It never blocks the charge. The writer's work is not held up by a
+         bookkeeping row; a failed write raises an alert instead. */
+      const tag = await accountTag(db, data);
+      if (took.monthly) await ledger(db, {
+        userId, tag, kind: 'charge', credits: -took.monthly, bucket: 'monthly',
+        reason: opts.reason || '', ref: opts.ref || null,
+        idem: movementKey(opts.ref, 'charge', 'monthly', took.monthly),
+        monthlyAfter: data.credits_used, bankedAfter: data.credits_extra
+      });
+      if (took.banked) await ledger(db, {
+        userId, tag, kind: 'charge', credits: -took.banked, bucket: 'banked',
+        reason: opts.reason || '', ref: opts.ref || null,
+        idem: movementKey(opts.ref, 'charge', 'banked', took.banked),
+        monthlyAfter: data.credits_used, bankedAfter: data.credits_extra
+      });
+      return { ok: true, profile: data, took };
+    }
     /* No row and no error means the condition did not match: somebody moved the
        balance, so read it again and work the charge out from there. An ERROR is
        a different thing entirely - the write may well have landed and the reply
@@ -434,10 +461,30 @@ export async function charge(db, userId, profile, ent, n) {
    start and a debit at the end lets twenty parallel requests all pass the check
    and all do the work. That trade brings its own duty: if the work then fails,
    the credits go back. Same compare-and-set as charge(), for the same reason. */
-export async function refund(db, userId, took) {
+export async function refund(db, userId, took, opts) {
+  opts = opts || {};
   const fromMonthly = Math.max(0, (took && took.monthly) || 0);
   const fromBanked  = Math.max(0, (took && took.banked)  || 0);
   if (!fromMonthly && !fromBanked) return { ok: true };
+
+  /* EXACTLY ONCE, AND THE LEDGER IS WHAT MAKES IT SO.
+
+     The caller also guards against calling this twice, but a guard inside one
+     request only holds for that request. This is the part that holds whatever
+     calls it: if the movement is already on the ledger it has already been
+     paid back, so the balance is not touched again.
+
+     The first version of this keyed on the balance the refund produced, which
+     is a different number the second time precisely because the first one
+     worked. It never matched, and a refund attempted twice paid out twice.
+     A test found it, which is the only reason it is not shipping. */
+  const keyM = movementKey(opts.ref, 'refund', 'monthly', fromMonthly);
+  const keyB = movementKey(opts.ref, 'refund', 'banked', fromBanked);
+  if (opts.ref) {
+    const doneM = fromMonthly ? await alreadyPosted(db, keyM) : true;
+    const doneB = fromBanked  ? await alreadyPosted(db, keyB) : true;
+    if (doneM && doneB) return { ok: true, already: true };
+  }
 
   for (let attempt = 0; attempt < 4; attempt++) {
     const { data: row } = await db.from('profiles')
@@ -457,7 +504,25 @@ export async function refund(db, userId, took) {
       .eq('credits_used',  row.credits_used  || 0)
       .eq('credits_extra', row.credits_extra || 0)
       .select('id').maybeSingle();
-    if (data) return { ok: true };
+    if (data) {
+      // Back into the same bucket it came out of, and recorded as two
+      // movements for the same reason the charge is.
+      if (fromMonthly) await ledger(db, {
+        userId, tag: opts.tag || null, kind: 'refund', credits: fromMonthly,
+        bucket: 'monthly', reason: opts.reason || 'work that did not happen',
+        ref: opts.ref || null,
+        idem: keyM,
+        monthlyAfter: patch.credits_used, bankedAfter: patch.credits_extra
+      });
+      if (fromBanked) await ledger(db, {
+        userId, tag: opts.tag || null, kind: 'refund', credits: fromBanked,
+        bucket: 'banked', reason: opts.reason || 'work that did not happen',
+        ref: opts.ref || null,
+        idem: keyB,
+        monthlyAfter: patch.credits_used, bankedAfter: patch.credits_extra
+      });
+      return { ok: true };
+    }
   }
   return { ok: false };
 }

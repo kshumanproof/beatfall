@@ -7,6 +7,14 @@
 // ============================================================================
 import Stripe from 'stripe';
 import { admin, PAID_PLAN, PLANS } from './_lib/core.js';
+/* THE REVENUE LEDGER.
+   Revenue used to be inferred from a status column and a handful of event
+   names, which answers "is this person paying" and cannot answer "what was
+   collected in September": a status is a state and revenue is a sequence of
+   events. Every row below is idempotent on the Stripe event id, because
+   Stripe retries and a retry that posts a second payment is a figure that can
+   never be trusted again. */
+import { logPayment, ledger, accountTag } from './_lib/operator.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -103,7 +111,48 @@ export default async function handler(req, res) {
           await db.from('profiles')
             .update({ credits_extra: (profile.credits_extra || 0) + amount })
             .eq('id', profile.id);
+          // What was collected, and the credits it bought, as two records:
+          // one is money and one is balance, and they answer different
+          // questions.
+          const tag = await accountTag(db, profile);
+          await logPayment(db, {
+            userId: profile.id, tag, eventId: event.id, kind: 'topup',
+            amountCents: Number(s.amount_total) || 0,
+            currency: s.currency || 'usd', status: 'paid',
+            livemode: !!event.livemode
+          });
+          await ledger(db, {
+            userId: profile.id, tag, kind: 'purchase', credits: amount,
+            bucket: 'banked', reason: 'credit pack', ref: event.id,
+            idem: 'stripe:' + event.id,
+            bankedAfter: (profile.credits_extra || 0) + amount,
+            actor: 'stripe'
+          });
         }
+        break;
+      }
+
+      /* WHERE A RENEWAL ACTUALLY LANDS, and it was not being recorded at all.
+         A subscription.updated says the state of a subscription; it does not
+         say that money changed hands, and on a monthly plan most of the money
+         arrives on invoices nothing here was listening for. Without this case
+         "cash collected" could only ever describe first payments. */
+      case 'invoice.payment_succeeded': {
+        const inv = event.data.object;
+        const profile = await byCustomer(inv.customer);
+        if (!profile) break;
+        const line = (inv.lines && inv.lines.data && inv.lines.data[0]) || {};
+        const period = line.period || {};
+        await logPayment(db, {
+          userId: profile.id, tag: await accountTag(db, profile),
+          eventId: event.id, kind: 'subscription',
+          interval: (line.plan && line.plan.interval) || null,
+          amountCents: Number(inv.amount_paid) || 0,
+          currency: inv.currency || 'usd', status: 'paid',
+          periodStart: period.start ? new Date(period.start * 1000).toISOString() : null,
+          periodEnd:   period.end   ? new Date(period.end   * 1000).toISOString() : null,
+          livemode: !!event.livemode
+        });
         break;
       }
 
@@ -197,6 +246,15 @@ export default async function handler(req, res) {
           await db.from('events').insert({
             user_id: profile.id, name: 'payment_failed',
             props: { error_code: String(inv.billing_reason || 'unknown').slice(0, 64) }
+          });
+          // A failure belongs in the same ledger as a success. Revenue that
+          // did not arrive is a figure, not an absence.
+          await logPayment(db, {
+            userId: profile.id, tag: await accountTag(db, profile),
+            eventId: event.id, kind: 'failure',
+            amountCents: Number(inv.amount_due) || 0,
+            currency: inv.currency || 'usd', status: 'failed',
+            livemode: !!event.livemode
           });
         }
         break;

@@ -10,6 +10,20 @@ fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
    stand-in for this file would be a second implementation of the one thing the
    comparison is supposed to be measuring. */
 fs.copyFileSync('../../api/_lib/providers.js', 'api/_lib/providers.js');
+/* The operator's records, copied with nothing swapped. Its only boundary is
+   the database handle, and every one of its writes takes that handle as an
+   argument from the caller, which is where the swap below already bites. So
+   what the suites exercise is the real ledger, the real issue grouping and
+   the real reservation arithmetic, against the stand-in database. A copy of
+   this file in the harness would be a second implementation of the thing the
+   money is supposed to reconcile against. */
+fs.copyFileSync('../../api/_lib/operator.js', 'api/_lib/operator.js');
+/* The alert sender. Its one boundary is fetch, which every suite that needs
+   to watch a message already replaces, so what runs here is the real body
+   and the real delivery recording rather than a stand-in that always says it
+   worked. An alert the page shows as sent and that never arrived is the
+   failure this file exists to make visible. */
+fs.copyFileSync('../../api/_lib/notify.js', 'api/_lib/notify.js');
 /* core.js is copied whole, so anything in it that reaches a real boundary has
    to be swapped here too. dropImages lives there now because it is called from
    BOTH the nightly sweep and the delete button, and the bucket it is handed
@@ -67,4 +81,5 @@ swap('../../api/stripe-webhook.js', 'api/hook.real.js', s =>
             "const Stripe = function(){ return { webhooks: { constructEvent: () => globalThis.__EVENT__ } }; };"));
 swap('../../api/session.js',        'api/session.real.js');
 swap('../../api/admin.js',          'api/admin.real.js');
+swap('../../api/admin-do.js',       'api/admin-do.real.js');
 console.log('endpoints copied and wired');

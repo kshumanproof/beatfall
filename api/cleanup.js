@@ -15,6 +15,7 @@
 // ============================================================================
 import { admin, dropImages, IMAGE_BUCKET } from './_lib/core.js';
 import { DELETION_WARNING_HTML } from './_email/deletion-warning.js';
+import { sendDigest, retryUndelivered } from './_lib/notify.js';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 const WARN_AFTER   = 5 * MONTH;
@@ -328,8 +329,26 @@ export default async function handler(req, res) {
     orphanBytes += dead.reduce((n, r) => n + (r.bytes || 0), 0);
   }
 
+  /* ONE MESSAGE A DAY WITH EVERYTHING STILL UNANSWERED.
+     It rides this job rather than having a schedule of its own, because this
+     job already runs once a day and a second cron is a second thing that can
+     silently stop. A dry run sends nothing: ?dry=1 exists so Kris can see what
+     the night WOULD do, and a dry run that posts real mail is not a dry run.
+     If nothing is outstanding, nothing is sent. A daily message that usually
+     says all clear is a daily message nobody opens, and the one that matters
+     then looks exactly like the others. */
+  let digest = { sent: false, why: 'dry run' };
+  let retried = { tried: 0, sent: 0, why: 'dry run' };
+  if (!dry) {
+    /* THE SWEEP RUNS BEFORE THE DIGEST, on purpose. Anything it manages to
+       deliver tonight is no longer a message that went missing, so the digest
+       describes the state after the retries rather than before them. */
+    try { retried = await retryUndelivered(db); } catch (e) { retried = { tried: 0, sent: 0, why: 'failed' }; }
+    try { digest = await sendDigest(db); } catch (e) { digest = { sent: false, why: 'failed' }; }
+  }
+
   return send(res, 200, {
-    ok: true, dry,
+    ok: true, dry, digest, retried,
     could_not_warn: unwarnable.length,
     scanned: (stale || []).length,
     warned: warned.length, deleted: deleted.length, skipped: skipped.length,

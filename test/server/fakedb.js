@@ -9,7 +9,7 @@ export function makeDb(profile, opts = {}) {
 
   function table(name) {
     const q = { _name: name, _filters: [], _patch: null, _op: 'select', _count: false,
-                _order: null, _limit: null, _cols: null };
+                _order: null, _limit: null, _cols: null, _range: null };
     const match = row => q._filters.every(([col, op, val, negate]) => {
       const v = row[col];
       if (negate) return !one(v, op, val);
@@ -41,6 +41,11 @@ export function makeDb(profile, opts = {}) {
         });
       }
       if (q._limit != null) list = list.slice(0, q._limit);
+      /* A real page, so code that pages is exercised as code that pages. A
+         stand-in that ignored range() would hand the whole table back on the
+         first call and the loop would stop after one pass, which is exactly
+         the behaviour the paging was written to replace. */
+      if (q._range) list = list.slice(q._range[0], q._range[1] + 1);
       /* Projection happens on READS only. A write ending in .select() is
          asking for the row it just wrote back, and narrowing that would make
          an insert look like it dropped the fields it actually stored. */
@@ -92,6 +97,13 @@ export function makeDb(profile, opts = {}) {
         q._filters.push([c, op, val, true]);
         return api;
       },
+      /* PostgREST's neq, and range, which the admin reporting uses to page
+         through a table instead of truncating it at an arbitrary limit. The
+         old endpoint put .limit(500) on profiles and reported whatever came
+         back as the total; a harness with no range() could not tell the
+         difference between code that pages and code that does not. */
+      neq(c, v) { q._filters.push([c, 'eq', v, true]); return api; },
+      range(a, b) { q._range = [a, b]; return api; },
       delete()  { q._op = 'delete'; return api; },
       update(p) { q._op = 'update'; q._patch = p; return api; },
       insert(r) { q._op = 'insert'; q._patch = r; return api; },
@@ -125,8 +137,15 @@ export function makeDb(profile, opts = {}) {
       if (q._op === 'upsert') {
         state[name] = state[name] || [];
         const list = Array.isArray(q._patch) ? q._patch : [q._patch];
+        /* The conflict target is the one the real table declares, per table.
+           budgets is `on conflict (scope)` in operator.sql, and a stand-in
+           that keyed it on a primary key nothing sends would treat every
+           budget as the same row: setting the trial figure would silently
+           overwrite the subscriber figure, and the suite would see one
+           spending limit where the product has three. */
         const keyOf = row => name === 'work_days'
-          ? String(row.user_id) + '|' + String(row.day) : String(row.id);
+          ? String(row.user_id) + '|' + String(row.day)
+          : name === 'budgets' ? String(row.scope) : String(row.id);
         list.forEach(row => {
           const i = state[name].findIndex(r => keyOf(r) === keyOf(row));
           if (i >= 0) state[name][i] = { ...state[name][i], ...row };
@@ -149,9 +168,20 @@ export function makeDb(profile, opts = {}) {
         const hit = rows();
         if (!hit.length) return { data: null, error: null };   // condition did not match
         // somebody else can move the row between the read and the write
-        if (opts.raceOnce && !state.raced) { state.raced = true; 
+        if (opts.raceOnce && !state.raced) { state.raced = true;
           state.profile.credits_used = (state.profile.credits_used || 0) + 1;
           return { data: null, error: null };
+        }
+        /* A TEST THAT SEEDED A WHOLE profiles TABLE MEANS THAT TABLE.
+           This branch used to write the patch onto the single-account
+           stand-in whichever row had matched, so an operator pausing account
+           u1 appeared to work and changed nothing on u1: the suite would read
+           u1 back unchanged and an action that genuinely bites would look
+           identical to one that does not. */
+        if (Array.isArray(state.profiles)) {
+          hit.forEach(r => Object.assign(r, q._patch));
+          return single ? { data: { ...hit[0] }, error: null }
+                        : { data: hit.map(r => ({ ...r })), error: null };
         }
         Object.assign(state.profile, q._patch);
         return single ? { data: {...state.profile}, error: null }
@@ -160,6 +190,23 @@ export function makeDb(profile, opts = {}) {
       if (q._op === 'insert') {
         if (name === 'events' && opts.duplicateEvent) return { data: null, error: {code: '23505', message: 'duplicate key'} };
         state[name] = state[name] || [];
+        /* UNIQUE INDEXES, BECAUSE IDEMPOTENCY IS THE WHOLE POINT OF SOME OF
+           THEM. The operator tables lean on a duplicate key being an ANSWER
+           rather than an error: the same credit movement, the same Stripe
+           event or the same attempt writes once and a second try is told so.
+           A stand-in that happily accepts both rows cannot see the difference
+           between code that is idempotent and code that only looks it.
+           Partial, exactly as in operator.sql: a null key is not a duplicate
+           of another null key. */
+        const UNIQUE = {
+          credit_ledger: 'idem_key', payments: 'stripe_event_id',
+          admin_issues: 'signature', budget_holds: 'request_id',
+          admin_actions: 'idem_key', usage: 'request_id', alerts: 'dedupe_key'
+        };
+        const key = UNIQUE[name];
+        if (key && q._patch && q._patch[key] != null
+            && state[name].some(r => r[key] === q._patch[key]))
+          return { data: null, error: { code: '23505', message: 'duplicate key' } };
         /* The real table defaults created_at AND a key. Without the key,
            anything that inserts a row and then reads ids back to decide what
            to delete gets a list of undefineds, and `in('id', [undefined])`

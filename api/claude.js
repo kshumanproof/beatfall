@@ -11,6 +11,13 @@
    answer. Leaving them imported would leave the next person a way to price an
    OpenAI call with Claude's numbers without noticing. */
 import { requireUser, entitlement, charge, refund, send, readBody, COST, TOPUP_CREDITS, TOPUP_PRICE, FREE_PER_HOUR, track } from './_lib/core.js';
+/* THE OPERATOR'S RECORDS. Every one of these calls is write-only and none
+   of them can refuse the work: a bookkeeping row that will not insert must
+   never be the reason a writer's sentence does not get placed. They raise
+   an alert instead, which is what the reconciliation queue is made of. */
+import { accountTag, noteIssue, takeHold, settleHold, closeHold, deployTag,
+         watchSpend, watchAction } from './_lib/operator.js';
+import { sendAlert } from './_lib/notify.js';
 import { callProvider, providerFor, testingEnabled } from './_lib/providers.js';
 
 /* The kinds that cost nothing, read off COST rather than listed again here,
@@ -28,6 +35,16 @@ const MAX_OUTPUT_TOKENS = 1400;
 // over by guessing. Give that one job room.
 const OUTPUT_CAP = { import: 6000 };
 
+/* WHAT A RESERVATION GUESSES ONE OUTPUT TOKEN COSTS.
+   Only ever used to hold money aside before a call, never to bill anybody: the
+   real figure comes off the provider's own answer and replaces this the moment
+   the call settles. Deliberately the dearest output rate this product pays
+   rather than an average, because a reservation that guesses low is a
+   reservation that does not reserve. If a dearer provider is ever added, raise
+   this; the only cost of it being too high is that a ceiling bites slightly
+   early, and the only cost of it being too low is that it does not bite. */
+const ESTIMATE_MICROS_PER_OUTPUT_TOKEN = 15;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'POST only' });
 
@@ -44,6 +61,25 @@ export default async function handler(req, res) {
   const known = Object.prototype.hasOwnProperty.call(COST, kind);
   if (!known) return send(res, 400, { error: 'bad_request', message: 'Unknown action.' });
   let credits = COST[kind];
+
+  /* THE PAID WRITING HELP, PAUSED BY AN OPERATOR.
+     Set from the admin page when one account is costing real money and
+     somebody needs to look at it before it costs more. It stops ONLY the
+     metered features. Every board, note, outline and download is untouched,
+     and placing a note by hand is free and keeps working, because withholding
+     a writer's own work is not a cost control and never will be.
+     Checked before the charge and before the provider, so a paused account
+     spends nothing and is told plainly rather than being met with a failure
+     it cannot interpret. */
+  if (profile.help_paused_at && COST[kind] > 0) {
+    return send(res, 403, {
+      error: 'help_paused',
+      message: 'The writing help is paused on this account while we look at '
+             + 'something. Your boards, notes and downloads are all still here '
+             + 'and placing notes by hand still works. Write to '
+             + 'support@beatfall.app and we will sort it out.'
+    });
+  }
 
   /* A multi-turn feature sends the same session id on every call. The first one
      pays; the rest of the conversation is free.
@@ -191,9 +227,22 @@ export default async function handler(req, res) {
      Taking it first means a request that cannot pay never reaches Anthropic.
      The duty that comes with it is below: if the work then fails, the credits
      go straight back. */
+  /* ONE ATTEMPT, ONE ID, FROM HERE TO THE RECORD OF WHAT IT COST.
+     Everything about this call joins on it: the usage row, the budget hold and
+     the issue a failure belongs to. Generated on the server rather than taken
+     from the browser, because an id a client can repeat is an id a client can
+     use to overwrite somebody else's record. */
+  const requestId = (globalThis.crypto && globalThis.crypto.randomUUID)
+    ? globalThis.crypto.randomUUID()
+    : 'rq_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  const startedAt = Date.now();
+  let hold = null;
+
   let charged = null;
   if (credits > 0) {
-    charged = await charge(db, user.id, profile, ent, credits);
+    charged = await charge(db, user.id, profile, ent, credits, {
+      reason: kind, ref: session || null
+    });
     if (!charged.ok) {
       if (charged.reason === 'insufficient') {
         track(db, user.id, 'credits_exhausted', { credit_bucket: 'all', kind: body.kind });
@@ -213,12 +262,30 @@ export default async function handler(req, res) {
     }
   }
 
-  const giveBack = async () => {
+  const tag = await accountTag(db, profile);
+  /* RETURNED EXACTLY ONCE, AND THAT HAS TO BE A GUARANTEE RATHER THAN A HABIT.
+     Today only one path can reach giveBack per request, so a second call is
+     impossible by inspection. That is precisely the kind of fact that stops
+     being true the day somebody adds a third exit, and a double refund is
+     free credits nobody can account for. The flag makes it structural, and
+     the check in test/server/operator.js holds it down. */
+  let refunded = false;
+  const giveBack = async (why) => {
+    if (refunded) return;
+    refunded = true;
     if (!charged || !charged.ok) return;
-    const back = await refund(db, user.id, charged.took);
+    const back = await refund(db, user.id, charged.took, {
+      tag, reason: why || 'the work did not happen', ref: session || null
+    });
     if (!back.ok) {
+      /* CREDITS TAKEN FOR WORK THAT DID NOT HAPPEN, AND NOT GIVEN BACK.
+         This was a console line and an event, which means it was invisible.
+         It is money owed to a writer, so it becomes an issue with a name, a
+         count and an account attached to it. */
       console.error('REFUND FAILED', user.id, kind, credits);
       track(db, user.id, 'refund_failed', { kind, credit_amount: credits });
+      await noteIssue(db, { feature: kind, stage: 'refund', code: 'refund_failed',
+                            severity: 'high' });
     }
   };
 
@@ -229,6 +296,25 @@ export default async function handler(req, res) {
      ends up answering. That is the whole point of the comparison: the only
      thing that differs between two runs is who read the notes. */
   const provider = providerFor(body, profile);
+
+  /* THE RESERVATION, TAKEN BEFORE THE EXPENSIVE PART AND NOT AFTER.
+     A ceiling checked against what has already been spent is a ceiling two
+     simultaneous imports walk straight through: both read the same total, both
+     find room, both run. Holding first means work in flight counts while it is
+     still in flight.
+     The estimate is the output ceiling priced at the dearest rate this product
+     uses, which overstates most calls on purpose: a reservation that guesses
+     low is a reservation that does not reserve. It is replaced by the real
+     figure the moment the call settles.
+     NOTHING IS ENFORCED YET. No budget has been approved, so this only
+     watches. See the budgets table, which this file deliberately ships
+     empty. */
+  const outCap = Math.min(OUTPUT_CAP[kind] || MAX_OUTPUT_TOKENS,
+                          body.maxTokens || OUTPUT_CAP[kind] || MAX_OUTPUT_TOKENS);
+  hold = await takeHold(db, {
+    userId: user.id, session, requestId, feature: kind,
+    estimate: Math.round(outCap * ESTIMATE_MICROS_PER_OUTPUT_TOKEN)
+  });
 
   let out;
   try {
@@ -241,7 +327,23 @@ export default async function handler(req, res) {
       console.error('upstream error', provider, out.status, String(out.detail).slice(0, 400));
       track(db, user.id, 'ai_request_failed', { operation: body.kind, status: out.status,
                                                 error_code: 'upstream' });
-      await giveBack();
+      /* The failure is a record in its own right. A call that was charged for
+         and produced nothing has to appear in the cost column with an outcome
+         on it, or the totals quietly describe a better month than happened.
+         The CODE is the status, never the provider's message: that can quote
+         the writer's own notes straight back. */
+      const code = out.status === 429 ? 'rate_limited' : 'upstream_' + (out.status || 0);
+      const issue = await noteIssue(db, { feature: kind, stage: 'provider', code,
+                                          provider, severity: 'high' });
+      await db.from('usage').insert({
+        user_id: user.id, account_tag: tag, kind, credits: 0, session_id: session,
+        model: null, provider, tokens_in: 0, tokens_out: 0, cost_micros: 0,
+        status: 'failed', error_code: code, stage: 'provider',
+        issue_id: issue, deploy: deployTag(), request_id: requestId,
+        duration_ms: Date.now() - startedAt
+      }).then(() => {}, () => {});
+      await closeHold(db, hold, 'abandoned');
+      await giveBack('the provider refused the call');
       return send(res, 502, {
         error: 'upstream',
         message: out.status === 429
@@ -252,7 +354,21 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('upstream fetch failed', provider, e);
     track(db, user.id, 'ai_request_failed', { operation: body.kind, error_code: 'network' });
-    await giveBack();
+    const issue = await noteIssue(db, { feature: kind, stage: 'provider',
+                                        code: 'network', provider, severity: 'high' });
+    /* UNKNOWN, NOT ABANDONED. The request was sent and the answer never came
+       back. That is not evidence the provider did no work, so the reservation
+       is closed as unknown and goes to reconciliation rather than being
+       released as though nothing had been spent. */
+    await db.from('usage').insert({
+      user_id: user.id, account_tag: tag, kind, credits: 0, session_id: session,
+      model: null, provider, tokens_in: 0, tokens_out: 0, cost_micros: 0,
+      status: 'unknown', error_code: 'network', stage: 'provider',
+      issue_id: issue, deploy: deployTag(), request_id: requestId,
+      duration_ms: Date.now() - startedAt
+    }).then(() => {}, () => {});
+    await closeHold(db, hold, 'unknown');
+    await giveBack('the provider could not be reached');
     return send(res, 502, { error: 'upstream', message: "Couldn't get an answer just now." });
   }
 
@@ -272,8 +388,47 @@ export default async function handler(req, res) {
     // the one accounting mistake this whole exercise cannot survive, because
     // the cost column is half of what is being compared.
     user_id: user.id, kind, credits, model: out.model, session_id: session,
-    tokens_in: tin, tokens_out: tout, cost_micros: out.costMicros
+    tokens_in: tin, tokens_out: tout, cost_micros: out.costMicros,
+    /* AND WHETHER IT WORKED. Every row in this table used to be a completed
+       call, so a billed failure and a call nobody ever heard back from were
+       either missing or indistinguishable from a success. The outcome is the
+       column that lets the money reconcile. */
+    account_tag: tag, status: 'ok', provider, request_id: requestId,
+    deploy: deployTag(), duration_ms: Date.now() - startedAt
   });
+  await settleHold(db, hold, out.costMicros);
+
+  /* WHAT THIS ACCOUNT HAS COST SO FAR, CHECKED BY THE CALL THAT ADDED TO IT.
+     No cron and no queue: the request that crossed the line is the one that
+     reports it, so an alert cannot be late and there is nothing left running
+     to drain. It is awaited rather than fired and forgotten because a Vercel
+     function can be frozen the moment it answers, and an alert begun and not
+     finished is the kind that shows as sent and never arrived.
+     It can only ever add a row and send a message. It never refuses the work
+     and it never stops anything: Kris approved $8 and $10 as ALERTS. */
+  try {
+    const watched = await watchSpend(db, {
+      profile: (charged && charged.ok && charged.profile) || profile
+    });
+    /* And the other scope: this one ACTION rather than this account's month.
+       Observing only, so it can raise a note for the record and never stops
+       anything. See watchAction. */
+    await watchAction(db, { userId: user.id, session, tag,
+                            email: profile.email || null });
+    /* EVERY LEVEL GOES OUT NOW. Kris's instruction on 9 October: send both the
+       warning and the urgent one immediately. At eight dollars inside one
+       allowance period there is something worth looking at the same day, and
+       a warning that waits until the small hours is a warning about money
+       that has already been spent twice over by the time it arrives. The
+       digest still carries everything nobody has answered. */
+    if (watched && watched.raised && watched.level) {
+      const { data: row } = await db.from('alerts')
+        .select('id, summary, detail, subject_tag')
+        .eq('subject_user', user.id).order('created_at', { ascending: false })
+        .limit(1).maybeSingle();
+      if (row) await sendAlert(db, row);
+    }
+  } catch (e) { /* watching must never be able to fail a writer's request */ }
   /* Already paid for, before any of this ran. So the balance to report is the
      one the charge actually produced, not a subtraction from the figure this
      request happened to read on the way in - which is wrong the moment anything

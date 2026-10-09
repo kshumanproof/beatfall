@@ -2851,3 +2851,137 @@ vision 44, restore 31, provider 37, help 7. **1,061 checks, all passing.**
 
 - The rescue bar no longer promises nothing has been lost. GPT's copy pass
   dropped that sentence. His call, and he has not made it.
+
+## The operator's system (9 October 2026)
+
+The admin page was one screen reading one enormous object, and several of its
+figures were wrong in ways nobody could see from the screen. It is six
+screens now, over a split endpoint, on top of records that did not exist
+before this.
+
+**The records came first, and that order is the whole point.** Issues, the
+credit ledger, payments, spending reservations, alerts and the audit trail
+were all unrecorded, so a dashboard built the other way round could only ever
+have shown inferences. `supabase/operator.sql` is additive and idempotent:
+new columns on `usage` and `profiles`, and eleven new tables. **It has to be
+run once in Supabase.** Nothing on the new screens works until it is.
+
+### What is on disk
+
+- `supabase/operator.sql`, the schema. Run once.
+- `api/_lib/operator.js`, the records. Three rules at the top of it: no
+  writer's work ever enters, a failed write is loud, and nothing in it may
+  break the work it is recording.
+- `api/_lib/notify.js`, the alert sender, with retries and honest delivery
+  status.
+- `api/admin.js`, rewritten. `?view=overview|issues|writers|product|money|
+  system|account|issue`. Five rules at the top, one per class of defect the
+  old one had.
+- `api/admin-do.js`, new, and **the only place an operator action touches the
+  database**. Six rules at the top. Twelve named actions and no generic
+  profile write, which is what makes "what can that page do to somebody's
+  account" a question with a short answer.
+- `public/admin-ui.js`, the six view renderers. They return markup and bind
+  nothing, which is what lets them be rendered in a test.
+- `public/admin.html`, the shell: the nav, the global controls, the fetch
+  layer, the six states a panel can be in, and the action forms.
+
+### The decisions worth not relitigating
+
+**Enforcement is off and the code holds it off.** Kris asked for every
+spending figure to be watched before anything acts on one. `enforced` is
+false on all three budgets, `api/admin-do.js` REFUSES a request that tries to
+set it true and records the attempt, and the page does not offer the control.
+Three refusals on purpose. $8 warns and $10 is urgent, per allowance period,
+both sent immediately by email and both also listed in the nightly digest.
+
+**No retention sweep is enabled.** `RETENTION-DRAFT.md` proposes seven years
+for financial records and thirteen months for operational ones and asks for
+three figures. Until he answers, nothing is deleted on a schedule and the
+Privacy Policy promises nothing the code does not do.
+
+**A figure carries its window and its population, or it is a lie by
+omission.** The old page put a thirty-day cost beside an all-time milestone
+beside a status as of right now. Every figure the endpoint sends now says
+which days and which people, and `fig()` draws a dash and the reason when a
+value is null. **A zero never stands in for a query that did not run**, which
+was the worst of the eighteen defects: a database that did not answer became
+a confident 0 on the one page whose job is telling you whether something is
+wrong.
+
+**Healthy is only shown when the check ran.** The absence of failures is not
+evidence of health if the thing that records failures is what is down.
+
+**The window is a COUNT OF DAYS, never a pair of dates.** Every query behind
+the page reads forward from one date, so a date picker with an end box that
+nothing honours would be exactly the kind of figure this rebuild exists to
+remove. If an end date is ever wanted, it is `.lte('created_at', until)` on
+about a dozen queries, and it is real work rather than a control.
+
+**An issue and an account are read whole, with no window at all.** Both are
+things rather than periods, and the two occurrences that explain an issue are
+usually the oldest ones.
+
+**Pausing the paid writing help is the cost control, and it touches nothing
+else.** Boards, notes, outline, characters and every download stay exactly
+where they were, and placing notes by hand still works. `api/claude.js`
+answers 403 `help_paused` for a metered kind only. Withholding somebody's own
+writing is not a cost control, and the form says so in those words.
+
+### Two bugs out of this that are worth remembering
+
+**A refund paid out twice.** The idempotency key was built from the balance
+the refund produced, which is different the second time precisely because the
+first one worked, so it never matched. `movementKey()` identifies the
+MOVEMENT rather than the outcome, and `alreadyPosted()` is asked before the
+balance is touched. Idempotency by movement, never by result.
+
+**The stand-in database updated the wrong row.** Its update branch wrote the
+patch onto the single-account stand-in whichever row had matched, so an
+operator pausing account u1 appeared to work and changed nothing on u1: an
+action that genuinely bites looked identical to one that does not. It writes
+to the matched rows when a suite seeded a whole `profiles` table now. It also
+keyed `budgets` on a primary key nothing sends, so setting the trial figure
+silently replaced the subscriber one; it keys on `scope`, the way
+`operator.sql` declares the conflict.
+
+### admin.html has a suite now, and it is a different harness
+
+`test/admin.js` serves the real page over **http**, because the views are an
+ES module and a module script will not load from a file URL. It builds the
+stub the same way `pages.js` does and swaps nothing but the platform layer.
+**The admin checks that used to live in `pages.js` are gone from it**, moved
+rather than deleted; what stays there is admin.html in the noindex list, in
+the private list and out of the sitemap, which are facts about the site.
+
+### The verification list, current
+
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js ; node flows.js ; node pages.js ; node mobile.js
+    node platform.js ; node delete.js ; node stories.js ; node admin.js
+
+    cd server
+    node setup.js
+    node money.js ; node gate.js ; node hook.js ; node clean.js
+    node captures.js ; node proxy.js ; node lock.js ; node vision.js
+    node restore.js ; node provider.js ; node help.js ; node operator.js
+    node reporting.js ; node actions.js
+
+drive 265, flows 273, pages 80, mobile 5, platform 17, delete 23, stories 33,
+admin 151; money 69, gate 23, hook 18, clean 31, captures 42, proxy 29,
+lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
+reporting 63, actions 115. **1,462 checks, all passing.**
+
+`flows.js` and `pages.js` both want a Chromium each and the two together run
+longer than two minutes, so run them one at a time rather than in one chain
+if something is timing out.
+
+### Still open on this, and it is Kris's call
+
+- The three retention figures in `RETENTION-DRAFT.md`.
+- A button on the Money screen for setting a spending figure. The form
+  exists and works; nothing on that screen opens it yet, deliberately,
+  because the three figures were approved once and should not be casually
+  editable until enforcement is settled.

@@ -16,46 +16,155 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
 <link rel="stylesheet" href="/theme.css">
 <style>
-  .wrap{max-width:1320px}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-  .stat{background:var(--surface);border:1px solid var(--rule-soft);border-radius:2px;padding:14px 16px}
-  .stat .n{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-  .stat .l{font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;
-    letter-spacing:.11em;color:var(--ink-3);margin-top:3px}
-  .stat.good .n{color:var(--sage)} .stat.warn .n{color:var(--gold)}
-  .caps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-  .cap{background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:14px 16px}
-  .cap h3{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
-    letter-spacing:.1em;color:var(--ink-3);margin:0 0 10px}
-  .cap div{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
-  .cap b{font-variant-numeric:tabular-nums;font-family:var(--mono)}
-  /* The second figure on a money row: how many PEOPLE, beside how many times.
-     Four exhaustions from one writer and four from four are the same number
-     and completely different news. */
-  .cap .who{font-family:var(--sans);font-size:11.5px;color:var(--ink-4);
-    font-weight:400;margin-left:6px}
-  /* A stage nobody has reached. Stated rather than blank, because zero is a
-     real answer here and an empty row reads as a panel that failed to load. */
-  .cap div.none b{color:var(--ink-4)}
-  .mine{margin:-6px 0 18px;font-size:12px}
-  .fold{margin:0 0 18px}
-  .fold summary{cursor:pointer;list-style:none;padding:11px 14px;
-    background:var(--surface);border:1px solid var(--rule);border-radius:2px;
-    font-family:var(--sans);font-size:12.5px;color:var(--ink-2)}
-  .fold summary::-webkit-details-marker{display:none}
-  .fold summary::before{content:"\203A";display:inline-block;margin-right:9px;
-    color:var(--ink-4);transition:transform .15s}
-  .fold[open] summary::before{transform:rotate(90deg)}
-  .fold summary:hover{border-color:var(--ink-4)}
-  .fold[open] summary{margin-bottom:14px}
-  .kindbits{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  /* =======================================================================
+     THE OPERATOR'S PAGE, the shell around it.
 
-  /* The funnel. A bar chart rather than a list of numbers, because the useful
-     thing about a funnel is the shape of the drop, and a column of figures
-     hides that. Widths are relative to the top stage. */
-  .fstage{display:grid;grid-template-columns:180px 1fr 46px 44px;align-items:center;
+     Six destinations, one set of controls that applies to all of them, and
+     the states a panel can be in drawn as six different things rather than
+     one blank space. The views themselves are in /admin-ui.js.
+
+     Nothing here invents a colour. Every value is a token out of theme.css,
+     so this page follows the product into dark mode without a second
+     palette to keep level with the first.
+     ======================================================================= */
+  .wrap{max-width:1400px;padding-top:22px}
+
+  /* ------------------------------------------------------------------ nav --
+     Six real destinations rather than toggles, the same decision the board's
+     top bar made: the bar never changes shape, and the one you are standing
+     on says so. Sticky, because the tables are long and losing the way out
+     at the bottom of a page of accounts is how a screen starts feeling like
+     a dead end. */
+  .nav{position:sticky;top:0;z-index:60;background:var(--ground);
+    border-bottom:1px solid var(--rule);margin-bottom:0}
+  .nav-in{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;
+    align-items:stretch;gap:2px;overflow-x:auto}
+  .nav a{flex:0 0 auto;display:flex;align-items:center;padding:0 15px;height:46px;
+    font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink-2);
+    text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;
+    transition:color var(--settle),border-color var(--settle)}
+  .nav a:hover{color:var(--ink)}
+  .nav a.on{color:var(--blue-ink);border-bottom-color:var(--blue);font-weight:600}
+  .nav a .badge{margin-left:7px;min-width:17px;padding:0 5px;height:17px;
+    border-radius:9px;background:var(--red);color:var(--card);
+    font-family:var(--mono);font-size:10px;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center}
+
+  /* --------------------------------------------------------- the controls --
+     They apply to every view, so they live once above all six rather than
+     being re-stated inside each. Every figure on the page is read through
+     them, which is why the period and the population are never further away
+     than this row. */
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    padding:14px 0 18px}
+  .controls label{font-family:var(--sans);font-size:9.5px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);
+    margin-right:-4px}
+  .controls .grow{flex:1 1 auto;min-width:0}
+  .controls input[type=search],.controls input[type=number]{
+    font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--card);
+    border:1px solid var(--rule);border-radius:var(--r-ctl);padding:7px 11px}
+  .controls input[type=search]{width:100%;max-width:280px}
+  .controls input[type=number]{width:74px}
+  .controls input:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+  .asof{font-family:var(--sans);font-size:11.5px;color:var(--ink-4);
+    margin-left:auto;text-align:right}
+  .asof b{color:var(--ink-2);font-weight:500}
+  /* A reload says so instead of blanking the screen. Stale figures with a
+     line admitting they are stale tell you more than an empty panel. */
+  .working{height:2px;background:var(--rule-soft);overflow:hidden;margin-bottom:16px}
+  .working span{display:block;height:100%;width:40%;background:var(--blue);
+    animation:slide 1.1s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+  @media (prefers-reduced-motion:reduce){
+    .working span{animation:none;width:100%;opacity:.5}
+  }
+
+  /* -------------------------------------------------------- the furniture --
+     Tiles, lamps, rows and the six states a panel can be in. Shared by every
+     view, which is why they are here and not in six copies. */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+  .tile{background:var(--surface);border:1px solid var(--rule-soft);
+    border-radius:var(--r-card);padding:13px 15px}
+  .tile .n{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.15;
+    letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .tile .l{font-family:var(--sans);font-size:9.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.11em;color:var(--ink-3);margin-top:3px}
+  .tile.warn{border-color:var(--gold-hair);background:var(--gold-soft)}
+  .tile.warn .n{color:var(--gold)}
+  .tile.bad{border-color:var(--red);background:var(--red-soft)}
+  .tile.bad .n{color:var(--red)}
+  .tile .of{font-family:var(--mono);font-size:13px;color:var(--ink-4);font-weight:400}
+
+  /* The line under a figure saying which days and which people it covers.
+     Written out rather than abbreviated: "30d" means nothing at a glance and
+     being read is the whole job of this line. */
+  .scope{font-family:var(--sans);font-size:10.5px;color:var(--ink-4);
+    margin-top:5px;line-height:1.45}
+  .no{color:var(--ink-4);font-family:var(--mono);cursor:help;
+    border-bottom:1px dotted var(--ink-4)}
+  .of{color:var(--ink-4);font-weight:400}
+  .pct{font-family:var(--mono);font-size:11px;color:var(--ink-4);margin-left:6px}
+  .good{color:var(--sage)}
+  td.bad,.bad.num{color:var(--red)}
+
+  /* A health lamp. The WORD is the signal and the colour agrees with it,
+     never the other way round. House rule from the board, and it matters
+     more here where amber and red are the point of the screen. */
+  .lamps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .lamps>div{display:flex;align-items:center;gap:10px;padding:9px 12px;
+    background:var(--surface);border:1px solid var(--rule-soft);
+    border-radius:var(--r-card)}
+  .lk{font-family:var(--sans);font-size:12px;color:var(--ink-2)}
+  .lamp{margin-left:auto;font-family:var(--sans);font-size:9.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.09em;padding:3px 8px;
+    border-radius:3px;white-space:nowrap}
+  .lamp.ok{background:var(--sage-soft);color:var(--sage)}
+  .lamp.warn{background:var(--gold-soft);color:var(--gold)}
+  .lamp.bad{background:var(--red-soft);color:var(--red)}
+  .lamp.unknown{background:var(--rule-soft);color:var(--ink-3)}
+
+  /* The attention queue. One row per thing, the severity in a word, and the
+     next step as a control rather than as a sentence telling you to go and
+     find it. */
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .row-item{display:grid;grid-template-columns:1fr auto;gap:4px 14px;
+    align-items:center;padding:11px 13px;background:var(--surface);
+    border:1px solid var(--rule-soft);border-left:3px solid var(--rule);
+    border-radius:var(--r-card)}
+  .row-item.sev-high,.row-item.sev-urgent,.row-item.sev-stop{
+    border-left-color:var(--red);background:var(--red-soft)}
+  .row-item.sev-warn,.row-item.sev-normal{border-left-color:var(--gold-hair)}
+  .ri-main{display:flex;align-items:baseline;gap:9px;min-width:0}
+  .ri-title{font-size:13.5px;color:var(--ink);font-weight:500}
+  .sev{font-family:var(--sans);font-size:9px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--ink-3);flex:0 0 auto}
+  .sev-high .sev,.sev-urgent .sev,.sev-stop .sev{color:var(--red)}
+  .ri-sub{grid-column:1;font-size:11.5px;color:var(--ink-3)}
+  .ri-acts{grid-row:1 / span 2;grid-column:2;display:flex;align-items:center;gap:8px}
+  .ri-go{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--blue);
+    text-decoration:none;white-space:nowrap}
+  .ri-go:hover{color:var(--blue-ink);text-decoration:underline}
+
+  /* EMPTY, LOADING, PARTIAL, STALE, DENIED AND FAILED ARE SIX DIFFERENT
+     THINGS. The old page had one appearance for all of them, which is how a
+     broken query and a quiet month came to look identical. */
+  .blank{padding:26px 20px;text-align:center;background:var(--surface);
+    border:1px dashed var(--rule);border-radius:var(--r-card)}
+  .blank-h{font-family:var(--serif);font-size:17px;color:var(--ink-2);margin:0}
+  .blank-w{font-size:12.5px;color:var(--ink-4);margin:7px auto 0;max-width:56ch;
+    line-height:1.6}
+  .note.stale{background:var(--gold-soft);border:1px solid var(--gold-hair);
+    color:var(--ink)}
+  .note.partial{line-height:1.6}
+  .track{margin-top:22px;font-size:12px}
+
+  /* The funnel. A bar chart, because the useful thing about a sequence is the
+     shape of the drop and a column of figures hides it. */
+  .fstage{display:grid;grid-template-columns:230px 1fr 52px 48px;align-items:center;
     gap:12px;padding:5px 0}
   .flab{font-size:12.5px;color:var(--ink-2)}
+  .flab .sub{font-size:11px;color:var(--ink-4);margin-top:2px;line-height:1.45}
   .fbar{height:19px;background:var(--rule-soft);border-radius:2px;overflow:hidden}
   .fbar span{display:block;height:100%;background:var(--blue);min-width:2px;
     transition:width .3s ease-out}
@@ -63,9 +172,78 @@
     font-variant-numeric:tabular-nums}
   .fpct{font-family:var(--mono);font-size:11px;color:var(--ink-4);text-align:right;
     font-variant-numeric:tabular-nums}
-  @media (max-width:700px){
-    .fstage{grid-template-columns:120px 1fr 38px 38px;gap:8px}
+
+  td .sub,.sub{font-size:11.5px;color:var(--ink-4);line-height:1.5}
+  tr.internal{background:var(--blue-soft)}
+  tr.internal td{border-bottom-color:var(--rule)}
+  .pill.small{background:var(--rule-soft);color:var(--ink-3)}
+  .pill.st-new{background:var(--red-soft);color:var(--red)}
+  .pill.st-investigating{background:var(--gold-soft);color:var(--gold)}
+  .pill.st-monitoring{background:var(--blue-soft);color:var(--blue)}
+  .pill.st-resolved{background:var(--sage-soft);color:var(--sage)}
+  .pill.st-open{background:var(--gold-soft);color:var(--gold)}
+  .pill.st-waiting{background:var(--blue-soft);color:var(--blue)}
+  .pill.st-closed{background:var(--rule-soft);color:var(--ink-3)}
+  tr.sev-high td:first-child,tr.sev-urgent td:first-child{
+    box-shadow:inset 3px 0 0 var(--red)}
+
+  .btn.sm{padding:4px 10px;font-size:11.5px}
+  .btn.warn{border-color:var(--gold-hair);color:var(--gold)}
+  .btn.warn:hover{background:var(--gold-soft);border-color:var(--gold)}
+  .acts{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+
+  .note-item{padding:11px 13px;background:var(--surface);
+    border:1px solid var(--rule-soft);border-radius:var(--r-card);margin-bottom:8px}
+  .ni-head{font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--ink-2);
+    display:flex;gap:9px;align-items:baseline}
+  .ni-body{font-size:13px;color:var(--ink);margin-top:5px;line-height:1.6;
+    white-space:pre-wrap}
+
+  .pager{display:flex;align-items:center;gap:12px;padding:4px 0 30px;
+    font-size:12px;color:var(--ink-3)}
+
+  .crumb{display:flex;align-items:center;gap:10px;padding:0 0 14px}
+  .crumb button{font-family:var(--sans);font-size:12.5px;font-weight:600;
+    color:var(--blue);background:none;border:none;cursor:pointer;padding:0}
+  .crumb button:hover{color:var(--blue-ink);text-decoration:underline}
+
+  /* ------------------------------------------------------------ the sheet --
+     Every action is a named form with its own fields. No generic editor, the
+     same rule the endpoint follows: an action that cannot be named cannot be
+     performed. A scrim press steps out, because nothing here is typed at
+     length and losing a one-line reason is cheap. Escape closes. */
+  .scrim{position:fixed;inset:0;z-index:90;background:rgba(26,23,20,.52);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .sheet{width:min(520px,100%);max-height:calc(100vh - 56px);overflow-y:auto;
+    background:var(--card);border:1px solid var(--rule);
+    border-radius:var(--r-panel);box-shadow:var(--shadow-lift);padding:22px 24px}
+  .sheet h3{font-family:var(--serif);font-size:21px;font-weight:600;
+    margin:0 0 6px;color:var(--ink)}
+  .sheet .why{font-size:12.5px;color:var(--ink-3);line-height:1.6;margin:0 0 16px}
+  .fld{margin-bottom:14px}
+  .fld label{display:block;font-family:var(--sans);font-size:9.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);margin-bottom:5px}
+  .fld input,.fld select,.fld textarea{width:100%;font-family:var(--sans);
+    font-size:13.5px;color:var(--ink);background:var(--surface);
+    border:1px solid var(--rule);border-radius:var(--r-ctl);padding:9px 11px}
+  .fld textarea{min-height:76px;resize:vertical;line-height:1.55}
+  .fld input:focus-visible,.fld select:focus-visible,.fld textarea:focus-visible{
+    outline:2px solid var(--blue);outline-offset:1px}
+  .fld .hint{font-size:11.5px;color:var(--ink-4);margin-top:5px;line-height:1.5}
+  .sheet-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  .sheet .bad{color:var(--red);font-size:12.5px;line-height:1.55;margin:0 0 12px}
+
+  /* A short-lived line saying what just happened. Not a toast that fades
+     before it is read: it stays until the next action or the next reload. */
+  .said{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:95;
+    background:var(--ink);color:var(--ground);font-family:var(--sans);
+    font-size:13px;padding:10px 16px;border-radius:var(--r-ctl);
+    box-shadow:var(--shadow-lift);max-width:min(560px,calc(100vw - 32px))}
+
+  @media (max-width:980px){
+    .fstage{grid-template-columns:150px 1fr 44px 42px;gap:9px}
     .flab{font-size:11.5px}
+    .asof{margin-left:0;text-align:left;width:100%}
   }
 
   /* ---------------------------------------------------------------------
@@ -127,11 +305,6 @@
   </div>
   <span class="slug">Admin</span>
   <div class="right">
-    <select id="days" class="btn">
-      <option value="7">Last 7 days</option>
-      <option value="30" selected>Last 30 days</option>
-      <option value="90">Last 90 days</option>
-    </select>
   <div class="acct" id="acct">
     <button class="avatar" id="avatar" aria-haspopup="true" aria-expanded="false">
       <span class="ini" id="avatarini">K</span>
@@ -179,279 +352,640 @@
   </div>
 </div></div>
 
+<nav class="nav" id="nav" hidden><div class="nav-in">
+  <a href="#overview" data-view="overview">Overview</a>
+  <a href="#issues"   data-view="issues">Issues<span class="badge" id="issuecount" hidden></span></a>
+  <a href="#writers"  data-view="writers">Writers</a>
+  <a href="#product"  data-view="product">Product use</a>
+  <a href="#money"    data-view="money">Money</a>
+  <a href="#system"   data-view="system">System</a>
+</div></nav>
+
 <div class="wrap">
-  <div id="loading" class="muted"><span class="spinner"></span>Loading…</div>
-  <div id="denied" class="note bad" hidden>This page is for the account owner.</div>
+  <div id="booting" class="muted"><span class="spinner"></span>Loading</div>
 
-  <div id="body" hidden>
-    <div class="stats" id="stats"></div>
-    <p class="muted mine" id="mine"></p>
+  <!-- DENIED AND FAILED ARE DIFFERENT THINGS. The old page showed "This page
+       is for the account owner" for every failure, so a broken query and a
+       signed-out session looked identical and the first was always read as
+       the second. -->
+  <div id="denied" class="note bad" hidden>
+    <b>This page is for the account owner.</b>
+    Your sign-in worked; this account is not an admin account.
+  </div>
 
-    <!-- THE MONEY PATH. First, because during a test it is the only thing on
-         this page that can tell you the product is a business rather than a
-         demo, and because running out of credits is the moment everything
-         turns on. -->
-    <div class="panel">
-      <h2>Payments and subscriptions</h2>
-      <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Tracks credit purchases and subscriptions. This section includes internal test accounts.
-      </p>
-      <div class="caps" id="money"></div>
+  <div id="main" hidden>
+    <div class="controls" id="controls">
+      <label for="days">Period</label>
+      <select id="days" class="btn">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 365 days</option>
+        <option value="custom">A number of days</option>
+      </select>
+      <!-- A COUNT OF DAYS, NOT A PAIR OF DATES. Every window on this page
+           ends now, because every query behind it reads forward from one
+           date. A date picker with an end box that nothing honours would be
+           exactly the kind of figure this rebuild exists to remove. -->
+      <span id="customwrap" hidden>
+        <input type="number" id="customdays" min="1" max="365" value="30"
+          aria-label="How many days, ending now">
+        <span class="sub">days, ending now</span>
+      </span>
+
+      <label for="who">Counting</label>
+      <select id="who" class="btn">
+        <option value="customers" selected>Customers</option>
+        <option value="internal">Your own accounts</option>
+        <option value="all">Everybody</option>
+      </select>
+
+      <span class="grow" id="searchwrap" hidden>
+        <input type="search" id="search" placeholder="Search email, name or reference"
+          aria-label="Search accounts">
+      </span>
+
+      <span id="sortwrap" hidden>
+        <label for="sort">Order</label>
+        <select id="sort" class="btn">
+          <option value="last">Last worked</option>
+          <option value="cost">Cost</option>
+          <option value="credits">Credits used</option>
+          <option value="days">Days worked</option>
+          <option value="joined">Joined</option>
+          <option value="failed">Failed calls</option>
+        </select>
+      </span>
+
+      <span class="asof" id="asof"></span>
+      <button class="btn" id="refresh">Refresh</button>
     </div>
 
-    <div class="panel">
-      <h2>Usage and cost per active user</h2>
-      <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Review credit usage and service costs when setting plan limits.
-      </p>
-      <div class="caps" id="caps"></div>
-    </div>
-
-    <!-- FOLDED AWAY UNTIL THERE ARE ENOUGH WRITERS TO SAY ANYTHING.
-         These four read "nobody has done this yet" at five accounts, and a
-         page that mostly says that teaches you to stop opening it. They are
-         the right panels and this is the wrong month for them, so they are
-         one press away rather than gone. -->
-    <details class="fold" id="growth">
-      <summary><span>Growth and retention</span></summary>
-
-    <div class="panel">
-      <h2>Signup and subscription progress</h2>
-      <p class="muted" style="margin-top:-6px;max-width:74ch">
-        External accounts only. <span id="internalnote"></span> Each percentage shows the share progressing from the previous step.
-      </p>
-      <div id="funnel"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Results by starting option</h2>
-      <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Compare activity, return visits and subscriptions across the starting options.
-      </p>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>First path</th><th class="num">People</th>
-            <th class="num">Meaningful board</th><th class="num">Back after D1</th>
-            <th class="num">Back after D7</th><th class="num">Paying</th></tr></thead>
-          <tbody id="paths"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Signup sources</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Source</th><th class="num">People</th>
-            <th class="num">Activated</th><th class="num">Paying</th>
-            <th class="num">API cost</th></tr></thead>
-          <tbody id="sources"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Feature activity</h2>
-      <div class="kindbits" id="events"></div>
-    </div>
-
-    </details>
-
-    <!-- OUT of the fold. The whole point of the test is finding what breaks,
-         so this is the panel to read every morning. -->
-    <div class="panel">
-      <h2>Errors and cancellation reasons</h2>
-      <p class="muted" style="margin-top:-6px;max-width:74ch">
-        Review recorded errors and the reasons users selected when cancelling.
-      </p>
-      <div class="kindbits" id="failures"></div>
-      <div class="kindbits" id="reasons" style="margin-top:10px"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Accounts</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr>
-            <th>Account</th><th>Plan</th><th>Joined</th><th>Last active</th>
-            <th class="num">Projects</th><th class="num">Cards</th>
-            <th class="num">Calls</th><th class="num">Credits</th><th class="num">Cost</th>
-            <th>Breakdown</th>
-          </tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </div>
+    <div class="working" id="working" hidden><span></span></div>
+    <div id="crumb"></div>
+    <div id="view"></div>
+    <div id="pager"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>
-<script>
+<script type="module">
+import * as UI from '/admin-ui.js';
+
 BF.applyMode(BF.readMode());
 
+const S = UI.state();
+const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-async function load(days) {
-  document.getElementById('loading').hidden = false;
-  let d;
-  try { d = await BF.api('/api/admin?days=' + days); }
-  catch (e) {
-    document.getElementById('loading').hidden = true;
-    document.getElementById('denied').hidden = false;
+/* How many accounts are drawn at once. Not a server limit: the endpoint pages
+   the whole table and says when it truncated. This is about a page that has to
+   be readable, with the count and the way to see the rest both stated. */
+const PER_PAGE = 100;
+let shown = PER_PAGE;
+
+const VIEWS = {
+  overview: UI.viewOverview,
+  issues:   UI.viewIssues,
+  writers:  UI.viewWriters,
+  product:  UI.viewProduct,
+  money:    UI.viewMoney,
+  system:   UI.viewSystem,
+  account:  UI.viewAccount,
+  issue:    UI.viewIssue
+};
+
+/* ---------------------------------------------------------------------------
+   WHERE YOU ARE, IN THE ADDRESS BAR.
+
+   An alert mails you a link to one account and an overview row links to one
+   issue, so both have to be a real address rather than a click somewhere on
+   a page. Back goes back, and a link from an email lands where it says.
+   --------------------------------------------------------------------------- */
+function readHash() {
+  const h = (location.hash || '').replace(/^#/, '');
+  if (!h) return { view: 'overview' };
+  const eq = h.indexOf('=');
+  if (eq > 0) {
+    const k = h.slice(0, eq), v = h.slice(eq + 1);
+    if (k === 'account') return { view: 'account', id: v };
+    if (k === 'issue') return { view: 'issue', id: v };
+  }
+  // An alert's own link points here. Delivery lives on System.
+  if (h === 'alerts') return { view: 'system' };
+  return VIEWS[h] ? { view: h } : { view: 'overview' };
+}
+
+function paintNav() {
+  // The six destinations stay lit by the screen you are on. An account or an
+  // issue is reached FROM one of them, so neither takes the light off it.
+  const home = { account: 'writers', issue: 'issues' }[S.view] || S.view;
+  document.querySelectorAll('.nav a').forEach(a =>
+    a.classList.toggle('on', a.dataset.view === home));
+}
+
+function paintControls() {
+  const v = S.view;
+  $('searchwrap').hidden = v !== 'writers';
+  $('sortwrap').hidden   = v !== 'writers';
+  // The population filter only changes what the Writers list counts. Saying
+  // so by disabling it beats leaving a control that quietly does nothing.
+  $('who').disabled = v !== 'writers';
+  $('who').title = v === 'writers' ? ''
+    : 'Applies to the Writers list. Every other screen names its own population.';
+  // An account and an issue are things rather than periods, and both are read
+  // whole. A window control over them would narrow nothing.
+  const periodless = v === 'account' || v === 'issue' || v === 'system';
+  $('days').disabled = periodless;
+  $('days').title = periodless
+    ? 'This screen is not read through a period. It shows everything recorded.' : '';
+}
+
+function paintAsOf() {
+  const at = S.loadedAt[cacheKey()];
+  $('asof').innerHTML = at
+    ? 'Read <b>' + esc(UI.when(at)) + '</b>'
+    : '<b>Not read yet</b>';
+}
+
+function cacheKey() {
+  return S.view + ':' + (S.id || '') + ':' + S.days + ':'
+    + (S.view === 'writers' ? S.who : '');
+}
+
+/* ---------------------------------------------------------------------------
+   FETCHING.
+
+   A reload keeps the figures that are already on screen and raises a working
+   strip, because a view that blanks itself while reloading tells you less than
+   one that admits it is reloading. A view that failed says which view and
+   leaves the other five alone, which is the whole reason the endpoint is split
+   by view in the first place.
+   --------------------------------------------------------------------------- */
+async function load(force) {
+  const key = cacheKey();
+  if (!force && S.data[key]) { draw(); return; }
+
+  S.loading = true;
+  $('working').hidden = false;
+  S.failed = null;
+
+  const q = new URLSearchParams({ view: S.view, days: String(S.days), who: S.who });
+  if (S.id) q.set('id', S.id);
+
+  try {
+    const d = await BF.api('/api/admin?' + q.toString());
+    S.data[key] = d;
+    S.loadedAt[key] = new Date().toISOString();
+    d.loaded_at = S.loadedAt[key];
+    if (S.view === 'overview') paintIssueBadge(d);
+  } catch (e) {
+    if (e.status === 403 || e.code === 'not_admin') return refuseWhole();
+    S.failed = e;
+  } finally {
+    S.loading = false;
+    $('working').hidden = true;
+  }
+  draw();
+}
+
+function refuseWhole() {
+  $('booting').hidden = true;
+  $('main').hidden = true;
+  $('nav').hidden = true;
+  $('denied').hidden = false;
+}
+
+function paintIssueBadge(d) {
+  const open = (d.attention || []).filter(a => a.kind === 'issue').length;
+  const b = $('issuecount');
+  b.textContent = String(open);
+  b.hidden = !open;
+}
+
+/* ---------------------------------------------------------------------------
+   DRAWING. Every path through here ends in markup, including the ones where
+   nothing arrived.
+   --------------------------------------------------------------------------- */
+function draw() {
+  paintNav();
+  paintControls();
+  paintAsOf();
+
+  const key = cacheKey();
+  const d = S.data[key];
+  const box = $('view');
+  $('crumb').innerHTML = crumbFor();
+  $('pager').innerHTML = '';
+
+  if (S.failed && !d) {
+    box.innerHTML = '<div class="note bad"><b>This section could not be built.</b> '
+      + esc(S.failed.message || 'The server did not answer.')
+      + ' The other five screens are unaffected. Nothing on the account has '
+      + 'changed.</div>'
+      + '<div class="acts"><button class="btn btn-primary" id="retry">Try again</button></div>';
+    const r = $('retry');
+    if (r) r.addEventListener('click', () => load(true));
     return;
   }
-  document.getElementById('loading').hidden = true;
-  document.getElementById('body').hidden = false;
+  if (!d) {
+    box.innerHTML = '<p class="muted"><span class="spinner"></span>Reading</p>';
+    return;
+  }
 
-  const t = d.totals;
-  document.getElementById('stats').innerHTML = [
-    ['', t.people, 'people'],
-    ['', t.active_in_window, 'used it in ' + d.window_days + 'd'],
-    ['good', t.returned, 'came back after day one'],
-    ['good', t.paying, 'paying'],
-    ['warn', BF.money(t.cost_usd), 'API cost, ' + d.window_days + 'd'],
-    // "AI calls" was the last breach of the naming rule left anywhere in the
-    // product. Only you read this page, which is exactly why it survived.
-    ['', t.calls, 'writing help calls']
-  ].map(([c,n,l]) => `<div class="stat ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+  // A view that failed on a RELOAD, with good figures still in hand. Both
+  // facts are true and both are said, rather than one quietly replacing the
+  // other.
+  const head = S.failed
+    ? '<div class="note bad"><b>The last refresh did not work.</b> '
+      + esc(S.failed.message || 'The server did not answer.')
+      + ' What is below is the reading from ' + esc(UI.when(S.loadedAt[key]))
+      + '.</div>' : '';
 
-  /* What was left out of those six tiles, said out loud. Every one of them
-     counts external accounts only now, and your own testing is real API money
-     even though it is not a customer signal. */
-  const mine = d.mine || {};
-  document.getElementById('mine').textContent = mine.people
-    ? `Plus ${mine.people} of your own account${mine.people === 1 ? '' : 's'}: `
-      + `${mine.calls} call${mine.calls === 1 ? '' : 's'}, ${BF.money(mine.cost_usd)}. `
-      + 'Internal accounts are excluded from the totals above.'
-    : '';
-
-  /* ------------------------------------------------------------- money ----
-     Two chains rather than a pile of event names. The question is never "how
-     many people ran out", it is "of the people who ran out, how many bought",
-     and that only reads as a sequence. */
-  const mstage = s => `<div${s.n ? '' : ' class="none"'}><span>${esc(s.label)}</span>`
-    + `<b>${s.n}<span class="who">${s.who} ${s.who === 1 ? 'person' : 'people'}</span></b></div>`;
-  const mn = d.money || {topup: [], plan: []};
-  document.getElementById('money').innerHTML = `
-    <div class="cap"><h3>Credit purchases</h3>
-      ${(mn.topup || []).map(mstage).join('')}</div>
-    <div class="cap"><h3>Subscribing</h3>
-      ${(mn.plan || []).map(mstage).join('')}</div>
-    <div class="cap"><h3>${d.stripe_configured
-        ? (d.stripe_live ? 'Stripe is live' : 'Stripe is in test mode')
-        : 'Stripe is not connected'}</h3>
-      <div><span>Accepted cards</span><b>${d.stripe_live ? 'real' : 'test only'}</b></div>
-      <div><span>Charges</span><b>${d.stripe_live ? 'real' : 'none'}</b></div>
-      <div><span>Every other step</span><b>real</b></div>
-    </div>`;
-
-  /* Guarded the same way d.pricing below is, and for the same reason. An older
-     deployed API that does not send these two throws on the first .median and
-     takes the WHOLE page down with a script error, which looks like the admin
-     screen being broken rather than one card being short of a figure. */
-  const c = d.credits_per_active_user || {}, m = d.cost_per_active_user_usd || {};
-  // Falls back only so an older deployed API doesn't blank the card. The
-  // server is the source of truth, and these numbers have to be kept level
-  // with core.js or the fallback quietly reports last month's pricing: this
-  // said 50 for a while after the pack became 40.
-  const pr = d.pricing || { month: 15, year: 149, topup_credits: 25, topup_price: 6 };
-  // A figure that did not arrive says so, rather than printing the word
-  // "undefined" at you in 22px.
-  const fig = v => (typeof v === 'number' ? v : 'not sent');
-  const cash = v => (typeof v === 'number' ? BF.money(v) : 'not sent');
-  document.getElementById('caps').innerHTML = `
-    <div class="cap"><h3>Credits per active user</h3>
-      <div><span>Median</span><b>${fig(c.median)}</b></div>
-      <div><span>75th percentile</span><b>${fig(c.p75)}</b></div>
-      <div><span>90th percentile</span><b>${fig(c.p90)}</b></div>
-      <div><span>Highest</span><b>${fig(c.max)}</b></div></div>
-    <div class="cap"><h3>API cost per active user</h3>
-      <div><span>Median</span><b>${cash(m.median)}</b></div>
-      <div><span>90th percentile</span><b>${cash(m.p90)}</b></div>
-      <div><span>Highest</span><b>${cash(m.max)}</b></div></div>
-    <div class="cap"><h3>Current plan</h3>
-      <div><span>Trial · 14 days, no card</span><b>${d.plans.trial.credits}</b></div>
-      <div><span>Beatfall · $${pr.month} a month</span><b>${d.plans.beatfall.credits}</b></div>
-      <div><span>Beatfall · $${pr.year} a year</span><b>${d.plans.beatfall.credits}</b></div>
-      <div><span>Top-up · $${pr.topup_price} one-off</span><b>${pr.topup_credits}</b></div>
-    </div>`;
-
-  const ev = Object.entries(d.events || {}).sort((a,b) => b[1]-a[1]);
-  document.getElementById('events').innerHTML = ev.length
-    ? ev.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
-    : 'No events recorded yet.';
-
-  /* ------------------------------------------------------------- funnel ----
-     A bar per stage, widths relative to the top of the funnel, so the shape
-     is readable at a glance and the drop is where the bar shortens. With ten
-     writers the raw counts matter more than the percentages, so both are
-     printed and the count is the one in the heavier type. */
-  const fn = d.funnel || [];
-  const top = fn.length ? Math.max(1, fn[0].n) : 1;
-  document.getElementById('internalnote').textContent =
-    d.internal_count ? d.internal_count + (d.internal_count === 1
-      ? ' internal account is excluded.' : ' internal accounts are excluded.') : '';
-  document.getElementById('funnel').innerHTML = fn.map(s => `
-    <div class="fstage">
-      <div class="flab">${esc(s.label)}</div>
-      <div class="fbar"><span style="width:${Math.round(s.n / top * 100)}%"></span></div>
-      <div class="fnum">${s.n}</div>
-      <div class="fpct">${s.from_prev === null ? '' : s.from_prev + '%'}</div>
-    </div>`).join('');
-
-  const PATHNAME = { import: 'I have notes already', new_project: "I'm starting something",
-                     sample: 'Show me an example', none: 'Never chose one' };
-  document.getElementById('paths').innerHTML = (d.by_path || []).map(p => `
-    <tr><td>${esc(PATHNAME[p.key] || p.key)}</td>
-      <td class="num">${p.users}</td><td class="num">${p.meaningful}</td>
-      <td class="num">${p.d1}</td><td class="num">${p.d7}</td>
-      <td class="num">${p.paid}</td></tr>`).join('')
-    || '<tr><td colspan="6" class="muted">Nobody has chosen a path yet.</td></tr>';
-
-  document.getElementById('sources').innerHTML = (d.sources || []).map(s => `
-    <tr><td>${esc(s.key)}</td><td class="num">${s.users}</td>
-      <td class="num">${s.activated}</td><td class="num">${s.paid}</td>
-      <td class="num">${BF.money(s.cost_usd)}</td></tr>`).join('')
-    || '<tr><td colspan="5" class="muted">No accounts yet.</td></tr>';
-
-  const fails = (d.failures || []).filter(f => f.n > 0);
-  document.getElementById('failures').innerHTML = fails.length
-    ? fails.map(f => `${esc(f.name)} <b style="color:var(--gold)">${f.n}</b>`).join(' &nbsp;·&nbsp; ')
-    : 'No errors recorded during this period.';
-
-  const rs = Object.entries(d.cancel_reasons || {}).sort((a,b) => b[1]-a[1]);
-  document.getElementById('reasons').innerHTML = rs.length
-    ? 'Cancelled: ' + rs.map(([k,v]) => `${esc(k)} <b style="color:var(--ink)">${v}</b>`).join(' &nbsp;·&nbsp; ')
-    : 'No cancellation reasons recorded during this period.';
-
-  document.getElementById('rows').innerHTML = d.users.map(u => {
-    const pill = u.plan === 'none' ? 'off' : u.plan === 'trial' ? 'trial' : 'on';
-    const kinds = Object.entries(u.kinds || {}).map(([k,v]) => `${k}&nbsp;${v}`).join(' · ');
-    return `<tr>
-      <td>${esc(u.name || u.email || '·')}${u.name ? `<div class="muted">${esc(u.email)}</div>` : ''}</td>
-      <td><span class="pill ${pill}">${esc(u.plan)}</span>${u.status ? `<div class="muted">${esc(u.status)}</div>` : ''}</td>
-      <td class="muted">${BF.when(u.created_at)}</td>
-      <td class="muted">${BF.when(u.last_seen_at)}</td>
-      <td class="num">${u.real_projects}</td>
-      <td class="num">${u.real_cards}</td>
-      <td class="num">${u.calls}</td>
-      <td class="num">${u.credits}<span class="muted"> / ${
-        u.allowance >= 1000000 ? '&infin;' : u.allowance}</span></td>
-      <td class="num">${BF.money(u.cost_usd)}</td>
-      <td class="kindbits">${kinds || '·'}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="10" class="muted">Nobody yet.</td></tr>';
+  if (S.view === 'writers') { box.innerHTML = head + drawWriters(d); return; }
+  box.innerHTML = head + VIEWS[S.view](d);
 }
+
+function crumbFor() {
+  if (S.view === 'account')
+    return '<div class="crumb"><button data-go="writers">Back to writers</button></div>';
+  if (S.view === 'issue')
+    return '<div class="crumb"><button data-go="issues">Back to issues</button></div>';
+  return '';
+}
+
+/* Filtering, ordering and paging happen here rather than inside the view, so
+   the view can be rendered against a fixture in a test without any of it. */
+function drawWriters(d) {
+  const needle = S.search.trim().toLowerCase();
+  let rows = (d.writers || []).slice();
+  if (needle) rows = rows.filter(r =>
+    (r.email || '').toLowerCase().includes(needle)
+    || (r.name || '').toLowerCase().includes(needle)
+    || (r.tag || '').toLowerCase().includes(needle)
+    || (r.id || '').toLowerCase().includes(needle));
+
+  const num = v => Number(v || 0);
+  const by = {
+    last:    (a, b) => String(b.last_worked || '').localeCompare(String(a.last_worked || '')),
+    cost:    (a, b) => num(b.cost_usd) - num(a.cost_usd),
+    credits: (a, b) => num(b.credits_used_this_period) - num(a.credits_used_this_period),
+    days:    (a, b) => num(b.work_days) - num(a.work_days),
+    joined:  (a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')),
+    failed:  (a, b) => num(b.failed_calls) - num(a.failed_calls)
+  }[S.sort] || null;
+  if (by) rows.sort(by);
+
+  const total = rows.length;
+  const page = rows.slice(0, shown);
+  const markup = VIEWS.writers(Object.assign({}, d, { writers: page }), S.search);
+
+  if (total > page.length) {
+    $('pager').innerHTML = '<div class="pager"><span>Showing ' + page.length
+      + ' of ' + total + ' accounts that match.</span>'
+      + '<button class="btn sm" id="more">Show ' + Math.min(PER_PAGE, total - page.length)
+      + ' more</button></div>';
+  } else if (total > PER_PAGE) {
+    $('pager').innerHTML = '<div class="pager"><span>Showing all ' + total
+      + '.</span></div>';
+  }
+  return markup;
+}
+
+/* ---------------------------------------------------------------------------
+   THE ACTIONS.
+
+   One form per named action, matching the endpoint's list exactly. There is
+   no generic "edit this profile" here for the same reason there is none
+   there: an action that cannot be named cannot be performed, so nobody can
+   discover a way to set a role through a control built for credits.
+
+   `enforced` is deliberately absent from the budget form. The endpoint
+   refuses it; this page does not offer it. Two refusals, on purpose, because
+   Kris asked for the figures to be watched before anything acts on them.
+   --------------------------------------------------------------------------- */
+const ACTIONS = {
+  alert_ack: {
+    title: 'Mark this alert as seen',
+    why: 'It stays in the record. This only stops it appearing in the queue and '
+       + 'in the daily digest.',
+    go: 'Mark as seen', fields: []
+  },
+  issue_status: {
+    title: 'Change the state of this issue',
+    why: 'Resolving one needs a reason. An issue closed with nothing written down '
+       + 'teaches nobody anything the second time it appears, and the second time '
+       + 'is exactly when somebody goes looking.',
+    go: 'Save', fields: [
+      { name: 'status', label: 'State', type: 'select', value: 'investigating',
+        options: [['investigating', 'Looking at it'], ['monitoring', 'Watching'],
+                  ['new', 'New'], ['resolved', 'Resolved']] },
+      { name: 'reason', label: 'Why', type: 'textarea',
+        hint: 'Required to resolve it. Left blank for any other state.' }
+    ]
+  },
+  issue_assign: {
+    title: 'Assign this issue',
+    why: 'A name, so a list of open issues says who is holding each one.',
+    go: 'Save', fields: [{ name: 'assignee', label: 'Who', type: 'text' }]
+  },
+  issue_note: {
+    title: 'Write a note on this issue',
+    why: 'What you found, what you ruled out, what you tried. This is the half '
+       + 'that is useful in six months.',
+    go: 'Save the note', fields: [{ name: 'body', label: 'Note', type: 'textarea' }]
+  },
+  help_pause: {
+    title: 'Pause the paid writing help',
+    why: 'Their boards, notes, outline and downloads are untouched, and placing '
+       + 'notes by hand still works. The only thing that stops is the metered '
+       + 'help that costs money. They are told why, in those words.',
+    go: 'Pause it', fields: [
+      { name: 'reason', label: 'Why', type: 'textarea',
+        hint: 'Required. The account holder is shown a message, not this text, '
+            + 'but this is what the record will say.' }
+    ]
+  },
+  help_resume: {
+    title: 'Let the writing help work again',
+    why: 'Takes the pause off. Nothing else about the account changes.',
+    go: 'Let it work', fields: []
+  },
+  credit_correction: {
+    title: 'Correct credits',
+    why: 'Goes to the bought bucket, which never expires, so an apology is not '
+       + 'quietly smaller than it looked. A negative figure takes credits away. '
+       + 'Writes a ledger row either way, and the ledger refuses the same '
+       + 'movement twice.',
+    go: 'Apply the correction', fields: [
+      { name: 'credits', label: 'Credits', type: 'number',
+        hint: 'Up to 500 either way. Anything larger is refused rather than '
+            + 'applied, because a typed figure with an extra zero on it should be.' },
+      { name: 'reason', label: 'Why', type: 'textarea' }
+    ]
+  },
+  budget_set: {
+    title: 'Set a spending figure',
+    why: 'Figures only. Nothing on this page can switch enforcement on, and the '
+       + 'endpoint refuses a request that tries. Every figure here is watched so '
+       + 'the record can show whether it would ever have been right.',
+    go: 'Save the figures', fields: [
+      { name: 'scope', label: 'Applies to', type: 'select', value: 'paid_period',
+        options: [['paid_period', 'A subscriber, per allowance period'],
+                  ['trial_account', 'A trial account, whole trial'],
+                  ['single_action', 'One action']] },
+      { name: 'warn_usd', label: 'Warn at, in dollars', type: 'number' },
+      { name: 'urgent_usd', label: 'Urgent at, in dollars', type: 'number' },
+      { name: 'stop_usd', label: 'Would stop at, in dollars', type: 'number',
+        hint: 'Recorded and observed. Nothing is stopped.' },
+      { name: 'note', label: 'Note', type: 'text',
+        hint: 'Who approved it and when, in your own words.' }
+    ]
+  },
+  case_open: {
+    title: 'Open a support case',
+    why: 'So a conversation with a writer has somewhere to live that is not an '
+       + 'inbox.',
+    go: 'Open it', fields: [{ name: 'subject', label: 'Subject', type: 'text' }]
+  },
+  case_status: {
+    title: 'Change the state of this case',
+    go: 'Save', fields: [
+      { name: 'status', label: 'State', type: 'select', value: 'waiting',
+        options: [['open', 'Open'], ['waiting', 'Waiting on them'], ['closed', 'Closed']] }
+    ]
+  },
+  marketing_set: {
+    title: 'Record a marketing permission',
+    why: 'The permission is theirs and an operator may only record what they were '
+       + 'told. Turning it on needs a source. Turning it off needs nothing, '
+       + 'because somebody asking to be left alone is never refused.',
+    go: 'Record it', fields: [
+      { name: 'opted_in', label: 'Permission', type: 'select', value: 'false',
+        options: [['false', 'They asked to be left alone'],
+                  ['true', 'They gave permission']] },
+      { name: 'source', label: 'Where it came from', type: 'text',
+        hint: 'Required only when they gave permission.' }
+    ]
+  },
+  hold_clear: {
+    title: 'Clear a stuck reservation',
+    why: 'A reservation open for hours is not work in progress. It is a request '
+       + 'that went away without settling, and it counts against every ceiling '
+       + 'until it is cleared. Closed as unknown rather than as finished, '
+       + 'because nobody can say whether the provider did the work.',
+    go: 'Clear it', fields: [{ name: 'id', label: 'Reservation', type: 'number' }]
+  }
+};
+
+let sheetEl = null;
+
+function openSheet(action, ctx) {
+  const spec = ACTIONS[action];
+  if (!spec) return;
+  closeSheet();
+
+  /* ONE KEY PER OPENING. A double press of Save, or a retry after an answer
+     that never came back, is the same press and is deduped against itself.
+     A fresh opening is a fresh action. */
+  const idem = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : String(Date.now()) + Math.random().toString(16).slice(2);
+
+  const fields = (spec.fields || []).map(f => {
+    const id = 'f_' + f.name;
+    const input = f.type === 'textarea'
+      ? '<textarea id="' + id + '"></textarea>'
+      : f.type === 'select'
+      ? '<select id="' + id + '">' + f.options.map(([v, l]) =>
+          '<option value="' + esc(v) + '"' + (v === f.value ? ' selected' : '')
+          + '>' + esc(l) + '</option>').join('') + '</select>'
+      : '<input id="' + id + '" type="' + esc(f.type) + '"'
+        + (f.value !== undefined ? ' value="' + esc(f.value) + '"' : '') + '>';
+    return '<div class="fld"><label for="' + id + '">' + esc(f.label) + '</label>'
+      + input + (f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '')
+      + '</div>';
+  }).join('');
+
+  sheetEl = document.createElement('div');
+  sheetEl.className = 'scrim';
+  sheetEl.innerHTML = '<div class="sheet" role="dialog" aria-modal="true"'
+    + ' aria-label="' + esc(spec.title) + '">'
+    + '<h3>' + esc(spec.title) + '</h3>'
+    + (spec.why ? '<p class="why">' + esc(spec.why) + '</p>' : '')
+    + '<p class="bad" id="sheeterr" hidden></p>'
+    + fields
+    + '<div class="sheet-acts">'
+    + '<button class="btn" id="sheetno">Cancel</button>'
+    + '<button class="btn btn-primary" id="sheetgo">' + esc(spec.go || 'Save') + '</button>'
+    + '</div></div>';
+  document.body.appendChild(sheetEl);
+
+  sheetEl.addEventListener('click', e => { if (e.target === sheetEl) closeSheet(); });
+  sheetEl.querySelector('#sheetno').addEventListener('click', closeSheet);
+  sheetEl.querySelector('#sheetgo').addEventListener('click',
+    () => submit(action, spec, ctx, idem));
+
+  const first = sheetEl.querySelector('input,select,textarea');
+  if (first) first.focus();
+}
+
+function closeSheet() {
+  if (sheetEl) { sheetEl.remove(); sheetEl = null; }
+}
+
+async function submit(action, spec, ctx, idem) {
+  const body = { action, idem };
+  if (ctx.user) body.user_id = ctx.user;
+  if (ctx.id) body.id = ctx.id;
+
+  (spec.fields || []).forEach(f => {
+    const el = sheetEl.querySelector('#f_' + f.name);
+    if (!el) return;
+    let v = el.value;
+    if (f.type === 'number') body[f.name] = v === '' ? null : Number(v);
+    else if (f.name === 'opted_in') body.opted_in = (v === 'true');
+    else body[f.name] = v;
+  });
+
+  const go = sheetEl.querySelector('#sheetgo');
+  const err = sheetEl.querySelector('#sheeterr');
+  go.disabled = true;
+  go.textContent = 'Working';
+
+  try {
+    const r = await BF.api('/api/admin-do', {
+      method: 'POST', body: JSON.stringify(body)
+    });
+    closeSheet();
+    say(r.already ? 'Already done. Nothing was applied a second time.' : 'Done.');
+    // The screen is re-read rather than patched, so what you see afterwards is
+    // what the database says rather than what this page assumed.
+    load(true);
+  } catch (e) {
+    /* A REFUSAL IS NOT A FAILURE AND IS NOT DRAWN AS ONE. The endpoint
+       records both; this says which it was, in the endpoint's own words, and
+       leaves the form filled in so the missing half can be typed. */
+    go.disabled = false;
+    go.textContent = spec.go || 'Save';
+    err.hidden = false;
+    err.textContent = e.code === 'refused'
+      ? 'Not done: ' + (e.message || 'refused') + '.'
+      : (e.message || 'That did not complete.')
+        + ' Check the account before trying again.';
+  }
+}
+
+let saidTimer = null;
+function say(words) {
+  const old = document.querySelector('.said');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'said';
+  el.setAttribute('role', 'status');
+  el.textContent = words;
+  document.body.appendChild(el);
+  clearTimeout(saidTimer);
+  saidTimer = setTimeout(() => el.remove(), 6000);
+}
+
+/* ---------------------------------------------------------------------------
+   ONE LISTENER FOR EVERY CONTROL THE VIEWS DRAW.
+
+   The views return markup and bind nothing, which is what lets them be
+   rendered in a test without a browser. Everything they put a data attribute
+   on is answered here.
+   --------------------------------------------------------------------------- */
+document.addEventListener('click', e => {
+  const act = e.target.closest('[data-do]');
+  if (act) {
+    const action = act.dataset.do;
+    // Marking an alert as seen has nothing to ask, so it does not ask.
+    if (action === 'alert_ack') {
+      runStraight(action, { id: Number(act.dataset.id) });
+      return;
+    }
+    openSheet(action, { user: act.dataset.user, id: act.dataset.id });
+    return;
+  }
+
+  const acc = e.target.closest('[data-open-account]');
+  if (acc) { location.hash = 'account=' + acc.dataset.openAccount; return; }
+
+  const iss = e.target.closest('[data-open-issue]');
+  if (iss) { location.hash = 'issue=' + iss.dataset.openIssue; return; }
+
+  const go = e.target.closest('[data-go]');
+  if (go) { location.hash = go.dataset.go; return; }
+
+  if (e.target.id === 'more') { shown += PER_PAGE; draw(); return; }
+});
+
+async function runStraight(action, ctx) {
+  const idem = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : String(Date.now()) + Math.random().toString(16).slice(2);
+  try {
+    const r = await BF.api('/api/admin-do', {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({ action, idem }, ctx))
+    });
+    say(r.already ? 'Already marked as seen.' : 'Marked as seen.');
+    load(true);
+  } catch (e) {
+    say(e.code === 'refused' ? 'Not done: ' + (e.message || 'refused') + '.'
+      : (e.message || 'That did not complete.'));
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheetEl) { closeSheet(); return; }
+});
+
+/* ------------------------------------------------------------- the routing */
+function route() {
+  const r = readHash();
+  const changed = r.view !== S.view || (r.id || '') !== (S.id || '');
+  S.view = r.view;
+  S.id = r.id || null;
+  if (changed) shown = PER_PAGE;
+  load(false);
+}
+window.addEventListener('hashchange', route);
+
+/* ------------------------------------------------------- the global controls
+   Each one changes the state, then re-reads. The state object is shared with
+   the views, so a period changed here cannot leave one panel describing a
+   different month from the one beside it. */
+$('days').addEventListener('change', e => {
+  const v = e.target.value;
+  $('customwrap').hidden = v !== 'custom';
+  if (v === 'custom') { S.days = Number($('customdays').value) || 30; }
+  else S.days = Number(v);
+  load(false);
+});
+$('customdays').addEventListener('change', e => {
+  const n = Math.min(365, Math.max(1, Number(e.target.value) || 30));
+  e.target.value = n;
+  S.days = n;
+  load(false);
+});
+$('who').addEventListener('change', e => { S.who = e.target.value; load(false); });
+$('refresh').addEventListener('click', () => load(true));
+
+/* SEARCH AND ORDER DO NOT RE-READ THE SERVER. Both work on the list already
+   in hand, so typing does not spend a query per keystroke, and the context is
+   kept when you leave the screen and come back. */
+$('search').addEventListener('input', e => { S.search = e.target.value; shown = PER_PAGE; draw(); });
+$('sort').addEventListener('change', e => { S.sort = e.target.value; draw(); });
 
 /* ---------------------------------------------------------------------------
    The account pill. Same control, same place, same behaviour as the board, so
    being on Admin never costs you the way to Settings, the mode switch or the
    way out. No "Admin" row in it, because you are standing on it.
    --------------------------------------------------------------------------- */
-const avatar  = document.getElementById('avatar');
-const acctpop = document.getElementById('acctmenu');
+const avatar  = $('avatar');
+const acctpop = $('acctmenu');
 
 function closeAcct(){
   acctpop.hidden = true;
@@ -470,20 +1004,19 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAcct(); });
 
-const modeItem = document.getElementById('mode');
-modeItem.addEventListener('click', e => {
+$('mode').addEventListener('click', e => {
   e.stopPropagation();
-  BF.cycleMode(document.getElementById('modelabel'));
+  BF.cycleMode($('modelabel'));
 });
-document.getElementById('signout').addEventListener('click', () => BF.signOut());
+$('signout').addEventListener('click', () => BF.signOut());
 
 async function paintWho(){
   let me;
   try { me = await BF.api('/api/account'); } catch (e) { return; }
   const name = me.display_name || (me.email || '').split('@')[0] || 'You';
-  document.getElementById('whoname').textContent  = name;
-  document.getElementById('whoemail').textContent = me.email || '';
-  document.getElementById('avatarini').textContent = (name.trim()[0] || '?').toUpperCase();
+  $('whoname').textContent  = name;
+  $('whoemail').textContent = me.email || '';
+  $('avatarini').textContent = (name.trim()[0] || '?').toUpperCase();
   /* AN ADMIN ACCOUNT IS NOT A CUSTOMER, AND THIS MENU USED TO SAY IT WAS.
      An account carrying is_admin without the Owner plan exists to read the
      reports and does nothing else: no board, no credits, nothing to
@@ -494,7 +1027,7 @@ async function paintWho(){
      An owner account still gets everything, because that one does write. */
   if (me.is_admin && !me.unlimited) {
     const plan = document.querySelector('.popplan'); if (plan) plan.hidden = true;
-    const board = document.getElementById('popboard'); if (board) board.remove();
+    const board = $('popboard'); if (board) board.remove();
     return;
   }
   /* Not "$12 a month". An annual subscriber pays $99 and was being quoted a
@@ -505,7 +1038,7 @@ async function paintWho(){
     ? new Date(me.current_period_end).toLocaleDateString(undefined,
         {month: 'short', day: 'numeric', year: 'numeric'})
     : null;
-  document.getElementById('whoplan').textContent =
+  $('whoplan').textContent =
       me.unlimited            ? 'Owner · no limits'
     : me.plan === 'beatfall'  ? ('Beatfall' + (me.cancel_at_period_end
         ? (renews ? ' · ends ' + renews : ' · ending')
@@ -514,7 +1047,7 @@ async function paintWho(){
     : 'No plan';
   // The owner allowance is a stand-in for infinity, so don't print it.
   if (!me.unlimited) {
-    const cr = document.getElementById('acctcredits');
+    const cr = $('acctcredits');
     cr.textContent = me.credits_left + ' of ' + me.credits_allowance + ' credits left';
     cr.hidden = false;
   }
@@ -522,10 +1055,14 @@ async function paintWho(){
 
 (async function () {
   if (!await BF.requireSession()) return;
-  BF.applyMode(BF.readMode(), document.getElementById('modelabel'));
+  BF.applyMode(BF.readMode(), $('modelabel'));
   paintWho();
-  await load(30);
-  document.getElementById('days').addEventListener('change', e => load(e.target.value));
+
+  S.sort = 'last';
+  $('booting').hidden = true;
+  $('nav').hidden = false;
+  $('main').hidden = false;
+  route();
 })();
 </script>
 </body>
