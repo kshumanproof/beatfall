@@ -64,7 +64,7 @@ const STUB = `<script>
       return window.__ME__ || { email: 'kris@beatfall.app', is_admin: true,
         unlimited: false, plan: 'none' };
     }
-    if (p.indexOf('/api/admin-do') === 0) {
+    if (p.split('?')[0] === '/api/admin' && o && o.method === 'POST') {
       window.__POSTS__ = window.__POSTS__ || [];
       window.__POSTS__.push(body);
       const r = window.__DO_RESULT__;

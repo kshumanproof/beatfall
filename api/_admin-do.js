@@ -1,7 +1,7 @@
 // ============================================================================
-// THE OPERATOR'S WRITE ENDPOINT. Separate from the reporting one on purpose.
+// THE OPERATOR'S ACTION HANDLER. Kept separate from reporting logic.
 //
-// /api/admin reads and can never change anything. This file is the only place
+// POST /api/admin delegates here. GET remains read-only. This is the only place
 // an operator action touches the database, which is what makes "what can this
 // page do" a question with a short, readable answer rather than one that
 // needs the whole codebase.

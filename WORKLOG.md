@@ -2978,3 +2978,23 @@ The Chatling knowledge sources were deliberately preserved:
 
 Chatling currently shows Auto Sync as Never for the imported webpages. Any
 future source correction has to be manually resynced or re-uploaded there.
+
+## 9 October 2026: Vercel function-limit deployment fix
+
+The operator rebuild added a thirteenth function, above the Hobby limit of 12.
+Moved api/admin-do.js to api/_admin-do.js (a utility, excluded from function
+entrypoints). POST /api/admin delegates to that unchanged action implementation;
+GET /api/admin retains reporting. Both admin page POST callers now use /api/admin.
+Updated server fixtures and browser stub; action tests exercise the shared router.
+No changes to database schema, spending thresholds, enforcement, or dashboard design.
+
+Verified in an isolated copy, with dependencies installed outside this repository:
+615 server checks across all fourteen server suites, plus 151 real-browser admin
+checks passed. Browser suite used installed Windows Chrome in place of its hardcoded
+Linux executable path in the isolated copy only. Twelve deployable API entrypoints
+remain; no stale /api/admin-do callers under public, api or test. Nothing pushed.
+
+Kris already ran supabase/operator.sql. Before deployment, set production ALERT_TO
+to the recipient email and verify SITE_URL is the full live origin. After pushing,
+confirm Vercel Ready and inspect admin System on the live deployment. Local tests
+use stubs and do not prove live database or email configuration.

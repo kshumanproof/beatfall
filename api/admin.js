@@ -37,6 +37,8 @@ import { requireUser, send, PLANS, entitlement,
          PRICE_MONTH, PRICE_YEAR, TOPUP_CREDITS, TOPUP_PRICE,
          COST } from './_lib/core.js';
 
+import handleAdminAction from './_admin-do.js';
+
 const DAY = 86400000;
 const PAGE = 1000;
 
@@ -81,6 +83,9 @@ const unavailable = why => ({ value: null, unavailable: why || 'not available' }
 const isInternal = p => !!(p.is_internal || p.is_admin || p.is_unlimited);
 
 export default async function handler(req, res) {
+  // One deployed function; the action handler retains its own authorization and audit rules.
+  if (req.method === 'POST') return handleAdminAction(req, res);
+  if (req.method && req.method !== 'GET') return send(res, 405, { error: 'method' });
   // ONE call, for the operator. Never for the account being inspected.
   const auth = await requireUser(req);
   if (auth.error) return send(res, auth.status, { error: auth.error });

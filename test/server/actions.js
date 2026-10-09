@@ -1,6 +1,6 @@
 /* THE OPERATOR'S WRITE ENDPOINT.
  *
- * /api/admin reads and can never change anything. This is the only file in
+ * GET /api/admin reads; POST delegates to the action handler. This is the only file in
  * the product where an operator action touches the database, so the whole
  * question "what can that page do to somebody's account" is answered by the
  * list in it, and every item on that list is checked here.
@@ -17,7 +17,8 @@
  * It runs the SHIPPED endpoint against the stand-in database. There is no
  * second copy of any rule in here.
  */
-import handler from './api/admin-do.real.js';
+import handler from './api/admin.real.js';
+import actionHandler from './api/_admin-do.js';
 import { makeDb } from './fakedb.js';
 
 const out = [];
@@ -93,7 +94,7 @@ const lastAudit = db => audits(db)[audits(db).length - 1] || {};
   globalThis.__DB__ = db;
   globalThis.__AUTH__ = { db, user: { id: 'k1' }, profile: ADMIN };
   const r = res();
-  await handler({ method: 'GET', query: {}, headers: {} }, r);
+  await actionHandler({ method: 'GET', query: {}, headers: {} }, r);
   check('a GET cannot perform an action', r.code === 405, String(r.code));
 }
 
