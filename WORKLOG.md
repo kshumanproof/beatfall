@@ -3085,3 +3085,10 @@ Validated in isolated Windows harness: 699 server checks and 187 admin browser c
 Capture now starts locked until the writer chooses an existing title or creates one. After Keep successfully saves locally, the draft, photo and active title clear, requiring another choice before the next note. Failed writes retain the title and draft. Removed automatic restoration/selection of the previous or only title. Send cannot restore a cleared title when promoting local projects. Updated the visible build stamp. Desktop processing, storage and sync source are unchanged.
 
 Validated 12 component behavior checks with mocked native/storage boundaries, parsed all mobile source and checked declared imports. Native phone UI verification remains with Kris in Expo Go; the pre-existing browser-preview storage error was not changed. Regression command: node test/mobile-title.cjs.
+
+
+## 9 October 2026: approved mobile design overhaul
+
+Implemented story-first capture using the existing title picker in an embedded view. Choosing a title opens the editor; successful Keep returns to story selection. Added a dedicated waiting-notes view with a reserved Send area, while preserving unfinished drafts when viewing the list. Updated typography, spacing and grouped account presentation, and aligned sign-in typography. Exact existing logo, fonts and theme remain. Build: 09 Oct mobile redesign.
+
+Verified 16 component behavior checks, 31 structural preservation checks, successful iOS and Android Metro exports, and isolated browser render/interactions with fixture data at 390px and 320px, including dark mode. Save, Send, photo, account deletion and sign-in handlers were structurally unchanged. No storage, sync, auth, API, desktop or database source changes. Preview mocks stayed outside the repository. Native keyboard, camera and safe-area interactions still require Kris to verify in Expo Go before release.

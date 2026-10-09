@@ -203,8 +203,8 @@ const sheet = (c) => StyleSheet.create({
   pad: { paddingHorizontal: 24 },
 
 
-  h1: { fontFamily: font.serif, fontSize: 25, color: c.ink, letterSpacing: -0.35,
-    lineHeight: 31, marginTop: 40 },
+  h1: { fontFamily: font.serif, fontSize: 36, color: c.ink, letterSpacing: -0.7,
+    lineHeight: 42, marginTop: 40 },
   lede: { fontFamily: font.sans, fontSize: 14, lineHeight: 22, color: c.ink2, marginTop: 10 },
   strong: { fontFamily: font.sansSemi, color: c.ink },
 
@@ -212,8 +212,8 @@ const sheet = (c) => StyleSheet.create({
     marginTop: 32, marginBottom: 8 },
   box: { backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.card,
     paddingHorizontal: 14, minHeight: 52, justifyContent: 'center' },
-  input: { fontFamily: font.mono, fontSize: 15.5, color: c.ink, padding: 0, margin: 0 },
-  codeInput: { fontSize: 22, letterSpacing: 6 },
+  input: { fontFamily: font.sans, fontSize: 16, color: c.ink, padding: 0, margin: 0 },
+  codeInput: { fontFamily: font.mono, fontSize: 22, letterSpacing: 6 },
 
   problem: { fontFamily: font.sans, fontSize: 13, lineHeight: 20, color: c.red, marginTop: 12 },
 

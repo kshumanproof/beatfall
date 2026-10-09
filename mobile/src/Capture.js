@@ -6,14 +6,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, LayoutAnimation, Platform,
-  Pressable, StyleSheet, Text, TextInput, UIManager, View, useColorScheme,
+  Pressable, ScrollView, StyleSheet, Text, TextInput, UIManager, View, useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { palette, radius, font } from './theme';
 import { Lockup } from './Mark';
-import { SYNC_ENABLED, BUILD } from './config';
+import { SYNC_ENABLED } from './config';
 import * as store from './store';
 import * as photos from './photos';
 import ScriptSheet, { lastScript, rememberScript, useScripts } from './Scripts';
@@ -66,6 +66,7 @@ export default function Capture({ email }) {
   const [script, setScript] = useState(null);
   const [picking, setPicking] = useState(false);
   const [accounting, setAccounting] = useState(false);
+  const [waiting, setWaiting] = useState(false);
   const shelf = useScripts();
   const field = useRef(null);
 
@@ -168,8 +169,8 @@ export default function Capture({ email }) {
     rememberScript(slim);
   };
   useEffect(() => {
-    if (script && !picking && !saving) field.current?.focus();
-  }, [script, picking, saving]);
+    if (script && !picking && !saving && !waiting) field.current?.focus();
+  }, [script, picking, saving, waiting]);
 
   /* ------------------------------------------------------------ pictures --
    *
@@ -277,255 +278,57 @@ export default function Capture({ email }) {
 
   const ready = !!script && (draft.trim().length > 0 || !!pic);
 
+  const openWaiting = () => { Keyboard.dismiss(); refresh(); setWaiting(true); };
+  const accountButton = <Pressable onPress={() => { Keyboard.dismiss(); setAccounting(true); }} disabled={saving || sending || picking2} style={s.you} accessibilityRole="button" accessibilityLabel="Account"><Text style={s.youText}>{initial(email)}</Text></Pressable>;
+  const waitingLink = <Pressable onPress={openWaiting} disabled={saving || sending || picking2} accessibilityRole="button" accessibilityLabel="Waiting to send" style={[s.waitingLink, { paddingBottom: Math.max(inset.bottom, 16) }]}>
+    <Text style={s.waitingLabel}>Waiting to send</Text><View style={s.grow} /><Text style={s.waitingCount}>{tally.waiting}</Text><Text style={s.chevron}>›</Text>
+  </Pressable>;
   return (
-    <KeyboardAvoidingView
-      style={[s.screen, { paddingTop: inset.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
-    >
-      {/* TAP ANYWHERE UP HERE TO PUT THE KEYBOARD AWAY.
-          The box keeps focus after a Keep, which is right for typing three
-          thoughts in a row, and wrong the moment you want to look at what you
-          caught. Dragging the list down worked and nobody could be expected to
-          discover it. Buttons and the box itself take their own taps first, so
-          this only ever catches the empty space around them. */}
-      {/* TAP ANY EMPTY SPACE UP HERE TO PUT THE KEYBOARD AWAY.
-       *
-       * A Pressable was the obvious choice and it was the wrong one: it only
-       * reports a tap after iOS has decided the gesture is a press, and with a
-       * keyboard up that decision does not reliably arrive. These two props are
-       * the layer underneath. React Native offers the touch to the deepest view
-       * first and works outward, so the box, the buttons and the list all take
-       * their own taps as normal and this only ever catches what nobody else
-       * wanted, which is exactly the empty space around them.
-       *
-       * The list below keeps its own dismiss-on-drag. Two ways out, neither of
-       * which anybody should have to discover. */}
-      <View
-        onStartShouldSetResponder={() => true}
-        onResponderRelease={() => Keyboard.dismiss()}
-      >
-      <View style={s.head}>
-        <Lockup scheme={scheme} size={26} />
-        <View style={s.grow} />
-        <Tally c={c} tally={tally} />
-        {/* The way into the account, and the only new thing on this screen in
-            months. A circle with your initial, because the one question it
-            has to answer at a glance is "am I in the right account", and a
-            gear answers nothing. */}
-        <Pressable
-          onPress={() => { Keyboard.dismiss(); setAccounting(true); }}
-          hitSlop={10}
-          style={({ pressed }) => [s.you, pressed && s.scriptDown]}
-          accessibilityRole="button"
-          accessibilityLabel={email ? 'Account, signed in as ' + email : 'Account'}
-        >
-          <Text style={s.youText}>{initial(email)}</Text>
-        </Pressable>
+    <KeyboardAvoidingView style={[s.screen, { paddingTop: inset.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={s.head} onStartShouldSetResponder={() => true} onResponderRelease={() => Keyboard.dismiss()}>
+        {waiting || script ? <Pressable onPress={() => { Keyboard.dismiss(); if (waiting) setWaiting(false); else setPicking(true); }} disabled={saving || sending || picking2} style={s.back} accessibilityRole="button" accessibilityLabel="Back to stories"><Text style={s.backText}>‹ Stories</Text></Pressable> : <Lockup scheme={scheme} size={26} />}
+        <View style={s.grow} />{accountButton}
       </View>
-
-      {/* Where the next note is going. One line, always visible, one tap to
-          change. It sits above the box rather than below it so it is read
-          before the writer types, not discovered after. */}
-      <View style={s.pad}>
-        <Pressable
-          onPress={() => { if (!saving && !picking2 && !sending) { Keyboard.dismiss(); setPicking(true); } }}
-          style={({ pressed }) => [s.script, pressed && s.scriptDown]}
-          accessibilityRole="button"
-          accessibilityLabel={script ? `Filing under ${script.name}. Change script.` : 'Choose a script'}
-        >
-          <Text style={s.scriptRail}>TO</Text>
-          <Text style={[s.scriptName, !script && s.scriptNone]} numberOfLines={1}>
-            {script ? String(script.name).toUpperCase() : 'Choose or create a title'}
-          </Text>
-          <Text style={s.scriptGo}>{script ? 'Change' : 'Choose'}</Text>
-        </Pressable>
-      </View>
-
-      {/* ------------------------------------------------------- capture -- */}
-      <View style={s.pad}>
-        <View style={s.box}>
-          <TextInput
-            ref={field}
-            style={s.input}
-            value={draft}
-            onChangeText={text => { if (script && !saving && !sending) setDraft(text); }}
-            placeholder={script ? "What just occurred to you?" : "Choose or create a title above to begin."}
-            placeholderTextColor={c.ink4}
-            multiline
-            editable={!!script && !saving && !sending}
-            autoCorrect
-            autoCapitalize="sentences"
-            textAlignVertical="top"
-            selectionColor={c.blue}
-            scrollEnabled
-          />
-        </View>
-
-        {/* THE PICTURE, WHERE THE WRITER CAN SEE WHAT THEY ACTUALLY CAUGHT.
-            A photograph taken in a hurry is often not the one they meant, and
-            a thumbnail they can check is the difference between a useful
-            reference and a picture of somebody's shoe. */}
-        {pic && (
-          <View style={s.pinned}>
-            <Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" />
-            <Text style={s.pinnedWords} numberOfLines={2}>
-              Picture attached. Add a line about it if you want one.
-            </Text>
-            <Pressable
-              onPress={unpin}
-              hitSlop={12}
-              style={({ pressed }) => [s.pinnedX, pressed && s.scriptDown]}
-              accessibilityRole="button"
-              accessibilityLabel="Take this picture off the note"
-            >
-              <Text style={s.pinnedXText}>{'×'}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <View style={s.actions}>
-          {/* Two buttons rather than one that asks which. Catching a thought
-              is a two second job and a menu in the middle of it is a second
-              decision nobody has time for. */}
-          <Pressable
-            onPress={() => attach('camera')}
-            disabled={!script || saving || sending || picking2}
-            style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
-            accessibilityRole="button"
-            accessibilityLabel="Take a photograph for this note"
-          >
-            <Text style={s.picText}>Photo</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => attach('library')}
-            disabled={!script || saving || sending || picking2}
-            style={({ pressed }) => [s.pic, pressed && s.scriptDown]}
-            accessibilityRole="button"
-            accessibilityLabel="Choose a picture from this phone"
-          >
-            <Text style={s.picText}>Library</Text>
-          </Pressable>
-          <View style={s.grow} />
-          <Pressable
-            onPress={keep}
-            disabled={!ready || saving || sending || picking2}
-            style={({ pressed }) => [
-              s.keep,
-              !ready && s.keepOff,
-              pressed && ready && s.keepDown,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Keep this note"
-          >
-            <Text style={[s.keepText, !ready && s.keepTextOff]}>Keep</Text>
-          </Pressable>
-        </View>
-
-        {/* The hint sits under the row rather than inside it. With two picture
-            buttons in there as well, a phone at 390 points has no room for a
-            sentence beside them and the words were being squeezed to nothing. */}
-        <Text style={s.hint} numberOfLines={2}>
-          {!script
-            ? 'Choose a title for every new note.'
-            : pic
-            ? 'The picture goes with the note when you Send.'
-            : ready
-              ? 'Tap Keep to save this note on your phone.'
-              : SYNC_ENABLED ? 'Tap Keep to save on this phone. Tap Send when you’re ready.' : 'Type now, sort later.'}
-        </Text>
-      </View>
-
-      </View>
-
-      {/* -------------------------------------------------------- recent -- */}
-      <View style={s.railHead}>
-        <Text style={s.rail}>WAITING TO SEND</Text>
-        {__DEV__ && <Text style={s.build}>build {BUILD}</Text>}
-        <View style={s.hair} />
-        {rows.length > 0 && <Text style={s.railHint}>hold to delete</Text>}
-      </View>
-
-      <FlatList
-        data={rows}
-        keyExtractor={(r) => r.id}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={[s.list, { paddingBottom: inset.bottom + 28 }]}
-        /* Two different empties, two different sentences. Nothing caught yet
-           is not the same as everything caught and safely home, and telling a
-           writer "nothing captured yet" ten seconds after they sent four notes
-           reads as though the notes are gone. */
-        ListEmptyComponent={
-          <Text style={s.empty}>
-            {everSent
-              ? 'No notes waiting to send. Review sent notes in Beatfall on your computer.'
-              : 'No saved notes yet. Type a note above, then tap Keep.'}
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <Pressable onLongPress={() => scrub(item)} delayLongPress={350}>
-            <View style={s.card}>
-              {/* Drawn from the file on this phone, never from the account.
-                  The whole point of the local copy is that this list is right
-                  in a basement with no signal. */}
-              {item.photo_uri
-                ? <Image source={{ uri: item.photo_uri }} style={s.cardPic} resizeMode="cover" />
-                : null}
-              {String(item.body || '').trim()
-                ? <Text style={s.body}>{item.body}</Text>
-                : <Text style={s.bodyNone}>Picture without a caption</Text>}
-              <View style={s.foot}>
-                <Text style={s.stamp}>{when(item.created_at)}</Text>
-                {item.project_name
-                  ? <Text style={s.stamp} numberOfLines={1}>· {String(item.project_name).toUpperCase()}</Text>
-                  : <Text style={s.pend}>· no script</Text>}
-              </View>
+      {waiting ? <>
+        <View style={s.heading}><Text style={s.title}>Waiting to send</Text><Text style={s.subtitle}>{tally.waiting} {tally.waiting === 1 ? 'note' : 'notes'} saved on this phone</Text></View>
+        <FlatList data={rows} keyExtractor={r => r.id} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.list, { paddingBottom: 24 }]}
+          ListEmptyComponent={<Text style={s.empty}>{everSent ? 'Everything has been sent. Review your notes on your computer.' : 'Your kept notes will appear here.'}</Text>}
+          renderItem={({ item }) => <Pressable onLongPress={() => scrub(item)} delayLongPress={350} accessibilityRole="button" accessibilityLabel={'Note for ' + (item.project_name || 'your story') + '. Hold to delete.'}>
+            <View style={s.card}><Text style={s.storyLabel}>{item.project_name || 'No title'}</Text>
+              {item.photo_uri ? <Image source={{ uri: item.photo_uri }} style={s.cardPic} resizeMode="cover" /> : null}
+              <Text style={s.body}>{String(item.body || '').trim() || 'Picture without a caption'}</Text>
+              <View style={s.foot}><Text style={s.stamp}>{when(item.created_at)}</Text><View style={s.grow} /><Text style={s.stamp}>Hold to delete</Text></View>
             </View>
-          </Pressable>
-        )}
-      />
-
-      {SYNC_ENABLED && tally.waiting > 0 && (
-        <Pressable
-          onPress={send}
-          disabled={sending}
-          style={({ pressed }) => [s.fab, { bottom: inset.bottom + 18 }, pressed && s.fabDown]}
-          accessibilityRole="button"
-          accessibilityLabel={`Send ${tally.waiting} notes to your account`}
-        >
-          <Text style={s.fabText}>
-            {sending ? 'Sending\u2026'
-                     : 'Send ' + tally.waiting + ' note' + (tally.waiting === 1 ? '' : 's')}
-          </Text>
-        </Pressable>
-      )}
-
-      {justSent > 0 && (
-        <View style={[s.done, { bottom: inset.bottom + 18 }]} accessibilityLiveRegion="polite">
-          <Text style={s.doneText}>{justSent} sent. Waiting at your desk.</Text>
+          </Pressable>} />
+        <View style={[s.sendArea, { paddingBottom: Math.max(inset.bottom, 16) }]}>
+          {justSent > 0 && <Text style={s.confirm} accessibilityLiveRegion="polite">{justSent} sent. Waiting at your desk.</Text>}
+          {SYNC_ENABLED && tally.waiting > 0 && <Pressable onPress={send} disabled={sending || saving || picking2} style={[s.primary, sending && s.disabled]} accessibilityRole="button" accessibilityLabel={'Send ' + tally.waiting + ' notes to your account'}><Text style={s.primaryText}>{sending ? 'Sending…' : 'Send ' + tally.waiting + (tally.waiting === 1 ? ' note' : ' notes') + ' to desktop'}</Text></Pressable>}
+          <Text style={s.hint}>Review and place your notes on your computer.</Text>
         </View>
-      )}
-
-      <Account
-        visible={accounting}
-        scheme={scheme}
-        email={email}
-        onClose={() => { setAccounting(false); refresh(); }}
-        onCleared={() => setAccounting(false)}
-      />
-
-      <ScriptSheet
-        visible={picking}
-        scheme={scheme}
-        shelf={shelf}
-        current={script}
-        onPick={choose}
-        onClose={closePicker}
-      />
+      </> : script ? <>
+        <ScrollView style={s.grow} contentContainerStyle={s.captureContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <View onStartShouldSetResponder={() => true} onResponderRelease={() => Keyboard.dismiss()}>
+          <View style={s.destination}><View style={s.grow}><Text style={s.rail}>CAPTURING FOR</Text><Text style={s.title}>{script.name}</Text></View>
+            <Pressable onPress={() => { if (!saving && !picking2 && !sending) { Keyboard.dismiss(); setPicking(true); } }} style={s.change} accessibilityRole="button" accessibilityLabel="Change story"><Text style={s.backText}>Change</Text></Pressable>
+          </View>
+          <View style={s.box}><TextInput ref={field} style={s.input} value={draft} onChangeText={text => { if (script && !saving && !sending) setDraft(text); }} editable={!!script && !saving && !sending} placeholder="What just occurred to you?" placeholderTextColor={c.ink4} multiline autoCorrect autoCapitalize="sentences" textAlignVertical="top" selectionColor={c.blue} scrollEnabled /></View>
+          {pic && <View style={s.pinned}><Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" /><Text style={s.pinnedWords}>Picture attached. Add a caption if you like.</Text><Pressable onPress={unpin} disabled={saving} style={s.remove} accessibilityRole="button" accessibilityLabel="Take this picture off the note"><Text style={s.backText}>×</Text></Pressable></View>}
+          <View style={s.actions}>
+            <Pressable onPress={() => attach('camera')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Take a photograph for this note"><Text style={s.secondaryText}>Photo</Text></Pressable>
+            <Pressable onPress={() => attach('library')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Choose a picture from this phone"><Text style={s.secondaryText}>Library</Text></Pressable>
+            <View style={s.grow} /><Pressable onPress={keep} disabled={!ready || saving || sending || picking2} style={[s.keep, (!ready || saving) && s.disabled]} accessibilityRole="button" accessibilityLabel="Keep this note"><Text style={[s.primaryText, !ready && s.disabledText]}>{saving ? 'Keeping…' : 'Keep note'}</Text></Pressable>
+          </View><Text style={s.hint}>Saved on this phone until you send.</Text></View>
+        </ScrollView>{waitingLink}
+      </> : <>
+        <ScriptSheet embedded visible scheme={scheme} shelf={shelf} current={script} onPick={choose} onClose={closePicker} />
+        {waitingLink}
+      </>}
+      <Account visible={accounting} scheme={scheme} email={email} onClose={() => { setAccounting(false); refresh(); }} onCleared={() => setAccounting(false)} />
+      <ScriptSheet visible={picking} scheme={scheme} shelf={shelf} current={script} onPick={choose} onClose={closePicker} />
     </KeyboardAvoidingView>
   );
 }
+
 
 /* One letter, from whatever we have. Not a photo and not a name: nobody else
    ever sees you in this app, so the circle is a landmark for your own thumb
@@ -535,149 +338,39 @@ function initial(email) {
   return t ? t[0].toUpperCase() : '\u00b7';
 }
 
-// --------------------------------------------------------------- the tally --
-// Never state by colour alone: the dot always sits beside a word.
-function Tally({ c, tally }) {
-  const s = sheet(c);
-  if (!tally.total) return null;
-  return (
-    <View style={s.tally}>
-      <Text style={s.tallyN}>{tally.total}</Text>
-      <Text style={s.tallyW}>{tally.total === 1 ? 'note' : 'notes'}</Text>
-      {SYNC_ENABLED && tally.waiting > 0 && (
-        <>
-          <View style={s.dot} />
-          <Text style={s.tallyGold}>{tally.waiting} waiting</Text>
-        </>
-      )}
-    </View>
-  );
-}
-
-// ------------------------------------------------------------------ styles --
 const sheet = (c) => StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.ground },
-
-  head: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 14,
-  },
-  you: {
-    width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: c.rule,
-    backgroundColor: c.card, alignItems: 'center', justifyContent: 'center',
-  },
-  youText: { fontFamily: font.sansSemi, fontSize: 12.5, color: c.ink2 },
-  grow: { flex: 1 },
-
-  tally: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
-  tallyN: { fontFamily: font.sansSemi, fontSize: 14, color: c.ink2 },
-  tallyW: { fontFamily: font.sans, fontSize: 12, color: c.ink3 },
-  tallyGold: { fontFamily: font.sans, fontSize: 12, color: c.gold },
-  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: c.goldHair, alignSelf: 'center' },
-
-  pad: { paddingHorizontal: 20 },
-  script: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12,
-    paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: c.surface, borderWidth: 1, borderColor: c.ruleSoft,
-    borderRadius: radius.ctl,
-  },
-  scriptDown: { opacity: 0.7 },
-  scriptRail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
-  scriptName: { flex: 1, fontFamily: font.sansSemi, fontSize: 12.5, letterSpacing: 0.7, color: c.ink },
-  scriptNone: { color: c.gold },
-  scriptGo: { fontFamily: font.sansMed, fontSize: 12.5, color: c.blue },
-  box: {
-    backgroundColor: c.card, borderWidth: 1, borderColor: c.rule,
-    borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12,
-    minHeight: 132, maxHeight: 260,
-  },
-  input: {
-    fontFamily: font.mono, fontSize: 15.5, lineHeight: 24, color: c.ink,
-    flex: 1, padding: 0, margin: 0,
-  },
-
-  /* The picture, pinned to the note being typed. It sits between the box and
-     the buttons because that is the reading order of what is about to be
-     kept: these words, this picture, then Keep. */
-  pinned: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10,
-    padding: 8, backgroundColor: c.surface,
-    borderWidth: 1, borderColor: c.ruleSoft, borderRadius: radius.ctl,
-  },
-  pinnedPic: { width: 56, height: 56, borderRadius: 6, backgroundColor: c.ruleSoft },
-  pinnedWords: { flex: 1, fontFamily: font.sans, fontSize: 12, lineHeight: 17, color: c.ink3 },
-  pinnedX: {
-    width: 30, height: 30, borderRadius: 15, alignItems: 'center',
-    justifyContent: 'center', backgroundColor: c.card,
-    borderWidth: 1, borderColor: c.rule,
-  },
-  pinnedXText: { fontFamily: font.sansSemi, fontSize: 16, lineHeight: 18, color: c.ink2 },
-
-  actions: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8 },
-  /* Outlined, not filled. Keep is the one thing on this screen that saves
-     anything, and it is the only filled button here for that reason. */
-  pic: {
-    paddingHorizontal: 14, minHeight: 44, justifyContent: 'center',
-    borderRadius: radius.ctl, borderWidth: 1, borderColor: c.rule,
-    backgroundColor: c.card,
-  },
-  picText: { fontFamily: font.sansMed, fontSize: 13, color: c.ink2 },
-  hint: { fontFamily: font.sans, fontSize: 11.5, color: c.ink3, marginTop: 10 },
-  keep: {
-    backgroundColor: c.blue, borderRadius: radius.ctl,
-    paddingHorizontal: 26, minHeight: 44, justifyContent: 'center',
-  },
-  keepOff: { backgroundColor: c.ruleSoft },
-  keepDown: { backgroundColor: c.blueInk },
-  keepText: { fontFamily: font.sansSemi, fontSize: 14.5, color: c.onBlue },
-  keepTextOff: { color: c.ink4 },
-
-  railHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, marginTop: 26, marginBottom: 12 },
-  rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4 },
-  railHint: { fontFamily: font.sans, fontSize: 10.5, color: c.ink4 },
-  build: { fontFamily: font.mono, fontSize: 9.5, color: c.ink4 },
-  /* Bottom LEFT on purpose. Bottom right is where a thumb rests and where
-     every other app puts a compose or a destructive button, and in development
-     it is also where Expo parks its own control. */
-  fab: {
-    position: 'absolute', left: 20, backgroundColor: c.blue,
-    borderRadius: 24, paddingHorizontal: 20, minHeight: 46, justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 }, elevation: 5,
-  },
-  fabDown: { backgroundColor: c.blueInk },
-  fabText: { fontFamily: font.sansSemi, fontSize: 14.5, color: c.onBlue },
-  done: {
-    position: 'absolute', left: 20, backgroundColor: c.sageSoft,
-    borderWidth: 1, borderColor: c.sage,
-    borderRadius: 24, paddingHorizontal: 18, minHeight: 46, justifyContent: 'center',
-  },
-  doneText: { fontFamily: font.sansMed, fontSize: 13.5, color: c.sage },
-  hair: { flex: 1, height: 1, backgroundColor: c.ruleSoft },
-
-  list: { paddingHorizontal: 20, gap: 10 },
-  card: {
-    backgroundColor: c.card, borderWidth: 1, borderColor: c.ruleSoft,
-    borderRadius: radius.card, paddingHorizontal: 14, paddingVertical: 12,
-  },
-  body: { fontFamily: font.mono, fontSize: 14, lineHeight: 22, color: c.ink },
-  /* A picture with no caption still has to say something, or the card reads
-     as a note whose words went missing. */
-  bodyNone: { fontFamily: font.sans, fontSize: 13, color: c.ink3, fontStyle: 'italic' },
-  /* Wide rather than square. Almost everything a writer photographs for a
-     script is a place or a frame, and a square crop of a doorway is a crop of
-     the door handle. */
-  cardPic: {
-    width: '100%', height: 150, borderRadius: 6, marginBottom: 10,
-    backgroundColor: c.ruleSoft,
-  },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  stamp: { fontFamily: font.sans, fontSize: 11, color: c.ink4 },
-  pend: { fontFamily: font.sans, fontSize: 11, color: c.gold },
-
-  empty: {
-    fontFamily: font.sans, fontSize: 13.5, lineHeight: 21, color: c.ink3,
-    paddingVertical: 6,
-  },
+  screen: { flex: 1, backgroundColor: c.ground }, grow: { flex: 1 },
+  head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, minHeight: 64 },
+  you: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.rule },
+  youText: { fontFamily: font.sansSemi, fontSize: 15, color: c.ink2 },
+  back: { minHeight: 44, justifyContent: 'center' }, backText: { fontFamily: font.sansMed, fontSize: 15, color: c.blue },
+  heading: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24 },
+  title: { fontFamily: font.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, color: c.ink },
+  subtitle: { fontFamily: font.sans, fontSize: 15, lineHeight: 22, color: c.ink3, marginTop: 8 },
+  rail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginBottom: 8 },
+  captureContent: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 24 },
+  destination: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
+  change: { minHeight: 44, justifyContent: 'center' },
+  box: { backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.panel, padding: 16, minHeight: 220 },
+  input: { fontFamily: font.mono, fontSize: 16, lineHeight: 25, color: c.ink, minHeight: 190, padding: 0, margin: 0 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  secondary: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 13, borderWidth: 1, borderColor: c.rule, borderRadius: radius.ctl, backgroundColor: c.card },
+  secondaryText: { fontFamily: font.sansMed, fontSize: 14, color: c.ink2 },
+  keep: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 18, backgroundColor: c.blue, borderRadius: radius.ctl },
+  primary: { minHeight: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, backgroundColor: c.blue, borderRadius: radius.ctl },
+  primaryText: { fontFamily: font.sansSemi, fontSize: 15, color: c.onBlue }, disabled: { backgroundColor: c.ruleSoft }, disabledText: { color: c.ink4 },
+  hint: { fontFamily: font.sans, fontSize: 12, lineHeight: 18, color: c.ink3, marginTop: 12 },
+  waitingLink: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 24, paddingTop: 17, borderTopWidth: 1, borderColor: c.rule },
+  waitingLabel: { fontFamily: font.serif, fontSize: 18, color: c.ink },
+  waitingCount: { fontFamily: font.sansSemi, fontSize: 13, color: c.gold }, chevron: { fontFamily: font.sans, fontSize: 22, color: c.ink3 },
+  list: { paddingHorizontal: 24, gap: 14 },
+  card: { padding: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.panel },
+  storyLabel: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.4, color: c.ink3, marginBottom: 12 },
+  body: { fontFamily: font.mono, fontSize: 15, lineHeight: 23, color: c.ink }, foot: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
+  stamp: { fontFamily: font.sans, fontSize: 11, color: c.ink3 }, empty: { fontFamily: font.sans, fontSize: 15, lineHeight: 24, color: c.ink3 },
+  sendArea: { paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1, borderColor: c.ruleSoft },
+  confirm: { fontFamily: font.sansMed, fontSize: 14, color: c.sage, marginBottom: 12 },
+  pinned: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginTop: 12, backgroundColor: c.surface, borderRadius: radius.panel },
+  pinnedPic: { width: 56, height: 56, borderRadius: 4 }, pinnedWords: { flex: 1, fontFamily: font.sans, fontSize: 13, lineHeight: 19, color: c.ink3 }, remove: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  cardPic: { width: '100%', height: 170, borderRadius: 4, marginBottom: 12 },
 });

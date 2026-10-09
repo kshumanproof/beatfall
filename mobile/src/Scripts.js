@@ -109,7 +109,7 @@ export function useScripts() {
 /* The shelf is loaded ONCE, by the screen that owns it, and handed down. Two
    components each calling useScripts meant two requests on every open and two
    sets of state disagreeing about whether it had worked. */
-export default function ScriptSheet({ visible, onClose, onPick, current, scheme, shelf }) {
+export default function ScriptSheet({ visible, onClose, onPick, current, scheme, shelf, embedded = false }) {
   const c = palette(scheme);
   const s = sheet(c);
   const inset = useSafeAreaInsets();
@@ -145,22 +145,16 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
      size every time it opens, so the writer's thumb has to find the list
      again on each use, and with two scripts on it there is nothing to pull
      against to refresh. One shape, one place, every time. */
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[s.screen, { paddingTop: inset.top }]}>
-        <View style={s.bar}>
-          <Text style={s.h}>Which script?</Text>
-          <View style={s.grow} />
-          <Pressable onPress={() => setNaming(v => !v)} hitSlop={12}
-            accessibilityRole="button" accessibilityLabel="Start a new script">
-            <Text style={s.act}>{naming ? 'Cancel' : 'New'}</Text>
-          </Pressable>
-          <Pressable onPress={reload} disabled={busy} hitSlop={12}
-            accessibilityRole="button" accessibilityLabel="Refresh the list">
-            <Text style={[s.act, busy && s.actOff]}>{busy ? 'Refreshing' : 'Refresh'}</Text>
-          </Pressable>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button">
-            <Text style={s.act}>Done</Text>
+  const content = (
+      <View style={[s.screen, { paddingTop: embedded ? 0 : inset.top }]}>
+        {!embedded && <View style={s.bar}>
+          <Pressable onPress={onClose} accessibilityRole="button" style={s.dismiss}><Text style={s.act}>‹ Back to note</Text></Pressable>
+        </View>}
+        <View style={s.intro}>
+          <Text style={s.h}>Which story?</Text>
+          <Text style={s.lede}>Choose a title for your next note.</Text>
+          <Pressable onPress={() => setNaming(v => !v)} accessibilityRole="button" accessibilityLabel="Start a new script" style={s.create}>
+            <Text style={s.createText}>{naming ? 'Cancel new story' : '+ Create a story'}</Text>
           </Pressable>
         </View>
 
@@ -217,21 +211,10 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
                and the writer is asked to untangle at midnight what they knew
                perfectly well at dinner. A working title takes one line to
                type and can be changed at the desk any time. */
-            ListHeaderComponent={
-              <Pressable
-                onPress={() => setNaming(true)}
-                style={({ pressed }) => [s.row, s.rowNone, pressed && s.rowDown]}
-                accessibilityRole="button"
-                accessibilityLabel="No title yet. Type a working title."
-              >
-                <Text style={[s.name, s.nameNone]}>NO TITLE YET</Text>
-                <Text style={s.tick}>Name it</Text>
-              </Pressable>
-            }
+            ListHeaderComponent={<Text style={s.rail}>YOUR STORIES</Text>}
             ListEmptyComponent={
               <Text style={s.empty}>
-                Nothing here yet. Press No title yet, or New up there, and give it a
-                working title. You can rename it at your desk.
+                Create a story above to keep your first note.
               </Text>
             }
             renderItem={({ item }) => {
@@ -246,20 +229,20 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
                   {/* Caps, as the web app sets a project title. A script is a
                       title, not a sentence. */}
                   <Text style={[s.name, on && s.nameOn]} numberOfLines={2}>
-                    {String(item.name || '').toUpperCase()}
+                    {String(item.name || '')}
                   </Text>
                   {/* Said plainly rather than hidden: this one is not on the
                       desk yet, and it will be the moment you send. */}
                   {!on && item.local && <Text style={s.soon}>Not sent yet</Text>}
-                  {on && <Text style={s.tick}>Currently</Text>}
+                  <Text style={s.tick}>{on ? 'Selected' : '›'}</Text>
                 </Pressable>
               );
             }}
           />
         )}
       </View>
-    </Modal>
   );
+  return embedded ? content : <Modal visible={visible} animationType="slide" onRequestClose={onClose}>{content}</Modal>;
 }
 
 const sheet = (c) => StyleSheet.create({
@@ -270,7 +253,13 @@ const sheet = (c) => StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12,
     borderBottomWidth: 1, borderColor: c.ruleSoft,
   },
-  h: { fontFamily: font.serif, fontSize: 22, color: c.ink },
+  h: { fontFamily: font.serif, fontSize: 36, lineHeight: 42, letterSpacing: -0.7, color: c.ink },
+  intro: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20 },
+  lede: { fontFamily: font.sans, fontSize: 15, lineHeight: 22, color: c.ink3, marginTop: 8 },
+  create: { backgroundColor: c.blue, borderRadius: radius.ctl, minHeight: 50, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
+  createText: { fontFamily: font.sansSemi, fontSize: 15, color: c.onBlue },
+  dismiss: { minHeight: 44, justifyContent: 'center' },
+  rail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginTop: 14, marginBottom: 16 },
   act: { fontFamily: font.sansMed, fontSize: 14, color: c.blue },
   actOff: { color: c.ink4 },
 
@@ -280,10 +269,10 @@ const sheet = (c) => StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 14 },
   wait: { paddingVertical: 44 },
 
-  list: { paddingHorizontal: 20, paddingTop: 14, gap: 8 },
+  list: { paddingHorizontal: 24, paddingTop: 0, gap: 0 },
   row: {
-    backgroundColor: c.card, borderWidth: 1, borderColor: c.ruleSoft,
-    borderRadius: radius.card, paddingHorizontal: 15, paddingVertical: 16,
+    backgroundColor: c.ground, borderBottomWidth: 1, borderColor: c.rule,
+    paddingHorizontal: 2, paddingVertical: 21,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   rowOn: { borderColor: c.blue, backgroundColor: c.blueSoft },
@@ -300,10 +289,10 @@ const sheet = (c) => StyleSheet.create({
   mkText: { fontFamily: font.sansSemi, fontSize: 14, color: c.onBlue },
   mkTextOff: { color: c.ink4 },
   rowDown: { opacity: 0.7 },
-  name: { flex: 1, fontFamily: font.sansSemi, fontSize: 13.5, letterSpacing: 0.7,
-    lineHeight: 19, color: c.ink },
+  name: { flex: 1, fontFamily: font.serif, fontSize: 22,
+    lineHeight: 28, color: c.ink },
   nameOn: { color: c.blueInk },
-  tick: { fontFamily: font.sans, fontSize: 11, color: c.blue },
+  tick: { fontFamily: font.sans, fontSize: 17, color: c.blue },
   soon: { fontFamily: font.sans, fontSize: 11, color: c.ink4 },
   empty: { fontFamily: font.sans, fontSize: 13.5, lineHeight: 21, color: c.ink3,
     paddingVertical: 10 },

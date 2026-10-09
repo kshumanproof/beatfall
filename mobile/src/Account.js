@@ -218,7 +218,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
           well-made settings screen. Sign out and delete stay OUTSIDE the
           cards, because they are not facts about you, they are things that
           happen to you. */}
-      <Text style={s.group}>You</Text>
+      <Text style={s.group}>YOUR ACCOUNT</Text>
       <View style={s.card}>
         <View style={s.block}>
           <Text style={s.rail}>SIGNED IN AS</Text>
@@ -256,7 +256,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
         </View>
       </View>
 
-      <Text style={s.group}>Beatfall</Text>
+      <Text style={s.group}>HELP & LEGAL</Text>
       <View style={s.card}>
         <Row c={c} label="Contact support" hint={SUPPORT_EMAIL}
           on={() => open('mailto:' + SUPPORT_EMAIL + '?subject=Beatfall%20on%20my%20phone')} />
@@ -276,7 +276,7 @@ export default function Account({ visible, onClose, scheme, email, onCleared }) 
       <View style={s.danger}>
         <Text style={[s.rail, s.railRed]}>DELETE ACCOUNT</Text>
         <Text style={s.sub}>
-          Everything, everywhere. Not just this phone.
+          Permanently deletes your account, projects and notes across devices.
         </Text>
         <Pressable onPress={() => { setProblem(null); setStage('delete'); }}
           style={({ pressed }) => [s.killBtn, pressed && s.down]} accessibilityRole="button">
@@ -412,23 +412,22 @@ function creditWords(a) {
     : left + (left === 1 ? ' credit' : ' credits') + ' left'
       + (banked > 0 ? ', ' + month + ' of them this month and ' + banked + ' bought' : '')
       + '.';
-  return head + ' Placing notes is always free.';
+  return head;
 }
 
 /* Two counts and a clock, because "nothing waiting" on its own is ambiguous:
    it reads the same whether everything went home or nothing was ever caught. */
 function waitingWords(t) {
   if (t.waiting > 0) {
-    return t.waiting + (t.waiting === 1 ? ' note is' : ' notes are') + ' still on this phone.';
+    return t.waiting + (t.waiting === 1 ? ' note' : ' notes') + ' waiting to send';
   }
-  return 'Nothing waiting on this phone.';
+  return 'No notes waiting to send';
 }
 
 function sentWords(g) {
   if (!g || !g.count) return 'Nothing has been sent from this phone yet.';
   const when = ago(g.at);
-  return g.count + (g.count === 1 ? ' note' : ' notes') + ' sent from this phone'
-    + (when ? ', the last one ' + when : '') + '.';
+  return g.count + ' sent' + (when ? ' · Last sent ' + when : '');
 }
 
 /* A date a person would say out loud. No year: a renewal is always inside
@@ -478,24 +477,24 @@ const sheet = (c) => StyleSheet.create({
   grow: { flex: 1 },
   bar: {
     flexDirection: 'row', alignItems: 'baseline', gap: 16,
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12,
+    paddingHorizontal: 24, paddingTop: 20, paddingBottom: 18,
     borderBottomWidth: 1, borderColor: c.ruleSoft,
   },
-  h: { fontFamily: font.serif, fontSize: 22, color: c.ink },
+  h: { fontFamily: font.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, color: c.ink },
   act: { fontFamily: font.sansMed, fontSize: 14, color: c.blue },
-  pad: { paddingHorizontal: 20, paddingTop: 4 },
+  pad: { paddingHorizontal: 24, paddingTop: 4 },
 
   group: { fontFamily: font.sansSemi, fontSize: 11, letterSpacing: 0.4, color: c.ink3,
     marginTop: 22, marginBottom: 9, marginLeft: 2 },
   card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.ruleSoft,
     borderRadius: radius.panel, overflow: 'hidden' },
-  block: { paddingHorizontal: 15, paddingVertical: 15 },
+  block: { paddingHorizontal: 16, paddingVertical: 16 },
   inner: { height: 1, backgroundColor: c.ruleSoft },
 
   rail: { fontFamily: font.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: c.ink4,
     marginBottom: 7 },
   railRed: { color: c.red },
-  email: { fontFamily: font.mono, fontSize: 15, color: c.ink },
+  email: { fontFamily: font.sans, fontSize: 15, lineHeight: 22, color: c.ink },
   line: { fontFamily: font.sans, fontSize: 14.5, lineHeight: 21, color: c.ink },
   sub: { fontFamily: font.sans, fontSize: 12.5, lineHeight: 19, color: c.ink3, marginTop: 4 },
   hr: { height: 1, backgroundColor: c.ruleSoft, marginVertical: 20 },
