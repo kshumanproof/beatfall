@@ -1744,6 +1744,12 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
       const before = window.__ASKED__;
       const shown = { off: go.disabled, warned: !big.hidden, says: big.textContent };
       go.click();
+      /* Sort my notes opens the question about multiple stories before it
+         reads anything, and the SECOND press is the one that spends. The
+         ceiling is checked on that second press, where the spending starts,
+         so that is the press these checks have to make. */
+      const ahead = document.getElementById('sheetahead');
+      if (ahead && !ahead.hidden) document.getElementById('aheadgo').click();
       await new Promise(r => setTimeout(r, 60));
       return Object.assign(shown, { asked: window.__ASKED__ - before,
         count: document.getElementById('dumpcount').textContent });

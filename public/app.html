@@ -2935,6 +2935,28 @@ footer{
     </div>
   </div>
 
+  <!-- THE LAST SCREEN BEFORE ANY MONEY MOVES.
+       Kris's ask, and the reasoning is his: the read is the one thing in
+       Beatfall that charges before the writer has seen anything, and it reads
+       best when a file holds one story. Nothing here looks at the notes, so
+       nothing here costs: the whole point is that it sits in FRONT of the
+       first call rather than after a detection pass. It appears on every sort
+       for the same reason. -->
+  <div class="sheet" id="sheetahead" hidden>
+    <div class="sheet-title">Sorting notes from more than one story?</div>
+    <p class="sheet-note">Beatfall works best with one story at a time. It can
+      separate notes for up to <span id="aheadcap">three</span> different
+      stories, but mixed or scattered notes may occasionally be assigned to the
+      wrong project.</p>
+    <p class="sheet-note">For the most accurate results, sort each story
+      separately.</p>
+    <p class="sheet-note" id="aheadcost"></p>
+    <div class="sheet-actions">
+      <button class="btn" id="aheadback">Go back</button>
+      <button class="btn btn-gold" id="aheadgo" data-tip="Begin the read. This is the press that spends credits.">Sort my notes</button>
+    </div>
+  </div>
+
   <!-- One character. Ten fields, filled by hand for nothing, or by the
        interview for what COST.character says. -->
   <div class="sheet castsheet" id="sheetchar" hidden>
@@ -3101,6 +3123,8 @@ footer{
   <div class="sheet" id="sheetreview" hidden>
     <div class="sheet-title" id="revtitle">Review your notes</div>
     <p class="sheet-note" id="revnote"></p>
+    <!-- A story this read did not build. Hidden on almost every import. -->
+    <p class="sheet-note revcost-warn" id="revover" hidden></p>
     <div class="revbody" id="revbody"></div>
     <!-- What confirming will charge, said here rather than discovered after.
          Hidden entirely on a one story file, which is almost every import. -->
@@ -3977,26 +4001,26 @@ const IMPORT_MAX_NOTES = 1000;
 
 /* HOW MANY STORIES ONE READ WILL BUILD, AND WHAT HAPPENS TO THE REST.
  *
- * Three. A notes file holding four or more separate films is a slate, and
- * turning a slate into four boards in one press is four decisions the writer
- * never made, at four times the price.
+ * Three, and anything past the third is dropped. Kris's call, and the reason
+ * is worth keeping: a file holding four or more separate films is rare, and
+ * every answer other than dropping costs the writer a decision on a screen
+ * they are already reading carefully.
  *
- * What happens past three is the part that was wrong. A note the read routed
- * to a fourth story used to fall into story ONE, which is the board the writer
- * is standing in, so another film's notes landed on their board: the same
- * shape as the Night Haul overwrite. Nothing is routed anywhere by default any
- * more. A story past the third is still a story, still listed on the review
- * sheet by name, and simply cannot be switched on. Its notes go to the pile on
- * the dashboard with everything else the writer left for later, where sorting
- * them by hand is free, and it is never described, never built and never
- * charged.
+ * Dropped means it never enters the plan at all. It is not routed to a
+ * project, it is not listed, it is not described, it is not built and it is
+ * not charged. The writer's own file still has every word in it, and the
+ * review sheet says plainly that a story was left out, because a note count
+ * quietly smaller than the file is the thing this app must never do.
  *
- * STORY_LIST_MAX is how many the sheet will LIST, buildable or not. It exists
- * only so a read that answers twelve stories cannot draw a sheet nobody can
- * read, and anything past it joins the first parked story rather than falling
- * back to story one. */
+ * What it replaced was worse than nothing. A note the read routed to a fourth
+ * story fell into story ONE, the board the writer is standing in, so another
+ * film's notes landed on their script: the same shape as the Night Haul
+ * overwrite. */
 const MAX_IMPORT_STORIES = 3;
-const STORY_LIST_MAX = 8;
+/* The same number in words, because both places that print it to a writer
+   print it in words and two spellings of one figure is how they drift. */
+const SPELL_CAP = ["", "one", "two", "three", "four", "five"][MAX_IMPORT_STORIES]
+  || String(MAX_IMPORT_STORIES);
 
 /* What a paid month carries. Three screens used to say "150" as typed text,
    and the paid allowance is exactly the kind of number that moves. This asks
@@ -4285,6 +4309,13 @@ function checkMeaningful(){
 let cameFromSample = false;
 let importDropped  = false;
 let fromSample     = false;
+
+/* WHAT THIS READ LEFT OUT, so the review sheet can say it.
+   One read builds MAX_IMPORT_STORIES stories. A file holding more loses the
+   rest, and a writer must never find that out by counting. `overStories` is
+   how many stories were found beyond the cap and `overNotes` is how many of
+   their notes went with them. */
+let importOver = {stories: 0, notes: 0};
 
 /* The end of the sample is the moment to ask for the real thing. It is one
    line and two buttons under the board, not a modal: the writer is looking at
@@ -7988,7 +8019,8 @@ let importStructure = null;
    subset of the others. */
 function showSheet(el){
   scrim.hidden = false;
-  ["sheetpaste", "sheetreview", "sheetnew", "sheetphone", "sheetsort"].forEach(id => {
+  ["sheetpaste", "sheetreview", "sheetnew", "sheetphone", "sheetsort",
+   "sheetahead"].forEach(id => {
     const x = document.getElementById(id);
     if (x) x.hidden = (x !== el);
   });
@@ -8196,6 +8228,10 @@ scrim.addEventListener("click", e => {
      the whole thing was gone with no way back but paying again.
      Cancel and the X still close it, and those say what they do. */
   if (!sheetReview.hidden) return;
+  /* And the screen that stands in front of the charge. A stray click there
+     would throw away the paste the writer is one press from sorting, which is
+     the same loss and the same surprise. */
+  if (!document.getElementById("sheetahead").hidden) return;
   if (!sheetPaste.hidden && dumptext.value.trim()) return;
   closeImport();
 });
@@ -8222,6 +8258,13 @@ marksCost(document.getElementById("captureimport"), "import");
 }
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape" || scrim.hidden) return;
+  // On the screen before the charge, Escape is Go back rather than a way out
+  // of the whole box, because the notes behind it are still unsorted.
+  if (!document.getElementById("sheetahead").hidden){
+    showSheet(sheetPaste);
+    dumptext.focus();
+    return;
+  }
   // Same bargain as the scrim: the paid sheet asks first. See leavingReview.
   if (!leavingReview()) return;
   closeImport();
@@ -9715,6 +9758,9 @@ function lockBoundaries(notes, placed, storyOf, forced){
   let moved = 0;
   for (let i = 1; i < storyOf.length; i++){
     if (storyOf[i] === storyOf[i - 1]) continue;       // not a boundary
+    // A dropped note is not a story, so it is not a boundary between two and
+    // nothing may be pulled back into it. See MAX_IMPORT_STORIES.
+    if (storyOf[i] < 0 || storyOf[i - 1] < 0) continue;
     const prev = storyOf[i - 1];
     // Walk the run of comment notes that opens this group and pull it back.
     for (let j = i; j < storyOf.length && storyOf[j] !== prev; j++){
@@ -9787,13 +9833,12 @@ async function claudePlan(raw){
   } catch (e) { if (e && e.code === "cancelled") throw e; }
 
   const groups = (top && Array.isArray(top.stories) && top.stories.length
-    ? top.stories : [{name: proj.name, about: ""}]).slice(0, STORY_LIST_MAX);
-  /* Past the third story nothing is built. The group stays, so its notes have
-     somewhere correct to go and the sheet can name it, and it arrives switched
-     off and unswitchable. See MAX_IMPORT_STORIES. */
-  groups.forEach((g, i) => {
-    if (i >= MAX_IMPORT_STORIES){ g.capped = true; g.off = true; }
-  });
+    ? top.stories : [{name: proj.name, about: ""}]).slice(0, MAX_IMPORT_STORIES);
+  /* How many the read actually found, which is not how many are kept. The
+     sheet says so, because a note count quietly smaller than the file is the
+     one thing this app must never do. */
+  const storiesFound = (top && Array.isArray(top.stories) && top.stories.length)
+    || 1;
   /* Group zero IS the project the writer is standing in. If that project
      already has a name, it keeps it, and no title found anywhere in the file
      may replace it. A file's title only fills a blank. */
@@ -9874,11 +9919,9 @@ async function claudePlan(raw){
     const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
     let at = known().indexOf(key);
     if (at === -1){
-      if (groups.length >= STORY_LIST_MAX) return;  // a notes file, not a slate
-      groups.push({name, about: "",
-        // Named by the writer or spotted by the read, the cap is the cap.
-        capped: groups.length >= MAX_IMPORT_STORIES,
-        off:    groups.length >= MAX_IMPORT_STORIES});
+      // Named by the writer or spotted by the read, the cap is the cap.
+      if (groups.length >= MAX_IMPORT_STORIES) return;
+      groups.push({name, about: ""});
       at = groups.length - 1;
       codeMade.add(at);
     }
@@ -10239,27 +10282,32 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
 
      It used to go to story ZERO, which is the board the writer is standing in,
      so a read that answered five stories put the fifth film's notes on their
-     board: the same shape as the Night Haul overwrite. A story past the list
-     is parked, so a note bound for one is parked with it and reaches the pile
-     rather than somebody's script.
+     board: the same shape as the Night Haul overwrite. A story past the cap is
+     dropped, so a note bound for one is dropped with it. DROPPED is -1 here,
+     and the bucket loop below skips it.
 
-     MINUS ONE IS NOT OUT OF RANGE, it is an answer. It means the line is not
-     story material at all, an errand or a reminder, and those belong on the
-     writer's own shelf where they can see them, which is story zero. Lumping
-     them in with the parked stories would quietly move a writer's shopping
-     list out of the project they typed it into. */
-  const firstParked = groups.findIndex(g => g && g.capped);
-  const overflowTo = firstParked >= 0 ? firstParked : 0;
+     MINUS ONE FROM THE READ IS NOT OUT OF RANGE, it is an answer. It means the
+     line is not story material at all, an errand or a reminder, and those
+     belong on the writer's own shelf where they typed them, which is story
+     zero. Dropping those would quietly lose a writer's shopping list. */
+  let dropped = 0;
   notes.forEach((n, idx) => {
     const r = placed[idx] || {};
     const said = Number.isInteger(r.s) ? r.s : 0;
     let si = forced.has(idx) ? forced.get(idx)
       : said >= 0 && said < groups.length ? said
-      : said >= groups.length ? overflowTo
-      : 0;                                   // -1, and anything else nonsense
-    if (!forced.has(idx) && codeMade.has(si)) si = 0;
+      : said >= groups.length ? -1           // a story past the cap
+      : 0;                                   // the read's own -1, and nonsense
+    if (si >= 0 && !forced.has(idx) && codeMade.has(si)) si = 0;
+    if (si < 0) dropped++;
     storyOf[idx] = si;
   });
+  // What was left out, so the review sheet can say it rather than letting the
+  // writer discover it by counting. See MAX_IMPORT_STORIES.
+  importOver = {stories: Math.max(0, storiesFound - MAX_IMPORT_STORIES),
+                notes: dropped};
+  if (importOver.stories)
+    BF.track("import_over_cap", {count: importOver.stories});
   lockBoundaries(notes, placed, storyOf, forced);
   wallStep("Matching notes to story beats", .7);
   const cast = await castTheBoard(notes, placed, storyOf, S, beats, ask);
@@ -10308,6 +10356,10 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
        routing rule is how a boundary ends up in one place on the board and
        another in the buckets. */
     let si = storyOf[idx];
+    // Past the cap. It belongs to a story this read is not building, so it
+    // goes nowhere rather than onto somebody else's board. See the count the
+    // review sheet prints. MAX_IMPORT_STORIES.
+    if (si < 0) return;
     let kind = KINDS[r.k] ? r.k : "structural";
     let conf = typeof r.c === "number" ? r.c : 0;
     /* PLACEMENT IS NOT A KIND.
@@ -10463,8 +10515,6 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     structure: i === 0 ? null : "",
     // Past the cap: listed, named, switched off and not switchable. Its notes
     // go to the pile when the review is finished. See MAX_IMPORT_STORIES.
-    capped: !!g.capped,
-    off: !!g.off,
     notes: buckets[i]
   }))
   /* STORY ZERO KEEPS ITS PLACE EVEN WITH NOTHING IN IT.
@@ -10503,9 +10553,6 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
     });
     wallStep("Describing each story", .97);
     for (const st of out){
-      // A story past the cap is never built, so describing it is a call spent
-      // on a board that will not exist.
-      if (st.capped) continue;
       const got = await enrichGroup(st, sid);
       if (!got || got.refused) continue;
       // What the writer typed in the file still wins over what was read.
@@ -10872,21 +10919,7 @@ function renderReview(){
        whether they want it at all, because this is where the second one is
        paid for. Both sit on the project they belong to rather than in a
        separate step, which is the whole reason this sheet exists. */
-    /* PAST THE CAP: NAMED, EXPLAINED, AND NOT AN OPTION.
-       No structure menu and no checkbox, because neither is a choice here.
-       The one thing the writer needs to know is that the words are safe and
-       where to find them, so that is the whole of it. */
-    if (si > 0 && st.capped){
-      const over = document.createElement("div");
-      over.className = "revnew";
-      over.innerHTML = '<div class="revkept">One read builds '
-        + MAX_IMPORT_STORIES + " stories at most. These notes are kept: they go "
-        + "to the pile on your dashboard, where you can sort them by hand for "
-        + "nothing, or read them on their own later.</div>";
-      head.appendChild(over);
-      wrap.classList.add("revskipped");
-    }
-    if (si > 0 && !st.capped){
+    if (si > 0){
       const extra = document.createElement("div");
       extra.className = "revnew";
       /* Its notes carry no suggested beat, and that is not an omission: a note
@@ -11059,6 +11092,25 @@ function renderReview(){
     : "Review the suggested placements and change any you disagree with. Story beats go to the board; other items go to Other notes "
       + "or Set aside. Unchecked notes remain waiting to be sorted. Notes marked for deletion are removed when you finish the review.";
 
+  /* A STORY THIS READ LEFT OUT HAS TO BE SAID OUT LOUD.
+     One read builds three stories. A file holding more loses the rest, and a
+     writer must never find that out by counting what came back. Their own
+     file is untouched, so the way to get those stories in is to sort them on
+     their own, and the line says so. See MAX_IMPORT_STORIES. */
+  const over = document.getElementById("revover");
+  if (over){
+    const n = importOver.stories;
+    over.hidden = !n;
+    if (n) over.textContent = "Your notes also hold "
+      + (n === 1 ? "another story" : n + " more stories")
+      + ", and one sort covers " + SPELL_CAP + ". "
+      + (n === 1 ? "It was" : "They were") + " left out of this one. "
+      + "Nothing in your own file has changed: paste "
+      + (n === 1 ? "that story" : "those stories") + " on "
+      + (n === 1 ? "its" : "their") + " own to sort "
+      + (n === 1 ? "it" : "them") + ".";
+  }
+
   gateReview();
   updateRevCount();
   sheetPaste.hidden = true;
@@ -11171,7 +11223,39 @@ function updateRevCount(){
     : "Finish review";
 }
 
-document.getElementById("dumpgo").addEventListener("click", async () => {
+/* ONE SCREEN BETWEEN THE PRESS AND THE MONEY.
+ *
+ * Sort my notes used to go straight to the read, which is the only control in
+ * Beatfall that spends before the writer has seen anything. It asks first now,
+ * and the question is the one worth asking: is this file one story. Nothing
+ * here looks at the notes and nothing here calls anybody, which is the whole
+ * point. A detection pass before the warning would be the charge arriving
+ * before the warning about the charge.
+ *
+ * Everything the writer typed stays in the box behind it, so Go back is a
+ * genuine way out and not a restart. */
+document.getElementById("dumpgo").addEventListener("click", () => {
+  if (!dumptext.value.trim()){ closeImport(); return; }
+  document.getElementById("aheadcap").textContent = SPELL_CAP;
+  // Said once more here, because this is the press that spends.
+  document.getElementById("aheadcost").textContent =
+    "Sorting these notes costs " + costWords("import")
+    + ". Nothing has been charged yet.";
+  showSheet(document.getElementById("sheetahead"));
+  document.getElementById("aheadgo").focus();
+});
+
+document.getElementById("aheadback").addEventListener("click", () => {
+  showSheet(sheetPaste);
+  dumptext.focus();
+});
+
+document.getElementById("aheadgo").addEventListener("click", async () => {
+  showSheet(sheetPaste);
+  await startSort();
+});
+
+async function startSort(){
   // Once the notes are in the importer's hands the capture bar has no claim
   // on them, so a later Cancel must not put a wall of text back in the box.
   captureStash = "";
@@ -11253,7 +11337,7 @@ document.getElementById("dumpgo").addEventListener("click", async () => {
      board already had reported nothing at all. */
   dedupePlan();
   renderReview();
-});
+}
 document.getElementById("dumpstop").addEventListener("click", () => dumpCtl && dumpCtl.abort());
 
 /* Notes the writer unticked ON PURPOSE, on their way to the pile.

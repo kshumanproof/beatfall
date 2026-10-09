@@ -2742,59 +2742,112 @@ behind the small-screen gate, so a phone that finds it in search gets the app
 pitch instead of the help page. Drop it from the sitemap, or treat it as a
 document like Privacy and Terms and take `app.js` off it.
 
-## The cap is three, and what happens past it (8 October 2026, later)
+## The cap is three, and past it is dropped (9 October 2026)
 
-Kris lowered it from four. `MAX_IMPORT_STORIES = 3` in `app.html`, beside
-`IMPORT_MAX_NOTES`.
+`MAX_IMPORT_STORIES = 3` in `app.html`, beside `IMPORT_MAX_NOTES`, with
+`SPELL_CAP` holding the same number in words because two places print it to a
+writer and two spellings of one figure is how they drift.
 
-**What happens past three was the part that was wrong.** A note the read routed
-to a fourth story fell into story ZERO, which is the board the writer is
-standing in, so another film's notes landed on their script: the same shape as
-the Night Haul overwrite.
+**Anything past the third is DROPPED.** Kris's call, and he overruled a more
+elaborate version I had already built, where a fourth story was listed on the
+review sheet, parked and sent to the pile. His reason: the case is rare and
+every answer other than dropping spends the writer's attention on a screen
+they are already reading carefully. He is right, and the simpler version is
+also the one with fewer places to be wrong.
 
-Nothing is routed anywhere by default now. A story past the third is still a
-story. It is listed on the review sheet by name, it carries its own notes, and
-it simply cannot be switched on: no structure menu, no checkbox, and a line
-saying one read builds three at most and these notes are going to the pile.
-It is never described, never built and never charged, and `closeImport` parks
-it like any other group the writer did not take.
+Dropped means it never enters the plan. `storyOf[idx] = -1` for a note bound
+for a story past the cap, the bucket loop skips it, `lockBoundaries` will not
+treat it as a boundary, and `castTheBoard` never saw it because that only
+casts story zero.
 
-`STORY_LIST_MAX` is 8 and is only a drawing limit, so a read answering twelve
-stories cannot produce a sheet nobody can read. An index past the list goes to
-the first parked story, never to story zero.
+**THE SHEET SAYS SO.** `importOver` carries how many stories were over the cap
+and how many notes went with them, and `#revover` prints a line naming it and
+saying what to do: their own file is untouched, so paste those stories on
+their own. A note count quietly smaller than the file is the one thing this app
+must never do, and a drop with no sentence attached is exactly that.
 
-**MINUS ONE IS AN ANSWER, NOT AN ERROR.** The read uses `s: -1` for a line that
-is not story material at all, an errand or a reminder. Those belong on the
-writer's own shelf where they typed them, so -1 stays story zero. Sweeping them
-in with the parked stories would quietly move somebody's shopping list out of
-their project. The first version of this fix did exactly that.
+**MINUS ONE FROM THE READ IS AN ANSWER, NOT AN ERROR.** `s: -1` means the line
+is not story material at all, an errand or a reminder, and those belong on the
+writer's own shelf where they typed them, which is story zero. The first
+version of this fix swept them in with the overflow and would have lost
+somebody's shopping list.
 
-**And closing the leak made a latent bug reachable, which is the lesson.**
+**And closing the leak made a latent bug reachable, which is the real lesson.**
 `out` was filtered with `.filter(st => st.notes.length)`, and everything
 downstream reads POSITION: the build treats index 0 as the project the writer
 is standing in and every index after it as a project to create. While every
 stray note fell into story zero, story zero was never empty. The moment it can
-be, dropping it slides a parked story into its place and that story gets
-written into the writer's open board. Story zero now keeps its place whatever
-is in it, and `renderReview` draws no block for an empty group.
+be, dropping it slides another story into its place and that story gets written
+into the writer's open board. Story zero keeps its place whatever is in it now,
+and `renderReview` draws no block for an empty group.
 
-`test/stories.js` is the suite: five stories listed with three buildable, the
-sheet saying why, no menu on a parked one, a note claiming story eleven landing
-parked rather than on the board, an errand staying with the writer, and an
-ordinary two story file untouched. Fifteen checks.
+## Nothing is charged until the second press (9 October 2026)
+
+Kris's ask, in his words: the confirmation has to happen **before any billable
+request**, and it appears on **every** sort rather than only after multiple
+stories are detected, because detecting them is itself the charge.
+
+`#sheetahead` is that screen. Sort my notes opens it; `#aheadgo` is the press
+that reads. The old click handler is `startSort()` now, unchanged inside.
+
+Three things about it worth keeping:
+
+- **It looks at nothing.** No read, no count, no detection. A preliminary call
+  to work out whether the file holds several stories would be the charge
+  arriving before the warning about the charge, which is the whole thing this
+  exists to prevent.
+- **Go back is a real way out.** The paste is untouched behind it, so the
+  writer can split the file and come back. A scrim click changes nothing and
+  Escape is Go back rather than a way out of the box, for the same reason the
+  review sheet refuses both: the notes behind it are still unsorted.
+- **Kris's copy, with one correction.** He wrote "up to four different
+  stories" and the cap is three, so it says three, from `SPELL_CAP`. The rest
+  of the wording is his and is settled.
+
+`test/stories.js` covers both changes, 33 checks: three stories through and the
+rest counted and announced, a note claiming story eleven reaching no board at
+all, an errand staying with the writer, an ordinary two story file untouched,
+and the whole confirmation path including that **`ai_sample` is pressed zero
+times before the second click**. `ai_sample` is the single door to the metered
+proxy, so counting presses on it is the honest measure of a spend.
+
+`drive.js` had to learn the second press too: its ceiling checks measure what
+happens where the spending starts, and that moved.
+
+### Billing confirmed against the real usage table (9 October 2026)
+
+Kris ran the queries. Exactly one 5-credit row per `session_id` and every later
+call on that id zero, across 29 paid calls and 142 credits. The charge-once-per
+-session design is doing what it says. **Do not re-raise this.**
 
 ### Things Kris has now answered, so stop raising them
 
 - **Stripe.** Nothing has fired against live Stripe because the account is in
-  test mode. It HAS fired in the sandbox. That is as far as it goes until he
-  goes live, and it is not an open item.
+  test mode. It HAS fired in the sandbox. Not an open item until he goes live.
 - **The structures.** He has run all nine against real notes.
-- **The one-browser lock.** It works. He signed in on a second browser and the
-  first one blocked. The `/help` sitemap question is dropped as well.
+- **The one-browser lock.** It works, and he dropped it.
+- **`/help` in the sitemap.** Dropped.
 - **The tester pack** is his, before he ships.
+
+### The verification list, current
+
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js ; node flows.js ; node pages.js ; node mobile.js
+    node platform.js ; node delete.js ; node stories.js
+
+    cd server
+    node setup.js
+    node money.js ; node gate.js ; node hook.js ; node clean.js
+    node captures.js ; node proxy.js ; node lock.js ; node vision.js
+    node restore.js ; node provider.js ; node help.js
+
+drive 265, flows 273, pages 98, mobile 5, platform 17, delete 23, stories 33;
+money 69, gate 23, hook 18, clean 31, captures 42, proxy 29, lock 16,
+vision 44, restore 31, provider 37, help 7. **1,061 checks, all passing.**
 
 ### Still open
 
-- The two SQL lines, `beatfall-credit-check.sql`, delivered 8 October: what the
-  usage table actually charged, the totals per account, and the reset.
-- The rescue bar no longer promises nothing has been lost. His call.
+- The rescue bar no longer promises nothing has been lost. GPT's copy pass
+  dropped that sentence. His call, and he has not made it.

@@ -1,10 +1,14 @@
-/* HOW MANY STORIES ONE READ BUILDS, AND WHERE THE REST GO.
+/* HOW MANY STORIES ONE READ BUILDS, AND WHAT HAPPENS TO THE REST.
 
-   One file can hold a slate. Three of them get boards; everything past the
-   third is parked on the pile, where sorting by hand is free. The thing this
-   suite exists for is the leak that was under it: a note the read routed to a
-   fourth or fifth story fell into story ZERO, which is the board the writer is
-   standing in, so another film's notes landed on their script. */
+   One file can hold a slate. Three get boards and everything past the third is
+   dropped, which is Kris's call: the case is rare and every other answer costs
+   the writer a decision on a screen they are already reading carefully.
+
+   The thing this suite exists for is the leak that was under it. A note the
+   read routed to a fourth or fifth story fell into story ZERO, which is the
+   board the writer is standing in, so another film's notes landed on their
+   script. It also covers the screen that now stands in front of the charge,
+   because every path through here goes past it. */
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve('stub.html');
@@ -119,14 +123,21 @@ async function runImport(page, lines){
       fmt.value = 'stc';
       fmt.dispatchEvent(new Event('change'));
     }
+    /* Sort my notes no longer reads anything. It opens the screen that asks
+       whether this file holds one story, and the SECOND press is the one that
+       spends. Every check below goes through both, because a writer does. */
     document.getElementById('dumpgo').click();
+    if (document.getElementById('sheetahead').hidden)
+      throw new Error('the pre-charge screen did not open');
+    document.getElementById('aheadgo').click();
     for (let i = 0; i < 80 && document.getElementById('sheetreview').hidden; i++)
       await new Promise(r => setTimeout(r, 50));
-    return (plan || []).map(st => ({
-      name: st.name, capped: !!st.capped, off: !!st.off,
-      notes: st.notes.length,
-      texts: st.notes.map(n => n.text)
-    }));
+    return {
+      stories: (plan || []).map(st => ({name: st.name, notes: st.notes.length})),
+      over: JSON.parse(JSON.stringify(importOver)),
+      said: (document.getElementById('revover') || {}).textContent || '',
+      saidHidden: !!(document.getElementById('revover') || {}).hidden
+    };
   }, lines.join('\n'));
 }
 
@@ -146,31 +157,30 @@ async function runImport(page, lines){
 
     const got = await runImport(page, spread(20));
 
-    check('every story the read found is listed', got.length === 5,
-      JSON.stringify(got.map(g => g.name)));
-    check('the first three are buildable',
-      got.slice(0, 3).every(g => !g.capped && !g.off),
-      JSON.stringify(got.slice(0, 3)));
-    check('the fourth and fifth are parked',
-      got.slice(3).every(g => g.capped && g.off),
-      JSON.stringify(got.slice(3)));
-    check('and the parked ones still hold their own notes',
-      got.slice(3).every(g => g.notes > 0),
-      JSON.stringify(got.slice(3).map(g => g.notes)));
+    check('only three stories come through', got.stories.length === 3,
+      JSON.stringify(got.stories.map(g => g.name)));
+    check('and they are the first three',
+      got.stories.map(g => g.name).join(',') === 'ONE,TWO,THREE',
+      JSON.stringify(got.stories.map(g => g.name)));
+    check('every one of them has notes',
+      got.stories.every(g => g.notes > 0),
+      JSON.stringify(got.stories.map(g => g.notes)));
+    check('the two it left out are counted', got.over.stories === 2,
+      JSON.stringify(got.over));
     check('no page errors reading a five story file', errors.length === 0,
       errors.join(' | '));
 
-    /* The sheet has to SAY so, because a block with no controls on it and no
-       explanation reads as the app having given up. */
-    const said = await page.evaluate(() =>
-      document.getElementById('revbody').textContent);
-    check('the sheet says why they are not being built',
-      /3 stories at most/.test(said) && /pile on your dashboard/.test(said),
-      said.slice(0, 160));
-    check('and offers no structure menu for a parked story',
-      await page.evaluate(() =>
-        document.querySelectorAll('#revbody .revnew select').length) === 2,
-      'one menu per buildable extra story, and none for a parked one');
+    /* IT HAS TO SAY SO. A note count quietly smaller than the file is the one
+       thing this app must never do, so a story left out is said out loud with
+       the way to get it in. */
+    check('the sheet says a story was left out',
+      got.saidHidden === false && /2 more stories/.test(got.said)
+      && /one sort covers three/.test(got.said), got.said.slice(0, 200));
+    check('and says how to sort them',
+      /on their own/.test(got.said), got.said.slice(0, 200));
+    check('and that the writer\'s own file is untouched',
+      /Nothing in your own file has changed/.test(got.said),
+      got.said.slice(0, 200));
     await page.close();
   }
 
@@ -182,17 +192,16 @@ async function runImport(page, lines){
       ['ONE', 'TWO', 'THREE', 'FOUR'],
       // Every note claims to belong to story 11, which is not on the list.
       "function(n){ return 11; }");
-    const lines = spread(8);
-    const got = await runImport(page, lines);
-    const total = lines.length;
-    const home = got.find(g => !g.capped) || {};
-    const parked = got.filter(g => g.capped);
+    const got = await runImport(page, spread(8));
+    const home = got.stories[0] || {};
     check('nothing out of range reaches the board the writer is on',
       (home.notes || 0) === 0,
       home.notes + ' notes landed on ' + home.name);
-    check('they land on a parked story instead',
-      parked.length > 0 && parked.some(g => g.notes === total),
-      JSON.stringify(got.map(g => [g.name, g.notes, g.capped])));
+    check('nothing out of range reaches any other board',
+      got.stories.every(g => g.notes === 0),
+      JSON.stringify(got.stories));
+    check('and the dropped notes are counted', got.over.notes === 8,
+      JSON.stringify(got.over));
     check('no page errors on an out of range story', errors.length === 0,
       errors.join(' | '));
     await page.close();
@@ -207,9 +216,14 @@ async function runImport(page, lines){
       ['ONE', 'TWO', 'THREE', 'FOUR'],
       "function(n){ return -1; }");
     const got = await runImport(page, spread(6));
-    const home = got[0] || {};
-    check('an errand stays with the writer, not with the parked stories',
-      !home.capped && home.notes === 6, JSON.stringify(got.map(g => [g.name, g.notes])));
+    const home = got.stories[0] || {};
+    check('an errand stays with the writer rather than being dropped',
+      home.notes === 6, JSON.stringify(got.stories));
+    /* The stub named four stories, so one IS over the cap and is reported.
+       What must be zero is the NOTES dropped: an errand is not a story past
+       the cap, it is a line on the writer's own shelf. */
+    check('and no note is reported as dropped', got.over.notes === 0,
+      JSON.stringify(got.over));
     check('no page errors on an errand', errors.length === 0, errors.join(' | '));
     await page.close();
   }
@@ -219,10 +233,114 @@ async function runImport(page, lines){
     const {page, errors} = await open(browser, [board('Night Haul', 6)]);
     await stubReader(page, ['ONE', 'TWO'], "function(n){ return n % 2; }");
     const got = await runImport(page, spread(10));
-    check('a two story file caps nothing',
-      got.length === 2 && got.every(g => !g.capped && !g.off),
-      JSON.stringify(got.map(g => [g.name, g.capped])));
+    check('a two story file loses nothing',
+      got.stories.length === 2 && got.over.stories === 0 && got.over.notes === 0,
+      JSON.stringify(got));
+    check('and says nothing about stories left out', got.saidHidden === true,
+      got.said);
     check('no page errors on an ordinary file', errors.length === 0, errors.join(' | '));
+    await page.close();
+  }
+
+  /* ---- 5. THE SCREEN IN FRONT OF THE CHARGE.
+     The one thing that matters here is that nothing is spent until the second
+     press. ai_sample is the single door to the metered proxy, so counting
+     presses on it is the honest measure of "was a credit spent": far better
+     than watching the network, which under file:// goes nowhere and would
+     make a spend look like a refusal. ---- */
+  {
+    const {page, errors} = await open(browser, [board('Night Haul', 6)]);
+    await page.evaluate(() => {
+      window.__ASKED__ = 0;
+      ai_sample = async function () { window.__ASKED__++; return {text: '{}'}; };
+      ai_sample.json = async function () { window.__ASKED__++; return {}; };
+      ai_sample.limits = async () => ({images: false});
+    });
+
+    const first = await page.evaluate(async () => {
+      openImport(true);
+      const box = document.getElementById('dumptext');
+      box.value = 'Mara walks the burned hallway before anybody else arrives, '
+        + 'and nobody in the building says a word about it afterwards.';
+      box.dispatchEvent(new Event('input'));
+      const fmt = document.getElementById('dumpformat');
+      if (!document.getElementById('dumpformatfield').hidden){
+        fmt.value = 'stc';
+        fmt.dispatchEvent(new Event('change'));
+      }
+      document.getElementById('dumpgo').click();
+      await new Promise(r => setTimeout(r, 120));
+      return {ahead: !document.getElementById('sheetahead').hidden,
+              paste: !document.getElementById('sheetpaste').hidden,
+              asked: window.__ASKED__,
+              says: document.getElementById('sheetahead').textContent};
+    });
+    check('the first press opens the question, not the read',
+      first.ahead === true && first.paste === false, JSON.stringify(first));
+    check('AND NOTHING IS SPENT', first.asked === 0,
+      'it sent ' + first.asked + ' calls, which is the charge');
+    check('it asks the question Kris wrote',
+      /more than one story/i.test(first.says), first.says.slice(0, 120));
+    /* Whitespace collapsed, because the markup wraps these lines and a reader
+       sees one sentence. */
+    const flat = first.says.replace(/\s+/g, ' ');
+    check('it names the cap in words', /up to three different stories/.test(flat),
+      flat.slice(0, 200));
+    check('and says the price with nothing charged yet',
+      /Nothing has been charged yet/.test(flat), flat.slice(0, 300));
+
+    /* GO BACK IS A REAL WAY OUT, not a restart. Everything typed is still
+       there, so the writer can split the file and try again. */
+    const back = await page.evaluate(async () => {
+      document.getElementById('aheadback').click();
+      await new Promise(r => setTimeout(r, 60));
+      return {paste: !document.getElementById('sheetpaste').hidden,
+              ahead: !document.getElementById('sheetahead').hidden,
+              kept: document.getElementById('dumptext').value.length,
+              asked: window.__ASKED__};
+    });
+    check('Go back returns to the notes', back.paste === true && back.ahead === false,
+      JSON.stringify(back));
+    check('with every word still in the box', back.kept > 40, String(back.kept));
+    check('and still nothing spent', back.asked === 0, String(back.asked));
+
+    /* A stray click outside must not throw the paste away either. */
+    const stray = await page.evaluate(async () => {
+      document.getElementById('dumpgo').click();
+      await new Promise(r => setTimeout(r, 60));
+      document.getElementById('scrim').click();
+      await new Promise(r => setTimeout(r, 60));
+      return {ahead: !document.getElementById('sheetahead').hidden,
+              kept: document.getElementById('dumptext').value.length};
+    });
+    check('a click outside it changes nothing', stray.ahead === true,
+      JSON.stringify(stray));
+    check('and the notes are still there', stray.kept > 40, String(stray.kept));
+
+    // And Escape steps back rather than out of the whole box.
+    const esc = await page.evaluate(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}));
+      await new Promise(r => setTimeout(r, 60));
+      return {paste: !document.getElementById('sheetpaste').hidden,
+              kept: document.getElementById('dumptext').value.length};
+    });
+    check('Escape is Go back, not a way out of the box',
+      esc.paste === true && esc.kept > 40, JSON.stringify(esc));
+
+    // The second press is the one that reads.
+    const go = await page.evaluate(async () => {
+      document.getElementById('dumpgo').click();
+      await new Promise(r => setTimeout(r, 60));
+      document.getElementById('aheadgo').click();
+      await new Promise(r => setTimeout(r, 300));
+      return {asked: window.__ASKED__,
+              ahead: !document.getElementById('sheetahead').hidden};
+    });
+    check('the second press is the one that reads', go.asked > 0,
+      'it sent ' + go.asked + ' calls');
+    check('and the question is out of the way', go.ahead === false);
+    check('no page errors around the question', errors.length === 0,
+      errors.join(' | '));
     await page.close();
   }
 
