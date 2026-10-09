@@ -10,6 +10,7 @@ fs.copyFileSync('../../api/_lib/core.js', 'api/_lib/core.js');
    stand-in for this file would be a second implementation of the one thing the
    comparison is supposed to be measuring. */
 fs.copyFileSync('../../api/_lib/providers.js', 'api/_lib/providers.js');
+fs.copyFileSync('../../api/_lib/openai-billing.js', 'api/_lib/openai-billing.js');
 /* The operator's records, copied with nothing swapped. Its only boundary is
    the database handle, and every one of its writes takes that handle as an
    argument from the caller, which is where the swap below already bites. So

@@ -3033,3 +3033,41 @@ Approved code fixes now installed:
 NOT PUSHED. Live SQL repair and Vercel mail setup still needed. Do not claim
 alerts work until schema, budget rows, environment configuration, and actual
 email delivery are verified. No secrets read or requested. No git commands run.
+
+## 9 October 2026: detailed OpenAI accounting and daily billing comparison
+
+Authorized by Kris after the live audit. Installed locally, NOT PUSHED.
+- New OpenAI calls use ordinary input, cache reads, cache writes, and total output
+  at the GPT-6.1 Sol standard rates in core.js. Reasoning is already in output
+  and is not billed twice. Long-context multipliers are included. Missing or
+  unsupported details keep a labelled list-price fallback; no completed story
+  answer is rejected merely because accounting details are incomplete.
+- usage.cost_details records the basis, token breakdown, rates and pricing
+  version. Existing records, customer credits and thresholds are not rewritten.
+- api/_lib/openai-billing.js reads the project-scoped OpenAI Costs API using
+  OPENAI_ADMIN_KEY and OPENAI_PROJECT_ID. The authenticated existing nightly
+  cleanup job refreshes seven complete UTC days, including late revisions.
+  Dry runs skip reporting. Errors cannot stop cleanup, overwrite earlier
+  reports, expose provider error bodies, or silently become zero.
+- Money shows calculated versus reported daily costs and their difference,
+  including internal testing. It labels incomplete cache details, unknown
+  outcomes, missing setup, failed updates and overdue reports. Reports are
+  project-wide, not allocated back to customers. The app key must belong to
+  that exact project; other activity in the project will also appear.
+- supabase/openai-billing.sql MUST RUN BEFORE DEPLOYMENT. It adds nullable
+  usage.cost_details and a service-role-only provider_daily_costs table.
+  Do not deploy before Kris confirms this migration succeeded.
+- Setup still needed: reporting admin key and matching project ID in Vercel
+  Production. Never ask for or handle the key. It goes directly into Vercel.
+  First real billing pull will occur on the existing nightly schedule.
+- Validation in isolated work/admin-verify: 638 existing server checks, 43 new
+  billing checks, 167 browser checks = 848 passing. Actual CSV day totals
+  matched within microdollar rounding. Wrong cache-write-rate mutation failed
+  the new tests. Installed files verified by SHA-256 against tested copies;
+  originals were checked before copying and backed up in thread workspace.
+  No extra Vercel function; count remains 12. No git commands run.
+- Prior live setup: Kris already ran operator repair SQL and set alert/mail
+  settings. Actual email delivery has not been independently proven here.
+- Historical export gaps came from Kris wiping test accounts. Do not reopen
+  that as a current missing-call defect or rewrite customer records to match
+  project-wide historical charges.

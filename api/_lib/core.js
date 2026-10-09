@@ -174,7 +174,9 @@ export const HELP_PRICE_OUT = 10;
  * "reading notes 41 to 80 of 83". An import is between nine and a hundred and
  * fifty calls in a row. So the rate below is the one we actually pay.
  *
- * MEASURED, not quoted. Across eighteen real imports recorded in the usage
+ * Historical measurements below used list-price estimates before detailed
+ * cache accounting was added on 9 October. They are not current cost promises.
+ * Across eighteen real imports recorded in the usage
  * table, an import of a 25 note file costs about 4.4 cents here against 2.5
  * on the model it replaced. Prompt caching takes roughly 14% off the list
  * price rather than the 52% the cache hit rate suggests, because 70% of the
@@ -184,6 +186,8 @@ export const HELP_PRICE_OUT = 10;
 export const OPENAI_MODEL     = 'gpt-6.1-sol';
 export const OPENAI_PRICE_IN  = 2;
 export const OPENAI_PRICE_OUT = 10;
+export const OPENAI_PRICE_CACHED = 0.10;
+export const OPENAI_PRICE_CACHE_WRITE = 2.50;
 
 /* EVERY PROVIDER'S OWN LIST PRICE, because a token is not a token.
  *

@@ -16,6 +16,7 @@
 import { admin, dropImages, IMAGE_BUCKET } from './_lib/core.js';
 import { DELETION_WARNING_HTML } from './_email/deletion-warning.js';
 import { sendDigest, retryUndelivered } from './_lib/notify.js';
+import { syncOpenAICosts } from './_lib/openai-billing.js';
 
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 const WARN_AFTER   = 5 * MONTH;
@@ -347,8 +348,14 @@ export default async function handler(req, res) {
     try { digest = await sendDigest(db); } catch (e) { digest = { sent: false, why: 'failed' }; }
   }
 
+  let billing = { ok: false, state: 'dry_run' };
+  if (!dry) {
+    try { billing = await syncOpenAICosts(db); }
+    catch { billing = { ok: false, state: 'failed' }; }
+  }
+
   return send(res, 200, {
-    ok: true, dry, digest, retried,
+    ok: true, dry, digest, retried, billing,
     could_not_warn: unwarnable.length,
     scanned: (stale || []).length,
     warned: warned.length, deleted: deleted.length, skipped: skipped.length,

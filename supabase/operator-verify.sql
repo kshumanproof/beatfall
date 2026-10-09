@@ -19,8 +19,8 @@ order by recorded_cost_usd desc;
 select provider, model, count(*) as calls,
        sum(tokens_in) as input_tokens, sum(tokens_out) as output_tokens,
        sum(cost_micros) / 1000000.0 as stored_cost_usd,
-       sum(case when provider = 'openai' then round(tokens_in * 2 + tokens_out * 10)
-                when provider = 'claude' or provider is null then round(tokens_in + tokens_out * 5)
+       sum(case when model = 'gpt-6.1-sol' then round(tokens_in * 2 + tokens_out * 10)
+                when model = 'claude-haiku-4-5' then round(tokens_in + tokens_out * 5)
            end) / 1000000.0 as recalculated_cost_usd
 from public.usage where created_at >= now() - interval '30 days'
 group by provider, model order by provider, model;

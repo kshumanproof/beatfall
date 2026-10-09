@@ -38,6 +38,7 @@ import { requireUser, send, PLANS, entitlement,
          COST } from './_lib/core.js';
 
 import handleAdminAction from './_admin-do.js';
+import { billingComparison } from './_lib/openai-billing.js';
 
 const DAY = 86400000;
 const PAGE = 1000;
@@ -762,6 +763,7 @@ async function money(db, since) {
       note: 'A call whose answer never came back may still have been billed by the '
           + 'provider. These are counted, never assumed either way.'
     },
+    billing: await billingComparison(db, since),
     largest_actions: largest,
     budgets: budgets.rows || [],
     pricing: { month: PRICE_MONTH, year: PRICE_YEAR,

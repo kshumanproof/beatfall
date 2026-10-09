@@ -34,6 +34,7 @@
 // this reversible if OpenAI has a bad week.
 // ============================================================================
 import { PROVIDER_PRICES, costMicrosFor } from './core.js';
+import { openAICost } from './openai-billing.js';
 
 export const DEFAULT_PROVIDER = 'openai';
 
@@ -139,6 +140,7 @@ async function callOpenAI({ model, messages, maxTokens }) {
   return {
     ok: true,
     text: textFrom(reply),
+    ...openAICost(reply.usage, reply.service_tier || 'default'),
     tin: reply.usage?.input_tokens || 0,
     tout,
     reasoning,
@@ -177,6 +179,6 @@ export async function callProvider(provider, { messages, maxTokens }) {
   return Object.assign(r, {
     provider,
     model: spec.model,
-    costMicros: costMicrosFor(provider, r.tin, r.tout)
+    costMicros: r.costMicros ?? costMicrosFor(provider, r.tin, r.tout)
   });
 }

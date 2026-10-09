@@ -145,7 +145,9 @@ export function makeDb(profile, opts = {}) {
            spending limit where the product has three. */
         const keyOf = row => name === 'work_days'
           ? String(row.user_id) + '|' + String(row.day)
-          : name === 'budgets' ? String(row.scope) : String(row.id);
+          : name === 'budgets' ? String(row.scope)
+          : name === 'operator_meta' ? String(row.key)
+          : name === 'provider_daily_costs' ? row.project_id + '|' + row.day : String(row.id);
         list.forEach(row => {
           const i = state[name].findIndex(r => keyOf(r) === keyOf(row));
           if (i >= 0) state[name][i] = { ...state[name][i], ...row };

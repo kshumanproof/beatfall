@@ -389,6 +389,7 @@ export default async function handler(req, res) {
     // the cost column is half of what is being compared.
     user_id: user.id, kind, credits, model: out.model, session_id: session,
     tokens_in: tin, tokens_out: tout, cost_micros: out.costMicros,
+    cost_details: out.costDetails || null,
     /* AND WHETHER IT WORKED. Every row in this table used to be a completed
        call, so a billed failure and a call nobody ever heard back from were
        either missing or indistinguishable from a success. The outcome is the

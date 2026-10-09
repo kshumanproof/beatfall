@@ -556,6 +556,8 @@ export function viewMoney(d) {
   const c = d.collected || {}, r = d.recurring || {}, k = d.costs || {},
         cr = d.credits || {}, rec = d.reconcile || {};
 
+  const billing = billingPanel(d.billing);
+
   const largest = (d.largest_actions || []).map(a => `
     <tr><td>${esc(a.feature)}</td>
       <td class="num">${a.actions}</td>
@@ -595,6 +597,7 @@ export function viewMoney(d) {
 
   <section class="panel">
     <h2>What it cost to serve</h2>
+    <p class="muted">Calculated from each call. Older records use list prices; new calls use the reported cache breakdown when available.</p>
     <div class="tiles">
       <div class="tile"><div class="n">${money(k.customers_usd)}</div><div class="l">Customers</div></div>
       <div class="tile"><div class="n">${money(k.trials_usd)}</div><div class="l">Trials</div></div>
@@ -602,6 +605,8 @@ export function viewMoney(d) {
     </div>
     <p class="muted">${esc(k.note || '')}</p>
   </section>
+
+  ${billing}
 
   <section class="panel">
     <h2>Credits</h2>
@@ -800,4 +805,33 @@ export function viewAccount(d) {
       <tbody>${use || '<tr><td colspan="5" class="sub">Never used it.</td></tr>'}</tbody>
     </table></div>
   </section>`;
+}
+
+function billingPanel(b) {
+  if (!b) return '';
+  const messages = {
+    not_configured: 'Daily billing is not connected yet. Add the reporting settings in Vercel.',
+    waiting: 'Waiting for the first nightly billing report.',
+    failed: 'The latest billing update failed. Earlier reports are still shown.',
+    stale: 'The billing report is overdue. The amounts below have not been refreshed.',
+    unavailable: 'Billing records could not be read. No totals are shown.'
+  };
+  const precise = n => typeof n === 'number' && Number.isFinite(n) ? '$' + n.toFixed(6) : '&ndash;';
+  return '<section class="panel"><h2>OpenAI daily billing</h2>'
+    + (messages[b.state] ? '<div class="note warn">' + messages[b.state] + '</div>' : '')
+    + (b.missing?.length ? '<p class="muted">Missing settings: ' + b.missing.map(esc).join(', ') + '</p>' : '')
+    + (b.project_id ? '<p class="muted">OpenAI project: ' + esc(b.project_id) + '</p>' : '')
+    + (b.sync?.checked_at ? '<p class="muted">Last update attempt: ' + esc(when(b.sync.checked_at))
+      + (b.sync.ok === false ? '. ' + (/^http_(401|403)$/.test(b.sync.reason || '')
+        ? 'Check the reporting key and its permissions.' : b.sync.reason === 'save_failed'
+        ? 'The report could not be saved. Check that the database update has been run.'
+        : 'The reporting service did not return a usable report.') : '') + '</p>' : '')
+    + '<p class="muted">Complete UTC days only. Includes customers and your own testing. OpenAI reports the whole selected project, including any other services using it. Recent reports refresh nightly as charges settle. Customer records are kept as calculated.</p>'
+    + ((b.days || []).length ? '<div class="tablewrap"><table><thead><tr><th>Day (UTC)</th><th class="num">Beatfall calculated</th><th class="num">OpenAI reported</th><th class="num">Reported minus calculated</th><th>Records</th><th>Updated</th></tr></thead><tbody>'
+      + b.days.map(r => '<tr><td>' + esc(r.day) + '</td><td class="num">' + precise(r.calculated_usd)
+        + '</td><td class="num">' + precise(r.reported_usd) + '</td><td class="num">' + precise(r.difference_usd)
+        + '</td><td>' + esc(r.calls) + ' calls' + (r.legacy_calls ? '<div class="sub">' + esc(r.legacy_calls) + ' without full cache details</div>' : '')
+        + (r.unknown_calls ? '<div class="sub">' + esc(r.unknown_calls) + ' outcomes unknown</div>' : '')
+        + '</td><td>' + esc(when(r.fetched_at)) + '</td></tr>').join('') + '</tbody></table></div>' : '')
+    + '<p class="muted">A difference can include missing or deleted test records, older estimates, delayed charges, or other project use. Customer costs and credits are not automatically changed.</p></section>';
 }

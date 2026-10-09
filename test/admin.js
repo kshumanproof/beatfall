@@ -1105,6 +1105,32 @@ let URL = '';
     await p.close();
   }
 
+
+  for (const mode of ['light', 'dark']) {
+    const p = await browser.newPage();
+    const errors=[];p.on('pageerror',e=>errors.push(e.message));
+    await p.addInitScript(withSeed(`
+      location.hash='money';window.__MODE__='${mode}';
+      window.__ADMIN__.money.billing={state:'ready',days:[{day:'2026-10-09',calculated_usd:0.035827,
+        reported_usd:0.0358265,difference_usd:-0.0000005,calls:4,legacy_calls:0,unknown_calls:0,
+        fetched_at:'2026-10-10T04:00:00Z'}]};
+    `));
+    await p.goto(URL);
+    await p.locator('#view').getByText('OpenAI daily billing',{exact:true}).waitFor();
+    const text=await p.locator('#view').innerText();
+    check(mode+' billing renders actual and calculated costs', text.includes('$0.035827')&&text.includes('$0.035826'));
+    check(mode+' billing labels UTC and includes testing costs',text.toLowerCase().includes('day (utc)')&&text.toLowerCase().includes('your own testing'));
+    check(mode+' billing page loads without errors',errors.length===0,errors.join('\n'));
+    await p.close();
+  }
+  for (const state of ['not_configured','waiting','failed','stale','unavailable']) {
+    const p=await browser.newPage();
+    await p.addInitScript(withSeed(`location.hash='money';window.__ADMIN__.money.billing={state:'${state}',days:[]};`));
+    await p.goto(URL);await p.locator('#view').getByText('OpenAI daily billing',{exact:true}).waitFor();
+    check(state+' billing shows an explanation, not an invented zero',await p.locator('#view .note.warn').count()>=1);
+    await p.close();
+  }
+
   await browser.close();
   server.close();
 
