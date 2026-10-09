@@ -294,7 +294,7 @@ export default function Capture({ email }) {
         <FlatList data={rows} keyExtractor={r => r.id} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.list, { paddingBottom: 24 }]}
           ListEmptyComponent={<Text style={s.empty}>{everSent ? 'Everything has been sent. Review your notes on your computer.' : 'Your kept notes will appear here.'}</Text>}
           renderItem={({ item }) => <Pressable onLongPress={() => scrub(item)} delayLongPress={350} accessibilityRole="button" accessibilityLabel={'Note for ' + (item.project_name || 'your story') + '. Hold to delete.'}>
-            <View style={s.card}><Text style={s.storyLabel}>{item.project_name || 'No title'}</Text>
+            <View style={s.card}><Text style={s.storyLabel}>{String(item.project_name || 'No title').toUpperCase()}</Text>
               {item.photo_uri ? <Image source={{ uri: item.photo_uri }} style={s.cardPic} resizeMode="cover" /> : null}
               <Text style={s.body}>{String(item.body || '').trim() || 'Picture without a caption'}</Text>
               <View style={s.foot}><Text style={s.stamp}>{when(item.created_at)}</Text><View style={s.grow} /><Text style={s.stamp}>Hold to delete</Text></View>
@@ -306,18 +306,20 @@ export default function Capture({ email }) {
           <Text style={s.hint}>Review and place your notes on your computer.</Text>
         </View>
       </> : script ? <>
-        <ScrollView style={s.grow} contentContainerStyle={s.captureContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-          <View onStartShouldSetResponder={() => true} onResponderRelease={() => Keyboard.dismiss()}>
-          <View style={s.destination}><View style={s.grow}><Text style={s.rail}>CAPTURING FOR</Text><Text style={s.title}>{script.name}</Text></View>
+        <View style={s.captureToolbar}>
+          <View style={s.destination}><View style={s.grow}><Text style={s.rail}>CAPTURING FOR</Text><Text style={s.title} numberOfLines={2}>{String(script.name || '').toUpperCase()}</Text></View>
             <Pressable onPress={() => { if (!saving && !picking2 && !sending) { Keyboard.dismiss(); setPicking(true); } }} style={s.change} accessibilityRole="button" accessibilityLabel="Change story"><Text style={s.backText}>Change</Text></Pressable>
           </View>
+          <View style={s.actions}><View><Text style={s.photoRail}>PHOTOS</Text><View style={s.photoButtons}>
+            <Pressable onPress={() => attach('camera')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Take a photograph for this note"><Text style={s.secondaryText}>Camera</Text></Pressable>
+            <Pressable onPress={() => attach('library')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Choose a picture from this phone"><Text style={s.secondaryText}>Library</Text></Pressable>
+            </View></View><View style={s.grow} /><Pressable onPress={keep} disabled={!ready || saving || sending || picking2} style={[s.keep, (!ready || saving) && s.disabled]} accessibilityRole="button" accessibilityLabel="Keep this note"><Text style={[s.primaryText, !ready && s.disabledText]}>{saving ? 'Keeping…' : 'Keep note'}</Text></Pressable>
+          </View></View>
+        <ScrollView style={s.grow} contentContainerStyle={s.captureContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <View onStartShouldSetResponder={() => true} onResponderRelease={() => Keyboard.dismiss()}>
           <View style={s.box}><TextInput ref={field} style={s.input} value={draft} onChangeText={text => { if (script && !saving && !sending) setDraft(text); }} editable={!!script && !saving && !sending} placeholder="What just occurred to you?" placeholderTextColor={c.ink4} multiline autoCorrect autoCapitalize="sentences" textAlignVertical="top" selectionColor={c.blue} scrollEnabled /></View>
           {pic && <View style={s.pinned}><Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" /><Text style={s.pinnedWords}>Picture attached. Add a caption if you like.</Text><Pressable onPress={unpin} disabled={saving} style={s.remove} accessibilityRole="button" accessibilityLabel="Take this picture off the note"><Text style={s.backText}>×</Text></Pressable></View>}
-          <View style={s.actions}>
-            <Pressable onPress={() => attach('camera')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Take a photograph for this note"><Text style={s.secondaryText}>Photo</Text></Pressable>
-            <Pressable onPress={() => attach('library')} disabled={!script || saving || sending || picking2} style={s.secondary} accessibilityRole="button" accessibilityLabel="Choose a picture from this phone"><Text style={s.secondaryText}>Library</Text></Pressable>
-            <View style={s.grow} /><Pressable onPress={keep} disabled={!ready || saving || sending || picking2} style={[s.keep, (!ready || saving) && s.disabled]} accessibilityRole="button" accessibilityLabel="Keep this note"><Text style={[s.primaryText, !ready && s.disabledText]}>{saving ? 'Keeping…' : 'Keep note'}</Text></Pressable>
-          </View><Text style={s.hint}>Saved on this phone until you send.</Text></View>
+          <Text style={s.hint}>Saved on this phone until you send.</Text></View>
         </ScrollView>{waitingLink}
       </> : <>
         <ScriptSheet embedded visible scheme={scheme} shelf={shelf} current={script} onPick={choose} onClose={closePicker} />
@@ -348,12 +350,15 @@ const sheet = (c) => StyleSheet.create({
   title: { fontFamily: font.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, color: c.ink },
   subtitle: { fontFamily: font.sans, fontSize: 15, lineHeight: 22, color: c.ink3, marginTop: 8 },
   rail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginBottom: 8 },
-  captureContent: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 24 },
+  captureToolbar: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 16 },
+  captureContent: { paddingHorizontal: 24, paddingTop: 0, paddingBottom: 24 },
+  photoRail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginBottom: 8 },
+  photoButtons: { flexDirection: 'row', gap: 8 },
   destination: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
   change: { minHeight: 44, justifyContent: 'center' },
   box: { backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.panel, padding: 16, minHeight: 220 },
   input: { fontFamily: font.mono, fontSize: 16, lineHeight: 25, color: c.ink, minHeight: 190, padding: 0, margin: 0 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  actions: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   secondary: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 13, borderWidth: 1, borderColor: c.rule, borderRadius: radius.ctl, backgroundColor: c.card },
   secondaryText: { fontFamily: font.sansMed, fontSize: 14, color: c.ink2 },
   keep: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 18, backgroundColor: c.blue, borderRadius: radius.ctl },

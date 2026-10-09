@@ -229,7 +229,7 @@ export default function ScriptSheet({ visible, onClose, onPick, current, scheme,
                   {/* Caps, as the web app sets a project title. A script is a
                       title, not a sentence. */}
                   <Text style={[s.name, on && s.nameOn]} numberOfLines={2}>
-                    {String(item.name || '')}
+                    {String(item.name || '').toUpperCase()}
                   </Text>
                   {/* Said plainly rather than hidden: this one is not on the
                       desk yet, and it will be the moment you send. */}
