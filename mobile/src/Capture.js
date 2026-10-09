@@ -67,6 +67,7 @@ export default function Capture({ email }) {
   const [picking, setPicking] = useState(false);
   const [accounting, setAccounting] = useState(false);
   const [waiting, setWaiting] = useState(false);
+  const [savedTitle, setSavedTitle] = useState('');
   const shelf = useScripts();
   const field = useRef(null);
 
@@ -165,6 +166,7 @@ export default function Capture({ email }) {
   // A remembered title is never consent to file the next note under it.
   const choose = (p) => {
     const slim = p ? { id: p.id, name: p.name } : null;
+    setSavedTitle('');
     setScript(slim);
     rememberScript(slim);
   };
@@ -234,6 +236,7 @@ export default function Capture({ email }) {
     setSaving(true);
     try {
       await store.add(text, script, pic);
+      setSavedTitle(String(script.name || '').toUpperCase());
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       settle();
       setDraft('');
@@ -293,13 +296,13 @@ export default function Capture({ email }) {
         <View style={s.heading}><Text style={s.title}>Waiting to send</Text><Text style={s.subtitle}>{tally.waiting} {tally.waiting === 1 ? 'note' : 'notes'} saved on this phone</Text></View>
         <FlatList data={rows} keyExtractor={r => r.id} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[s.list, { paddingBottom: 24 }]}
           ListEmptyComponent={<Text style={s.empty}>{everSent ? 'Everything has been sent. Review your notes on your computer.' : 'Your kept notes will appear here.'}</Text>}
-          renderItem={({ item }) => <Pressable onLongPress={() => scrub(item)} delayLongPress={350} accessibilityRole="button" accessibilityLabel={'Note for ' + (item.project_name || 'your story') + '. Hold to delete.'}>
+          renderItem={({ item }) => <View accessibilityLabel={'Note for ' + (item.project_name || 'your story') + '.'}>
             <View style={s.card}><Text style={s.storyLabel}>{String(item.project_name || 'No title').toUpperCase()}</Text>
               {item.photo_uri ? <Image source={{ uri: item.photo_uri }} style={s.cardPic} resizeMode="cover" /> : null}
-              <Text style={s.body}>{String(item.body || '').trim() || 'Picture without a caption'}</Text>
-              <View style={s.foot}><Text style={s.stamp}>{when(item.created_at)}</Text><View style={s.grow} /><Text style={s.stamp}>Hold to delete</Text></View>
+              <Text style={s.body}>{String(item.body || '').trim() || 'Photo note'}</Text>
+              <View style={s.foot}><Text style={s.stamp}>{when(item.created_at)}</Text><View style={s.grow} /><Pressable onPress={() => scrub(item)} disabled={sending || saving} style={s.deleteAction} accessibilityRole="button" accessibilityLabel={'Delete note for ' + (item.project_name || 'your story')}><Text style={s.deleteText}>Delete</Text></Pressable></View>
             </View>
-          </Pressable>} />
+          </View>} />
         <View style={[s.sendArea, { paddingBottom: Math.max(inset.bottom, 16) }]}>
           {justSent > 0 && <Text style={s.confirm} accessibilityLiveRegion="polite">{justSent} sent. Waiting at your desk.</Text>}
           {SYNC_ENABLED && tally.waiting > 0 && <Pressable onPress={send} disabled={sending || saving || picking2} style={[s.primary, sending && s.disabled]} accessibilityRole="button" accessibilityLabel={'Send ' + tally.waiting + ' notes to your account'}><Text style={s.primaryText}>{sending ? 'Sending…' : 'Send ' + tally.waiting + (tally.waiting === 1 ? ' note' : ' notes') + ' to desktop'}</Text></Pressable>}
@@ -307,7 +310,7 @@ export default function Capture({ email }) {
         </View>
       </> : script ? <>
         <View style={s.captureToolbar}>
-          <View style={s.destination}><View style={s.grow}><Text style={s.rail}>CAPTURING FOR</Text><Text style={s.title} numberOfLines={2}>{String(script.name || '').toUpperCase()}</Text></View>
+          <View style={s.destination}><View style={s.grow}><Text style={s.rail}>CAPTURING FOR</Text><Text style={s.captureTitle} numberOfLines={2} accessibilityLabel={String(script.name || '').toUpperCase()}>{String(script.name || '').toUpperCase()}</Text></View>
             <Pressable onPress={() => { if (!saving && !picking2 && !sending) { Keyboard.dismiss(); setPicking(true); } }} style={s.change} accessibilityRole="button" accessibilityLabel="Change story"><Text style={s.backText}>Change</Text></Pressable>
           </View>
           <View style={s.actions}><View><Text style={s.photoRail}>PHOTOS</Text><View style={s.photoButtons}>
@@ -317,11 +320,13 @@ export default function Capture({ email }) {
           </View></View>
         <ScrollView style={s.grow} contentContainerStyle={s.captureContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <View onStartShouldSetResponder={() => true} onResponderRelease={() => Keyboard.dismiss()}>
+          {pic && <View style={s.pinned}><Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" /><View style={s.grow}><Text style={s.attachmentTitle}>Photo attached</Text><Text style={s.pinnedWords}>Write a caption below if you like.</Text></View><Pressable onPress={unpin} disabled={saving} style={s.remove} accessibilityRole="button" accessibilityLabel="Take this picture off the note"><Text style={s.removeText}>Remove</Text></Pressable></View>}
           <View style={s.box}><TextInput ref={field} style={s.input} value={draft} onChangeText={text => { if (script && !saving && !sending) setDraft(text); }} editable={!!script && !saving && !sending} placeholder="What just occurred to you?" placeholderTextColor={c.ink4} multiline autoCorrect autoCapitalize="sentences" textAlignVertical="top" selectionColor={c.blue} scrollEnabled /></View>
-          {pic && <View style={s.pinned}><Image source={{ uri: pic.uri }} style={s.pinnedPic} resizeMode="cover" /><Text style={s.pinnedWords}>Picture attached. Add a caption if you like.</Text><Pressable onPress={unpin} disabled={saving} style={s.remove} accessibilityRole="button" accessibilityLabel="Take this picture off the note"><Text style={s.backText}>×</Text></Pressable></View>}
+
           <Text style={s.hint}>Saved on this phone until you send.</Text></View>
         </ScrollView>{waitingLink}
       </> : <>
+        {savedTitle ? <View style={s.savedBanner}><Text style={s.savedText} accessibilityLiveRegion="polite">Saved to {savedTitle}</Text><Text style={s.savedHint}>On this phone, ready to send.</Text></View> : null}
         <ScriptSheet embedded visible scheme={scheme} shelf={shelf} current={script} onPick={choose} onClose={closePicker} />
         {waitingLink}
       </>}
@@ -350,11 +355,19 @@ const sheet = (c) => StyleSheet.create({
   title: { fontFamily: font.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, color: c.ink },
   subtitle: { fontFamily: font.sans, fontSize: 15, lineHeight: 22, color: c.ink3, marginTop: 8 },
   rail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginBottom: 8 },
-  captureToolbar: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 16 },
+  captureTitle: { fontFamily: font.serif, fontSize: 28, lineHeight: 32, color: c.ink },
+  savedBanner: { marginHorizontal: 24, marginTop: 8, padding: 12, borderLeftWidth: 3, borderColor: c.sage, backgroundColor: c.surface },
+  savedText: { fontFamily: font.sansSemi, fontSize: 14, color: c.ink },
+  savedHint: { fontFamily: font.sans, fontSize: 12, color: c.ink3, marginTop: 4 },
+  deleteAction: { minHeight: 44, minWidth: 56, justifyContent: 'center', alignItems: 'flex-end' },
+  deleteText: { fontFamily: font.sansMed, fontSize: 13, color: c.red },
+  attachmentTitle: { fontFamily: font.sansSemi, fontSize: 13, color: c.ink },
+  removeText: { fontFamily: font.sansMed, fontSize: 12, color: c.blue },
+  captureToolbar: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 },
   captureContent: { paddingHorizontal: 24, paddingTop: 0, paddingBottom: 24 },
   photoRail: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.6, color: c.ink3, marginBottom: 8 },
   photoButtons: { flexDirection: 'row', gap: 8 },
-  destination: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
+  destination: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   change: { minHeight: 44, justifyContent: 'center' },
   box: { backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.panel, padding: 16, minHeight: 220 },
   input: { fontFamily: font.mono, fontSize: 16, lineHeight: 25, color: c.ink, minHeight: 190, padding: 0, margin: 0 },
@@ -370,12 +383,13 @@ const sheet = (c) => StyleSheet.create({
   waitingCount: { fontFamily: font.sansSemi, fontSize: 13, color: c.gold }, chevron: { fontFamily: font.sans, fontSize: 22, color: c.ink3 },
   list: { paddingHorizontal: 24, gap: 14 },
   card: { padding: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.rule, borderRadius: radius.panel },
-  storyLabel: { fontFamily: font.sansSemi, fontSize: 10, letterSpacing: 1.4, color: c.ink3, marginBottom: 12 },
-  body: { fontFamily: font.mono, fontSize: 15, lineHeight: 23, color: c.ink }, foot: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
+  storyLabel: { fontFamily: font.serif, fontSize: 22, lineHeight: 28, color: c.ink, marginBottom: 14 },
+  body: { fontFamily: font.mono, fontSize: 15, lineHeight: 23, color: c.ink }, foot: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   stamp: { fontFamily: font.sans, fontSize: 11, color: c.ink3 }, empty: { fontFamily: font.sans, fontSize: 15, lineHeight: 24, color: c.ink3 },
   sendArea: { paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1, borderColor: c.ruleSoft },
   confirm: { fontFamily: font.sansMed, fontSize: 14, color: c.sage, marginBottom: 12 },
-  pinned: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginTop: 12, backgroundColor: c.surface, borderRadius: radius.panel },
-  pinnedPic: { width: 56, height: 56, borderRadius: 4 }, pinnedWords: { flex: 1, fontFamily: font.sans, fontSize: 13, lineHeight: 19, color: c.ink3 }, remove: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  pinned: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, marginBottom: 12, backgroundColor: c.surface, borderRadius: radius.panel },
+  pinnedPic: { width: 56, height: 56, borderRadius: 4 }, pinnedWords: { fontFamily: font.sans, fontSize: 13, lineHeight: 19, color: c.ink3 }, remove: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   cardPic: { width: '100%', height: 170, borderRadius: 4, marginBottom: 12 },
 });
+

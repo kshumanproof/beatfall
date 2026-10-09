@@ -410,7 +410,7 @@ function creditWords(a) {
   const head = left === 0
     ? 'No credits left this month.'
     : left + (left === 1 ? ' credit' : ' credits') + ' left'
-      + (banked > 0 ? ', ' + month + ' of them this month and ' + banked + ' bought' : '')
+      + (banked > 0 ? ' · ' + month + ' monthly, ' + banked + ' purchased' : '')
       + '.';
   return head;
 }
