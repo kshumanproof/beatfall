@@ -1,0 +1,7 @@
+{
+  "name": "beatfall-launch-page",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": { "test": "node test/landing.cjs && node test/signup.cjs" },
+  "devDependencies": { "playwright": "^1.63.0", "@electric-sql/pglite": "^0.5.8" }
+}

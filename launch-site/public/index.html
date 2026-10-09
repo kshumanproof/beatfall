@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F1EEE7">
+  <title>Beatfall · Where your story falls into place</title>
+  <meta name="description" content="Beatfall organizes your notes, shows what’s missing, and helps you work through the gaps. Join the launch list.">
+  <link rel="canonical" href="https://beatfall.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Beatfall">
+  <meta property="og:title" content="Beatfall · Where your story falls into place">
+  <meta property="og:description" content="Your notes already know the story. They’re just in the wrong order. Be notified when Beatfall launches.">
+  <meta property="og:url" content="https://beatfall.app/">
+  <meta property="og:image" content="https://beatfall.app/brand/og.png">
+  <meta property="og:image:alt" content="Beatfall. Where your story falls into place.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Beatfall · Where your story falls into place">
+  <meta name="twitter:description" content="Beatfall organizes your notes, shows what’s missing, and helps you work through the gaps.">
+  <meta name="twitter:image" content="https://beatfall.app/brand/og.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/launch.css">
+  <script src="/launch.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="Beatfall home">
+      <img class="logo" src="/brand/lockup.png" alt="Beatfall" width="1200" height="260">
+      <img class="tagline" src="/brand/tagline.svg" alt="Where your story falls into place." width="514" height="33">
+    </a>
+    <span class="launch-label">Coming soon</span>
+  </header>
+  <main id="main">
+    <section class="intro" aria-labelledby="headline">
+      <h1 id="headline">Your notes already know the story. They’re just in the wrong order.</h1>
+      <p class="description">Beatfall organizes your notes, shows what’s missing, and helps you work through the gaps.</p>
+      <form id="launch-form" class="signup" action="/api/launch-signup" method="post" aria-label="Join the launch list">
+        <label for="email">Email address</label>
+        <div class="signup-row">
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" maxlength="254" required aria-describedby="signup-note signup-status">
+          <button type="submit">Notify me at launch</button>
+        </div>
+        <div class="bot-field" aria-hidden="true">
+          <label for="website">Leave this empty</label>
+          <input id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <p id="signup-note" class="fine">We’ll email you when Beatfall launches. <a href="/privacy.html">Privacy</a>.</p>
+        <p id="signup-status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </form>
+      <noscript><p class="no-script">To join the launch list, <a href="mailto:support@beatfall.app?subject=Beatfall%20launch%20list">email us</a>.</p><style>.signup{display:none}</style></noscript>
+    </section>
+    <section class="screenshots" aria-label="A look inside Beatfall">
+      <figure>
+        <div class="screenshot"><img src="/media/night-haul-board.webp" width="1400" height="760" alt="Night Haul story board showing notes placed in story beats and open spaces for missing beats."></div>
+        <figcaption><h2>Your story board</h2><p>See where your notes belong and what’s missing.</p></figcaption>
+      </figure>
+      <figure>
+        <div class="screenshot"><img src="/media/beatfall-dashboard.webp" width="1400" height="745" alt="Beatfall project dashboard showing story progress, open beats, and the next beat to work on."></div>
+        <figcaption><h2>Your projects</h2><p>See each story’s progress and what needs attention.</p></figcaption>
+      </figure>
+    </section>
+    <section class="founder" aria-label="Why Beatfall was built">
+      <blockquote>“I didn’t want software to write my screenplay. I wanted help finding the story hiding inside my notes.”</blockquote>
+      <p>Built by a screenwriter for the work before the first draft.</p>
+    </section>
+  </main>
+  <footer><span>© <span id="year">2026</span> Beatfall, LLC.</span><nav aria-label="Footer"><a href="/privacy.html">Privacy</a><a href="mailto:support@beatfall.app">Contact</a></nav></footer>
+</body>
+</html>

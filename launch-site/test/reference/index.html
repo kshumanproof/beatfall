@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>document.documentElement.classList.add('auth-checking');</script>
+
 <title>Beatfall · Turn scattered story notes into a beat board</title>
 <meta name="description" content="Beatfall organizes your story notes into a structured beat board, keeps everything else, and shows you what is still missing. It never writes your script.">
 <link rel="canonical" href="https://beatfall.app/">
@@ -31,31 +31,11 @@
      load. What holds it honest instead is a check in test/server/money.js
      that reads this block and compares it with core.js. Move the price and
      that check goes red before anybody sees a stale one in a search result. -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Beatfall",
-  "url": "https://beatfall.app/",
-  "applicationCategory": "BusinessApplication",
-  "applicationSubCategory": "Writing software",
-  "operatingSystem": "Web browser",
-  "description": "Beatfall organizes story notes into a structured beat board, keeps everything else, and shows what is still missing. It never writes the script.",
-  "image": "https://beatfall.app/brand/og.png",
-  "publisher": { "@type": "Organization", "name": "Beatfall, LLC", "url": "https://beatfall.app/" },
-  "offers": {
-    "@type": "Offer",
-    "category": "subscription",
-    "priceCurrency": "USD",
-    "price": "15",
-    "url": "https://beatfall.app/billing"
-  }
-}
-</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap">
-<link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/__reference/theme.css">
 <style>
   body{font-size:16px}
   .auth-checking body{visibility:hidden}
@@ -154,7 +134,7 @@
            PRODUCES, and naming the output as the category sells the wrong half;
            the work is organizing the notes. And the audience is storytellers,
            not screenwriters alone. -->
-      <p class="eyebrow">Note organization built for storytellers</p>
+      <p class="eyebrow">Note organization, built for storytellers</p>
       <h1>Your notes already know the story. They’re just in the wrong order.</h1>
       <!-- The promise is the last sentence of this paragraph rather than a line
            of its own. On its own it opened with "It", and the nearest noun was
@@ -257,42 +237,9 @@
     <nav class="foot-links" aria-label="Site links"><a href="/billing.html">How billing works</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="mailto:support@beatfall.app?subject=Beatfall%20feedback">Contact</a></nav>
   </div>
 </footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
-  // Supabase can fall back to the site root if /app is not yet on its redirect
-  // allowlist. Carry a returning magic link into the app, where the existing
-  // sign-in code redeems it.
-  if (location.hash || /[?&](code|token_hash|access_token)=/.test(location.search)) {
-    location.replace('/app' + location.search + location.hash);
-  } else {
-    (async function sendSignedInWritersToTheirProjects(){
-      try {
-        const config = await fetch('/api/config').then(response => response.ok ? response.json() : null);
-        // The prices printed in the HTML above are the truth as of today, so the
-        // page is right with no JavaScript at all. Then we write in whatever the
-        // server actually bills, so a price change is one edit in core.js and
-        // this page follows it. If the fetch fails the printed numbers stand.
-        if (config && config.pricing) {
-          document.querySelectorAll('[data-bf]').forEach(function (el) {
-            const v = config.pricing[el.getAttribute('data-bf')];
-            if (v !== undefined && v !== null && v !== '') el.textContent = v;
-          });
-        }
-        if (config && config.supabaseUrl && config.supabaseAnonKey && window.supabase) {
-          const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
-            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-          });
-          const { data } = await client.auth.getSession();
-          if (data && data.session) { location.replace('/app'); return; }
-        }
-      } catch (error) {
-        // A homepage should still work if the session check cannot reach the account service.
-      }
-      document.documentElement.classList.remove('auth-checking');
-    })();
-  }
-</script>
-<script>window.chtlConfig = { chatbotId: "8179914613" };</script>
-<script async data-id="8179914613" id="chtl-script" type="text/javascript" src="https://chatling.ai/js/embed.js"></script>
+
+
+
+
 </body>
 </html>
