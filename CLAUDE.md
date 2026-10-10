@@ -2970,9 +2970,9 @@ the private list and out of the sitemap, which are facts about the site.
     node reporting.js ; node actions.js
 
 drive 269, flows 273, pages 81, mobile 5, platform 17, delete 23, stories 33,
-admin 151; money 69, gate 23, hook 18, clean 31, captures 42, proxy 29,
-lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
-reporting 63, actions 115. **1,467 checks, all passing.**
+admin 151, credits 38; money 69, gate 23, hook 18, clean 31, captures 42,
+proxy 29, lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
+reporting 63, actions 115. **1,505 checks, all passing.**
 
 `flows.js` and `pages.js` both want a Chromium each and the two together run
 longer than two minutes, so run them one at a time rather than in one chain
@@ -3022,3 +3022,88 @@ pages with a footer. Both go red if the gutter is removed.
 The launcher can also be moved in Chatling's own appearance settings. That is
 the other half and it is Kris's, and it is not needed: our half holds whichever
 widget is in use.
+
+
+## Out of credits on the paste sheet (10 October 2026)
+
+Kris pasted a file with an empty balance and the app answered **"Couldn't
+read that file. Try again, or split it into two files."** He had credits on
+his mind and the app sent him off to cut up his notes. Three faults were
+stacked under that one sentence and they are three different kinds of
+mistake.
+
+### 1. A refusal is not a failure to read
+
+Both passes of `claudePlan` wrapped their calls in
+`catch (e) { if (e.code === "cancelled") throw e; }`. For one flaky batch out
+of twenty that is right and it stays: nineteen good answers beat none.
+
+For a REFUSAL it is wrong twice. Out of credits was swallowed on every batch,
+the read ended with nothing, and the code threw a generic `unreadable`, which
+draws as the file message. The handler has had a proper out of credits branch
+the whole time and never saw it. It also meant twenty pointless calls against
+a 402 before anything was said, which is most of why it sat there first.
+
+`REFUSALS` and `isRefusal(e)` now gate all three catches inside the read
+(pass one, the casting call, the batch loop): **cancelled, out_of_credits,
+no_plan, help_paused, device_replaced, device_required**. A refusal stops the
+read where it happens and arrives at the handler still carrying its code.
+**If a new refusal code is ever added to the server, add it to that set**, or
+it becomes "couldn't read that file" the same way this one did.
+
+### 2. The account in memory never learned the new balance
+
+`ME` is fetched once when the page opens. `BF.onCredits` has always painted
+the pill in the corner with the figure the server just returned and never
+written it back, so every other reader of `ME.credits_left` quoted the
+balance from the moment the tab was opened for the rest of the session.
+
+The one that mattered: the paste sheet already has a line saying "you need 5
+credits, your balance is 0" with Add credits on it, drawn from `ME`. Spend
+your last credits with the tab open and it read a stale number, decided there
+was nothing to say, and stayed hidden. So the only way to find out was to
+paste a file and press the button, which is the exact thing that line exists
+to prevent.
+
+Written inside `BF.onCredits` rather than at the call sites, the same reason
+the unlimited guard in there is: there is more than one caller and the next
+one has not been written yet.
+
+### 3. The way out was a sentence, not a button
+
+The message said "Add credits, or wait until your monthly allowance resets"
+and left somebody to go and find where. `pressTopUp(btn)` is one function
+pressed from both places now, with `topUpWord()` deciding between **Add
+credits** and **See plans**, because a pack is the right answer for a
+subscriber having a heavy month and the wrong one on a trial.
+
+**A knock-on worth knowing.** `pressTopUp`'s failure path used to write over
+`#dumpcount`, which was harmless while the only button lived in its own
+paragraph. It is not harmless now, because the second button sits INSIDE that
+message: a checkout that would not open wiped both the explanation and the
+button and left one sentence about Stripe and no way back. A failed checkout
+has its own line, `#dumpbuyerr`.
+
+### And the sheet says less
+
+Four paragraphs of prose stood between the title and the box. A writer with a
+notes file in their clipboard reads none of it. Three short lines now: what
+to put in the box, what it costs, and that the notes stay private. Everything
+else is behind a ⓘ (`.infodot`, `#dumpmore`), which is not hiding it: it is
+where somebody who wants it finds it in one press, and the press is the
+signal that they wanted it.
+
+The privacy line stays visible in four words on purpose. This is the moment a
+writer hands over their whole file, and that sentence is doing a job there
+that it does nowhere else in the product.
+
+### test/credits.js, 38 checks
+
+All three faults, plus the ones that keep the fix honest: that a genuinely
+empty read still says "couldn't read that file" and does not try to sell
+anything, that one bad batch still does not lose the whole read, that an
+owner is never warned about a balance, and that the price on the sheet comes
+from `CREDIT` rather than being typed in either place.
+
+Each fault was put back to check the suite catches it. The swallowed refusal
+turns eight checks red; the stale balance turns three red.

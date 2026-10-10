@@ -643,6 +643,33 @@ select:focus{border-color:var(--blue);outline:none}
 .btn-win:hover{background:var(--win);border-color:var(--win)}
 .btn-danger{border-color:#E0C9C9;color:var(--red);background:var(--card)}
 .btn-danger:hover{background:var(--red);color:var(--card);border-color:var(--red)}
+/* The ⓘ beside a line, and what it opens. Small, quiet and obviously
+   pressable: a dot nobody can tell is a button is the same as not having
+   written the sentence it hides. */
+.infodot{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;padding:0;margin-left:3px;vertical-align:-3px;
+  border:1px solid var(--ink-4);border-radius:50%;background:none;
+  color:var(--ink-3);font-family:var(--serif);font-size:11px;font-style:italic;
+  line-height:1;cursor:pointer;
+  transition:color var(--settle),border-color var(--settle),background var(--settle);
+}
+.infodot:hover{color:var(--blue);border-color:var(--blue)}
+.infodot.on{color:var(--on-blue);border-color:var(--blue);background:var(--blue)}
+.sheet-more{
+  margin:2px 0 14px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--rule-soft);
+  border-radius:var(--r-card);
+}
+.sheet-more p{
+  margin:0 0 9px;font-family:var(--sans);font-size:12.5px;line-height:1.65;
+  color:var(--ink-3);
+}
+.sheet-more p:last-child{margin-bottom:0}
+/* Read by a screen reader and by nothing else. The dot's own letter is
+   decorative; the words are what says what the control does. */
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .linky{
   border:none;background:none;padding:6px 0 0;cursor:pointer;
   color:var(--blue);font-family:var(--sans);font-size:12.5px;font-weight:500;
@@ -757,6 +784,17 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   text-transform:uppercase;color:var(--ink-3);
 }
 .slot.gap .slotname,.slot.empty .slotname{color:var(--gold)}
+.beat-traces { margin-left: auto; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.beat-traces .otrace { margin-left: 0; }
+.note-trace { border: 0; background: none; padding: 0; font: inherit; font-size: 9px; text-transform: uppercase; color: var(--ink-4); cursor: pointer; white-space: nowrap; }
+.note-trace:hover, .note-trace[aria-expanded="true"] { color: var(--blue); }
+.note-trace:focus-visible, .beat-traces .otrace:focus-visible, .board-note-photo:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.board-notes { border-top: 1px solid var(--rule); padding-top: 12px; }
+.board-notes[hidden] { display: none; }
+.board-notes-heading { font-size: 10px; color: var(--ink-3); margin-bottom: 10px; }
+.board-note + .board-note { border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 12px; }
+.board-note-text { font-family: var(--mono); font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.board-note .board-note-photo { display: flex; width: 100%; margin: 0 0 8px; padding: 0; cursor: pointer; }
 .slothead{display:flex;align-items:baseline;gap:8px}
 .slot.contested .slotname{color:var(--gold)}
 .slot.contested .cards{box-shadow:inset 0 0 0 0 transparent}
@@ -2895,19 +2933,37 @@ footer{
 
   <div class="sheet" id="sheetpaste">
     <div class="sheet-title">Paste in your notes</div>
-    <p class="sheet-note">Paste your notes or drop in a text file. Beatfall will separate them,
-      identify possible story beats, and show you the results before changing your board.</p>
-    <!-- The price of reading a file was living in the tooltip on Sort my notes
-         and nowhere else, which is a price only a mouse can find. It is a
-         sentence again, which is what was decided when the chip was dropped:
-         the button rewrites its own label while it works, so a chip on it gets
-         wiped and a sentence does not. -->
+
+    <!-- TWO THINGS BELONG IN FRONT OF SOMEBODY ABOUT TO PASTE: what to put in
+         the box, and what it costs. This sheet had four paragraphs of prose
+         before the box, and a writer with a notes file in their clipboard
+         reads none of it.
+
+         Everything that came off is reassurance or an edge case, and neither
+         of those earns a place above the thing you came here to do. They are
+         behind the ⓘ, which is not a way of hiding them: it is where somebody
+         who wants them can find them in one press, and the press is the signal
+         that they wanted them.
+
+         The price stays visible, because it is money. The privacy line stays
+         visible, in four words, because this is the exact moment a writer is
+         handing over their whole file and the sentence is doing a job there
+         that it does nowhere else. -->
+    <p class="sheet-note">Paste your notes, or drop in a text file.</p>
     <p class="sheet-note" id="dumpcost" style="margin-top:-8px"></p>
-    <!-- A file with more than one film in it builds more than one board, and
-         each of those is charged for. Said here, before a word is typed,
-         because every other price in this app is. The review sheet names the
-         exact figure once it knows how many stories there are. -->
-    <p class="sheet-note" id="dumpmulti" style="margin-top:-8px"></p>
+    <p class="sheet-note" style="margin-top:-8px">Your notes stay private.
+      <button type="button" class="infodot" id="dumpinfo" aria-expanded="false"
+        aria-controls="dumpmore" title="What happens to your notes">
+        <span aria-hidden="true">i</span>
+        <span class="sr">What happens to your notes</span></button></p>
+
+    <div class="sheet-more" id="dumpmore" hidden>
+      <p>Beatfall separates your notes, picks out the ones that could be story
+        beats, and shows you the results before anything changes on your board.</p>
+      <p id="dumpmulti"></p>
+      <p>Your notes are never used to train a model.
+        <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
+    </div>
     <!-- The price has always been on this sheet. Whether the writer can pay it
          has not, so the way you found out you had none left was to paste a
          file, press the button and be told. Nothing is blocked here: the
@@ -2924,9 +2980,15 @@ footer{
          the text stays in the box and the writer decides where their own file
          divides. -->
     <p class="sheet-note" id="dumpbig" hidden style="margin-top:-8px;color:var(--gold-ink)"></p>
-    <p class="sheet-note" style="margin-top:-8px">Your notes stay private and are never used to
-      train a model.
-      <a href="/privacy.html" target="_blank" rel="noopener">How that works</a>.</p>
+    <!-- Where a failed checkout is reported. It used to be written over the
+         top of whatever was in the count line, which was harmless while the
+         only Add credits button lived in its own paragraph. It is not
+         harmless now: the second one sits INSIDE that message, so reporting
+         the failure there wiped both the explanation and the button, and the
+         writer was left with one sentence about Stripe and no way back. -->
+    <p class="sheet-note" id="dumpbuyerr" hidden
+       style="margin-top:-8px;color:var(--red)" role="status"></p>
+
     <!-- THE FORMAT IS ASKED HERE TOO, because this box can be reached without
          passing the sheet that asks it. "I have notes already" on the greeting
          went straight here, so a first paste was read against Save the Cat
@@ -4211,6 +4273,43 @@ function isAttached(c, proj){
   // a structure switch can strand an attachment on a beat that no longer exists
   return STRUCTURES[proj.structure].slots.some(s => s.id === c.attachedTo);
 }
+/* Read-only board references. Opening them never changes project state. */
+function boardNotes(notes, slot){
+  const panel = document.createElement("section");
+  panel.className = "board-notes";
+  panel.id = "beat-notes-" + slot.id;
+  panel.setAttribute("aria-label", "Notes filed under " + slot.name);
+  const heading = document.createElement("div");
+  heading.className = "board-notes-heading";
+  heading.textContent = "Filed under " + slot.name;
+  panel.appendChild(heading);
+  notes.forEach(c => {
+    const row = document.createElement("div");
+    row.className = "board-note";
+    if (c.img){
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "nphoto board-note-photo";
+      thumb.setAttribute("aria-label", "Open picture" + (c.text ? ": " + c.text : ""));
+      const img = document.createElement("img");
+      img.alt = "";
+      img.draggable = false;
+      thumb.appendChild(img);
+      showPhoto(c.img, img);
+      thumb.addEventListener("click", e => { e.stopPropagation(); if (!thumb.classList.contains("gone")) openPicture(c); });
+      row.appendChild(thumb);
+    }
+    if (c.text){
+      const text = document.createElement("div");
+      text.className = "board-note-text";
+      text.textContent = c.text;
+      row.appendChild(text);
+    }
+    panel.appendChild(row);
+  });
+  return panel;
+}
+
 function attachedList(slot, onChange){
   const notes = notesOn(slot.id).filter(c => isAttached(c));
   if (!notes.length) return null;
@@ -4992,24 +5091,19 @@ function render(justPlaced){
         + (contested ? " contested" : "")
         + (justPlaced === s.id ? " justplaced" : "");
       el.dataset.slot = s.id;
-      /* WHAT THE BOARD SHOWS OF THE OUTLINE: that it exists, and nothing else.
-
-         The board is index cards. Prose and filed notes rendered underneath
-         them turned it into a wall of text, which is what made the Outline
-         look like something to be locked away rather than written in. So the
-         beat carries a count and no content, in the same quiet key as
-         "undecided", and pressing it opens the Outline at this beat. */
+      // Prose belongs in the Outline; supporting notes open here on the board.
       const passages = outlineList(proj, s.id).length;
-      const filedHere = notesOn(s.id, proj).filter(c => isAttached(c, proj)).length;
-      const trace = [passages ? passages + (passages === 1 ? " passage" : " passages") : "",
-                     filedHere ? filedHere + (filedHere === 1 ? " note" : " notes") : ""]
-                    .filter(Boolean).join(" &middot; ");
+      const filed = notesOn(s.id, proj).filter(c => isAttached(c, proj));
       el.innerHTML =
         '<div class="slothead"><span class="slotname">' + esc(s.name) + "</span>"
         + (contested ? '<span class="undecided" data-tip="This beat has more than one version. Delete one or keep both for now.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
-        + (trace ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
-            + trace + "</button>" : "")
+        + (passages || filed.length ? '<span class="beat-traces">'
+            + (passages ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
+                + passages + (passages === 1 ? " passage" : " passages") + "</button>" : "")
+            + (filed.length ? '<button class="note-trace" type="button" aria-expanded="false" aria-controls="beat-notes-' + esc(s.id) + '">'
+                + filed.length + (filed.length === 1 ? " note" : " notes") + "</button>" : "")
+            + "</span>" : "")
         + "</div>"
         /* THE JOB STAYS. It used to appear only on an empty beat, which meant
            the board explained itself least at the moment a writer is deciding
@@ -5029,6 +5123,22 @@ function render(justPlaced){
       });
       const holder = el.querySelector(".cards");
       cards.forEach(c => holder.appendChild(cardEl(c)));
+      const noteBtn = el.querySelector(".note-trace");
+      if (noteBtn){
+        let panel;
+        noteBtn.setAttribute("aria-label", "Show notes filed under " + s.name);
+        noteBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (!panel){
+            panel = boardNotes(filed, s);
+            holder.after(panel);
+          }
+          const expanded = noteBtn.getAttribute("aria-expanded") !== "true";
+          panel.hidden = !expanded;
+          noteBtn.setAttribute("aria-expanded", String(expanded));
+          noteBtn.setAttribute("aria-label", (expanded ? "Hide" : "Show") + " notes filed under " + s.name);
+        });
+      }
 
       // An empty beat is the absence of a card: the job it does, one dashed
       // hairline where the paper should be, and two quiet ways in.
@@ -8153,14 +8263,28 @@ function paintImportBalance(){
      a trial it is a worse deal offered at the exact moment somebody is deciding
      whether this thing is worth paying for. */
   const buy = document.getElementById("dumptopup");
-  if (buy) buy.textContent = (ME && ME.trialing) ? "See plans" : "Add credits";
+  if (buy) buy.textContent = topUpWord();
   line.hidden = false;
 }
 
-document.getElementById("dumptopup").addEventListener("click", async ev => {
-  // On a trial this is a signpost, not a purchase.
+/* THE WAY TO BUY MORE, FROM WHEREVER THE WRITER IS STANDING WHEN THEY FIND
+   OUT THEY CANNOT.
+
+   There are two of those moments on this sheet and they used to be answered
+   very differently. Before anything is typed there is a warning with a
+   button on it. After the button, when the server refuses, there was a
+   sentence telling somebody to go and add credits and no way to do it, which
+   is the app knowing what you need and making you go and find it.
+
+   One function, pressed from both. On a trial it is a signpost to the plans
+   rather than a purchase: a pack is the right answer for a subscriber having
+   a heavy month, and on a trial it is a worse deal offered at the exact
+   moment somebody is deciding whether this is worth paying for at all. */
+const topUpWord = () => (ME && ME.trialing) ? "See plans" : "Add credits";
+
+async function pressTopUp(b){
   if (ME && ME.trialing){ location.href = "/settings.html#plan"; return; }
-  const b = ev.currentTarget, was = b.textContent;
+  const was = b.textContent;
   b.disabled = true; b.textContent = "Opening…";
   try {
     const {url} = await BF.api("/api/billing",
@@ -8168,9 +8292,23 @@ document.getElementById("dumptopup").addEventListener("click", async ev => {
     location.href = url;
   } catch (e) {
     b.disabled = false; b.textContent = was;
-    document.getElementById("dumpcount").textContent = BF.explain(e);
+    const say = document.getElementById("dumpbuyerr");
+    say.textContent = BF.explain(e);
+    say.hidden = false;
   }
-});
+}
+
+document.getElementById("dumptopup").addEventListener("click",
+  ev => pressTopUp(ev.currentTarget));
+
+/* The same control on the refusal itself. The message is built as a string
+   when the read comes back, so the button is bound the moment it is drawn
+   rather than at load: there is nothing to bind to until then. */
+function wireRefusalTopUp(){
+  const b = document.getElementById("dumpbuy");
+  if (b) b.addEventListener("click", ev => pressTopUp(ev.currentTarget));
+}
+
 function closeImport(){
   /* CANCELLING IS NOT THE SAME AS DISCARDING.
      A writer who unticks six rows and then closes the sheet has made six
@@ -8274,12 +8412,23 @@ marksCost(document.getElementById("captureimport"), "import");
   go.setAttribute("data-tip", go.getAttribute("data-tip")
     + " Costs " + costWords("import") + ".");
   document.getElementById("dumpmulti").textContent =
-    "If your notes hold more than one story, each extra project you choose to "
-    + "add costs " + costWords("import") + ". You can leave any of them out.";
+    "Up to " + IMPORT_MAX_NOTES.toLocaleString() + " notes in one go. If the file holds "
+    + "more than one story, each extra project you choose to add costs "
+    + costWords("import") + ", and you can leave any of them out.";
   document.getElementById("dumpcost").textContent =
-    "Sorting up to " + IMPORT_MAX_NOTES.toLocaleString() + " notes costs " + costWords("import")
-    + ". Entering text does not use credits. Select Sort my notes to begin, then review the results before adding them.";
+    "Sorting costs " + costWords("import") + ". Typing in the box is free.";
 }
+/* The ⓘ. Open and shut, and it stays shut on the next opening of the sheet,
+   because somebody who read it once does not need it in front of them for
+   the rest of their life. */
+document.getElementById("dumpinfo").addEventListener("click", ev => {
+  const more = document.getElementById("dumpmore");
+  const open = more.hidden;
+  more.hidden = !open;
+  ev.currentTarget.setAttribute("aria-expanded", String(open));
+  ev.currentTarget.classList.toggle("on", open);
+});
+
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape" || scrim.hidden) return;
   // On the screen before the charge, Escape is Go back rather than a way out
@@ -9800,6 +9949,29 @@ function lockBoundaries(notes, placed, storyOf, forced){
   return moved;
 }
 
+/* ---------------------------------------------------------------------------
+   THE DIFFERENCE BETWEEN A BAD BATCH AND A CLOSED DOOR.
+
+   The read makes two passes and both wrap their calls in a catch that
+   swallowed everything except a cancel. For one flaky batch out of twenty
+   that is right: nineteen good answers beat none, and the writer gets their
+   notes sorted.
+
+   For a REFUSAL it is wrong twice over. Being out of credits got swallowed
+   on every batch, the read ended with nothing, and the code threw a generic
+   `unreadable`, which the handler draws as "Couldn't read that file. Try
+   again, or split it into two files." That sends somebody who cannot afford
+   the read round in a circle doing the one thing that cannot work. It also
+   meant twenty pointless calls against a 402 before anything was said.
+
+   So a refusal stops the read where it happens and arrives at the handler
+   still carrying its own code, which has had a proper sentence waiting for it
+   the whole time. Everything else keeps the forgiving behaviour.
+   --------------------------------------------------------------------------- */
+const REFUSALS = new Set(["cancelled", "out_of_credits", "no_plan",
+                          "help_paused", "device_replaced", "device_required"]);
+const isRefusal = e => !!(e && REFUSALS.has(e.code));
+
 async function claudePlan(raw){
   const proj = P();
   let S = STRUCTURES[proj.structure];
@@ -9854,7 +10026,7 @@ async function claudePlan(raw){
       + "{\"brief\":{\"name\":\"\",\"log\":\"\",\"who\":\"\",\"genre\":\"\",\"like\":\"\",\"setting\":\"\",\"format\":\"\"},"
       + "\"stories\":[{\"name\":\"short name in the writer's own words\",\"about\":\"one line\"}],"
       + "\"people\":[{\"name\":\"\",\"role\":\"\",\"who\":\"\",\"want\":\"\",\"need\":\"\",\"wound\":\"\",\"lie\":\"\",\"wall\":\"\",\"arc\":\"\",\"voice\":\"\"}]}");
-  } catch (e) { if (e && e.code === "cancelled") throw e; }
+  } catch (e) { if (isRefusal(e)) throw e; }
 
   const groups = (top && Array.isArray(top.stories) && top.stories.length
     ? top.stories : [{name: proj.name, about: ""}]).slice(0, MAX_IMPORT_STORIES);
@@ -10094,7 +10266,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   const READINGS = 3;
   const replies = await Promise.all(
     Array.from({length: READINGS}, () => ask(prompt).catch(e => {
-      if (e && e.code === "cancelled") throw e;
+      if (isRefusal(e)) throw e;
       return null;
     })));
   const heard = replies.filter(r => r && Array.isArray(r.beats));
@@ -10286,7 +10458,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
         + "{\"notes\":[{\"b\":\"" + S.slots[0].id + "\",\"c\":85,\"d\":false,\"k\":\"image\","
         + "\"e\":null,\"n\":0,\"s\":0}]}");
     } catch (e) {
-      if (e && e.code === "cancelled") throw e;
+      if (isRefusal(e)) throw e;
     }
     ((data && data.notes) || []).forEach(r => {
       const n = Number(r && r.n);
@@ -11325,18 +11497,38 @@ async function startSort(){
       if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Sort my notes"; stop.hidden = true; return; }
       // A failed read used to fall through to the built-in matcher without saying
       // so, which looked exactly like a successful one. It says so now.
+      /* BEING OUT OF CREDITS IS NOT A FAILURE TO READ, and telling somebody
+         who cannot afford the read to "try again, or split it into two
+         files" sends them round in a circle doing the one thing that cannot
+         work. Two different events, two different sentences.
+
+         AND THE WAY OUT IS A BUTTON NOW. Saying "add credits" to somebody
+         and then making them go and find where is the app knowing exactly
+         what they need and withholding it. It is the same control, and the
+         same word, as the warning further up this sheet. */
+      const refused = e && (e.code === "out_of_credits" || e.code === "no_plan");
+      const noPlan  = e && e.code === "no_plan";
       document.getElementById("dumpcount").innerHTML =
-        /* Being out of credits is not a failure to read, and saying "try
-           again, or split it into two files" to somebody who cannot afford
-           the read sends them round in a circle doing the one thing that
-           cannot work. Two different events, two different sentences. */
-        (e && (e.code === "out_of_credits" || e.code === "no_plan")
+        (refused
           ? "<b>" + esc(BF.explain(e)) + "</b> Nothing was charged and your notes are "
-            + "still in the box. " + (e.code === "no_plan" || (ME && ME.trialing)
-                ? "Subscribe to use the writing help."
-                : "Add credits, or wait until your monthly allowance resets.")
+            + "still in the box. "
+            + (noPlan || (ME && ME.trialing)
+                ? "<button type=\"button\" class=\"linky\" id=\"dumpbuy\" "
+                  + "style=\"padding:0\">See plans</button>"
+                : "<button type=\"button\" class=\"linky\" id=\"dumpbuy\" "
+                  + "style=\"padding:0\">Add credits</button>"
+                  + ", or wait until your monthly allowance resets.")
           : "<b>Couldn't read that file.</b> Nothing was added. Your text is still above. "
             + "Try again, or split it into two files.");
+      /* A plan is bought on the plans page whoever presses it, so a refused
+         trial goes there rather than to a pack it cannot use. */
+      if (refused && noPlan){
+        const b = document.getElementById("dumpbuy");
+        if (b) b.addEventListener("click",
+          () => { location.href = "/settings.html#plan"; });
+      } else if (refused){
+        wireRefusalTopUp();
+      }
       go.disabled = false; go.textContent = "Try again"; stop.hidden = true; dumpCtl = null;
       return;
     }finally{
@@ -12941,7 +13133,8 @@ async function photoRoom(){
    nobody has opened should not be holding one at all. */
 function openPicture(card){
   const old = document.querySelector(".picview");
-  if (old) old.remove();
+  if (old) old.querySelector(".picx").click();
+  const returnFocus = document.activeElement;
 
   const box = document.createElement("div");
   box.className = "picview";
@@ -12952,7 +13145,8 @@ function openPicture(card){
 
   const shut = () => {
     box.remove();
-    document.removeEventListener("keydown", onKey);
+    document.removeEventListener("keydown", onKey, true);
+    if (returnFocus && returnFocus.isConnected) returnFocus.focus();
   };
   function onKey(e){ if (e.key === "Escape"){ e.stopPropagation(); shut(); } }
 
@@ -15573,6 +15767,31 @@ const lastMark = a => Math.min(LAST_NOTICE, Math.max(1, Math.round(a * 0.07)));
 
 BF.onCredits = function (c) {
   if (!c || !c.allowance) return;
+
+  /* THE ACCOUNT IN MEMORY LEARNS THE NEW BALANCE HERE, AND USED NOT TO.
+   *
+   * `ME` is fetched once when the page opens. This function has always
+   * painted the pill in the corner with the figure the server just returned,
+   * and never written that figure back, so every OTHER reader of
+   * ME.credits_left went on quoting the balance from the moment the tab was
+   * opened for the rest of the session.
+   *
+   * The one that mattered: the paste sheet has a line that says "you need 5
+   * credits to sort these notes, your balance is 0" with Add credits beside
+   * it, and it is drawn from ME. Spend your last credits with the tab open
+   * and that warning reads a stale number, decides there is nothing to say,
+   * and stays hidden. So the only way to discover you had none left was to
+   * paste a file and press the button, which is exactly the thing that line
+   * exists to prevent.
+   *
+   * Written HERE rather than at the call sites, for the same reason the
+   * unlimited guard below is: there is more than one caller and the next one
+   * has not been written yet. */
+  if (ME){
+    ME.credits_left = c.left;
+    ME.credits_allowance = c.allowance;
+    ME.banked = c.banked;
+  }
 
   /* AN OWNER'S ALLOWANCE IS A STAND-IN FOR INFINITY, NOT A FIGURE TO READ.
    *

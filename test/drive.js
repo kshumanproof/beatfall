@@ -76,7 +76,7 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
   current_period_end:null, has_history:false});
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 
   // ---------------------------------------------------------- the boot hold
   {
@@ -1233,6 +1233,85 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
 
     check('no page errors without a mouse', errors.length === 0, errors.join('\n'));
     await ctx.close();
+  }
+
+  // Board reference counts open supporting material without touching the Outline.
+  {
+    const proj = board('Board references', 1);
+    proj.cards.push({id:70, slot:'__shelf', kind:'photo', img:'u1/rain.jpg', attachedTo:'open', text:'Rain reference'});
+    proj.cards.push({id:71, slot:'__shelf', kind:'research', attachedTo:'open', text:'Full supporting note\nSecond line'});
+    const {page, errors} = await open(browser, {account:PAID, projects:[proj]});
+    await page.evaluate(() => {state.activeId=state.projects[0].id;setView('board',true);});
+    await page.waitForTimeout(900);
+    const before = await page.evaluate(() => ({data:JSON.stringify(projectPayload(P())), undo:undoStack.length, dirty:dirty.size, saves:__CALLS__.filter(c=>c==='save').length}));
+    const btn=page.locator('.slot[data-slot="open"] .note-trace');
+    check('filed notes have a separate count on an incomplete board', await btn.textContent()==='2 notes');
+    check('notes start collapsed', await btn.getAttribute('aria-expanded')==='false' && await page.locator('.board-notes').count()===0);
+    await btn.click();
+    await page.waitForTimeout(200);
+    check('count expands references beneath the cards', await page.locator('.slot[data-slot="open"] .cards + .board-notes').isVisible());
+    check('full supporting text is shown', await page.locator('.board-notes').textContent().then(t=>t.includes('Full supporting note\nSecond line')));
+    check('opening notes does not trigger the Outline gate', await page.evaluate(()=>state.view==='board' && document.getElementById('settled').hidden));
+    check('reference panel has no editing or removal controls', await page.locator('.board-notes input, .board-notes textarea, .board-notes [contenteditable], .board-notes .unpin').count()===0);
+    const thumb=page.locator('.board-note-photo');
+    check('photo uses the existing signed image loader', (await thumb.locator('img').getAttribute('src')).startsWith('data:image'));
+    check('reference image cannot start a card drag', await thumb.locator('img').getAttribute('draggable')==='false');
+    await thumb.click();
+    check('board thumbnail opens the picture viewer', await page.locator('.picview').isVisible());
+    await page.keyboard.press('Escape');
+    check('picture closes and returns focus to its thumbnail', await page.evaluate(()=>!document.querySelector('.picview') && document.activeElement.matches('.board-note-photo')));
+    const escapeLeaks=await page.evaluate(()=>{
+      let heard=0;const listener=e=>{if(e.key==='Escape')heard++;};
+      document.addEventListener('keydown',listener);
+      document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+      document.removeEventListener('keydown',listener);return heard;
+    });
+    check('closed picture leaves no Escape interception',escapeLeaks===1);
+    await thumb.click(); await page.locator('.picx').click();
+    check('close button also restores focus',await page.evaluate(()=>document.activeElement.matches('.board-note-photo')));
+    await btn.focus(); await page.keyboard.press('Enter');
+    check('keyboard activation collapses notes',await btn.getAttribute('aria-expanded')==='false' && !(await page.locator('.board-notes').isVisible()));
+    await page.keyboard.press('Space');
+    check('keyboard activation reopens notes',await btn.getAttribute('aria-expanded')==='true');
+    const after=await page.evaluate(()=>({data:JSON.stringify(projectPayload(P())),undo:undoStack.length,dirty:dirty.size,saves:__CALLS__.filter(c=>c==='save').length}));
+    check('viewing references changes no project data, undo history, dirty state or saves',JSON.stringify(before)===JSON.stringify(after));
+    await page.screenshot({path:'board-notes-light.png',fullPage:true});
+    await page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));
+    await page.screenshot({path:'board-notes-dark.png',fullPage:true});
+    await page.evaluate(()=>{P().outline.open=[{id:'passage-1',text:'Outline prose'}];P().outline.__started=true;render();});
+    check('mixed references have independent passage and note buttons',await page.locator('.slot[data-slot="open"] .otrace').textContent()==='1 passage' && await btn.textContent()==='2 notes');
+    check('board rebuild clears expanded references',await page.locator('.board-notes').count()===0);
+    await page.locator('.slot[data-slot="open"] .otrace').click();
+    check('passage count still opens Outline',await page.evaluate(()=>state.view==='outline'));
+    check('no errors in board reference flow',errors.length===0,errors.join('\n'));
+    await page.close();
+  }
+
+  {
+    const proj=board('Reference edge cases',1);
+    proj.cards.push({id:70,slot:'__shelf',kind:'photo',img:'u1/empty.jpg',attachedTo:'open',text:''});
+    const {page,errors}=await open(browser,{account:PAID,projects:[proj,board('Other board',1)]});
+    await page.evaluate(()=>{state.activeId=state.projects[0].id;setView('board',true);});
+    await page.locator('.note-trace').click();
+    check('captionless photo is still accessible',await page.locator('.board-note-photo').getAttribute('aria-label')==='Open picture');
+    await page.evaluate(()=>{state.activeId=state.projects[1].id;render();});
+    check('switching projects never carries references across boards',await page.locator('.note-trace, .board-notes').count()===0);
+    await page.evaluate(()=>{state.activeId=state.projects[0].id;P().cards.find(c=>c.id===70).attachedTo='theme';render();});
+    check('reassignment moves the count to the correct beat',await page.locator('.slot[data-slot="open"] .note-trace').count()===0 && await page.locator('.slot[data-slot="theme"] .note-trace').count()===1);
+    await page.evaluate(()=>{const api=BF.api;BF.api=(path,opts)=>path.startsWith('/api/images')?Promise.resolve({urls:{}}):api(path,opts);PHOTO_URL.clear();});
+    await page.locator('.slot[data-slot="theme"] .note-trace').click();
+    await page.waitForTimeout(150);
+    check('missing photo shows an honest fallback',await page.locator('.board-note-photo').textContent()==='Picture unavailable. Refresh to try again.');
+    await page.locator('.board-note-photo').click();
+    check('unavailable photo does not open an empty viewer',await page.locator('.picview').count()===0);
+    await page.evaluate(()=>{snapshot();P().cards=P().cards.filter(c=>c.id!==70);render();});
+    check('deletion removes the count and expanded references',await page.locator('.note-trace, .board-notes').count()===0);
+    await page.evaluate(()=>document.getElementById('undo').click());
+    check('Undo restores the filed reference count',await page.locator('.slot[data-slot="theme"] .note-trace').count()===1);
+    await page.evaluate(()=>{P().structure='three';render();});
+    check('structure rebuild leaves no stale reference panel',await page.locator('.board-notes').count()===0);
+    check('no errors in reference edge cases',errors.length===0,errors.join('\n'));
+    await page.close();
   }
 
   // ------------------------------------ a picture filed under a beat, shown --
