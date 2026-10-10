@@ -171,12 +171,14 @@ async function open(browser){
     const {page: pg, errors: errs} = await open(browser);
     const out = await pg.evaluate(async ([text, splitSrc]) => {
       const splitWith = eval('(' + splitSrc + ')');
-      window.__SPLITASKED__ = []; window.__ASKED__ = 0;
+      window.__SPLITASKED__ = []; window.__SORTASKED__ = []; window.__CASTASKED__ = []; window.__ASKED__ = 0;
       let first = true;
       const reply = (prompt) => {
         window.__ASKED__++;
         if (first){ first = false; return {brief: {}, people: [], stories: [{name: 'Main', about: ''}]}; }
         if (/Your only job is to say where/.test(prompt)){ window.__SPLITASKED__.push(prompt); return splitWith(prompt); }
+        if (/You are sorting a screenwriter/.test(prompt)) window.__SORTASKED__.push(prompt);
+        if (/You are casting/.test(prompt)) window.__CASTASKED__.push(prompt);
         const nums = [...String(prompt).matchAll(/^(\d+)\.\s/gm)].map(m => Number(m[1]));
         return nums.length ? {notes: nums.map(n => ({b: null, c: 0, d: false, k: 'beat', e: null, n, s: 0}))} : {};
       };
@@ -199,6 +201,7 @@ async function open(browser){
               said: document.getElementById('dumpcount').textContent,
               splitPrompts: window.__SPLITASKED__.length,
               splitPrompt: window.__SPLITASKED__[0] || '',
+              sortPrompts: window.__SORTASKED__, castPrompts: window.__CASTASKED__,
               texts: (plan || []).flatMap(st => st.notes.map(n => n.text))};
     }, [text, splitSrc.toString()]);
     out.errors = errs;
@@ -249,9 +252,31 @@ async function open(browser){
   const declared = await sortWith("MIDPOINT:\nMaya places first. The bakery gets a rush. Buying the building feels possible.\nTess learns about the job applications. She feels betrayed.", everySentence);
   check('a note the writer declared under a heading is never offered for splitting',
     !/Maya places first/.test(declared.splitPrompt) && /Tess learns/.test(declared.splitPrompt), declared.splitPrompt);
+  /* ---- every note read whole ----
+     The sorter used to see the first 400 characters of a note and the casting
+     call the first 240, so the end of a long note never reached either. */
+  const tail = 'turning the sign from CLOSED to OPEN';
+  check('the sorter is shown a long note to its last word',
+    nonsense.sortPrompts.some(p => p.includes(tail)), 'the end of the note never reached the sorter');
+  const both = await sortWith(SAFE + '\n\n' + JOGGER, () => ({cuts: []}));
+  check('and so is the casting call',
+    both.castPrompts.length > 0 && both.castPrompts.every(p => p.includes(tail)),
+    both.castPrompts.length + ' casting prompts');
+
+  const LONG = Array.from({length: 90}, (_, i) =>
+    'Note ' + i + ' ' + 'the crew drives the long road north through the rain and nobody speaks. '.repeat(12) + 'END' + i);
+  const big = await sortWith(LONG.join('\n'), () => ({cuts: []}));
+  const seen = big.sortPrompts.flatMap(p => [...p.matchAll(/^(\d+)\. Note \d+ /gm)].map(m => Number(m[1])));
+  check('a long paste is read in several batches, none of them oversized',
+    big.sortPrompts.length > 3 && big.sortPrompts.every(p => (p.split('NOTES:\n')[1] || '').split('\n\nFor each')[0].length < 17500),
+    big.sortPrompts.length + ' batches');
+  check('and every note is read exactly once, whole',
+    seen.length === 90 && new Set(seen).size === 90 && LONG.every((t, i) => big.sortPrompts.some(p => p.includes('END' + i))),
+    seen.length + ' notes read');
+
   check('no page errors during the splitting runs',
-    [cut, many, nonsense, broken, whole, declared].every(r => !r.errors.length),
-    [cut, many, nonsense, broken, whole, declared].flatMap(r => r.errors).join('\n'));
+    [cut, many, nonsense, broken, whole, declared, big, both].every(r => !r.errors.length),
+    [cut, many, nonsense, broken, whole, declared, big, both].flatMap(r => r.errors).join('\n'));
 
   check('no page errors', errors.length === 0, errors.join('\n'));
   await browser.close();

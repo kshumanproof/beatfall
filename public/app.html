@@ -9493,6 +9493,15 @@ function localPlan(raw){
    out in batches. Asking for the whole file in one reply is what silently
    truncated and dumped an entire notes folder into Opening Image. */
 const IMPORT_BATCH = 40;
+/* EVERY NOTE IS READ WHOLE. Each note used to be cut at 400 characters on its
+   way into this read, and at 240 in the casting call, which kept a batch to a
+   predictable size back when notes were single lines. It also meant a long
+   note was placed on its opening alone: Kris's bakery test put Tess's "safe
+   thing" line and the recipe testing past the cut, so neither could ever be
+   offered for Theme Stated or Fun and Games. Batches are now sized by their
+   total length instead, the same as the splitting pass, and no note is
+   shortened. 16,000 is what forty notes at the old cut came to. */
+const IMPORT_BATCH_CHARS = 16000;
 const MAX_PER_BEAT = 3;      // a hard ceiling, whatever the model says
 
 /* HOW SURE THE READER HAS TO BE TO TAKE A BEAT.
@@ -10430,7 +10439,7 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
   notes.forEach((n, i) => { if (n.declared && n.beat) taken[n.beat] = n.text; });
 
   const sheet = idx.map(i =>
-    i + ". " + notes[i].text.replace(/\s+/g, " ").slice(0, 240)).join("\n");
+    i + ". " + notes[i].text.replace(/\s+/g, " ")).join("\n");
   const board = S.slots.map(x => "- " + x.id + " | " + x.name
     + (taken[x.id] ? "  [already set by the writer: "
         + taken[x.id].replace(/\s+/g, " ").slice(0, 70) + "]" : "")).join("\n");
@@ -10643,10 +10652,17 @@ async function castTheBoard(notes, placed, storyOf, S, beats, ask){
 
   const placed = {};
   let answered = 0;
-  for (let i = 0; i < notes.length; i += IMPORT_BATCH){
-    const batch = notes.slice(i, i + IMPORT_BATCH);
-    const lines = batch.map((n, k) => (i + k) + ". " + n.text.replace(/\s+/g, " ").slice(0, 400)).join("\n");
-    const upto = Math.min(notes.length, i + IMPORT_BATCH);
+  for (let i = 0, end = 0; i < notes.length; i = end){
+    // As many notes as fit, up to forty, and always at least one.
+    let chars = 0;
+    end = i;
+    while (end < notes.length && end - i < IMPORT_BATCH
+           && (end === i || chars + notes[end].text.length <= IMPORT_BATCH_CHARS)){
+      chars += notes[end].text.length; end++;
+    }
+    const batch = notes.slice(i, end);
+    const lines = batch.map((n, k) => (i + k) + ". " + n.text.replace(/\s+/g, " ")).join("\n");
+    const upto = end;
     document.getElementById("dumpcount").innerHTML =
       '<span class="spinner"></span>reading notes ' + (i + 1) + " to "
       + upto + " of " + notes.length;
