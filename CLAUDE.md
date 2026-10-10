@@ -2970,9 +2970,9 @@ the private list and out of the sitemap, which are facts about the site.
     node reporting.js ; node actions.js
 
 drive 269, flows 273, pages 81, mobile 5, platform 17, delete 23, stories 33,
-admin 151, credits 38; money 69, gate 23, hook 18, clean 31, captures 42,
+admin 151, credits 43; money 69, gate 23, hook 18, clean 31, captures 42,
 proxy 29, lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
-reporting 63, actions 115. **1,505 checks, all passing.**
+reporting 63, actions 115. **1,510 checks, all passing.**
 
 `flows.js` and `pages.js` both want a Chromium each and the two together run
 longer than two minutes, so run them one at a time rather than in one chain
@@ -3096,6 +3096,18 @@ signal that they wanted it.
 The privacy line stays visible in four words on purpose. This is the moment a
 writer hands over their whole file, and that sentence is doing a job there
 that it does nowhere else in the product.
+
+**The dot is in the corner of the title row, and that is not only tidiness.**
+It started at the end of the privacy line, which was wrong twice over. It read
+as a footnote on that one sentence when what it opens covers the whole sheet.
+And a line of italic serif gives a round button nothing to sit on, so it was
+aligned by a hand-picked offset and looked it, which Kris spotted in about a
+second. `.sheet-head` is a flex row, so the alignment is a property of the
+layout rather than a figure somebody tuned once and will not know to retune.
+The panel opens directly beneath it, because a control in one corner and an
+effect four lines below it do not look related. There is a check on the
+centre line and on `vertical-align` being untouched, so a magic number cannot
+creep back in.
 
 ### test/credits.js, 38 checks
 

@@ -360,6 +360,34 @@ async function runImport(page, text){
     });
     check('there is an information dot', st.dot);
     check('and it starts shut', st.foldShut === true);
+    /* IN THE CORNER OF THE TITLE ROW, not at the end of a line of italic
+       serif where it was aligned by a hand-picked offset and never quite
+       landed. What it opens covers the whole sheet, so it belongs to the
+       sheet rather than to the last sentence before it. Measured as a
+       centre line rather than asserted as a class, because a check that
+       reads the markup cannot tell you whether it looks right. */
+    const dot = await page.evaluate(() => {
+      const b = document.getElementById('dumpinfo');
+      const t = document.querySelector('#sheetpaste .sheet-title');
+      const sheet = document.getElementById('sheetpaste');
+      const rb = b.getBoundingClientRect(), rt = t.getBoundingClientRect();
+      const rs = sheet.getBoundingClientRect();
+      return {
+        inNote: !!b.closest('.sheet-note'),
+        offBy: Math.abs((rb.top + rb.height / 2) - (rt.top + rt.height / 2)),
+        fromRight: Math.round(rs.right - rb.right),
+        pastTitle: rb.left > rt.right,
+        tuned: getComputedStyle(b).verticalAlign
+      };
+    });
+    check('the dot is not hanging off a sentence', dot.inNote === false);
+    check('it sits on the title\'s own centre line',
+      dot.offBy <= 1.5, 'out by ' + dot.offBy.toFixed(1) + 'px');
+    check('over in the corner, clear of the words',
+      dot.pastTitle === true && dot.fromRight < 40,
+      JSON.stringify(dot));
+    check('and nothing is nudging it into place by hand',
+      dot.tuned === 'baseline', dot.tuned);
     check('at most three lines stand between the title and the box',
       st.visible.length <= 3, JSON.stringify(st.visible));
     check('the price is one of them',
@@ -372,11 +400,16 @@ async function runImport(page, text){
     const open2 = await page.evaluate(() => {
       document.getElementById('dumpinfo').click();
       const more = document.getElementById('dumpmore');
+      const head = document.querySelector('#sheetpaste .sheet-head');
       return { shown: !more.hidden,
                says: more.textContent.replace(/\s+/g, ' ').trim(),
+               below: Math.round(more.getBoundingClientRect().top
+                                 - head.getBoundingClientRect().bottom),
                flag: document.getElementById('dumpinfo').getAttribute('aria-expanded') };
     });
     check('pressing the dot opens the rest', open2.shown === true);
+    check('and it opens directly under the control that opened it',
+      open2.below >= 0 && open2.below < 40, 'gap of ' + open2.below + 'px');
     check('and says so to a screen reader', open2.flag === 'true');
     check('the note limit is in there', /1,000 notes/.test(open2.says), open2.says);
     check('so is what happens to a file with more than one story in it',

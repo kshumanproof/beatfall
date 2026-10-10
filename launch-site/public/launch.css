@@ -44,9 +44,10 @@ footer{border-top:1px solid var(--rule);max-width:1056px;margin:0 auto;padding:2
 .enhanced .screen-card{position:relative}
 .enhanced .screen-deck::before{background-image:url('/media/beatfall-dashboard.webp');background-size:cover;background-position:right top}
 .enhanced[data-screen="1"] .screen-deck::before{background-image:url('/media/night-haul-board.webp')}
-.enhanced .screenshot{height:480px;aspect-ratio:auto;position:relative;touch-action:pan-y;cursor:default}
-.enhanced .screenshot img{position:absolute;max-width:none;width:1400px;height:auto;object-fit:initial;left:0;top:-115px;pointer-events:none;user-select:none}
-.enhanced #screen-projects .screenshot img{left:50%;transform:translateX(-50%);top:-30px}
+.enhanced .screenshot{height:auto;aspect-ratio:820/375;position:relative;touch-action:pan-y;cursor:default}
+.enhanced .screenshot img{position:absolute;max-width:none;width:170.7317%;height:auto;object-fit:initial;left:0;top:0;pointer-events:none;user-select:none}
+.enhanced #screen-projects .screenshot{aspect-ratio:1400/745}
+.enhanced #screen-projects .screenshot img{width:100%;left:0;top:0;transform:none}
 .enhanced figcaption{padding:22px 0 0;max-width:60%}
 .deck-controls{display:flex;justify-content:flex-end;align-items:center;gap:22px;position:relative;margin-top:-48px;min-height:48px}
 .deck-navigation{display:flex;align-items:center;gap:14px}
@@ -73,9 +74,12 @@ body.viewing-screen{overflow:hidden}
 }
 @media(max-width:650px){
  .screenshots.enhanced{margin-top:26px;padding-right:12px;padding-bottom:30px}
- .enhanced .screenshot{height:410px}
- .enhanced .screenshot img{width:1750px;left:-22px;top:-180px}
- .enhanced #screen-projects .screenshot img{width:1400px;left:-350px;top:-365px;transform:none}
+ .enhanced .screenshot{height:auto;aspect-ratio:290/380}
+ /* Keep the board header and the whole Opening Image card in the frame. */
+ .enhanced .screenshot img{width:482.7586%;left:0;top:0}
+ /* One complete project card, including its progress and next beat. */
+ .enhanced #screen-projects .screenshot{aspect-ratio:355/400}
+ .enhanced #screen-projects .screenshot img{width:394.3662%;left:-97.7465%;top:-87.5%;transform:none}
  .enhanced .screen-deck::before{inset:10px -12px 80px 12px}
  .swipe-hint{display:block;width:100%;margin:0;font-size:12px;text-align:center;color:var(--muted)}
  .screen-viewer{padding:14px}.viewer-bar{align-items:flex-start}.viewer-bar h2{font-size:22px}.viewer-actions{gap:6px}.viewer-actions button{font-size:12px;padding:8px 10px}

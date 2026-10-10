@@ -63,7 +63,21 @@ const server=http.createServer(async(req,res)=>{
       check(width+'px has no app gate, app script or beta links',!layout.gate&&layout.scripts.every(s=>s.endsWith('/launch.js'))&&!layout.links.some(s=>/login|billing|beta|app\.html/.test(s)));
       check(width+'px page has no script errors',errors.length===0);
       check(width+'px founder quote follows screenshots and precedes footer',await p.evaluate(()=>{const quote=document.querySelector('.founder'),shots=document.querySelector('.screenshots'),footer=document.querySelector('footer');return quote.textContent.includes('I didn’t want software to write my screenplay.')&&quote.getBoundingClientRect().top>=shots.getBoundingClientRect().bottom&&quote.getBoundingClientRect().bottom<=footer.getBoundingClientRect().top;}));
-      if([1366,390].includes(width))await p.screenshot({path:path.join(__dirname,'screenshots',width+'.png'),fullPage:true});
+      // Keep complete, meaningful regions in each responsive preview.
+      async function framed(selector, regions){
+        return p.locator(selector).evaluate((img, regions)=>{
+          const image=img.getBoundingClientRect(),frame=img.parentElement.getBoundingClientRect();
+          const scale=image.width/img.naturalWidth;
+          return regions.every(([x,y,w,h])=>image.left+x*scale>=frame.left-1 && image.top+y*scale>=frame.top-1 && image.left+(x+w)*scale<=frame.right+1 && image.top+(y+h)*scale<=frame.bottom+1);
+        },regions);
+      }
+      check(width+'px board preserves its brand, story title and complete opening note',await framed('#screen-board img',[[28,15,255,42],[28,184,250,179]]));
+      if(width>650)check(width+'px board shows three complete beat columns',await framed('#screen-board img',[[28,184,785,179]]));
+      await p.getByRole('button',{name:'Next screenshot',exact:true}).click();
+      check(width+'px project preview preserves complete progress information',await framed('#screen-projects img',width>650?[[15,43,1367,697]]:[[362,385,323,355]]));
+      if([1366,390].includes(width)){await p.screenshot({path:path.join(__dirname,'screenshots',width+'-projects.png'),fullPage:true});await p.locator('.screenshots').screenshot({path:path.join(__dirname,'screenshots',width+'-projects-detail.png')});}
+      await p.getByRole('button',{name:'Previous screenshot',exact:true}).click();
+      if([1366,390].includes(width)){await p.screenshot({path:path.join(__dirname,'screenshots',width+'.png'),fullPage:true});await p.locator('.screenshots').screenshot({path:path.join(__dirname,'screenshots',width+'-board-detail.png')});}
       await p.close();
     }
     const p=await browser.newPage();

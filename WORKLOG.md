@@ -3111,3 +3111,10 @@ The board now separates passage counts from filed-note counts. Passages retain t
 The shared picture viewer now removes its Escape listener with the same capture flag used to register it, closes a previous viewer through its cleanup path, and restores focus to a connected opener.
 
 Added 28 regression checks in test/drive.js: incomplete boards, independent passage controls, text and captionless pictures, missing pictures, keyboard use, focus and Escape cleanup, no data/undo/save changes, project isolation, reassignment, deletion/Undo and structure rebuilds. Staged shipped app passed drive 297, flows 273, stories 33 and server vision 44: 647 checks. Inspected light and dark screenshots. Offline UI harness used local Chrome and fulfilled external font requests locally; no production API, auth, storage, schema, mobile or billing changes. Real signed-link delivery still requires the live app.
+
+
+## Landing preview framing (10 October 2026)
+
+Replaced fixed desktop screenshot offsets with proportional, deliberate framing. The board preview keeps the brand, story title and three complete beat columns, including the whole Opening Image note. The dashboard preview fits the complete image, preserving its headline, scoreboard and project-card progress. On mobile, the board includes its header and complete opening card; the project preview fits one full NIGHT HAUL card, including progress, next beat and controls. The original screenshot assets, swipe/navigation/viewer code and signup code are unchanged.
+
+Added 24 framing assertions across nine viewport sizes to the landing suite. All 128 checks passed, including signup failure/retry, keyboard, swipes, zoom, no-JavaScript and layout checks. Inspected both slides on desktop and mobile. Only launch.css, landing.cjs and this log changed.
