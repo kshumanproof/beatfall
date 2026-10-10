@@ -136,6 +136,123 @@ async function open(browser){
   check('no page errors during either sort', !bare.errors.length && !run.errors.length,
     bare.errors.concat(run.errors).join('\n'));
 
+  /* ---- step 4: one note that is really several ----
+     The reader only points at sentence numbers and the cutting is done on the
+     writer's own string, so these checks are about what the CODE does with an
+     answer: a good one, a nonsense one, a failed call and no answer at all. */
+  const unit = await page.evaluate(() => {
+    const t = 'Maya opens the shop. Tess helps "before school." Noah arrives! Is it late? 3 days pass.';
+    const st = sentenceStarts(t);
+    return {
+      count: st.length,
+      good: cutAt(t, st, [3, 5]),
+      one: cutAt(t, st, [1]),
+      past: cutAt(t, st, [9]),
+      order: cutAt(t, st, [4, 3]),
+      dup: cutAt(t, st, [3, 3]),
+      frac: cutAt(t, st, [2.5]),
+      none: cutAt(t, st, []),
+      junk: cutAt(t, st, 'three')
+    };
+  });
+  check('sentences are found where they start, quotes and numbers included', unit.count === 5, JSON.stringify(unit));
+  check('a sensible answer cuts the note in the writer\'s own words',
+    JSON.stringify(unit.good) === JSON.stringify(['Maya opens the shop. Tess helps "before school."', 'Noah arrives! Is it late?', '3 days pass.']),
+    JSON.stringify(unit.good));
+  check('a cut before the first sentence is refused', unit.one === null, JSON.stringify(unit.one));
+  check('a cut past the last sentence is refused', unit.past === null, JSON.stringify(unit.past));
+  check('cuts out of order or repeated are refused', unit.order === null && unit.dup === null, '');
+  check('anything that is not a whole sentence number is refused',
+    unit.frac === null && unit.none === null && unit.junk === null, '');
+
+  /* A reader stand-in for the whole read. `splitWith(prompt)` answers the
+     splitting question; everything else is answered as stories.js does. */
+  async function sortWith(text, splitSrc){
+    const {page: pg, errors: errs} = await open(browser);
+    const out = await pg.evaluate(async ([text, splitSrc]) => {
+      const splitWith = eval('(' + splitSrc + ')');
+      window.__SPLITASKED__ = []; window.__ASKED__ = 0;
+      let first = true;
+      const reply = (prompt) => {
+        window.__ASKED__++;
+        if (first){ first = false; return {brief: {}, people: [], stories: [{name: 'Main', about: ''}]}; }
+        if (/Your only job is to say where/.test(prompt)){ window.__SPLITASKED__.push(prompt); return splitWith(prompt); }
+        const nums = [...String(prompt).matchAll(/^(\d+)\.\s/gm)].map(m => Number(m[1]));
+        return nums.length ? {notes: nums.map(n => ({b: null, c: 0, d: false, k: 'beat', e: null, n, s: 0}))} : {};
+      };
+      ai_sample = async (p) => ({text: JSON.stringify(reply(p))});
+      ai_sample.json = async (p) => reply(p);
+      ai_sample.limits = async () => ({images: false});
+      openImport(true);
+      const box = document.getElementById('dumptext');
+      box.value = text; box.dispatchEvent(new Event('input'));
+      const fmt = document.getElementById('dumpformat');
+      if (!document.getElementById('dumpformatfield').hidden){ fmt.value = 'stc'; fmt.dispatchEvent(new Event('change')); }
+      document.getElementById('dumpgo').click();
+      document.getElementById('aheadgo').click();
+      for (let i = 0; i < 100; i++){
+        await new Promise(r => setTimeout(r, 50));
+        if (!document.getElementById('sheetreview').hidden) break;
+        if (!document.getElementById('dumpgo').disabled && !/Reading/.test(document.getElementById('dumpgo').textContent)) break;
+      }
+      return {review: !document.getElementById('sheetreview').hidden,
+              said: document.getElementById('dumpcount').textContent,
+              splitPrompts: window.__SPLITASKED__.length,
+              splitPrompt: window.__SPLITASKED__[0] || '',
+              texts: (plan || []).flatMap(st => st.notes.map(n => n.text))};
+    }, [text, splitSrc.toString()]);
+    out.errors = errs;
+    await pg.close();
+    return out;
+  }
+  const squash = t => t.replace(/\s+/g, ' ').trim();
+  // Cut at every sentence the prompt numbered for the note.
+  const everySentence = (prompt) => {
+    const cuts = [];
+    String(prompt).split(/\nNOTE /).forEach(block => {
+      const n = Number((block.match(/^(?:NOTE )?(\d+):/) || [])[1]);
+      const k = (block.match(/^\s+\[\d+\]/gm) || []).length;
+      if (k > 1) cuts.push({n, at: Array.from({length: k - 1}, (_, j) => j + 2)});
+    });
+    return {cuts};
+  };
+
+  const cut = await sortWith(SAFE, everySentence);
+  const sentences = await page.evaluate((t) => sentenceStarts(t).length, SAFE.replace(/^TITLE: THE SAFE THING\s*/, ''));
+  check('the splitting question is asked once for the whole paste, not once per note',
+    cut.splitPrompts === 1, String(cut.splitPrompts));
+  check('the one-paragraph story comes apart into its separate moments',
+    cut.review && cut.texts.length === sentences && sentences >= 15,
+    cut.texts.length + ' pieces from ' + sentences + ' sentences');
+  check('every piece is the writer\'s own words, found exactly in what they pasted',
+    cut.texts.every(t => SAFE.includes(t)), cut.texts.find(t => !SAFE.includes(t)) || '');
+  check('and nothing is lost or doubled: the pieces put back together are the story',
+    squash(cut.texts.join(' ')) === squash(SAFE.replace(/^TITLE: THE SAFE THING\s*/, '')), '');
+
+  const many = await sortWith(JOGGER, everySentence);
+  check('several notes are offered in ONE question, not one question each',
+    many.splitPrompts === 1 && (many.splitPrompt.match(/^NOTE \d+:/gm) || []).length === 2,
+    many.splitPrompts + ' questions');
+
+  const nonsense = await sortWith(SAFE, () => ({cuts: [{n: 0, at: [0, 99]}, {n: 7, at: [2]}]}));
+  check('a nonsense answer keeps the note whole', nonsense.review && nonsense.texts.length === 1,
+    JSON.stringify(nonsense.texts.map(t => t.length)));
+
+  const broken = await sortWith(SAFE, () => { throw new Error('provider fell over'); });
+  check('a failed splitting call keeps the note whole and the read carries on',
+    broken.review && broken.texts.length === 1, JSON.stringify(broken));
+
+  const whole = await sortWith(JOGGER, () => ({cuts: []}));
+  check('a reader that cuts nothing changes nothing', whole.review && whole.texts.length === 3,
+    JSON.stringify(whole.texts.map(t => t.length)));
+
+  const declared = await sortWith("MIDPOINT:\nMaya places first. The bakery gets a rush. Buying the building feels possible.\nTess learns about the job applications. She feels betrayed.", everySentence);
+  check('a note the writer declared under a heading is never offered for splitting',
+    !/Maya places first/.test(declared.splitPrompt) && /Tess learns/.test(declared.splitPrompt), declared.splitPrompt);
+  check('no page errors during the splitting runs',
+    [cut, many, nonsense, broken, whole, declared].every(r => !r.errors.length),
+    [cut, many, nonsense, broken, whole, declared].flatMap(r => r.errors).join('\n'));
+
   check('no page errors', errors.length === 0, errors.join('\n'));
   await browser.close();
   const failed = results.filter(r => !r.ok).length;

@@ -3139,3 +3139,13 @@ STEP 4 NOT BUILT YET: a long paragraph is still ONE note, so the fifteen beats l
 
 Verified: test/paragraph.js (new, 18 checks, each fix put back turns it red), drive 297, flows 273, pages 81, admin 187, credits 43, stories 33, delete 23, platform 17.
 
+
+
+## Match the board preview to the approved dashboard (10 October 2026)
+
+Only the board framing changed: desktop uses the dashboard's 1400/745 frame and 100% image width; mobile uses the dashboard's 355/400 frame and image scale. The dashboard's own rules, original assets, swipe and zoom code and signup code are unchanged. Both slides now keep the controls at the same document position. The board shows its complete width on desktop instead of the enlarged three-column crop.
+
+All 146 landing regression checks passed across nine viewports, including frame/scale equality, stable controls, preserved content, swipe, viewer, signup and no-JavaScript behavior. Two additional local screenshot comparisons verified the dashboard is pixel-identical to its previous desktop and mobile appearance. Both board previews visually inspected.
+
+STEP 4 BUILT, same day: separateMoments() in app.html, run inside claudePlan right after the free split and before everything else, on the same paid session. Every note with two or more sentences is offered (never a declared one), batched 40 notes or 12,000 characters per request. The reader only answers sentence numbers where a new piece begins; the code cuts the writer's own string, requires the pieces to rebuild the original exactly, and keeps the note whole on any bad answer or failed call. Refusals still stop the read. Kris's rule: keep whole by default, split only clearly distinct moments or independent ideas, length never decides. Also worth knowing: the classification batch only ever reads the first 400 characters of a note, so a long unsplit note was being sorted on its opening alone. Kris's bakery paste is exactly 15 sentences. test/paragraph.js now 34 checks; drive 297, flows 273, pages 81, admin 187 all pass. Not yet proven against the real writing help: needs one real paste.
+

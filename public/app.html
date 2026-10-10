@@ -10061,6 +10061,139 @@ const REFUSALS = new Set(["cancelled", "out_of_credits", "no_plan",
                           "help_paused", "device_replaced", "device_required"]);
 const isRefusal = e => !!(e && REFUSALS.has(e.code));
 
+/* ONE NOTE THAT IS REALLY SEVERAL.
+
+   Writers do not always press Enter. A whole story typed as one paragraph, or
+   a voice note dictated on a walk, arrives as ONE note, because everything
+   before this reads line breaks and dictation has none. Kris's rule, 10
+   October 2026: consider every note, keep it whole by default, and split only
+   where it holds clearly distinct story moments or independent ideas. Length
+   must never decide it either way.
+
+   THE READER ONLY POINTS. It never writes. Each note goes out as numbered
+   sentences and comes back as either nothing (keep it whole) or the numbers of
+   the sentences where a new piece begins. The cutting is done here, on the
+   writer's own string, so their exact words are guaranteed by construction:
+   no rewritten text ever comes back to be trusted. Then it is checked anyway.
+   The pieces joined must equal the original character for character, every
+   cut must be a real sentence start in order, and any answer that fails keeps
+   the original whole. A failed or unreadable batch keeps every note in it.
+
+   A note the writer declared ("MIDPOINT:" over it) is never offered. They
+   already said it is one beat.
+
+   Batched, never one request per note, and it rides the read already paid
+   for, so it costs the writer nothing more. */
+const SPLIT_BATCH = 40;
+const SPLIT_BATCH_CHARS = 12000;
+
+/* Where each sentence STARTS, as offsets into the original string. A
+   sentence ends at . ! or ? (with any closing quote or bracket) followed by
+   space and something that can start a sentence. Abbreviations like "Mr."
+   produce a boundary the reader will simply never choose. */
+function sentenceStarts(text){
+  const starts = [0];
+  const re = /[.!?]+["'”’)\]]*\s+(?=["'“‘(\[]?[A-Z0-9])/g;
+  let m;
+  while ((m = re.exec(text))){
+    const at = m.index + m[0].length;
+    if (at < text.length) starts.push(at);
+  }
+  return starts;
+}
+
+/* The reader's cut points, checked, applied to the writer's own string.
+   Returns null if anything about them is wrong, which means keep it whole. */
+function cutAt(text, starts, at){
+  if (!Array.isArray(at) || !at.length) return null;
+  const nums = at.map(Number);
+  // Sentence numbers are 1-based; a new piece may begin at sentence 2 or later.
+  for (let i = 0; i < nums.length; i++){
+    const k = nums[i];
+    if (!Number.isInteger(k) || k < 2 || k > starts.length) return null;
+    if (i && k <= nums[i - 1]) return null;
+  }
+  const offs = [0].concat(nums.map(k => starts[k - 1]), [text.length]);
+  const raw = [];
+  for (let i = 0; i < offs.length - 1; i++) raw.push(text.slice(offs[i], offs[i + 1]));
+  if (raw.join("") !== text) return null;            // nothing lost, nothing doubled
+  const pieces = raw.map(x => x.trim());
+  if (pieces.some(x => x.length < 3)) return null;
+  return pieces;
+}
+
+async function separateMoments(notes, ask){
+  const offered = [];
+  notes.forEach((n, i) => {
+    if (n.declared) return;
+    const starts = sentenceStarts(n.text);
+    if (starts.length > 1) offered.push({i, starts});
+  });
+  if (!offered.length) return notes;
+
+  const cuts = new Map();
+  let b = 0;
+  while (b < offered.length){
+    const batch = [];
+    let chars = 0;
+    while (b < offered.length && batch.length < SPLIT_BATCH
+           && (!batch.length || chars + notes[offered[b].i].text.length <= SPLIT_BATCH_CHARS)){
+      chars += notes[offered[b].i].text.length;
+      batch.push(offered[b++]);
+    }
+    const listing = batch.map(o => {
+      const t = notes[o.i].text;
+      const sent = o.starts.map((st, k) =>
+        "  [" + (k + 1) + "] " + t.slice(st, o.starts[k + 1] === undefined ? t.length : o.starts[k + 1]).replace(/\s+/g, " ").trim());
+      return "NOTE " + o.i + ":\n" + sent.join("\n");
+    }).join("\n\n");
+    let data = null;
+    try {
+      data = await ask(
+        "A screenwriter's notes are below, each broken into numbered sentences. Some notes hold "
+        + "several separate ideas typed together without line breaks. Your only job is to say where, "
+        + "if anywhere, a note should be cut into separate notes. Do not rewrite anything.\n\n"
+        + "Rules:\n"
+        + "- Keep a note whole unless it clearly holds distinct story moments or independent ideas. "
+        + "Keeping it whole is the default.\n"
+        + "- Cut between two distinct story moments: a different scene, a different event, a later "
+        + "turn in the story. One moment told in several sentences stays together.\n"
+        + "- Cut between ideas that stand on their own: a premise and a separate character note, a "
+        + "story idea and an unrelated reminder.\n"
+        + "- The length of a note is never a reason to cut it or to keep it.\n"
+        + "- If unsure, do not cut.\n\n"
+        + listing + "\n\n"
+        + "Reply with JSON only. List ONLY the notes that should be cut. For each, give its number "
+        + "and the numbers of the sentences where a NEW piece begins (never 1). Notes kept whole are "
+        + "left out.\n"
+        + "{\"cuts\":[{\"n\":0,\"at\":[4,9]}]}");
+    } catch (e) {
+      if (isRefusal(e)) throw e;
+    }
+    const list = data && Array.isArray(data.cuts) ? data.cuts : [];
+    list.forEach(c => {
+      const o = batch.find(x => x.i === Number(c && c.n));
+      if (!o || cuts.has(o.i)) return;
+      const pieces = cutAt(notes[o.i].text, o.starts, c.at);
+      if (pieces) cuts.set(o.i, pieces);
+    });
+  }
+  if (!cuts.size) return notes;
+
+  /* The first piece keeps whatever the note carried; the rest start clean.
+     Nothing here may push a file past the import ceiling. */
+  const out = [];
+  notes.forEach((n, i) => {
+    const pieces = cuts.get(i);
+    if (!pieces || out.length + (notes.length - i) + pieces.length - 1 > IMPORT_MAX_NOTES){
+      out.push(n); return;
+    }
+    pieces.forEach((t, k) => out.push(k ? { ...n, text: t, beat: null, declared: false }
+                                         : { ...n, text: t }));
+  });
+  return out;
+}
+
 async function claudePlan(raw){
   const proj = P();
   let S = STRUCTURES[proj.structure];
@@ -10197,7 +10330,11 @@ async function claudePlan(raw){
      "MIDPOINT:" declares a beat id, and a beat id only means something inside
      one structure. Folding first left three cards declared against Save the
      Cat while the project had moved to Three-Act. */
-  const notes = splitForImport(raw);
+  /* Split on line breaks for free, then let the reader point at any note
+     that is really several. See separateMoments. Everything below sees the
+     pieces as ordinary notes. */
+  wallStep("Looking for ideas typed together", .1);
+  const notes = await separateMoments(splitForImport(raw), ask);
   if (!notes.length) return [];
   // The first pass is done and the file has been split, so the wall can say a
   // real number instead of a mood.

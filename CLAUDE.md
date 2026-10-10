@@ -3124,3 +3124,19 @@ from `CREDIT` rather than being typed in either place.
 
 Each fault was put back to check the suite catches it. The swallowed refusal
 turns eight checks red; the stale balance turns three red.
+
+
+## One paragraph, many ideas (10 October 2026)
+
+Notes split on line breaks for free, then `separateMoments` asks the reader,
+in batches, where any note holding several distinct moments should be cut. The
+reader returns sentence NUMBERS only; the code cuts the writer's own string and
+checks the pieces rebuild it exactly, or keeps it whole. Never rewrite this to
+take text back from the model. `unglueHeaders` runs first in `startSort` so a
+"TITLE: X story..." paragraph keeps its story. A paste with nothing to sort
+throws `nothing_to_read` before pass one, so it is never charged. Suite:
+`test/paragraph.js`.
+
+Before saving app.html from any copy, compare it with the last commit's blob.
+On 10 October a commit made from a stale copy erased GPT's board notes.
+

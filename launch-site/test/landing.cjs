@@ -72,8 +72,16 @@ const server=http.createServer(async(req,res)=>{
         },regions);
       }
       check(width+'px board preserves its brand, story title and complete opening note',await framed('#screen-board img',[[28,15,255,42],[28,184,250,179]]));
-      if(width>650)check(width+'px board shows three complete beat columns',await framed('#screen-board img',[[28,184,785,179]]));
+      if(width>650)check(width+'px board shows all five first-row beat columns',await framed('#screen-board img',[[28,184,1322,179]]));
+      const boardFrame=await p.locator('#screen-board .screenshot').boundingBox();
+      const boardScale=await p.locator('#screen-board img').evaluate(i=>i.getBoundingClientRect().width/i.naturalWidth);
+      const boardControls=await p.locator('.deck-controls').evaluate(e=>e.getBoundingClientRect().top+scrollY);
       await p.getByRole('button',{name:'Next screenshot',exact:true}).click();
+      const projectFrame=await p.locator('#screen-projects .screenshot').boundingBox();
+      const projectScale=await p.locator('#screen-projects img').evaluate(i=>i.getBoundingClientRect().width/i.naturalWidth);
+      const projectControls=await p.locator('.deck-controls').evaluate(e=>e.getBoundingClientRect().top+scrollY);
+      check(width+'px slides have identical frame dimensions and image scale',Math.abs(boardFrame.width-projectFrame.width)<.1&&Math.abs(boardFrame.height-projectFrame.height)<.1&&Math.abs(boardScale-projectScale)<.001);
+      check(width+'px switching slides keeps controls in place',Math.abs(boardControls-projectControls)<.1);
       check(width+'px project preview preserves complete progress information',await framed('#screen-projects img',width>650?[[15,43,1367,697]]:[[362,385,323,355]]));
       if([1366,390].includes(width)){await p.screenshot({path:path.join(__dirname,'screenshots',width+'-projects.png'),fullPage:true});await p.locator('.screenshots').screenshot({path:path.join(__dirname,'screenshots',width+'-projects-detail.png')});}
       await p.getByRole('button',{name:'Previous screenshot',exact:true}).click();
