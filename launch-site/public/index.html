@@ -53,15 +53,31 @@
       <noscript><p class="no-script">To join the launch list, <a href="mailto:support@beatfall.app?subject=Beatfall%20launch%20list">email us</a>.</p><style>.signup{display:none}</style></noscript>
     </section>
     <section class="screenshots" aria-label="A look inside Beatfall">
-      <figure>
+      <div class="screen-deck">
+      <figure class="screen-card" id="screen-board">
         <div class="screenshot"><img src="/media/night-haul-board.webp" width="1400" height="760" alt="Night Haul story board showing notes placed in story beats and open spaces for missing beats."></div>
         <figcaption><h2>Your story board</h2><p>See where your notes belong and what’s missing.</p></figcaption>
       </figure>
-      <figure>
+      <figure class="screen-card" id="screen-projects">
         <div class="screenshot"><img src="/media/beatfall-dashboard.webp" width="1400" height="745" alt="Beatfall project dashboard showing story progress, open beats, and the next beat to work on."></div>
         <figcaption><h2>Your projects</h2><p>See each story’s progress and what needs attention.</p></figcaption>
       </figure>
+      </div>
+      <div class="deck-controls" hidden>
+        <div class="deck-navigation" aria-label="Screenshot controls">
+          <button type="button" class="deck-arrow" data-step="-1" aria-label="Previous screenshot">‹</button>
+          <span class="deck-count" aria-live="polite" aria-atomic="true">01 / 02</span>
+          <button type="button" class="deck-arrow" data-step="1" aria-label="Next screenshot">›</button>
+        </div>
+        <button type="button" class="explore-screen">Explore this screen <span aria-hidden="true">↗</span></button>
+        <p class="swipe-hint">Swipe to explore · Close-up shown</p>
+      </div>
     </section>
+    <dialog class="screen-viewer" aria-labelledby="viewer-title">
+      <div class="viewer-bar"><h2 id="viewer-title">Your story board</h2><div class="viewer-actions"><button type="button" class="viewer-zoom" aria-pressed="false">Zoom in</button><button type="button" class="viewer-close">Close</button></div></div>
+      <p class="viewer-help">Zoom in to read the details. Scroll to explore the full screen.</p>
+      <div class="viewer-image"><img width="1400" height="760" alt=""></div>
+    </dialog>
     <section class="founder" aria-label="Why Beatfall was built">
       <blockquote>“I didn’t want software to write my screenplay. I wanted help finding the story hiding inside my notes.”</blockquote>
       <p>Built by a screenwriter for the work before the first draft.</p>

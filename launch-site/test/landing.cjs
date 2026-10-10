@@ -59,7 +59,7 @@ const server=http.createServer(async(req,res)=>{
       }));
       check(width+'px has no page overflow',!layout.overflow);
       check(width+'px loads both real screenshots with descriptions',layout.images.length===2&&layout.images.every(i=>i.loaded&&i.alt.length>20));
-      check(width+'px screenshots use intended layout',width>650?layout.figures[0].y===layout.figures[1].y:layout.figures[0].y<layout.figures[1].y);
+      check(width+'px screenshots use intended layout',await p.locator('.screen-card:visible').count()===1&&await p.getByRole('button',{name:'Next screenshot'}).isVisible());
       check(width+'px has no app gate, app script or beta links',!layout.gate&&layout.scripts.every(s=>s.endsWith('/launch.js'))&&!layout.links.some(s=>/login|billing|beta|app\.html/.test(s)));
       check(width+'px page has no script errors',errors.length===0);
       check(width+'px founder quote follows screenshots and precedes footer',await p.evaluate(()=>{const quote=document.querySelector('.founder'),shots=document.querySelector('.screenshots'),footer=document.querySelector('footer');return quote.textContent.includes('I didn’t want software to write my screenplay.')&&quote.getBoundingClientRect().top>=shots.getBoundingClientRect().bottom&&quote.getBoundingClientRect().bottom<=footer.getBoundingClientRect().top;}));
@@ -68,6 +68,24 @@ const server=http.createServer(async(req,res)=>{
     }
     const p=await browser.newPage();
     await p.route('https://fonts.googleapis.com/**',r=>r.fulfill({body:'',contentType:'text/css'}));
+    await p.goto(url);
+    await p.getByRole('button',{name:'Next screenshot',exact:true}).click();
+    check('next arrow shows projects and updates the counter',await p.locator('#screen-projects').isVisible()&&await p.locator('.deck-count').innerText()==='02 / 02');
+    await p.getByRole('button',{name:'Explore your projects',exact:true}).click();
+    check('explore opens the full selected screenshot',await p.getByRole('dialog',{name:'Your projects',exact:true}).isVisible()&&(await p.locator('.viewer-image img').getAttribute('src')).endsWith('beatfall-dashboard.webp'));
+    await p.getByRole('button',{name:'Zoom in',exact:true}).click();
+    check('zoom exposes full resolution for scrolling',await p.locator('.viewer-image img').evaluate(e=>e.getBoundingClientRect().width===1400)&&await p.getByRole('button',{name:'Fit screen'}).getAttribute('aria-pressed')==='true');
+    await p.keyboard.press('Escape');
+    check('Escape closes viewer and restores focus',!await p.locator('.screen-viewer').isVisible()&&await p.getByRole('button',{name:'Explore your projects',exact:true}).evaluate(e=>e===document.activeElement));
+    await p.getByRole('button',{name:'Next screenshot',exact:true}).click();
+    check('arrows wrap back to first screen',await p.locator('#screen-board').isVisible());
+    await p.getByRole('button',{name:'Previous screenshot',exact:true}).focus();
+    await p.keyboard.press('Enter');
+    check('keyboard operates screenshot navigation',await p.locator('#screen-projects').isVisible());
+    await p.evaluate(()=>{const deck=document.querySelector('.screen-deck');const start=new Event('touchstart');Object.defineProperty(start,'touches',{value:[{clientX:300,clientY:200}]});deck.dispatchEvent(start);const end=new Event('touchend');Object.defineProperty(end,'changedTouches',{value:[{clientX:100,clientY:205}]});deck.dispatchEvent(end);});
+    check('horizontal swipe changes screens',await p.locator('#screen-board').isVisible());
+    await p.evaluate(()=>{const deck=document.querySelector('.screen-deck');const start=new Event('touchstart');Object.defineProperty(start,'touches',{value:[{clientX:100,clientY:200}]});deck.dispatchEvent(start);const end=new Event('touchend');Object.defineProperty(end,'changedTouches',{value:[{clientX:110,clientY:400}]});deck.dispatchEvent(end);});
+    check('vertical page scrolling does not change screens',await p.locator('#screen-board').isVisible());
     await p.context().addCookies([{name:'beatfall-session',value:'test-only',url}]);
     await p.goto(url+'/?utm_source=story-launchbox&utm_medium=email&utm_campaign=launch-list');
     await p.locator('#email').fill('Writer@Example.com');
@@ -111,6 +129,7 @@ const server=http.createServer(async(req,res)=>{
     await nojs.route('https://fonts.googleapis.com/**',r=>r.fulfill({body:'',contentType:'text/css'}));
     await nojs.goto(url);
     check('without JavaScript the visitor gets an honest email fallback',await nojs.locator('.no-script').isVisible()&&!await nojs.locator('#launch-form').isVisible());
+    check('both screenshots remain visible without JavaScript',await nojs.locator('figure:visible').count()===2);
     await nojs.close();
     const source=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
     check('no Chatling embed, app manifest, desktop login or AI marketing text',!(/chatling|chtl|app\.js|site\.webmanifest|login\.html|\bAI\b/.test(source)));
@@ -119,3 +138,5 @@ const server=http.createServer(async(req,res)=>{
     if(failed.length)process.exitCode=1;
   }catch(e){console.error(e);process.exitCode=1;}finally{if(browser)await browser.close();server.close();}
 })();
+
+
