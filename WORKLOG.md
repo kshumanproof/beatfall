@@ -3126,3 +3126,16 @@ Kris answered the three figures in RETENTION-DRAFT.md: seven years for payments 
 
 Verified: clean.js 43 of 43 (12 new, both sides of every line), all 14 server suites pass (627), pages.js 81 of 81. Three planted faults each turned clean.js red. Real Supabase not exercised: run /api/cleanup?dry=1 once and read the records block.
 
+
+## Board notes restored, and one-paragraph pastes (10 October 2026)
+
+RESTORED: commit "Improve landing screenshot framing and move paste sheet information dot" was made from an app.html that predated GPT's "Open filed beat notes on the board" commit, and erased it: the beat note counts, the board-notes panel and the picture viewer's Escape/focus fix. Put back by applying exactly the six hunks of that commit's app.html change, read from the git objects (no git command run), and NOT the three hunks that would have moved the info dot back. Diff against GPT's own blob afterwards shows only the info-dot move and this entry's changes. drive.js back to 297 of 297. Lesson: before saving app.html from a copy, compare it with the last commit's blob.
+
+ONE-PARAGRAPH PASTE (Kris's THE SAFE THING test, fifteen beats in one paragraph, "could not identify story notes"). Three fixes, steps 1 to 3 of four:
+1. unglueHeaders() runs on the paste in startSort: a line of 120+ characters opening with a header label is cut into the label line and the rest (title: the run of capitals, else the first sentence end). isHeaderNote no longer drops a long note just because it CONTAINS the title.
+2. claudePlan runs the free split before pass one and throws nothing_to_read if it is empty, so a paste with no notes is never charged.
+3. Messages: the free case says nothing was charged; the after-read case says the read found nothing to put on a board.
+STEP 4 NOT BUILT YET: a long paragraph is still ONE note, so the fifteen beats land as one card. Voice notes from the phone have the same shape (no line breaks), so they are never split either, contrary to the 10 Sep decision.
+
+Verified: test/paragraph.js (new, 18 checks, each fix put back turns it red), drive 297, flows 273, pages 81, admin 187, credits 43, stories 33, delete 23, platform 17.
+

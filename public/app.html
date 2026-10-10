@@ -795,6 +795,17 @@ main{width:100%;max-width:1560px;margin:0 auto;padding:28px 28px 90px}
   text-transform:uppercase;color:var(--ink-3);
 }
 .slot.gap .slotname,.slot.empty .slotname{color:var(--gold)}
+.beat-traces { margin-left: auto; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.beat-traces .otrace { margin-left: 0; }
+.note-trace { border: 0; background: none; padding: 0; font: inherit; font-size: 9px; text-transform: uppercase; color: var(--ink-4); cursor: pointer; white-space: nowrap; }
+.note-trace:hover, .note-trace[aria-expanded="true"] { color: var(--blue); }
+.note-trace:focus-visible, .beat-traces .otrace:focus-visible, .board-note-photo:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.board-notes { border-top: 1px solid var(--rule); padding-top: 12px; }
+.board-notes[hidden] { display: none; }
+.board-notes-heading { font-size: 10px; color: var(--ink-3); margin-bottom: 10px; }
+.board-note + .board-note { border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 12px; }
+.board-note-text { font-family: var(--mono); font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.board-note .board-note-photo { display: flex; width: 100%; margin: 0 0 8px; padding: 0; cursor: pointer; }
 .slothead{display:flex;align-items:baseline;gap:8px}
 .slot.contested .slotname{color:var(--gold)}
 .slot.contested .cards{box-shadow:inset 0 0 0 0 transparent}
@@ -4288,6 +4299,43 @@ function isAttached(c, proj){
   // a structure switch can strand an attachment on a beat that no longer exists
   return STRUCTURES[proj.structure].slots.some(s => s.id === c.attachedTo);
 }
+/* Read-only board references. Opening them never changes project state. */
+function boardNotes(notes, slot){
+  const panel = document.createElement("section");
+  panel.className = "board-notes";
+  panel.id = "beat-notes-" + slot.id;
+  panel.setAttribute("aria-label", "Notes filed under " + slot.name);
+  const heading = document.createElement("div");
+  heading.className = "board-notes-heading";
+  heading.textContent = "Filed under " + slot.name;
+  panel.appendChild(heading);
+  notes.forEach(c => {
+    const row = document.createElement("div");
+    row.className = "board-note";
+    if (c.img){
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "nphoto board-note-photo";
+      thumb.setAttribute("aria-label", "Open picture" + (c.text ? ": " + c.text : ""));
+      const img = document.createElement("img");
+      img.alt = "";
+      img.draggable = false;
+      thumb.appendChild(img);
+      showPhoto(c.img, img);
+      thumb.addEventListener("click", e => { e.stopPropagation(); if (!thumb.classList.contains("gone")) openPicture(c); });
+      row.appendChild(thumb);
+    }
+    if (c.text){
+      const text = document.createElement("div");
+      text.className = "board-note-text";
+      text.textContent = c.text;
+      row.appendChild(text);
+    }
+    panel.appendChild(row);
+  });
+  return panel;
+}
+
 function attachedList(slot, onChange){
   const notes = notesOn(slot.id).filter(c => isAttached(c));
   if (!notes.length) return null;
@@ -5069,24 +5117,19 @@ function render(justPlaced){
         + (contested ? " contested" : "")
         + (justPlaced === s.id ? " justplaced" : "");
       el.dataset.slot = s.id;
-      /* WHAT THE BOARD SHOWS OF THE OUTLINE: that it exists, and nothing else.
-
-         The board is index cards. Prose and filed notes rendered underneath
-         them turned it into a wall of text, which is what made the Outline
-         look like something to be locked away rather than written in. So the
-         beat carries a count and no content, in the same quiet key as
-         "undecided", and pressing it opens the Outline at this beat. */
+      // Prose belongs in the Outline; supporting notes open here on the board.
       const passages = outlineList(proj, s.id).length;
-      const filedHere = notesOn(s.id, proj).filter(c => isAttached(c, proj)).length;
-      const trace = [passages ? passages + (passages === 1 ? " passage" : " passages") : "",
-                     filedHere ? filedHere + (filedHere === 1 ? " note" : " notes") : ""]
-                    .filter(Boolean).join(" &middot; ");
+      const filed = notesOn(s.id, proj).filter(c => isAttached(c, proj));
       el.innerHTML =
         '<div class="slothead"><span class="slotname">' + esc(s.name) + "</span>"
         + (contested ? '<span class="undecided" data-tip="This beat has more than one version. Delete one or keep both for now.">undecided &middot; ' + cards.filter(c => c.declared).length
             + "</span>" : "")
-        + (trace ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
-            + trace + "</button>" : "")
+        + (passages || filed.length ? '<span class="beat-traces">'
+            + (passages ? '<button class="otrace" type="button" data-tip="Open the Outline at this beat.">'
+                + passages + (passages === 1 ? " passage" : " passages") + "</button>" : "")
+            + (filed.length ? '<button class="note-trace" type="button" aria-expanded="false" aria-controls="beat-notes-' + esc(s.id) + '">'
+                + filed.length + (filed.length === 1 ? " note" : " notes") + "</button>" : "")
+            + "</span>" : "")
         + "</div>"
         /* THE JOB STAYS. It used to appear only on an empty beat, which meant
            the board explained itself least at the moment a writer is deciding
@@ -5106,6 +5149,22 @@ function render(justPlaced){
       });
       const holder = el.querySelector(".cards");
       cards.forEach(c => holder.appendChild(cardEl(c)));
+      const noteBtn = el.querySelector(".note-trace");
+      if (noteBtn){
+        let panel;
+        noteBtn.setAttribute("aria-label", "Show notes filed under " + s.name);
+        noteBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (!panel){
+            panel = boardNotes(filed, s);
+            holder.after(panel);
+          }
+          const expanded = noteBtn.getAttribute("aria-expanded") !== "true";
+          panel.hidden = !expanded;
+          noteBtn.setAttribute("aria-expanded", String(expanded));
+          noteBtn.setAttribute("aria-label", (expanded ? "Hide" : "Show") + " notes filed under " + s.name);
+        });
+      }
 
       // An empty beat is the absence of a card: the job it does, one dashed
       // hairline where the paper should be, and two quiet ways in.
@@ -9209,8 +9268,71 @@ function isHeaderNote(text, brief){
   if (t.length < 8) return false;
   return ["log","genre","like","setting","who","name"].some(k => {
     const v = brief[k] && norm(brief[k]);
-    return v && v.length > 8 && (v === t || v.includes(t) || t.includes(v));
+    /* A note CONTAINING the value is only the value if it is not much more
+       than the value. Without that ceiling, a story whose title is a phrase
+       somebody says in it ("keep doing the safe thing until there's nothing
+       left to save") was thrown away whole as a copy of its own title. */
+    return v && v.length > 8
+      && (v === t || v.includes(t) || (t.includes(v) && t.length <= v.length + 40));
   });
+}
+
+/* A LABEL GLUED TO THE STORY IT INTRODUCES.
+
+   Kris pasted fifteen beats as one paragraph that opened "TITLE: THE SAFE
+   THING Maya Hollis, 32, wakes before dawn...". The fold splits on line
+   breaks, so that was one note, and isHeaderNote throws away any note that
+   starts with TITLE:, so the whole story went in the bin as a title line and
+   the sheet said it could find nothing. localBrief would have named the
+   project after all 3,400 characters of it too.
+
+   So before anything else reads the paste, a long line that opens with one of
+   the header labels is cut in two: the label and its value on a line of their
+   own, the rest on the next. Every reader downstream then sees the shape it
+   was written for. A short line is left exactly as it is, because "Title: The
+   Safe Thing" on its own is the ordinary case and already works.
+
+   Where the value ends: for a title, the run of capitals, since that is how a
+   writer marks one ("THE SAFE THING Maya..."). Otherwise the first full stop,
+   question or exclamation mark followed by a capital. If neither is there the
+   line is left alone rather than cut somewhere invented. */
+const GLUED = new RegExp(LEAD + "((?:proposed\\s+)?(?:working\\s+)?(?:title|format|genre|tone|comps?"
+  + "|possible comps?|comparisons?|setting|logline(?:\\s+idea)?|protagonist|main character))"
+  + TAIL, "i");
+const GLUED_MIN = 120;      // shorter than this, the line is a header and nothing more
+function unglueHeaders(raw){
+  return String(raw).split(/\r?\n/).map(line => {
+    if (line.length < GLUED_MIN) return line;
+    const m = line.match(GLUED);
+    if (!m) return line;
+    const lead = m[0], rest = line.slice(lead.length);
+    let cut = -1;
+    if (/title/i.test(m[1])){
+      /* The capitals run, word by word, stopping at the first word with a
+         lower case letter in it. A lone "A" or "I" at the end is the first
+         word of the sentence ("NIGHT HAUL A trucker..."), so it is handed
+         back. */
+      const words = rest.split(/(\s+)/);
+      let n = 0, upto = 0, last = "";
+      for (let i = 0; i < words.length; i += 2){
+        const w = words[i];
+        if (!w || /[a-z]/.test(w) || !/[A-Z]/.test(w)) break;
+        n++; last = w; upto = words.slice(0, i + 1).join("").length;
+      }
+      if (n > 1 && /^(?:A|I)$/.test(last)){
+        n--; upto = rest.slice(0, upto).replace(/\s*\S+$/, "").length;
+      }
+      if (n) cut = upto;
+    }
+    if (cut < 0){
+      const s = rest.search(/[.!?]["'”’)]?\s+(?=["'“‘(]?[A-Z])/);
+      if (s >= 0) cut = s + rest.slice(s).match(/^[.!?]["'”’)]?/)[0].length;
+    }
+    if (cut <= 0) return line;
+    const tail = rest.slice(cut).trim();
+    if (tail.length < 20) return line;
+    return lead + rest.slice(0, cut).trim() + "\n" + tail;
+  }).join("\n");
 }
 
 /* THE HEADER BLOCK THAT BELONGS TO EACH STORY, NOT JUST TO THE FIRST.
@@ -9953,6 +10075,16 @@ async function claudePlan(raw){
   const sid = newSid();
   importSid = sid;
   const ask = (prompt) => ai_sample.json(prompt, {kind: "import", session: sid, signal: dumpCtl.signal});
+
+  /* NOTHING TO SORT IS FOUND OUT FOR FREE, BEFORE ANYTHING IS ASKED.
+     Splitting the file is local code and costs nothing. Pass one below is the
+     first paid question, and it used to go out first, so a paste with no notes
+     in it (only a title line, say) was charged for a read that could only ever
+     come back empty. Same split the read itself uses further down, so the two
+     cannot disagree about whether there is anything here. */
+  if (!splitForImport(raw).length){
+    const e = new Error("nothing_to_read"); e.code = "nothing_to_read"; throw e;
+  }
 
   /* ---- pass one: what the file says it is, and how many stories are in it ---- */
   const formats = Object.keys(STRUCTURES).map(k => k + " (" + STRUCTURES[k].label + ")").join(", ");
@@ -11423,7 +11555,7 @@ async function startSort(){
   // on them, so a later Cancel must not put a wall of text back in the box.
   captureStash = "";
   lastCollapsed = 0;              // nothing was collapsed on the way in here
-  const raw = dumptext.value.trim();
+  const raw = unglueHeaders(dumptext.value.trim());
   if (!raw){ closeImport(); return; }
 
   /* THE CEILING, ENFORCED WHERE THE SPENDING STARTS.
@@ -11462,6 +11594,13 @@ async function startSort(){
       plan = null;
       BF.track("import_failed", {error_code: (e && e.code) || "unknown", stage: "read"});
       if (e && e.code === "cancelled"){ go.disabled = false; go.textContent = "Sort my notes"; stop.hidden = true; return; }
+      /* Found out before the first paid question, so this one costs nothing
+         and the sheet says so. */
+      if (e && e.code === "nothing_to_read"){
+        document.getElementById("dumpcount").textContent =
+          "No notes to sort here. Lines like Title or Genre fill in the project, not the board. Nothing was charged.";
+        return;
+      }
       // A failed read used to fall through to the built-in matcher without saying
       // so, which looked exactly like a successful one. It says so now.
       /* BEING OUT OF CREDITS IS NOT A FAILURE TO READ, and telling somebody
@@ -11504,7 +11643,7 @@ async function startSort(){
     }
     if (!plan || !plan.length){
       document.getElementById("dumpcount").textContent =
-        "Beatfall could not identify story notes in this text. Check the text and try again.";
+        "Beatfall read your notes but found nothing to put on a board. Your text is still above.";
       BF.track("import_failed", {error_code: "nothing_usable", stage: "read"});
       return;
     }
@@ -13100,7 +13239,8 @@ async function photoRoom(){
    nobody has opened should not be holding one at all. */
 function openPicture(card){
   const old = document.querySelector(".picview");
-  if (old) old.remove();
+  if (old) old.querySelector(".picx").click();
+  const returnFocus = document.activeElement;
 
   const box = document.createElement("div");
   box.className = "picview";
@@ -13111,7 +13251,8 @@ function openPicture(card){
 
   const shut = () => {
     box.remove();
-    document.removeEventListener("keydown", onKey);
+    document.removeEventListener("keydown", onKey, true);
+    if (returnFocus && returnFocus.isConnected) returnFocus.focus();
   };
   function onKey(e){ if (e.key === "Escape"){ e.stopPropagation(); shut(); } }
 
