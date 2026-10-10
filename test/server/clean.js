@@ -302,6 +302,33 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     JSON.stringify(body.records));
 }
 
+/* EVERY IMAGE AN EMAIL ASKS FOR HAS TO EXIST ON THE SITE.
+   All three emails opened on a broken logo until 10 October 2026: they asked
+   for /brand/lockup-tagline.png and its dark twin, and neither file had ever
+   been made. Nothing noticed, because an email is not a page any suite opens.
+   This reads the shipped markup (the deletion warning the server sends, and
+   the two Supabase templates built from email/) and checks every file on our
+   own site that it points at. */
+{
+  const fs = await import('fs');
+  const path = await import('path');
+  const { DELETION_WARNING_HTML: H } = await import('./api/_email/deletion-warning.js');
+  const sources = [H];
+  for (const f of ['signin.html', 'signup.html', 'deletion-warning.html']) {
+    const p = path.resolve('../../email', f);
+    if (fs.existsSync(p)) sources.push(fs.readFileSync(p, 'utf8'));
+  }
+  const wanted = new Set();
+  sources.forEach(src => {
+    for (const m of src.matchAll(/https:\/\/beatfall-beta\.vercel\.app(\/[^"')\s<>]+\.(?:png|jpe?g|svg|gif))/g))
+      wanted.add(m[1]);
+  });
+  const missing = [...wanted].filter(u => !fs.existsSync(path.resolve('../../public' + u)));
+  check('the emails ask for at least one image of ours', wanted.size > 0, '');
+  check('and every image the emails ask for exists on the site', missing.length === 0,
+    'missing: ' + missing.join(', '));
+}
+
 const failed = out.filter(x=>!x.ok);
 console.log('\n' + (out.length-failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);

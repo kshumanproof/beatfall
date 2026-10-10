@@ -3153,3 +3153,20 @@ Every note read whole (10 October 2026): the sorter cut each note at 400 charact
 
 Kris's verdict on the paragraph work, 10 October 2026, after five real tests (THE SAFE THING, SECOND CHANCES, LONG WAY HOME, DEAD AIR, THE QUIET FLOOR): about 90 to 95 per cent right and efficient as it is. Leave it. Two known misses, both accepted because the writer can move any card before or after it lands, and NOT to be raised again: a beat named in a sentence ("I think All Is Lost is when...") can be overruled by the casting call and go to Set aside, and the splitter keeps two moments together when they share a scene, which can leave Theme Stated or Fun and Games empty.
 
+Save-failure strip settled, 10 October 2026: keep GPT's wording ("Keep this tab open while we retry"). "Nothing has been lost" is not added back, because it is only true while the tab stays open. Closed, do not raise again.
+
+## Full audit before locking the beta (10 October 2026)
+
+Every suite run against a fresh copy of the folder: server 711 (17 groups incl. billing, launch, audit-regressions), web 992 (drive 297, flows 273, admin 187, pages 81, credits 43, paragraph 38, stories 33, delete 23, platform 17), phone 24 (mobile 5, mobile-title 19), landing 146, signup 76. 1,949 checks, all passing. Real PDF renderer builds an 11 page document. History of the last 45 commits checked for stale-copy losses: only the board-notes one (already restored). No em dashes, every JS file parses, all JSON valid, no secrets, writer-facing copy clean of Claude/AI except legal disclosures and Kris's admin-only testing switch (server enforces it too). Uncommitted work at the time: only notes files; 20 other files differ by Windows line endings only.
+
+Found, not yet fixed, waiting on Kris:
+- MEDIUM: /brand/lockup-tagline.png and lockup-tagline-dark.png do not exist (live site 404s), and all three emails use them: sign-in code, sign-up, deletion warning. Every tester sees a broken logo above their code. Code still readable. Fix is adding the two images to public/brand; nothing to re-paste in Supabase.
+- LOW: one read may make 150 requests on one payment; past that each request charges another 5 credits. The new splitting pass adds requests. Only a file of roughly a million characters gets there. A size limit before charging would close it.
+- LOW: Terms says an inactive account is deleted "along with everything in them"; Privacy now keeps de-identified payment records for 7 years. Wording mismatch, belongs with Kris's legal cleanup.
+- LOW (upkeep): help desk answers (api/_help/content.js) and one Settings note have prices typed in. Correct today, stale if a price moves.
+- INFO: Vercel functions 12 of 12 on the Hobby plan; beatfall-beta.vercel.app is hard-coded in emails, cleanup and the phone config (change at go-live); store links empty (expected); homepage says "Your writing isn't used to train AI" (GPT's copy, a privacy line).
+
+Audit findings resolved the same day: MEDIUM email logo fixed (public/brand/lockup-tagline.png and lockup-tagline-dark.png built by brand-src/email-lockup.py; clean.js 45 with a check that every email image exists, red without the files). LOW Terms wording fixed (8b and 9 point at Privacy section 6; effective 10 October 2026). The 150-request ceiling and the typed help prices left for later by Kris. pages 81 and money 69 still pass.
+
+BETA LOCKED, 10 October 2026: this version is the beta for testing. CLAUDE.md opens with the baseline: the full suite (1,951 checks), the counts, and the accepted known issues. Tag beta-2026-10-10.
+

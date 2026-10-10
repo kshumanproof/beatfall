@@ -14,6 +14,82 @@ One principle everything follows from: **it asks rather than guesses.** An empty
 beat costs nothing; a wrong one costs trust. AI placements gate on confidence —
 75+ places, 55–74 offers as "possibly", below 55 places nothing.
 
+## THE BETA BASELINE (10 October 2026). READ THIS BEFORE ANYTHING ELSE.
+
+Kris locked the version pushed on 10 October 2026 as **the beta for testing**:
+web app, server, admin, phone app and landing site as they stood after the full
+audit that day. Git tag `beta-2026-10-10` marks it once he has pushed it. Every
+section below this one is history; where they disagree with this section, this
+section wins.
+
+**What "locked" means in practice.** Changes from here are fixes to what testers
+report, made one at a time, each one checked against the whole suite before he
+pushes. A change that makes any count below go DOWN is a regression until
+proven otherwise, and a count that goes down is never "updated" to match.
+
+**The full suite, and the counts that define the beta.** 1,951 checks.
+
+    cd test
+    cp ../public/app.html .
+    node mkstub.js
+    node drive.js ; node flows.js ; node pages.js ; node admin.js
+    node credits.js ; node paragraph.js ; node stories.js ; node delete.js
+    node platform.js ; node mobile.js ; node mobile-title.cjs
+
+    cd server
+    node setup.js
+    node money.js ; node gate.js ; node hook.js ; node clean.js
+    node captures.js ; node proxy.js ; node lock.js ; node vision.js
+    node restore.js ; node provider.js ; node help.js ; node operator.js
+    node reporting.js ; node actions.js ; node billing.js ; node launch.js
+    node audit-regressions.js
+
+    cd launch-site
+    node test/landing.cjs ; node test/signup.cjs
+
+Web: drive 297, flows 273, admin 187, pages 81, credits 43, paragraph 38,
+stories 33, delete 23, platform 17. Phone: mobile 5, mobile-title 19.
+Server: actions 115, operator 90, money 69, reporting 63, clean 45, billing 43,
+vision 44, captures 42, provider 37, restore 31, proxy 29, gate 23,
+audit-regressions 23, hook 18, launch 18, lock 16, help 7. Landing 146,
+signup 76.
+
+Run `flows.js`, `drive.js`, `pages.js` and `admin.js` one at a time; together
+they outlast a two minute command. `mobile-title.cjs` needs `@babel/core` and
+`@babel/plugin-transform-react-jsx` at 7.29.7 in `mobile/node_modules`. The
+server suites need `test/server` set up as its README says. Run them from a
+COPY of the folder when working remotely, never with git.
+
+**Known and accepted for the beta. Do not raise these again.**
+- A beat named in a sentence ("I think All Is Lost is when...") can be
+  overruled by the casting call and land in Set aside, and the splitter keeps
+  two moments together when they share a scene. Kris judged sorting 90 to 95
+  per cent right; the writer moves cards themselves.
+- One read rides one payment for up to 150 requests to the writing help, then
+  charges again per request. Only a book-length paste (about a million
+  characters) reaches it. Left for later by Kris.
+- The help desk answers in `api/_help/content.js` and one note in
+  `settings.html` have prices typed in. Correct at the beta. If a price moves,
+  they move with it, by hand.
+- The save-failure strip keeps GPT's wording without "nothing has been lost".
+- Vercel functions are 12 of 12 on the Hobby plan: a new endpoint means
+  merging into an existing one.
+- `beatfall-beta.vercel.app` is written into the emails, the cleanup job and
+  the phone's config. All of them change together when the domain is pointed.
+
+**Fixed in the audit that produced this baseline.** GPT's board notes, erased
+by a commit made from a stale copy, restored. The email logo
+(`/brand/lockup-tagline.png` and its dark twin) never existed, so every
+sign-in, sign-up and deletion email opened on a broken image; built by
+`brand-src/email-lockup.py` from the lockup and tagline at the masthead's own
+proportions, and `clean.js` now fails if any image an email asks for is
+missing. Terms 8b and 9 now say payment and service records are kept without a
+name or email per Privacy section 6; both documents are effective 10 October
+2026.
+
+**Before saving app.html from any copy, compare it with the last commit's
+blob.** That is how the board notes were lost.
+
 ## How Kris wants to work
 
 - **Don't hand him lists to read.** Hold the state and act on it.
@@ -2849,8 +2925,8 @@ vision 44, restore 31, provider 37, help 7. **1,061 checks, all passing.**
 
 ### Still open
 
-- The rescue bar no longer promises nothing has been lost. GPT's copy pass
-  dropped that sentence. His call, and he has not made it.
+- SETTLED 10 Oct: the rescue bar keeps GPT's wording. "Nothing has been lost"
+  stays out because it is only true while the tab is open.
 
 ## The operator's system (9 October 2026)
 
