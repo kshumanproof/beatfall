@@ -47,6 +47,94 @@ const BATCH = 200;              // a slow scheduled job is fine; a timeout is no
 const IMAGES_AFTER_LAPSE = 30 * 24 * 60 * 60 * 1000;
 const BUCKET = IMAGE_BUCKET;
 
+/* RECORDS ABOUT MONEY, AND RECORDS ABOUT RUNNING THE SERVICE.
+ *
+ * Kris's three figures, 10 October 2026, and the Privacy Policy says exactly
+ * these. Change one here and section 6 of privacy.html changes in the same
+ * commit, or the policy promises something this job does not do.
+ *
+ * Neither schedule is "forever". Taking the email and the user link off a
+ * record makes it pseudonymous, not anonymous: an account tag still joins an
+ * amount, a date and a credit history together, and that can still single a
+ * person out. So both clocks run out.
+ *
+ * FINANCIAL, seven years from the transaction: payments, the credit ledger,
+ * and any operator action that changed a balance. A balance has to be
+ * explicable for as long as the money is.
+ *
+ * OPERATIONAL, thirteen months from the record: alerts, issues (with their
+ * notes, which cascade), support cases and every other operator action.
+ * Thirteen rather than twelve so a full year can always be compared with the
+ * year before it. An issue is aged from when it was LAST SEEN and a case from
+ * its last update, so something still happening is never swept as old.
+ *
+ * The link to the person is not this job's work. Every one of these tables
+ * points at the user with ON DELETE SET NULL, so deleting an account severs it
+ * the moment the account goes. */
+const FINANCIAL_YEARS    = 7;
+const OPERATIONAL_MONTHS = 13;
+/* The operator actions that move a balance. Today that is one. A new action
+   that changes credits belongs in this list or its record is swept at thirteen
+   months while the ledger row it explains is kept for seven years. */
+const BALANCE_ACTIONS = ['credit_correction'];
+
+const RETENTION = [
+  { table: 'payments',      col: 'created_at',   horizon: 'financial' },
+  { table: 'credit_ledger', col: 'created_at',   horizon: 'financial' },
+  { table: 'admin_actions', col: 'created_at',   horizon: 'financial', only: BALANCE_ACTIONS },
+  { table: 'admin_actions', col: 'created_at',   horizon: 'operational', except: BALANCE_ACTIONS },
+  { table: 'alerts',        col: 'created_at',   horizon: 'operational' },
+  { table: 'admin_issues',  col: 'last_seen_at', horizon: 'operational' },
+  { table: 'support_cases', col: 'updated_at',   horizon: 'operational' }
+];
+
+function cutoffs(now) {
+  const f = new Date(now); f.setUTCFullYear(f.getUTCFullYear() - FINANCIAL_YEARS);
+  const o = new Date(now); o.setUTCMonth(o.getUTCMonth() - OPERATIONAL_MONTHS);
+  return { financial: f, operational: o };
+}
+
+/* A cutoff that is not comfortably in the past is a bug, not a schedule. The
+   worst thing this job could do is delete a whole history because a date came
+   out wrong, so anything newer than a year ago stops the sweep cold. */
+const SANE = 365 * 24 * 60 * 60 * 1000;
+
+async function sweepRecords(db, now, dry) {
+  const when = cutoffs(now);
+  const out = { financial_before: when.financial.toISOString(),
+                operational_before: when.operational.toISOString(),
+                removed: {}, failed: [] };
+  for (const rule of RETENTION) {
+    const at = when[rule.horizon];
+    const name = rule.table + (rule.only ? ':balance' : rule.except ? ':other' : '');
+    if (!(at instanceof Date) || isNaN(at) || now - at.getTime() < SANE) {
+      out.failed.push(name); continue;
+    }
+    const scope = q => {
+      q = q.lt(rule.col, at.toISOString());
+      if (rule.only) q = q.in('action', rule.only);
+      if (rule.except) q = q.not('action', 'in', '(' + rule.except.join(',') + ')');
+      return q;
+    };
+    try {
+      if (dry) {
+        const { count, error } = await scope(db.from(rule.table)
+          .select('id', { count: 'exact', head: true }));
+        if (error) { out.failed.push(name); continue; }
+        out.removed[name] = count || 0;
+      } else {
+        const { data, error } = await scope(db.from(rule.table).delete()).select('id');
+        if (error) { console.error('retention sweep failed', name, error); out.failed.push(name); continue; }
+        out.removed[name] = (data || []).length;
+      }
+    } catch (e) {
+      console.error('retention sweep threw', name, e);
+      out.failed.push(name);
+    }
+  }
+  return out;
+}
+
 // Never touch an account that is still paying, or still inside its trial.
 const LIVE = ['active', 'trialing', 'past_due'];
 
@@ -330,6 +418,14 @@ export default async function handler(req, res) {
     orphanBytes += dead.reduce((n, r) => n + (r.bytes || 0), 0);
   }
 
+  /* ------------------------------------------------ records past their time --
+     Payments and credit movements at seven years, the operator's records at
+     thirteen months. See RETENTION at the top of this file. A dry run counts
+     what would go and deletes nothing. */
+  let records;
+  try { records = await sweepRecords(db, now, dry); }
+  catch (e) { records = { removed: {}, failed: ['all'] }; }
+
   /* ONE MESSAGE A DAY WITH EVERYTHING STILL UNANSWERED.
      It rides this job rather than having a schedule of its own, because this
      job already runs once a day and a second cron is a second thing that can
@@ -355,7 +451,7 @@ export default async function handler(req, res) {
   }
 
   return send(res, 200, {
-    ok: true, dry, digest, retried, billing,
+    ok: true, dry, digest, retried, billing, records,
     could_not_warn: unwarnable.length,
     scanned: (stale || []).length,
     warned: warned.length, deleted: deleted.length, skipped: skipped.length,

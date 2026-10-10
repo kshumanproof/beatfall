@@ -1,7 +1,8 @@
 # Retention wording, for review
 
-Proposed, not enabled. No deletion schedule is running, and nothing in the
-code sweeps these records yet. This is the text I would put in the Privacy
+**Decided 10 October 2026 and built.** Kris chose seven years, thirteen months,
+and corrections on the financial horizon. The sweep is in `api/cleanup.js` and
+the wording below is in the Privacy Policy. Kept as the reasoning. This is the text I would put in the Privacy
 Policy and the behaviour I would then build to match it, in that order.
 
 ## What changed my mind

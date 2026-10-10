@@ -3118,3 +3118,11 @@ Added 28 regression checks in test/drive.js: incomplete boards, independent pass
 Replaced fixed desktop screenshot offsets with proportional, deliberate framing. The board preview keeps the brand, story title and three complete beat columns, including the whole Opening Image note. The dashboard preview fits the complete image, preserving its headline, scoreboard and project-card progress. On mobile, the board includes its header and complete opening card; the project preview fits one full NIGHT HAUL card, including progress, next beat and controls. The original screenshot assets, swipe/navigation/viewer code and signup code are unchanged.
 
 Added 24 framing assertions across nine viewport sizes to the landing suite. All 128 checks passed, including signup failure/retry, keyboard, swipes, zoom, no-JavaScript and layout checks. Inspected both slides on desktop and mobile. Only launch.css, landing.cjs and this log changed.
+
+
+## Retention schedules (10 October 2026)
+
+Kris answered the three figures in RETENTION-DRAFT.md: seven years for payments and credit movements, thirteen months for operational records, and credit corrections follow the seven year rule. Built in api/cleanup.js as RETENTION and sweepRecords, run on the existing nightly cron; ?dry=1 counts and deletes nothing; a cutoff newer than a year stops the sweep. Privacy section 6 now carries the two paragraphs, section 7 points at them, effective date moved to 10 October 2026. One line added to beatfall-manual.txt so the help bubble does not say deletion removes everything. Admin page and admin code untouched.
+
+Verified: clean.js 43 of 43 (12 new, both sides of every line), all 14 server suites pass (627), pages.js 81 of 81. Three planted faults each turned clean.js red. Real Supabase not exercised: run /api/cleanup?dry=1 once and read the records block.
+

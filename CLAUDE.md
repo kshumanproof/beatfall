@@ -2895,10 +2895,15 @@ set it true and records the attempt, and the page does not offer the control.
 Three refusals on purpose. $8 warns and $10 is urgent, per allowance period,
 both sent immediately by email and both also listed in the nightly digest.
 
-**No retention sweep is enabled.** `RETENTION-DRAFT.md` proposes seven years
-for financial records and thirteen months for operational ones and asks for
-three figures. Until he answers, nothing is deleted on a schedule and the
-Privacy Policy promises nothing the code does not do.
+**Retention is decided and running (10 October 2026).** Kris's figures:
+payments, the credit ledger and any operator action that changed a balance
+(`credit_correction`) are deleted at SEVEN YEARS; alerts, issues (aged from
+`last_seen_at`), support cases (aged from `updated_at`) and every other
+operator action at THIRTEEN MONTHS. `RETENTION` and `sweepRecords` in
+`api/cleanup.js`, on the nightly cron, `?dry=1` counts without deleting.
+Privacy section 6 says exactly this. Change one, change the other. A new
+operator action that moves credits goes in `BALANCE_ACTIONS` or its record is
+swept six years early. `consent_log` is on neither schedule.
 
 **A figure carries its window and its population, or it is a lie by
 omission.** The old page put a thirty-day cost beside an all-time milestone
@@ -2970,9 +2975,10 @@ the private list and out of the sitemap, which are facts about the site.
     node reporting.js ; node actions.js
 
 drive 269, flows 273, pages 81, mobile 5, platform 17, delete 23, stories 33,
-admin 151, credits 43; money 69, gate 23, hook 18, clean 31, captures 42,
+admin 151, credits 43; money 69, gate 23, hook 18, clean 43, captures 42,
 proxy 29, lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
-reporting 63, actions 115. **1,510 checks, all passing.**
+reporting 63, actions 115. **1,522 checks, all passing** (clean went 31 to 43
+with the retention sweep, 10 Oct).
 
 `flows.js` and `pages.js` both want a Chromium each and the two together run
 longer than two minutes, so run them one at a time rather than in one chain
@@ -2980,7 +2986,6 @@ if something is timing out.
 
 ### Still open on this, and it is Kris's call
 
-- The three retention figures in `RETENTION-DRAFT.md`.
 - A button on the Money screen for setting a spending figure. The form
   exists and works; nothing on that screen opens it yet, deliberately,
   because the three figures were approved once and should not be casually

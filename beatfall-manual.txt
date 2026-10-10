@@ -1039,7 +1039,10 @@ HOW LONG IT IS KEPT.
   An account with no sign-in and no live subscription for six months is
     deleted, with an emailed warning at five months and at least a month
     between that warning and the deletion.
-  Deleting an account removes everything at once.
+  Deleting an account removes everything at once, except payment and
+    service records, which lose the name and email at once and are kept
+    for seven years (payments and credits) or thirteen months (support
+    and service records), then deleted.
 
 The Privacy Policy and the Terms are the authority on all of this, and the
 billing page is the authority on the money.

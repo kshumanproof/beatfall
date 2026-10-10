@@ -217,6 +217,91 @@ check('and it reports how many it could not warn', 'could_not_warn' in b, JSON.s
     && (r2.body.images_orphaned || 0) >= 1, JSON.stringify(r2.body));
 }
 
+/* RECORDS PAST THEIR TIME. Kris's figures, 10 October 2026: payments, the
+   credit ledger and any operator action that moved a balance go at SEVEN
+   YEARS; alerts, issues, support cases and every other operator action at
+   THIRTEEN MONTHS. Each table is seeded on both sides of its line, because a
+   sweep that deletes nothing passes half of these and a sweep that deletes
+   everything passes the other half. */
+{
+  const ago = (y, m, d) => { const t = new Date(); t.setUTCFullYear(t.getUTCFullYear() - y);
+    t.setUTCMonth(t.getUTCMonth() - m); t.setUTCDate(t.getUTCDate() - (d || 0)); return t.toISOString(); };
+  const seed = () => ({
+    profiles: [],
+    payments: [
+      { id: 1, kind: 'subscription', amount_cents: 1500, created_at: ago(7, 1) },
+      { id: 2, kind: 'subscription', amount_cents: 1500, created_at: ago(6, 11) }
+    ],
+    credit_ledger: [
+      { id: 1, kind: 'charge', credits: -5, created_at: ago(7, 0, 3) },
+      { id: 2, kind: 'charge', credits: -5, created_at: ago(1, 6) }
+    ],
+    admin_actions: [
+      { id: 1, action: 'credit_correction', created_at: ago(7, 2) },
+      { id: 2, action: 'credit_correction', created_at: ago(3, 0) },
+      { id: 3, action: 'help_pause',        created_at: ago(1, 2) },
+      { id: 4, action: 'issue_status',      created_at: ago(0, 11) }
+    ],
+    alerts: [
+      { id: 1, kind: 'spend', level: 'warn', created_at: ago(1, 1, 5) },
+      { id: 2, kind: 'spend', level: 'warn', created_at: ago(0, 12) }
+    ],
+    admin_issues: [
+      { id: 1, signature: 'a', first_seen_at: ago(2, 0), last_seen_at: ago(1, 2) },
+      { id: 2, signature: 'b', first_seen_at: ago(3, 0), last_seen_at: ago(0, 0, 6) }
+    ],
+    support_cases: [
+      { id: 1, subject: '', created_at: ago(1, 3), updated_at: ago(1, 2) },
+      { id: 2, subject: '', created_at: ago(2, 0), updated_at: ago(0, 1) }
+    ],
+    consent_log: [ { id: 1, opted_in: true, created_at: ago(9, 0) } ]
+  });
+  const ids = (db, t) => (db.state[t] || []).map(r => r.id).sort().join(',');
+  const run = async (query) => {
+    globalThis.__DB__ = makeDb({ id: 'x' }, seed());
+    globalThis.__DB__.auth = { admin: { deleteUser: async () => ({ error: null }) } };
+    const r = res();
+    await handler({ method: 'GET', headers: {}, query }, r);
+    return { db: globalThis.__DB__, body: r.body || {} };
+  };
+
+  const dry = await run({ key: 'sec', dry: '1' });
+  check('a dry run deletes no record of any kind',
+    ids(dry.db, 'payments') === '1,2' && ids(dry.db, 'credit_ledger') === '1,2'
+    && ids(dry.db, 'admin_actions') === '1,2,3,4' && ids(dry.db, 'alerts') === '1,2'
+    && ids(dry.db, 'admin_issues') === '1,2' && ids(dry.db, 'support_cases') === '1,2',
+    JSON.stringify(dry.db.state));
+  const dr = (dry.body.records || {}).removed || {};
+  check('but it counts exactly what a real run would take',
+    dr.payments === 1 && dr.credit_ledger === 1 && dr['admin_actions:balance'] === 1
+    && dr['admin_actions:other'] === 1 && dr.alerts === 1 && dr.admin_issues === 1
+    && dr.support_cases === 1, JSON.stringify(dry.body.records));
+
+  const { db, body } = await run({ key: 'sec' });
+  check('a payment past seven years is deleted, one inside it is kept',
+    ids(db, 'payments') === '2', ids(db, 'payments'));
+  check('a credit movement past seven years is deleted, a recent one is kept',
+    ids(db, 'credit_ledger') === '2', ids(db, 'credit_ledger'));
+  check('a credit correction follows the seven year rule, not the thirteen month one',
+    ids(db, 'admin_actions').split(',').includes('2'),
+    'a three year old correction was swept with the operational records');
+  check('and one past seven years does go',
+    !ids(db, 'admin_actions').split(',').includes('1'), ids(db, 'admin_actions'));
+  check('any other operator action goes at thirteen months and not before',
+    ids(db, 'admin_actions') === '2,4', ids(db, 'admin_actions'));
+  check('an alert past thirteen months is deleted, a twelve month one is kept',
+    ids(db, 'alerts') === '2', ids(db, 'alerts'));
+  check('an issue is aged from when it was last seen, not first seen',
+    ids(db, 'admin_issues') === '2', ids(db, 'admin_issues'));
+  check('a support case is aged from its last update',
+    ids(db, 'support_cases') === '2', ids(db, 'support_cases'));
+  check('nothing outside the two schedules is touched',
+    ids(db, 'consent_log') === '1', ids(db, 'consent_log'));
+  check('and the job reports no table it failed to sweep',
+    body.records && Array.isArray(body.records.failed) && body.records.failed.length === 0,
+    JSON.stringify(body.records));
+}
+
 const failed = out.filter(x=>!x.ok);
 console.log('\n' + (out.length-failed.length) + ' of ' + out.length + ' passed');
 if (failed.length) process.exit(1);
