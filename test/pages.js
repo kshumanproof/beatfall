@@ -537,6 +537,85 @@ async function page(browser, url, before, arg) {
     check('and says each of those things exactly once',
       doubled.length === 0, 'duplicated on: ' + doubled.join(', '));
 
+  /* ==================================== THE CORNER THE CHAT BUBBLE OWNS
+   *
+   * The support chat launcher is fixed to the bottom right of the WINDOW, so
+   * there is no scroll position at which it is out of the way: whatever is in
+   * that corner is underneath it. It was found sitting on top of Send
+   * feedback in the footer, which is the worst link in the product to cover,
+   * because somebody reaching for it is already having a bad time.
+   *
+   * Scoped to the FOOTER. A bubble passing over the body of a long page on
+   * the way down is not a defect; the footer is the one part of a page whose
+   * whole job is links somebody has to be able to reach.
+   *
+   * And it is walked down rather than measured once, because the last scroll
+   * position is the one place the links are NOT in the corner: at the very
+   * bottom it is the copyright strip sitting there instead. A single
+   * measurement would have picked exactly the position that passes.
+   *
+   * The launcher is a stand-in rather than the real widget, because the real
+   * one is a third party script and this suite has no network. It is the size
+   * Chatling's actually is, 60px with 20px of margin, so the rectangle being
+   * asked about is the real rectangle.
+   */
+  {
+    const FOOTED = ['index.html', 'billing.html', 'help.html', 'privacy.html',
+                    'terms.html', 'login.html', 'delete.html', '404.html'];
+    const SIZES = [[1440, 900], [1280, 900], [1024, 820], [820, 1000]];
+    const covered = [];
+    for (const f of FOOTED) {
+      const u = build(f);
+      for (const [w, h] of SIZES) {
+        const p = await browser.newPage();
+        await p.setViewportSize({ width: w, height: h });
+        await p.goto(u);
+        await p.waitForTimeout(250);
+        const hits = await p.evaluate(async () => {
+          const el = document.createElement('div');
+          el.id = '__launcher';
+          el.style.cssText = 'position:fixed;right:20px;bottom:20px;width:60px;'
+            + 'height:60px;z-index:2147483000;pointer-events:none';
+          document.body.appendChild(el);
+          const found = new Set();
+          const look = () => {
+            const l = el.getBoundingClientRect();
+            document.querySelectorAll('footer a[href],footer button').forEach(n => {
+              if (n.hidden || n.closest('[hidden]')) return;
+              const cs = getComputedStyle(n);
+              if (cs.display === 'none' || cs.visibility === 'hidden') return;
+              const r = n.getBoundingClientRect();
+              if (!r.width || !r.height) return;
+              if (r.right > l.left && r.bottom > l.top
+                  && r.left < l.right && r.top < l.bottom)
+                found.add((n.textContent || n.tagName).trim().slice(0, 30));
+            });
+          };
+          /* EVERY POSITION THE FOOTER IS ON SCREEN AT, not just the bottom.
+             The launcher is pinned to the window, so the footer slides under
+             it on the way past and the last scroll position is the one place
+             it is NOT the links in the corner. That is exactly the position a
+             single measurement would have picked. */
+          const max = Math.max(0, document.body.scrollHeight - innerHeight);
+          for (let y = Math.max(0, max - innerHeight); y <= max; y += 24) {
+            window.scrollTo(0, y);
+            await new Promise(r => requestAnimationFrame(r));
+            look();
+          }
+          window.scrollTo(0, max);
+          await new Promise(r => requestAnimationFrame(r));
+          look();
+          el.remove();
+          return [...found];
+        });
+        if (hits.length) covered.push(f + ' at ' + w + 'px: ' + hits.join(', '));
+        await p.close();
+      }
+    }
+    check('no page rests a link under the support chat bubble',
+      covered.length === 0, covered.join('\n          '));
+  }
+
     /* The sitemap is a list of addresses somebody should be able to land on.
        A signed-in page in it is an invitation to a locked door. */
     const map = fs.readFileSync(path.resolve('../public/sitemap.xml'), 'utf8');

@@ -2488,8 +2488,27 @@ footer{
   border-top:1px solid var(--rule);background:var(--surface);
   margin-top:auto;   /* pushed to the floor; see the body rule */
 }
+/* ---------------------------------------------------------------------
+   THE CORNER THE SUPPORT CHAT OWNS.
+
+   The chat launcher is fixed to the bottom right of the WINDOW, so there is
+   no scroll position at which it is out of the way: whatever happens to be
+   in that corner is underneath it. It was found sitting on Send feedback,
+   which is the worst link in the product to cover, because somebody
+   reaching for it is already having a bad time.
+
+   So the corner is reserved rather than argued with. The footer keeps its
+   right hand column out of that strip and the bubble floats over an empty
+   gutter instead of over a control. Sized for Chatling's launcher, 60px
+   with 20px of margin, plus room for one that grows.
+
+   This is OUR half and it holds whichever chat widget is in use. Where the
+   launcher sits is Chatling's own setting and is the other half.
+   --------------------------------------------------------------------- */
+:root{ --dock:96px; }
 .foot-in{
-  max-width:1560px;margin:0 auto;padding:38px 34px 30px;
+  max-width:1560px;margin:0 auto;
+  padding:38px calc(34px + var(--dock)) 30px 34px;
   display:grid;grid-template-columns:auto 1fr 1fr auto;gap:32px 64px;align-items:start;
 }
 /* The lockup, then the line under it. A tagline belongs beneath the name it
@@ -2587,7 +2606,8 @@ footer{
 .foot-links a:hover{color:var(--blue-ink);text-decoration:underline;text-underline-offset:3px}
 .foot-legal{
   border-top:1px solid var(--rule-soft);
-  max-width:1560px;margin:0 auto;padding:16px 34px 22px;
+  max-width:1560px;margin:0 auto;
+  padding:16px calc(34px + var(--dock)) 22px 34px;
   display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
   font-family:var(--sans);font-size:11.5px;color:var(--ink-4);line-height:1.6;
 }
@@ -2595,8 +2615,12 @@ footer{
 .foot-legal a:hover{color:var(--blue)}
 .foot-dot{color:var(--rule)}
 @media (max-width:1023px){
-  .foot-in{grid-template-columns:1fr 1fr;gap:28px 40px;padding-bottom:26px}
-  .foot-legal{padding:16px 16px 22px}
+  .foot-in{grid-template-columns:1fr 1fr;gap:28px 40px;
+    padding:38px 34px 26px}
+  /* Stacked, the links are no longer flush right, so a right gutter buys
+     nothing and the launcher sits on the bottom of the last row instead.
+     Cleared downwards here rather than sideways. */
+  .foot-legal{padding:16px 16px calc(22px + var(--dock))}
   .foot-brand{grid-column:1 / -1}
 }
 @media (max-width:600px){

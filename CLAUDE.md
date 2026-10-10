@@ -2969,10 +2969,10 @@ the private list and out of the sitemap, which are facts about the site.
     node restore.js ; node provider.js ; node help.js ; node operator.js
     node reporting.js ; node actions.js
 
-drive 265, flows 273, pages 80, mobile 5, platform 17, delete 23, stories 33,
+drive 269, flows 273, pages 81, mobile 5, platform 17, delete 23, stories 33,
 admin 151; money 69, gate 23, hook 18, clean 31, captures 42, proxy 29,
 lock 16, vision 44, restore 31, provider 37, help 7, operator 90,
-reporting 63, actions 115. **1,462 checks, all passing.**
+reporting 63, actions 115. **1,467 checks, all passing.**
 
 `flows.js` and `pages.js` both want a Chromium each and the two together run
 longer than two minutes, so run them one at a time rather than in one chain
@@ -2985,3 +2985,40 @@ if something is timing out.
   exists and works; nothing on that screen opens it yet, deliberately,
   because the three figures were approved once and should not be casually
   editable until enforcement is settled.
+
+
+## The corner the chat bubble owns (10 October 2026)
+
+Kris found the Chatling launcher sitting on top of **Send feedback** in the
+footer. The homepage was worse: it was covering **Start 14 days free**.
+
+**A fixed launcher has no scroll position at which it is out of the way.** It
+is pinned to the bottom right of the WINDOW, so whatever is in that corner at
+the time is underneath it. That is also why a casual check says the page is
+fine: at the very bottom of the page the copyright strip is in the corner, and
+the links are one notch up the scroll.
+
+`--dock` is 96px, the space a floating launcher owns, sized for Chatling's
+60px launcher with its 20px of margin plus room for one that grows. The
+footer's right hand column keeps out of that strip, so the bubble floats over
+an empty gutter rather than over a control. Below 1024px the footer stacks,
+the links stop being flush right, a side gutter buys nothing, and the clearance
+goes downwards instead.
+
+**Three copies of one idea again**, the same shape as the account pill:
+`app.html` inline, `index.html` inline (it does not load `theme.css`), and
+nothing in `theme.css` because no other page has a footer with links in it.
+Change one, check the other.
+
+**The check is in two suites and it is scoped to the FOOTER, walked down the
+page.** A bubble passing over the body of a long page on the way past is not a
+defect; a footer link you cannot press is. Walking matters: a single
+measurement at the bottom of the page picks the one position where the links
+are NOT in the corner, which is exactly the measurement that passes while the
+bug is live. The first version of this check did that and reported everything
+clear. `drive.js` covers the board at four widths; `pages.js` covers the eight
+pages with a footer. Both go red if the gutter is removed.
+
+The launcher can also be moved in Chatling's own appearance settings. That is
+the other half and it is Kris's, and it is not needed: our half holds whichever
+widget is in use.

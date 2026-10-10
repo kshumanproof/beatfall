@@ -2087,6 +2087,74 @@ const TRIAL = Object.assign({}, PAID, {plan:'trial', trialing:true,
     await page.close();
   }
 
+  /* ==================================== THE CORNER THE CHAT BUBBLE OWNS
+   *
+   * The support chat launcher is fixed to the bottom right of the WINDOW, so
+   * there is no scroll position at which it is out of the way. It was found
+   * sitting on Send feedback in this footer, which is the worst link in the
+   * product to cover: somebody reaching for it is already having a bad time.
+   *
+   * Scoped to the FOOTER, and walked down rather than measured once. The
+   * last scroll position is the one place the links are NOT in the corner,
+   * because the copyright strip is sitting there instead, so a single
+   * measurement at the bottom would have picked the position that passes.
+   *
+   * The launcher is a stand-in the size of Chatling's real one, 60px with
+   * 20px of margin, because the widget is a third party script and this suite
+   * has no network.
+   */
+  /* Enough boards that the page actually scrolls. With one project it is
+     shorter than the window, the footer never passes under anything, and the
+     check would be measuring a page that cannot show the defect. */
+  const SHELF = [board('Night Haul', 9), board('Sidework', 4),
+                 board('Witness Tree', 12), board('Cold Storage', 2),
+                 board('Small Gods', 7), board('Dirt Money', 1)];
+  for (const [w, h] of [[1440, 820], [1280, 760], [1024, 700], [820, 700]]) {
+    const { page } = await open(browser, {account: PAID, projects: SHELF});
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(250);
+    const hits = await page.evaluate(async () => {
+      const el = document.createElement('div');
+      el.id = '__launcher';
+      el.style.cssText = 'position:fixed;right:20px;bottom:20px;width:60px;'
+        + 'height:60px;z-index:2147483000;pointer-events:none';
+      document.body.appendChild(el);
+      const found = new Set();
+      const look = () => {
+        const l = el.getBoundingClientRect();
+        document.querySelectorAll('footer a[href],footer button').forEach(n => {
+      if (n.hidden || n.closest('[hidden]')) return;
+      const cs = getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const r = n.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      if (r.right > l.left && r.bottom > l.top
+          && r.left < l.right && r.top < l.bottom)
+        found.add((n.textContent || n.tagName).trim().slice(0, 30));
+        });
+      };
+      /* EVERY POSITION THE FOOTER IS ON SCREEN AT, not just the bottom.
+         The launcher is pinned to the window, so the footer slides under
+         it on the way past and the last scroll position is the one place
+         it is NOT the links in the corner. That is exactly the position a
+         single measurement would have picked. */
+      const max = Math.max(0, document.body.scrollHeight - innerHeight);
+      for (let y = Math.max(0, max - innerHeight); y <= max; y += 24) {
+        window.scrollTo(0, y);
+        await new Promise(r => requestAnimationFrame(r));
+        look();
+      }
+      window.scrollTo(0, max);
+      await new Promise(r => requestAnimationFrame(r));
+      look();
+      el.remove();
+      return [...found];
+    });
+    check(w + 'px: the footer keeps clear of the support chat bubble',
+      hits.length === 0, hits.join(', '));
+    await page.close();
+  }
+
   await browser.close();
 
   const failed = results.filter(r => !r.ok);

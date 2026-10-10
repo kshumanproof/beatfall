@@ -92,6 +92,7 @@ export default function Capture({ email }) {
     if (sending || saving || picking2) return;
     Keyboard.dismiss();          // they are done typing; get out of the way
     setSending(true);
+    try {
     const selectedId = script?.id;
     let r = null;
     try { r = await runSync(); } catch (e) {}
@@ -121,26 +122,27 @@ export default function Capture({ email }) {
       setTimeout(() => setJustSent(0), 4000);
     }
 
-    /* A PICTURE THAT WAS REFUSED IS NOT A PICTURE THAT FAILED TO SEND, and
-     * saying the wrong one wastes somebody's evening. A lapsed plan does not
-     * get better with signal, so the message points at the computer rather
-     * than at the weather. The server writes that sentence and the phone
-     * repeats it, so there is one version of it in the world. */
-    if (r && r.refused) {
-      const f = r.refused;
-      Alert.alert(
-        f.status === 402 ? 'Pictures need a plan'
-          : f.status === 507 ? 'No room for pictures'
-          : 'Picture not sent yet',
-        f.status === 402 || f.status === 507
+    const remaining = await store.counts();
+    const backToStories = () => setWaiting(false);
+    if (r && r.ok && remaining.waiting === 0) {
+      Alert.alert('Notes sent',
+        'Your notes are waiting in Beatfall on your computer.',
+        [{ text: 'Back to stories', onPress: backToStories }], { cancelable: false });
+    } else {
+      const f = r && r.refused;
+      Alert.alert(r && r.sent ? 'Some notes are still waiting' : 'Not sent yet',
+        f && (f.status === 402 || f.status === 507)
           ? f.message
-          : "The picture hasn’t been sent. Tap Send to retry when you have an internet connection."
-      );
-    } else if (r && !r.ok) {
-      Alert.alert('Not sent yet',
-        "Sending didn’t finish. Check your internet connection, then tap Send to retry.");
+          : 'Your remaining notes are safe on this phone. Check your connection, then tap Send to try again.',
+        [{ text: 'Back to stories', onPress: backToStories }], { cancelable: false });
     }
-    setSending(false);
+    } catch (e) {
+      Alert.alert('Could not confirm delivery',
+        'Check Waiting to send before trying again. Any unsent notes remain on this phone.',
+        [{ text: 'Back to stories', onPress: () => setWaiting(false) }], { cancelable: false });
+    } finally {
+      setSending(false);
+    }
   }, [refresh, sending, saving, picking2, script, shelf.reload]);
 
   useEffect(() => { refresh(); }, [refresh]);
